@@ -1,0 +1,31 @@
+# Matches the indentation already used in the repo; Monkey C has no formatter,
+# so this is the closest thing to enforced style.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+# Monkey C source and Connect IQ resource XML — 4 spaces.
+[*.{mc,xml}]
+indent_size = 4
+
+# Shell scripts — 2 spaces.
+[*.sh]
+indent_size = 2
+
+# YAML (CI, changie, dependabot) — 2 spaces.
+[*.{yml,yaml}]
+indent_size = 2
+
+# Makefiles require real tabs.
+[Makefile]
+indent_style = tab
+
+# Markdown: keep trailing whitespace (two spaces = hard line break).
+[*.md]
+trim_trailing_whitespace = false

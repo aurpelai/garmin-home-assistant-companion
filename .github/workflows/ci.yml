@@ -1,0 +1,74 @@
+name: CI
+
+# Two verification gates, both surfacing a check on the PR:
+#   test-build — type-checks production sources + the (:test) suite with the
+#     Monkey C compiler at strict level (-l 3 -w, warnings = failure) across
+#     representative target devices. Runs the compiler directly inside the
+#     matco/connectiq-tester image (bundles the SDK + credential-gated device
+#     files), which is safe under container: + run:.
+#   test-run   — runs the (:test) suite in the headless simulator to catch
+#     wrong expected values a compile can't. Uses matco's ACTION, not a
+#     container step: the simulator is a GUI process needing the entrypoint's
+#     Xvfb + startup sequence, so it hangs under container: + run:.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test-build:
+    name: Type-check (${{ matrix.device }})
+    runs-on: ubuntu-latest
+    container:
+      # ghcr.io/matco/connectiq-tester:v2.8.0 — pinned by digest for
+      # immutability. Bundles Connect IQ SDK 9.2.0. Bump the digest (and the
+      # tag comment) deliberately when adopting a newer SDK / device snapshot.
+      image: ghcr.io/matco/connectiq-tester@sha256:7a6f586cb0e0393ff288da09cf27b6dad40a0058a346c529b99fd0fc19858f0f
+    strategy:
+      fail-fast: false
+      matrix:
+        # One device per launcher-icon size band + the user's own hardware,
+        # so resource resolution and per-device builds are all exercised.
+        device: [fenix8solar51mm, venu3, vivoactive5, fr265]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Generate ephemeral developer key
+        # Test builds are never shipped, so a throwaway key is sufficient.
+        run: openssl genrsa -out developer_key.pem 4096 && openssl pkcs8 -topk8 -inform PEM -outform DER -in developer_key.pem -out developer_key.der -nocrypt
+
+      - name: Type-check with --unit-test (strict, warnings = failure)
+        run: |
+          monkeyc \
+            -d ${{ matrix.device }} \
+            -f monkey.jungle \
+            -o bin/test_${{ matrix.device }}.prg \
+            -y developer_key.der \
+            -l 3 -w --unit-test
+
+  test-run:
+    name: Run tests (venu3)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run tests in the simulator
+        # matco/action-connectiq-tester (pinned to its commit SHA). The action
+        # runs the tester image through its entrypoint: compiles with -t, starts
+        # Xvfb + the simulator, runs `monkeydo -t`, and derives pass/fail from the
+        # PASSED/FAILED summary line (monkeydo exits nonzero even on success).
+        # venu3: the suite is device-agnostic pure logic; test-build covers the
+        # rest of the device matrix.
+        uses: matco/action-connectiq-tester@60fd2e8179994e075d3a58c6250f32aa20e2b37b
+        with:
+          device: venu3

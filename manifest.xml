@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<!--
+  Connect IQ normally generates this file via the VS Code "Monkey C: Edit *"
+  commands. It is hand-authored here for the initial scaffold; use those
+  commands (Edit Application / Products / Permissions / Languages) to change it
+  from here on rather than editing by hand.
+-->
+<iq:manifest xmlns:iq="http://www.garmin.com/xml/connectiq" version="3">
+  <iq:application id="8e138eb2fa084fb995abd7e01246ab29" type="watch-app" name="@Strings.AppName" entry="HaControllerApp" launcherIcon="@Drawables.LauncherIcon" minApiLevel="5.0.0">
+    <iq:products>
+      <iq:product id="enduro3"/>
+      <iq:product id="fenix7"/>
+      <iq:product id="fenix7pro"/>
+      <iq:product id="fenix7pronowifi"/>
+      <iq:product id="fenix7s"/>
+      <iq:product id="fenix7spro"/>
+      <iq:product id="fenix7x"/>
+      <iq:product id="fenix7xpro"/>
+      <iq:product id="fenix7xpronowifi"/>
+      <iq:product id="fenix843mm"/>
+      <iq:product id="fenix847mm"/>
+      <iq:product id="fenix8pro47mm"/>
+      <iq:product id="fenix8solar47mm"/>
+      <iq:product id="fenix8solar51mm"/>
+      <iq:product id="fenixe"/>
+      <iq:product id="fr265"/>
+      <iq:product id="venu3"/>
+      <iq:product id="venu3s"/>
+      <iq:product id="vivoactive5"/>
+      <iq:product id="vivoactive6"/>
+    </iq:products>
+    <iq:permissions>
+      <iq:uses-permission id="Communications"/>
+    </iq:permissions>
+    <iq:languages>
+      <iq:language>eng</iq:language>
+    </iq:languages>
+    <iq:barrels/>
+  </iq:application>
+</iq:manifest>

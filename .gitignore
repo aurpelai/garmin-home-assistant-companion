@@ -1,0 +1,12 @@
+# Build output
+bin/
+*.prg
+*.prg.debug.xml
+*.iq
+
+# Developer signing key — never commit
+*.der
+developer_key*
+
+# Editor / OS
+.DS_Store

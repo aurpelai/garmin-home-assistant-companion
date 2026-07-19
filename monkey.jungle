@@ -1,0 +1,51 @@
+project.manifest = manifest.xml
+
+base.sourcePath = source
+base.resourcePath = resources
+
+# Per-device launcher icons. Connect IQ does not auto-scale a single launcher
+# icon per device, and launcher size does not map cleanly to screen resolution
+# (venu3s / vivoactive5 / vivoactive6 are all 390x390 but need 70 / 56 / 54 px),
+# so device-id or resolution qualifiers don't work. Instead each device is wired
+# to a size bucket. The buckets (resources-launcher-<N>/) are generated from one
+# master by scripts/generate_launcher_icons.py; LauncherIcon is declared inside
+# each bucket, not in base resources/. Jungle has no "device group" syntax, so
+# each device id gets its own line pointing at its size bucket.
+launcher40 = resources-launcher-40
+launcher54 = resources-launcher-54
+launcher56 = resources-launcher-56
+launcher60 = resources-launcher-60
+launcher65 = resources-launcher-65
+launcher70 = resources-launcher-70
+
+# 40 px
+enduro3.resourcePath          = $(base.resourcePath);$(launcher40)
+fenix7.resourcePath           = $(base.resourcePath);$(launcher40)
+fenix7pro.resourcePath        = $(base.resourcePath);$(launcher40)
+fenix7pronowifi.resourcePath  = $(base.resourcePath);$(launcher40)
+fenix7s.resourcePath          = $(base.resourcePath);$(launcher40)
+fenix7spro.resourcePath       = $(base.resourcePath);$(launcher40)
+fenix7x.resourcePath          = $(base.resourcePath);$(launcher40)
+fenix7xpro.resourcePath       = $(base.resourcePath);$(launcher40)
+fenix7xpronowifi.resourcePath = $(base.resourcePath);$(launcher40)
+fenix8solar47mm.resourcePath  = $(base.resourcePath);$(launcher40)
+fenix8solar51mm.resourcePath  = $(base.resourcePath);$(launcher40)
+
+# 54 px
+vivoactive6.resourcePath      = $(base.resourcePath);$(launcher54)
+
+# 56 px
+vivoactive5.resourcePath      = $(base.resourcePath);$(launcher56)
+
+# 60 px
+fenix843mm.resourcePath       = $(base.resourcePath);$(launcher60)
+fenixe.resourcePath           = $(base.resourcePath);$(launcher60)
+fr265.resourcePath            = $(base.resourcePath);$(launcher60)
+
+# 65 px
+fenix847mm.resourcePath       = $(base.resourcePath);$(launcher65)
+fenix8pro47mm.resourcePath    = $(base.resourcePath);$(launcher65)
+
+# 70 px
+venu3.resourcePath            = $(base.resourcePath);$(launcher70)
+venu3s.resourcePath           = $(base.resourcePath);$(launcher70)

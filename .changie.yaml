@@ -1,0 +1,35 @@
+changesDir: .changes
+unreleasedDir: unreleased
+headerPath: header.tpl.md
+# The optional per-release intro paragraph (rendered under the version header,
+# above the sections) is supplied at release time via `changie batch
+# --header-path` from the release workflow's text input — see release.yml. No
+# `versionHeaderPath` key here, so the flag is the single source and there's no
+# double-application.
+changelogPath: CHANGELOG.md
+versionExt: md
+
+# Unprefixed version (0.2.0) — matches CHANGELOG headers and the string typed
+# into the Connect IQ Store; the git tag adds the `v` prefix in the release workflow.
+versionFormat: '## [{{.Version}}] - {{.Time.Format "2006-01-02"}}'
+kindFormat: '### {{.Kind}}'
+# Hand-authored fragments only — no commit SHA or PR link, so CHANGELOG.md reads
+# as user-facing release notes, paste-ready for the Connect IQ Store "what's new".
+changeFormat: '- {{.Body}}'
+
+# User-focused categories (not developer Added/Changed/Removed). The emoji lives
+# in the label because kindFormat is one template for all kinds and can't vary
+# per kind; the `changie new` picker shows the emoji label, which is harmless.
+# `auto` lets `changie batch auto` pick the highest implied bump from the pending
+# fragments, so the author only chooses a kind — never types a version.
+kinds:
+  - label: "✨ New"
+    auto: minor
+  - label: "⚡ Improved"
+    auto: minor
+  - label: "🐛 Fixed"
+    auto: patch
+
+# Fragment body is a single free-text line the author writes in `changie new`.
+body:
+  block: false

@@ -1,0 +1,12 @@
+<svg width="60" height="60" viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Master launcher icon (HA Companion). Single source of truth; the per-size
+       resources-launcher-<N>/launcher.svg files are generated from this by
+       scripts/generate_launcher_icons.py, which only rewrites width/height. -->
+  <!-- Bulb glass -->
+  <path d="M200 40c-66 0-120 54-120 120 0 46 26 86 64 106 8 4 12 12 12 20v18h88v-18c0-8 4-16 12-20 38-20 64-60 64-106 0-66-54-120-120-120z" fill="#FFC107"/>
+  <!-- Base -->
+  <rect x="160" y="316" width="80" height="26" rx="8" fill="#B0BEC5"/>
+  <rect x="168" y="348" width="64" height="20" rx="8" fill="#90A4AE"/>
+  <!-- Filament hint -->
+  <path d="M176 150c8-16 40-16 48 0" stroke="#FF8F00" stroke-width="10" stroke-linecap="round"/>
+</svg>

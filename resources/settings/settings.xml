@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<resources>
+    <settings>
+        <setting propertyKey="@Properties.haBaseUrl" title="@Strings.SettingHaBaseUrlTitle">
+            <settingConfig type="alphaNumeric" />
+        </setting>
+        <setting propertyKey="@Properties.haToken" title="@Strings.SettingHaTokenTitle">
+            <settingConfig type="alphaNumeric" />
+        </setting>
+    </settings>
+</resources>

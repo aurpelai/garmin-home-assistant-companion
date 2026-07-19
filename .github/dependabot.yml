@@ -1,0 +1,11 @@
+version: 2
+updates:
+  # Only GitHub Actions — the repo has no package-manager ecosystem (Monkey C).
+  # Keeps the SHA-pinned actions and the matco tester image from silently rotting.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    # No commit-message block: Dependabot's default follows the patterns it
+    # detects in the repo, which matches our no-prefix imperative style
+    # (see CONTRIBUTING.md).

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<drawables>
+    <!-- LauncherIcon is declared per-size in resources-launcher-<N>/drawables.xml
+         (generated from icons/launcher_master.svg) and wired per device in
+         monkey.jungle. Only shared, size-independent drawables live here. -->
+    <bitmap id="IconOn" filename="icon_on.png" />
+    <bitmap id="IconOff" filename="icon_off.png" />
+</drawables>
