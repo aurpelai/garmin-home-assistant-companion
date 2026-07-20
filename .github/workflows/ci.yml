@@ -40,7 +40,7 @@ jobs:
         device: [fenix8solar51mm, venu3, vivoactive5, fr265]
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Generate ephemeral developer key
         # Test builds are never shipped, so a throwaway key is sufficient.
@@ -60,7 +60,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Run tests in the simulator
         # matco/action-connectiq-tester (pinned to its commit SHA). The action
