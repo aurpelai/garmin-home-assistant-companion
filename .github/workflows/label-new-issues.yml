@@ -1,0 +1,22 @@
+name: Label new issues
+
+# Every newly opened issue starts life unvetted, so it gets `unconfirmed`. A human
+# removes the label once they've confirmed the ticket. (Applied unconditionally for
+# now — a later refinement can skip issues the maintainer authored themselves.)
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  issues: write
+
+jobs:
+  label:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Add the unconfirmed label
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE: ${{ github.event.issue.html_url }}
+        run: gh issue edit "$ISSUE" --add-label unconfirmed
