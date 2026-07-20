@@ -1,8 +1,11 @@
 name: Label new issues
 
 # Every newly opened issue starts life unvetted, so it gets `unconfirmed`. A human
-# removes the label once they've confirmed the ticket. (Applied unconditionally for
-# now — a later refinement can skip issues the maintainer authored themselves.)
+# removes the label once they've confirmed the ticket.
+#
+# Spec tickets are the exception: a `Spec: …` title means the issue is a spec artifact
+# that already came out of a grilled design (see WAYS-OF-WORKING.md), so it gets `spec`
+# instead of `unconfirmed`.
 
 on:
   issues:
@@ -15,8 +18,14 @@ jobs:
   label:
     runs-on: ubuntu-latest
     steps:
-      - name: Add the unconfirmed label
+      - name: Label the new issue
         env:
           GH_TOKEN: ${{ github.token }}
           ISSUE: ${{ github.event.issue.html_url }}
-        run: gh issue edit "$ISSUE" --add-label unconfirmed
+          TITLE: ${{ github.event.issue.title }}
+        run: |
+          if [[ "$TITLE" == Spec:* ]]; then
+            gh issue edit "$ISSUE" --add-label spec
+          else
+            gh issue edit "$ISSUE" --add-label unconfirmed
+          fi
