@@ -1,17 +1,38 @@
 import Toybox.Lang;
 
 // Shared UI-side state passed between the area and light menus: the HA client,
-// the parsed area→lights map, and the current on/off map (entity_id -> Boolean).
-// Toggles update the local state optimistically so the icon flips immediately.
+// the immutable server-truth snapshot (areas + loaded states), and a mutable
+// copy of the states map. Toggles update the mutable copy optimistically so the
+// icon flips immediately, leaving the snapshot as the untouched server truth.
 class LightStore {
     public var client as HaClient;
-    public var map as AreaLightMap;
-    public var states as Dictionary;   // entity_id -> Boolean (isOn)
+    private var _snapshot as LightSnapshot;
+    public var states as Dictionary<String, Boolean>;   // entity_id -> isOn, mutable
 
-    function initialize(client as HaClient, map as AreaLightMap, states as Dictionary) {
+    function initialize(client as HaClient, snapshot as LightSnapshot) {
         self.client = client;
-        self.map = map;
-        self.states = states;
+        _snapshot = snapshot;
+        // Copy the snapshot's states so optimistic toggles never mutate the
+        // snapshot (which stays immutable server-truth).
+        var copy = {} as Dictionary<String, Boolean>;
+        var keys = snapshot.states.keys();
+        for (var i = 0; i < keys.size(); i++) {
+            copy.put(keys[i], snapshot.isOn(keys[i]));
+        }
+        self.states = copy;
+    }
+
+    // Area-structure reads delegate to the snapshot so menus don't reach into it.
+    function areas() as Array<Dictionary> {
+        return _snapshot.areas;
+    }
+
+    function allLights() as Array<String> {
+        return _snapshot.allLights();
+    }
+
+    function lightsForArea(name as String) as Array<String> {
+        return _snapshot.lightsForArea(name);
     }
 
     function isOn(entityId as String) as Boolean {
