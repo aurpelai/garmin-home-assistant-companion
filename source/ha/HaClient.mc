@@ -57,13 +57,12 @@ class HaClient {
 
     // --- public API ---
 
-    // callback: method(result as LightSnapshot, err as Number or Null)
     function fetchLightSnapshot(callback as Method) as Void {
         var body = { "template" => LIGHT_SNAPSHOT_TEMPLATE };
         post("/api/template", body, new Responder(callback, :onTemplate));
     }
 
-    // Toggle/turn a single light. callback: method(ok as Boolean, err as Number or Null)
+    // A single light, vs. callAreaService's whole-area call below.
     function callLightService(service as Number, entityId as String, callback as Method) as Void {
         post(ServiceCall.servicePath(service), ServiceCall.entityBody(entityId),
              new Responder(callback, :onService));
