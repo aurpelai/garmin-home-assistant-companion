@@ -42,9 +42,9 @@ class LightSnapshot {
             return new LightSnapshot([] as Array<Dictionary>, {} as Dictionary<String, Boolean>,
                                      {} as Dictionary<String, Boolean>);
         }
-        var d = data as Dictionary;
-        return new LightSnapshot(parseAreas(d.get("areas")), parseStates(d.get("states")),
-                                 parseGroups(d.get("groups")));
+        var body = data as Dictionary;
+        return new LightSnapshot(parseAreas(body.get("areas")), parseStates(body.get("states")),
+                                 parseGroups(body.get("groups")));
     }
 
     function isEmpty() as Boolean {
@@ -52,8 +52,8 @@ class LightSnapshot {
     }
 
     function isOn(entityId as String) as Boolean {
-        var v = states.get(entityId);
-        return (v == null) ? false : (v as Boolean);
+        var state = states.get(entityId);
+        return (state == null) ? false : (state as Boolean);
     }
 
     function isGroup(entityId as String) as Boolean {
@@ -65,13 +65,13 @@ class LightSnapshot {
     function allLights() as Array<String> {
         var seen = {} as Dictionary<String, Boolean>;
         var flat = [] as Array<String>;
-        for (var i = 0; i < areas.size(); i++) {
-            var lights = areas[i].get(:lights) as Array<String>;
-            for (var j = 0; j < lights.size(); j++) {
-                var id = lights[j];
-                if (!seen.hasKey(id)) {
-                    seen.put(id, true);
-                    flat.add(id);
+        for (var areaIndex = 0; areaIndex < areas.size(); areaIndex++) {
+            var lights = areas[areaIndex].get(:lights) as Array<String>;
+            for (var lightIndex = 0; lightIndex < lights.size(); lightIndex++) {
+                var entityId = lights[lightIndex];
+                if (!seen.hasKey(entityId)) {
+                    seen.put(entityId, true);
+                    flat.add(entityId);
                 }
             }
         }
@@ -79,9 +79,9 @@ class LightSnapshot {
     }
 
     function lightsForArea(name as String) as Array<String> {
-        for (var i = 0; i < areas.size(); i++) {
-            if ((areas[i].get(:name) as String).equals(name)) {
-                return orderGroupsFirst(areas[i].get(:lights) as Array<String>);
+        for (var areaIndex = 0; areaIndex < areas.size(); areaIndex++) {
+            if ((areas[areaIndex].get(:name) as String).equals(name)) {
+                return orderGroupsFirst(areas[areaIndex].get(:lights) as Array<String>);
             }
         }
         return [] as Array<String>;
@@ -93,16 +93,17 @@ class LightSnapshot {
     private function orderGroupsFirst(ids as Array<String>) as Array<String> {
         var grouped = [] as Array<String>;
         var plain = [] as Array<String>;
-        for (var i = 0; i < ids.size(); i++) {
-            if (isGroup(ids[i])) {
-                grouped.add(ids[i]);
+        for (var index = 0; index < ids.size(); index++) {
+            var entityId = ids[index];
+            if (isGroup(entityId)) {
+                grouped.add(entityId);
             } else {
-                plain.add(ids[i]);
+                plain.add(entityId);
             }
         }
-        var out = sortStrings(grouped);
-        out.addAll(sortStrings(plain));
-        return out;
+        var ordered = sortStrings(grouped);
+        ordered.addAll(sortStrings(plain));
+        return ordered;
     }
 
     // --- section parsers ---
@@ -118,8 +119,8 @@ class LightSnapshot {
         var names = (raw as Dictionary).keys();
         names = sortStrings(names as Array<String>);
 
-        for (var i = 0; i < names.size(); i++) {
-            var name = names[i] as String;
+        for (var index = 0; index < names.size(); index++) {
+            var name = names[index] as String;
             var lights = onlyStrings((raw as Dictionary).get(name));
             if (lights.size() > 0) {
                 out.add({ :name => name, :lights => lights });
@@ -135,13 +136,13 @@ class LightSnapshot {
         if (!(raw instanceof Dictionary)) {
             return out;
         }
-        var d = raw as Dictionary;
-        var keys = d.keys();
-        for (var i = 0; i < keys.size(); i++) {
-            var k = keys[i];
-            var v = d.get(k);
-            if (k instanceof String && v instanceof Boolean) {
-                out.put(k as String, v as Boolean);
+        var section = raw as Dictionary;
+        var entityIds = section.keys();
+        for (var index = 0; index < entityIds.size(); index++) {
+            var entityId = entityIds[index];
+            var state = section.get(entityId);
+            if (entityId instanceof String && state instanceof Boolean) {
+                out.put(entityId as String, state as Boolean);
             }
         }
         return out;
@@ -153,8 +154,8 @@ class LightSnapshot {
     private static function parseGroups(raw as Object or Null) as Dictionary<String, Boolean> {
         var out = {} as Dictionary<String, Boolean>;
         var ids = onlyStrings(raw);
-        for (var i = 0; i < ids.size(); i++) {
-            out.put(ids[i], true);
+        for (var index = 0; index < ids.size(); index++) {
+            out.put(ids[index], true);
         }
         return out;
     }
@@ -167,10 +168,10 @@ class LightSnapshot {
         if (!(raw instanceof Array)) {
             return out;
         }
-        var arr = raw as Array;
-        for (var i = 0; i < arr.size(); i++) {
-            if (arr[i] instanceof String) {
-                out.add(arr[i] as String);
+        var items = raw as Array;
+        for (var index = 0; index < items.size(); index++) {
+            if (items[index] instanceof String) {
+                out.add(items[index] as String);
             }
         }
         return out;
@@ -179,29 +180,29 @@ class LightSnapshot {
     // Simple insertion sort — device string arrays here are small (areas, lights
     // per area), and Monkey C has no stable built-in sort for arbitrary arrays.
     static function sortStrings(arr as Array<String>) as Array<String> {
-        var a = arr.slice(0, null) as Array<String>;
-        for (var i = 1; i < a.size(); i++) {
-            var key = a[i];
-            var j = i - 1;
-            while (j >= 0 && compare(a[j], key) > 0) {
-                a[j + 1] = a[j];
-                j--;
+        var sorted = arr.slice(0, null) as Array<String>;
+        for (var index = 1; index < sorted.size(); index++) {
+            var key = sorted[index];
+            var position = index - 1;
+            while (position >= 0 && compare(sorted[position], key) > 0) {
+                sorted[position + 1] = sorted[position];
+                position--;
             }
-            a[j + 1] = key;
+            sorted[position + 1] = key;
         }
-        return a;
+        return sorted;
     }
 
     // Lexicographic compare by char code. Monkey C's String has no compareTo,
     // so compare code point by code point. Returns <0, 0, or >0.
-    static function compare(x as String, y as String) as Number {
-        var xc = x.toCharArray();
-        var yc = y.toCharArray();
-        var n = (xc.size() < yc.size()) ? xc.size() : yc.size();
-        for (var i = 0; i < n; i++) {
-            var d = xc[i].toNumber() - yc[i].toNumber();
-            if (d != 0) { return d; }
+    static function compare(first as String, second as String) as Number {
+        var firstChars = first.toCharArray();
+        var secondChars = second.toCharArray();
+        var shared = (firstChars.size() < secondChars.size()) ? firstChars.size() : secondChars.size();
+        for (var index = 0; index < shared; index++) {
+            var diff = firstChars[index].toNumber() - secondChars[index].toNumber();
+            if (diff != 0) { return diff; }
         }
-        return xc.size() - yc.size();
+        return firstChars.size() - secondChars.size();
     }
 }

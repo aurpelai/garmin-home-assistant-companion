@@ -15,9 +15,9 @@ class LightStore {
         // Copy the snapshot's states so optimistic toggles never mutate the
         // snapshot (which stays immutable server-truth).
         var copy = {} as Dictionary<String, Boolean>;
-        var keys = snapshot.states.keys();
-        for (var i = 0; i < keys.size(); i++) {
-            copy.put(keys[i], snapshot.isOn(keys[i]));
+        var entityIds = snapshot.states.keys();
+        for (var index = 0; index < entityIds.size(); index++) {
+            copy.put(entityIds[index], snapshot.isOn(entityIds[index]));
         }
         self.states = copy;
     }
