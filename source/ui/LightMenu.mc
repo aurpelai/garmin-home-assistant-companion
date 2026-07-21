@@ -25,10 +25,8 @@ class LightMenu extends WatchUi.Menu2 {
             entityId, store.isOn(entityId), null);
     }
 
-    // Scaffolding for #4 (group member counts): returns null today, but #4 makes
-    // this the group's member count. Routing both the initial render and the
-    // post-toggle restore through here on purpose, so #4 changes only this body
-    // and never touches the toggle path. Args are unused until then by design.
+    // TODO(#4): group member count. Null today; both render and restore route
+    // through here so #4 changes only this body, not the toggle path.
     static function idleSubLabel(store as LightStore, entityId as String) as String or Null {
         return null;
     }
@@ -70,8 +68,8 @@ class LightMenuDelegate extends WatchUi.Menu2InputDelegate {
         if (!(id instanceof String)) { return; }  // e.g. the :none placeholder
         var entityId = id as String;
         var toggle = item as WatchUi.ToggleMenuItem;
-        // Capture the idle sublabel now so it can be restored on completion,
-        // rather than blindly cleared (#4 makes this a group's member count).
+        // Capture the idle sublabel now so completion restores it rather than
+        // blindly clearing it.
         var idle = LightMenu.idleSubLabel(_store, entityId);
         toggle.setSubLabel(WatchUi.loadResource(Rez.Strings.Toggling) as String);
         WatchUi.requestUpdate();
