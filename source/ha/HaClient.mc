@@ -19,15 +19,22 @@ class HaClient {
     // text, so without it the body would be a Python-repr dict, not valid JSON.
     //
     // Renders { "areas": { areaName: [lightId, ...] }, "states": { lightId: bool },
-    //          "groups": [lightId, ...] }.
+    //          "names": { lightId: "Display Name" }, "groups": [lightId, ...] }.
     // The single inner area-walk collects an area's lights, records each light's
-    // on/off state via is_state (a real JSON boolean, not a string), and flags
-    // which lights are light groups. A light group is a light.* entity whose
-    // `entity_id` state attribute is defined (it holds the group's member ids);
-    // a plain light has no such attribute, so `state_attr(e, 'entity_id')` is
-    // none. "groups" is a flat list of those group ids (deduped on read by the
-    // model). Lights with no area are never visited by areas()/area_entities()
-    // and are thus naturally excluded.
+    // on/off state via is_state (a real JSON boolean, not a string), records the
+    // name Home Assistant shows for each light, and flags which lights are light
+    // groups. A light group is a light.* entity whose `entity_id` state attribute
+    // is defined (it holds the group's member ids); a plain light has no such
+    // attribute, so `state_attr(e, 'entity_id')` is none. "groups" is a flat list
+    // of those group ids (deduped on read by the model). Lights with no area are
+    // never visited by areas()/area_entities() and are thus naturally excluded.
+    //
+    // The name is `states[e].name` — Home Assistant's own display name: the
+    // user-set friendly name if any, else HA's built-in fallback (the object id
+    // with underscores as spaces, lower case). This is never none, so a name is
+    // emitted for every light; the model's bare-id fallback covers only a
+    // server-contract violation. (This is the expression to confirm against a
+    // live instance, per the spec's verification note.)
     //
     // Deliberately backslash-free: we filter light entities with
     // `.startswith('light.')` instead of a regex like select('match','^light\.').
@@ -35,13 +42,14 @@ class HaClient {
     // serializer, producing an invalid JSON escape and a 400 "Invalid JSON
     // specified" from HA.
     private const LIGHT_STATE_TEMPLATE =
-        "{% set ns = namespace(m={}, s={}, groups=[]) %}" +
+        "{% set ns = namespace(m={}, s={}, n={}, groups=[]) %}" +
         "{% for a in areas() %}" +
         "{% set ns.lights = [] %}" +
         "{% for e in area_entities(a) %}" +
         "{% if e.startswith('light.') %}" +
         "{% set ns.lights = ns.lights + [e] %}" +
         "{% set ns.s = dict(ns.s, **{e: is_state(e, 'on')}) %}" +
+        "{% set ns.n = dict(ns.n, **{e: states[e].name}) %}" +
         "{% if state_attr(e, 'entity_id') is not none %}" +
         "{% set ns.groups = ns.groups + [e] %}" +
         "{% endif %}" +
@@ -51,7 +59,7 @@ class HaClient {
         "{% set ns.m = dict(ns.m, **{area_name(a): ns.lights}) %}" +
         "{% endif %}" +
         "{% endfor %}" +
-        "{{ dict(areas=ns.m, states=ns.s, groups=ns.groups) | tojson }}";
+        "{{ dict(areas=ns.m, states=ns.s, names=ns.n, groups=ns.groups) | tojson }}";
 
     function initialize() {}
 

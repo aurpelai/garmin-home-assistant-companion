@@ -14,6 +14,16 @@ module LightMenuTest {
         });
         return new LightSession(new HaClient(), state);
     }
+
+    function sessionWithNames(states as Dictionary<String, Boolean>,
+                             names as Dictionary<String, String>) as LightSession {
+        var state = LightState.fromTemplateData({
+            "areas" => { "Room" => states.keys() },
+            "states" => states,
+            "names" => names
+        });
+        return new LightSession(new HaClient(), state);
+    }
 }
 
 (:test)
@@ -62,45 +72,31 @@ function idleSubLabelRestoredAfterToggle(logger as Test.Logger) as Boolean {
 }
 
 (:test)
-function stripDomainRemovesDomainPrefix(logger as Test.Logger) as Boolean {
-    Test.assertEqual(LightMenu.stripDomain("light.kitchen_ceiling"), "kitchen_ceiling");
+function rowLabelUsesHaName(logger as Test.Logger) as Boolean {
+    var session = LightMenuTest.sessionWithNames(
+        { "light.kitchen" => true },
+        { "light.kitchen" => "Kitchen Island" });
+
+    Test.assertEqual(LightMenu.makeItem(session, "light.kitchen").getLabel() as String, "Kitchen Island");
     return true;
 }
 
 (:test)
-function stripDomainKeepsUnprefixedId(logger as Test.Logger) as Boolean {
-    Test.assertEqual(LightMenu.stripDomain("kitchen_ceiling"), "kitchen_ceiling");
+function rowLabelFallsBackToIdWhenNameMissing(logger as Test.Logger) as Boolean {
+    var session = LightMenuTest.sessionWithNames(
+        { "light.kitchen" => true },
+        {} as Dictionary<String, String>);
+
+    Test.assertEqual(LightMenu.makeItem(session, "light.kitchen").getLabel() as String, "light.kitchen");
     return true;
 }
 
 (:test)
-function stripDomainHandlesTrailingDot(logger as Test.Logger) as Boolean {
-    Test.assertEqual(LightMenu.stripDomain("light."), "");
-    return true;
-}
+function rowLabelFallsBackToIdWhenNameEmpty(logger as Test.Logger) as Boolean {
+    var session = LightMenuTest.sessionWithNames(
+        { "light.kitchen" => true },
+        { "light.kitchen" => "" });
 
-(:test)
-function toTitleCaseCapitalizesSingleWord(logger as Test.Logger) as Boolean {
-    Test.assertEqual(LightMenu.toTitleCase("kitchen"), "Kitchen");
-    return true;
-}
-
-(:test)
-function toTitleCaseCapitalizesEachWord(logger as Test.Logger) as Boolean {
-    Test.assertEqual(LightMenu.toTitleCase("kitchen_ceiling"), "Kitchen Ceiling");
-    return true;
-}
-
-(:test)
-function toTitleCaseHandlesEdgeSeparators(logger as Test.Logger) as Boolean {
-    // Leading, trailing, and doubled separators become spaces; empty tokens do
-    // not get a stray capital.
-    Test.assertEqual(LightMenu.toTitleCase("_kitchen__ceiling_"), " Kitchen  Ceiling ");
-    return true;
-}
-
-(:test)
-function toTitleCaseHandlesEmptyInput(logger as Test.Logger) as Boolean {
-    Test.assertEqual(LightMenu.toTitleCase(""), "");
+    Test.assertEqual(LightMenu.makeItem(session, "light.kitchen").getLabel() as String, "light.kitchen");
     return true;
 }

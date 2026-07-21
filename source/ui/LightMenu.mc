@@ -21,7 +21,7 @@ class LightMenu extends WatchUi.Menu2 {
 
     static function makeItem(session as LightSession, entityId as String) as WatchUi.ToggleMenuItem {
         return new WatchUi.ToggleMenuItem(
-            friendlyName(entityId), idleSubLabel(session, entityId),
+            session.getName(entityId), idleSubLabel(session, entityId),
             entityId, session.isOn(entityId), null);
     }
 
@@ -29,40 +29,6 @@ class LightMenu extends WatchUi.Menu2 {
     // through here so #4 changes only this body, not the toggle path.
     static function idleSubLabel(session as LightSession, entityId as String) as String or Null {
         return null;
-    }
-
-    // "light.kitchen_ceiling" -> "Kitchen Ceiling"
-    static function friendlyName(entityId as String) as String {
-        return toTitleCase(stripDomain(entityId));
-    }
-
-    // "light.kitchen_ceiling" -> "kitchen_ceiling". An id with no domain prefix
-    // is returned unchanged.
-    static function stripDomain(entityId as String) as String {
-        var dot = entityId.find(".");
-        if (dot == null) { return entityId; }
-        // substring is typed String?; dot+1 is a valid in-range index here.
-        return entityId.substring(dot + 1, entityId.length()) as String;
-    }
-
-    // "kitchen_ceiling" -> "Kitchen Ceiling": underscores become spaces and each
-    // word is capitalized.
-    static function toTitleCase(objectId as String) as String {
-        var chars = objectId.toCharArray();
-        var out = "";
-        var capNext = true;
-        for (var i = 0; i < chars.size(); i++) {
-            var character = chars[i];
-            if (character == '_') {
-                out += " ";
-                capNext = true;
-            } else {
-                var piece = character.toString();
-                out += capNext ? piece.toUpper() : piece;
-                capNext = false;
-            }
-        }
-        return out;
     }
 }
 
