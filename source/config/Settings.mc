@@ -6,13 +6,13 @@ import Toybox.Lang;
 module Settings {
 
     function getBaseUrl() as String {
-        var v = Application.Properties.getValue("haBaseUrl") as String or Null;
-        return (v == null) ? "" : trimTrailingSlash(v);
+        var value = Application.Properties.getValue("haBaseUrl") as String or Null;
+        return (value == null) ? "" : trimTrailingSlash(value);
     }
 
     function getToken() as String {
-        var v = Application.Properties.getValue("haToken") as String or Null;
-        return (v == null) ? "" : v;
+        var value = Application.Properties.getValue("haToken") as String or Null;
+        return (value == null) ? "" : value;
     }
 
     // True only when both URL and token are non-empty. UI routes to ErrorView
@@ -21,12 +21,12 @@ module Settings {
         return !getBaseUrl().equals("") && !getToken().equals("");
     }
 
-    function trimTrailingSlash(s as String) as String {
+    function trimTrailingSlash(url as String) as String {
         // substring is typed String? but returns null only for an out-of-range
         // index; the length guard keeps the range valid, so the cast is safe.
-        while (s.length() > 0 && (s.substring(s.length() - 1, s.length()) as String).equals("/")) {
-            s = s.substring(0, s.length() - 1) as String;
+        while (url.length() > 0 && (url.substring(url.length() - 1, url.length()) as String).equals("/")) {
+            url = url.substring(0, url.length() - 1) as String;
         }
-        return s;
+        return url;
     }
 }

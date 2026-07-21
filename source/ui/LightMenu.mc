@@ -33,20 +33,20 @@ class LightMenu extends WatchUi.Menu2 {
 
     // "light.kitchen_ceiling" -> "Kitchen Ceiling"
     static function friendlyName(entityId as String) as String {
-        var s = entityId;
-        var dot = s.find(".");
+        var string = entityId;
+        var dot = string.find(".");
         // substring is typed String?; dot+1 is a valid in-range index here.
-        if (dot != null) { s = s.substring(dot + 1, s.length()) as String; }
-        var chars = s.toCharArray();
+        if (dot != null) { string = string.substring(dot + 1, string.length()) as String; }
+        var chars = string.toCharArray();
         var out = "";
         var capNext = true;
         for (var i = 0; i < chars.size(); i++) {
-            var c = chars[i];
-            if (c == '_') {
+            var character = chars[i];
+            if (character == '_') {
                 out += " ";
                 capNext = true;
             } else {
-                var piece = c.toString();
+                var piece = character.toString();
                 out += capNext ? piece.toUpper() : piece;
                 capNext = false;
             }

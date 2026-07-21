@@ -179,8 +179,8 @@ class LightState {
 
     // Simple insertion sort — device string arrays here are small (areas, lights
     // per area), and Monkey C has no stable built-in sort for arbitrary arrays.
-    static function sortStrings(arr as Array<String>) as Array<String> {
-        var sorted = arr.slice(0, null) as Array<String>;
+    static function sortStrings(strings as Array<String>) as Array<String> {
+        var sorted = strings.slice(0, null) as Array<String>;
         for (var index = 1; index < sorted.size(); index++) {
             var key = sorted[index];
             var position = index - 1;

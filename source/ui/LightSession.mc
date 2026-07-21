@@ -36,8 +36,8 @@ class LightSession {
     }
 
     function isOn(entityId as String) as Boolean {
-        var v = states.get(entityId);
-        return (v == null) ? false : (v as Boolean);
+        var state = states.get(entityId);
+        return (state == null) ? false : (state as Boolean);
     }
 
     // Flip local state and fire the toggle. The result callback reconciles on
@@ -69,8 +69,8 @@ class ToggleResultHandler {
         _onComplete = onComplete;
     }
 
-    function onResult(ok as Boolean or Null, err as Number or Null) as Void {
-        if (err != null) {
+    function onResult(ok as Boolean or Null, error as Number or Null) as Void {
+        if (error != null) {
             _session.revert(_entityId, _attemptedOn);
         }
         _onComplete.invoke();
