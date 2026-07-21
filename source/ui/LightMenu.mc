@@ -33,11 +33,22 @@ class LightMenu extends WatchUi.Menu2 {
 
     // "light.kitchen_ceiling" -> "Kitchen Ceiling"
     static function friendlyName(entityId as String) as String {
-        var string = entityId;
-        var dot = string.find(".");
+        return toTitleCase(stripDomain(entityId));
+    }
+
+    // "light.kitchen_ceiling" -> "kitchen_ceiling". An id with no domain prefix
+    // is returned unchanged.
+    static function stripDomain(entityId as String) as String {
+        var dot = entityId.find(".");
+        if (dot == null) { return entityId; }
         // substring is typed String?; dot+1 is a valid in-range index here.
-        if (dot != null) { string = string.substring(dot + 1, string.length()) as String; }
-        var chars = string.toCharArray();
+        return entityId.substring(dot + 1, entityId.length()) as String;
+    }
+
+    // "kitchen_ceiling" -> "Kitchen Ceiling": underscores become spaces and each
+    // word is capitalized.
+    static function toTitleCase(objectId as String) as String {
+        var chars = objectId.toCharArray();
         var out = "";
         var capNext = true;
         for (var i = 0; i < chars.size(); i++) {

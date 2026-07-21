@@ -60,3 +60,47 @@ function idleSubLabelRestoredAfterToggle(logger as Test.Logger) as Boolean {
     Test.assertEqual(item.getSubLabel() as String, "3 lights");
     return true;
 }
+
+(:test)
+function stripDomainRemovesDomainPrefix(logger as Test.Logger) as Boolean {
+    Test.assertEqual(LightMenu.stripDomain("light.kitchen_ceiling"), "kitchen_ceiling");
+    return true;
+}
+
+(:test)
+function stripDomainKeepsUnprefixedId(logger as Test.Logger) as Boolean {
+    Test.assertEqual(LightMenu.stripDomain("kitchen_ceiling"), "kitchen_ceiling");
+    return true;
+}
+
+(:test)
+function stripDomainHandlesTrailingDot(logger as Test.Logger) as Boolean {
+    Test.assertEqual(LightMenu.stripDomain("light."), "");
+    return true;
+}
+
+(:test)
+function toTitleCaseCapitalizesSingleWord(logger as Test.Logger) as Boolean {
+    Test.assertEqual(LightMenu.toTitleCase("kitchen"), "Kitchen");
+    return true;
+}
+
+(:test)
+function toTitleCaseCapitalizesEachWord(logger as Test.Logger) as Boolean {
+    Test.assertEqual(LightMenu.toTitleCase("kitchen_ceiling"), "Kitchen Ceiling");
+    return true;
+}
+
+(:test)
+function toTitleCaseHandlesEdgeSeparators(logger as Test.Logger) as Boolean {
+    // Leading, trailing, and doubled separators become spaces; empty tokens do
+    // not get a stray capital.
+    Test.assertEqual(LightMenu.toTitleCase("_kitchen__ceiling_"), " Kitchen  Ceiling ");
+    return true;
+}
+
+(:test)
+function toTitleCaseHandlesEmptyInput(logger as Test.Logger) as Boolean {
+    Test.assertEqual(LightMenu.toTitleCase(""), "");
+    return true;
+}

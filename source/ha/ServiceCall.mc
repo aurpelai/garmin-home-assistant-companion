@@ -26,10 +26,4 @@ module ServiceCall {
     function entityBody(entityId as String) as Dictionary {
         return { "entity_id" => entityId };
     }
-
-    // Area targeting. Documented for YAML targets; HaClient falls back to
-    // per-entity calls if a given HA rejects area_id at the REST layer.
-    function areaBody(areaId as String) as Dictionary {
-        return { "area_id" => areaId };
-    }
 }
