@@ -21,15 +21,15 @@ class LightMenu extends WatchUi.Menu2 {
 
     static function makeItem(store as LightStore, entityId as String) as WatchUi.ToggleMenuItem {
         return new WatchUi.ToggleMenuItem(
-            friendlyName(entityId), restingSubLabel(store, entityId),
+            friendlyName(entityId), idleSubLabel(store, entityId),
             entityId, store.isOn(entityId), null);
     }
 
-    // A row's sublabel when nothing is in flight. Empty today; #4 fills it with
-    // the group's member count. This is the single seam #4 changes: the initial
-    // render and the post-toggle restore both read the resting value from here,
-    // so the toggle path needs no change when counts land.
-    static function restingSubLabel(store as LightStore, entityId as String) as String or Null {
+    // Scaffolding for #4 (group member counts): returns null today, but #4 makes
+    // this the group's member count. Routing both the initial render and the
+    // post-toggle restore through here on purpose, so #4 changes only this body
+    // and never touches the toggle path. Args are unused until then by design.
+    static function idleSubLabel(store as LightStore, entityId as String) as String or Null {
         return null;
     }
 
@@ -70,37 +70,37 @@ class LightMenuDelegate extends WatchUi.Menu2InputDelegate {
         if (!(id instanceof String)) { return; }  // e.g. the :none placeholder
         var entityId = id as String;
         var toggle = item as WatchUi.ToggleMenuItem;
-        // Capture the resting sublabel now so it can be restored on settle,
+        // Capture the idle sublabel now so it can be restored on completion,
         // rather than blindly cleared (#4 makes this a group's member count).
-        var resting = LightMenu.restingSubLabel(_store, entityId);
+        var idle = LightMenu.idleSubLabel(_store, entityId);
         toggle.setSubLabel(WatchUi.loadResource(Rez.Strings.Toggling) as String);
         WatchUi.requestUpdate();
         _store.toggle(entityId,
-            new ToggleSettler(toggle, _store, entityId, resting).method(:settle));
+            new ToggleHandler(toggle, _store, entityId, idle).method(:onComplete));
     }
 }
 
-// Corrects a single row after its toggle round-trips: snaps the native switch
-// back to the store's state (a no-op on success, a flip-back on failure) and
-// restores the resting sublabel that the in-flight "Toggling" note replaced.
-class ToggleSettler {
+// Corrects a single row once its toggle completes: snaps the native switch back
+// to the store's state (a no-op on success, a flip-back on failure) and restores
+// the idle sublabel that the in-flight "Toggling" note replaced.
+class ToggleHandler {
     private var _item as WatchUi.ToggleMenuItem;
     private var _store as LightStore;
     private var _entityId as String;
-    private var _restingSubLabel as String or Null;
+    private var _idleSubLabel as String or Null;
 
     function initialize(
             item as WatchUi.ToggleMenuItem, store as LightStore, entityId as String,
-            restingSubLabel as String or Null) {
+            idleSubLabel as String or Null) {
         _item = item;
         _store = store;
         _entityId = entityId;
-        _restingSubLabel = restingSubLabel;
+        _idleSubLabel = idleSubLabel;
     }
 
-    function settle() as Void {
+    function onComplete() as Void {
         _item.setEnabled(_store.isOn(_entityId));
-        _item.setSubLabel(_restingSubLabel);
+        _item.setSubLabel(_idleSubLabel);
         WatchUi.requestUpdate();
     }
 }

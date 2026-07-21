@@ -28,13 +28,13 @@ function rowSwitchReflectsIsOnWhenBuilt(logger as Test.Logger) as Boolean {
 }
 
 (:test)
-function settleLeavesSwitchOnSuccess(logger as Test.Logger) as Boolean {
-    // Store already reflects the successful toggle (light is now on). Settling
-    // must leave the switch on and clear the in-flight note back to resting.
+function switchStaysOnAfterSuccessfulToggle(logger as Test.Logger) as Boolean {
+    // Store already reflects the successful toggle (light is now on). Completing
+    // must leave the switch on and clear the in-flight note back to idle.
     var store = LightMenuTest.storeWith({ "light.x" => true });
     var item = new WatchUi.ToggleMenuItem("X", "Toggling…", "light.x", true, null);
 
-    new ToggleSettler(item, store, "light.x", null).settle();
+    new ToggleHandler(item, store, "light.x", null).onComplete();
 
     Test.assert(item.isEnabled());
     Test.assert(item.getSubLabel() == null);
@@ -42,13 +42,13 @@ function settleLeavesSwitchOnSuccess(logger as Test.Logger) as Boolean {
 }
 
 (:test)
-function settleFlipsSwitchBackOnFailure(logger as Test.Logger) as Boolean {
+function switchFlipsBackAfterFailedToggle(logger as Test.Logger) as Boolean {
     // A failed toggle: the store reverted to off, but the native switch is still
-    // showing on (it auto-flipped on tap). Settling must snap it back to off.
+    // showing on (it auto-flipped on tap). Completing must snap it back to off.
     var store = LightMenuTest.storeWith({ "light.x" => false });
     var item = new WatchUi.ToggleMenuItem("X", "Toggling…", "light.x", true, null);
 
-    new ToggleSettler(item, store, "light.x", null).settle();
+    new ToggleHandler(item, store, "light.x", null).onComplete();
 
     Test.assert(!item.isEnabled());
     Test.assert(item.getSubLabel() == null);
@@ -56,13 +56,13 @@ function settleFlipsSwitchBackOnFailure(logger as Test.Logger) as Boolean {
 }
 
 (:test)
-function settleRestoresRestingSubLabel(logger as Test.Logger) as Boolean {
-    // The resting sublabel (empty today, a count under #4) is restored verbatim,
+function idleSubLabelRestoredAfterToggle(logger as Test.Logger) as Boolean {
+    // The idle sublabel (empty today, a count under #4) is restored verbatim,
     // not blindly cleared.
     var store = LightMenuTest.storeWith({ "light.x" => true });
     var item = new WatchUi.ToggleMenuItem("X", "Toggling…", "light.x", true, null);
 
-    new ToggleSettler(item, store, "light.x", "3 lights").settle();
+    new ToggleHandler(item, store, "light.x", "3 lights").onComplete();
 
     Test.assertEqual(item.getSubLabel() as String, "3 lights");
     return true;
