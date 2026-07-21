@@ -2,15 +2,18 @@ import Toybox.Lang;
 
 // Pure data + parsing layer. No networking, no UI — this is the unit-tested core.
 //
-// The combined HA /api/template call returns a JSON object with three keys:
+// The combined HA /api/template call returns a JSON object with four keys:
 //   { "areas":  { areaName: [entityId, ...], ... },
 //     "states": { entityId: true|false, ... },
+//     "names":  { entityId: "Kitchen Island", ... },
 //     "groups": [entityId, ...] }
 // LightState splits that body, wrapping the areas section into an
 // area-ordered structure (from which the flat "all lights" list derives),
-// parsing the states section into an entity_id -> Boolean map, and parsing the
-// groups section into a set of the light ids that are light groups (used to
-// order groups ahead of plain lights in every list view).
+// parsing the states section into an entity_id -> Boolean map, parsing the
+// names section into an entity_id -> String map (the name Home Assistant
+// itself shows for each light, used as the row label and the sort key), and
+// parsing the groups section into a set of the light ids that are light groups
+// (used to order groups ahead of plain lights in every list view).
 //
 // Each section degrades independently: non-conforming input yields an empty
 // result rather than throwing (watch UX: show "no lights" / all-off, not a
@@ -21,30 +24,34 @@ class LightState {
     public var areas as Array<Dictionary>;
     // entity_id -> Boolean (isOn), the server's on/off truth at load time.
     public var states as Dictionary<String, Boolean>;
+    // entity_id -> display name, HA's own name for each light.
+    private var names as Dictionary<String, String>;
     // Set of entity_ids that are light groups (value always true; membership is
     // the signal). Backs group-first ordering in the list views.
     private var groups as Dictionary<String, Boolean>;
 
     function initialize(areas as Array<Dictionary>, states as Dictionary<String, Boolean>,
+                        names as Dictionary<String, String>,
                         groups as Dictionary<String, Boolean>) {
         self.areas = areas;
         self.states = states;
+        self.names = names;
         self.groups = groups;
     }
 
     // Build from the already-JSON-parsed body of the combined /api/template
     // response. `data` is what Communications hands the callback for a JSON
-    // response: the three-key { "areas" => ..., "states" => ..., "groups" => ... }
-    // Dictionary. Each section parses defensively; a missing or malformed body
-    // yields an empty LightState.
+    // response: the four-key { "areas" => ..., "states" => ..., "names" => ...,
+    // "groups" => ... } Dictionary. Each section parses defensively; a missing
+    // or malformed body yields an empty LightState.
     static function fromTemplateData(data as Dictionary or String or Null) as LightState {
         if (!(data instanceof Dictionary)) {
             return new LightState([] as Array<Dictionary>, {} as Dictionary<String, Boolean>,
-                                     {} as Dictionary<String, Boolean>);
+                                     {} as Dictionary<String, String>, {} as Dictionary<String, Boolean>);
         }
         var body = data as Dictionary;
         return new LightState(parseAreas(body.get("areas")), parseStates(body.get("states")),
-                                 parseGroups(body.get("groups")));
+                                 parseNames(body.get("names")), parseGroups(body.get("groups")));
     }
 
     function isEmpty() as Boolean {
@@ -54,6 +61,18 @@ class LightState {
     function isOn(entityId as String) as Boolean {
         var state = states.get(entityId);
         return (state == null) ? false : (state as Boolean);
+    }
+
+    // HA's display name for a light. Falls back to the bare entity id when the
+    // server sent no usable name — an empty name counts as none. This fallback
+    // only fires on a server-contract violation (the template sends a name for
+    // every light); it needs to be non-blank, not pretty.
+    function getName(entityId as String) as String {
+        var name = names.get(entityId);
+        if (name == null || (name as String).equals("")) {
+            return entityId;
+        }
+        return name as String;
     }
 
     function isGroup(entityId as String) as Boolean {
@@ -87,9 +106,11 @@ class LightState {
         return [] as Array<String>;
     }
 
-    // Light groups first (alphabetical among themselves), then plain lights
-    // (alphabetical among themselves). Groups aggregate several lights, so they
-    // read as the primary controls and belong at the top of every list.
+    // Light groups first (by name among themselves), then plain lights (by name
+    // among themselves). Groups aggregate several lights, so they read as the
+    // primary controls and belong at the top of every list. Ordering is by the
+    // name the user sees, case-insensitively, so the list scans alphabetically
+    // on the visible label rather than the hidden entity id.
     private function orderGroupsFirst(ids as Array<String>) as Array<String> {
         var grouped = [] as Array<String>;
         var plain = [] as Array<String>;
@@ -101,10 +122,43 @@ class LightState {
                 plain.add(entityId);
             }
         }
-        grouped.sort(null);
-        plain.sort(null);
-        grouped.addAll(plain);
-        return grouped;
+
+        var ordered = sortByName(grouped);
+        ordered.addAll(sortByName(plain));
+        return ordered;
+    }
+
+    // Order entity ids by their display name, case-insensitively, with the id as
+    // a tiebreaker for equal names (deterministic order for same-named lights).
+    //
+    // Decorate-sort-undecorate: build one sort key per id — lower-cased name,
+    // then a newline, then the id — sort those keys with the platform's native
+    // string sort, then map each sorted key back to its id. The newline
+    // separator sorts below every printable character, so the key orders by name
+    // first and by id only within an equal name; ending the key with the unique
+    // id also makes every key unique. The name is lower-cased once here, not on
+    // every comparison. Mapping back through a key->id lookup (rather than
+    // slicing the id out of the key) keeps this correct even if a name were to
+    // contain the separator. ASCII-scoped: the platform's toLower has no defined
+    // behavior for non-ASCII, so accented/non-Latin names order by code point,
+    // not locale collation.
+    private function sortByName(ids as Array<String>) as Array<String> {
+        var idForKey = {} as Dictionary<String, String>;
+        var keys = [] as Array<String>;
+        for (var index = 0; index < ids.size(); index++) {
+            var entityId = ids[index];
+            var key = getName(entityId).toLower() + "\n" + entityId;
+            idForKey.put(key, entityId);
+            keys.add(key);
+        }
+
+        keys.sort(null);
+
+        var ordered = [] as Array<String>;
+        for (var index = 0; index < keys.size(); index++) {
+            ordered.add(idForKey.get(keys[index]) as String);
+        }
+        return ordered;
     }
 
     // --- section parsers ---
@@ -144,6 +198,25 @@ class LightState {
             var state = section.get(entityId);
             if (entityId instanceof String && state instanceof Boolean) {
                 out.put(entityId as String, state as Boolean);
+            }
+        }
+        return out;
+    }
+
+    // The "names" section: { entityId: name } -> entity_id -> String, dropping
+    // non-String keys and non-String values.
+    private static function parseNames(raw as Object or Null) as Dictionary<String, String> {
+        var out = {} as Dictionary<String, String>;
+        if (!(raw instanceof Dictionary)) {
+            return out;
+        }
+        var section = raw as Dictionary;
+        var entityIds = section.keys();
+        for (var index = 0; index < entityIds.size(); index++) {
+            var entityId = entityIds[index];
+            var name = section.get(entityId);
+            if (entityId instanceof String && name instanceof String) {
+                out.put(entityId as String, name as String);
             }
         }
         return out;

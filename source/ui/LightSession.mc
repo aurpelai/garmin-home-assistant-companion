@@ -35,6 +35,11 @@ class LightSession {
         return _state.lightsForArea(name);
     }
 
+    // HA's display name for a light (bare id as last-resort fallback).
+    function getName(entityId as String) as String {
+        return _state.getName(entityId);
+    }
+
     function isOn(entityId as String) as Boolean {
         var state = states.get(entityId);
         return (state == null) ? false : (state as Boolean);

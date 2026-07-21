@@ -107,6 +107,54 @@ function lightsForAreaOrdersGroupsFirst(logger as Test.Logger) as Boolean {
 }
 
 (:test)
+function ordersByNameNotId(logger as Test.Logger) as Boolean {
+    // The whole point of names: order by the visible name, not the entity id.
+    // light.zzz has name "Aaa" and must sort FIRST despite its id sorting last.
+    var data = {
+        "areas" => { "A" => ["light.aaa", "light.zzz"] },
+        "states" => {},
+        "names" => { "light.aaa" => "Zebra", "light.zzz" => "Aaa" }
+    };
+    var state = LightState.fromTemplateData(data);
+    var all = state.allLights();
+    Test.assertEqual(all.size(), 2);
+    Test.assertEqual(all[0], "light.zzz");   // name "Aaa" first
+    Test.assertEqual(all[1], "light.aaa");   // name "Zebra" second
+    return true;
+}
+
+(:test)
+function nameOrderIsCaseInsensitive(logger as Test.Logger) as Boolean {
+    // "apple" (lower) must sort before "Banana" (upper); a case-sensitive
+    // code-point sort would put "Banana" first.
+    var data = {
+        "areas" => { "A" => ["light.one", "light.two"] },
+        "states" => {},
+        "names" => { "light.one" => "Banana", "light.two" => "apple" }
+    };
+    var state = LightState.fromTemplateData(data);
+    var all = state.allLights();
+    Test.assertEqual(all[0], "light.two");   // "apple"
+    Test.assertEqual(all[1], "light.one");   // "Banana"
+    return true;
+}
+
+(:test)
+function equalNamesBreakTieOnId(logger as Test.Logger) as Boolean {
+    // Two lights share the name "Lamp"; order falls back to the entity id.
+    var data = {
+        "areas" => { "A" => ["light.b", "light.a"] },
+        "states" => {},
+        "names" => { "light.a" => "Lamp", "light.b" => "Lamp" }
+    };
+    var state = LightState.fromTemplateData(data);
+    var all = state.allLights();
+    Test.assertEqual(all[0], "light.a");   // equal names -> id tiebreak
+    Test.assertEqual(all[1], "light.b");
+    return true;
+}
+
+(:test)
 function missingGroupsKeyFallsBackToAlpha(logger as Test.Logger) as Boolean {
     // No "groups" key: nothing is a group, so ordering is plain alphabetical.
     var data = {
@@ -194,5 +242,61 @@ function dropsNonBooleanStateValues(logger as Test.Logger) as Boolean {
     // "on" (a String, not a Boolean) is dropped -> reads as off.
     Test.assert(!state.isOn("light.hall"));
     Test.assert(state.isOn("light.porch"));
+    return true;
+}
+
+(:test)
+function parsesNamesIntoGetName(logger as Test.Logger) as Boolean {
+    var data = {
+        "areas" => { "Kitchen" => ["light.kitchen"] },
+        "states" => {},
+        "names" => { "light.kitchen" => "Kitchen Island" }
+    };
+    var state = LightState.fromTemplateData(data);
+    Test.assertEqual(state.getName("light.kitchen"), "Kitchen Island");
+    return true;
+}
+
+(:test)
+function missingNamesKeyFallsBackToId(logger as Test.Logger) as Boolean {
+    var data = { "areas" => { "Hall" => ["light.hall"] }, "states" => {} };
+    var state = LightState.fromTemplateData(data);
+    // No "names" section: getName returns the bare id.
+    Test.assertEqual(state.getName("light.hall"), "light.hall");
+    return true;
+}
+
+(:test)
+function nonDictionaryNamesDegradesCleanly(logger as Test.Logger) as Boolean {
+    var data = { "areas" => { "Hall" => ["light.hall"] }, "states" => {}, "names" => "nope" };
+    var state = LightState.fromTemplateData(data);
+    Test.assertEqual(state.getName("light.hall"), "light.hall");
+    return true;
+}
+
+(:test)
+function dropsNonStringNameValues(logger as Test.Logger) as Boolean {
+    var data = {
+        "areas" => { "Hall" => ["light.hall", "light.porch"] },
+        "states" => {},
+        "names" => { "light.hall" => 42, "light.porch" => "Porch" }
+    };
+    var state = LightState.fromTemplateData(data);
+    // 42 (not a String) is dropped -> getName falls back to the id.
+    Test.assertEqual(state.getName("light.hall"), "light.hall");
+    Test.assertEqual(state.getName("light.porch"), "Porch");
+    return true;
+}
+
+(:test)
+function emptyNameFallsBackToId(logger as Test.Logger) as Boolean {
+    var data = {
+        "areas" => { "Hall" => ["light.hall"] },
+        "states" => {},
+        "names" => { "light.hall" => "" }
+    };
+    var state = LightState.fromTemplateData(data);
+    // Empty string counts as no name.
+    Test.assertEqual(state.getName("light.hall"), "light.hall");
     return true;
 }
