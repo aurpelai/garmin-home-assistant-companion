@@ -5,7 +5,7 @@ import Toybox.WatchUi;
 // First screen and startup orchestrator. onShow() (a View lifecycle callback the
 // framework invokes) drives the initial load:
 //   1. checks settings are present (else -> ErrorView with ErrNoConfig)
-//   2. fetches the light snapshot — areas→lights and current on/off states in a
+//   2. fetches the light state — areas→lights and current on/off states in a
 //      single POST /api/template
 //   3. replaces itself with the AreaMenu
 // Any request error routes to an ErrorView keyed on the HTTP/comm code.
@@ -32,16 +32,16 @@ class LoadingView extends WatchUi.View {
             return;
         }
         setMessage(WatchUi.loadResource(Rez.Strings.LoadingAreas) as String);
-        _client.fetchLightSnapshot(method(:onLoaded));
+        _client.fetchLightState(method(:onLoaded));
     }
 
     // On any request/transport error the client invokes us with (null, code), so a
-    // non-null err is the only failure path — a null snapshot never arrives alongside
+    // non-null err is the only failure path — a null state never arrives alongside
     // a null err.
-    function onLoaded(snapshot as LightSnapshot or Null, err as Number or Null) as Void {
+    function onLoaded(state as LightState or Null, err as Number or Null) as Void {
         if (err != null) { showError(errorStringFor(err)); return; }
-        var store = new LightStore(_client, snapshot as LightSnapshot);
-        WatchUi.switchToView(new AreaMenu(store), new AreaMenuDelegate(store),
+        var session = new LightSession(_client, state as LightState);
+        WatchUi.switchToView(new AreaMenu(session), new AreaMenuDelegate(session),
             WatchUi.SLIDE_IMMEDIATE);
     }
 
@@ -51,7 +51,7 @@ class LoadingView extends WatchUi.View {
     }
 
     function onUpdate(dc as Graphics.Dc) as Void {
-        TextDraw.centeredMessage(dc, _message);
+        CenteredMessage.draw(dc, _message);
     }
 
     private function showError(resId as ResourceId) as Void {

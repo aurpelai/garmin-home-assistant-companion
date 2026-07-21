@@ -6,7 +6,7 @@ import Toybox.Lang;
 //   { "areas":  { areaName: [entityId, ...], ... },
 //     "states": { entityId: true|false, ... },
 //     "groups": [entityId, ...] }
-// LightSnapshot splits that body, wrapping the areas section into an
+// LightState splits that body, wrapping the areas section into an
 // area-ordered structure (from which the flat "all lights" list derives),
 // parsing the states section into an entity_id -> Boolean map, and parsing the
 // groups section into a set of the light ids that are light groups (used to
@@ -16,7 +16,7 @@ import Toybox.Lang;
 // result rather than throwing (watch UX: show "no lights" / all-off, not a
 // crash).
 
-class LightSnapshot {
+class LightState {
     // Array of { :name => String, :lights => Array<String> }, sorted by area name.
     public var areas as Array<Dictionary>;
     // entity_id -> Boolean (isOn), the server's on/off truth at load time.
@@ -36,14 +36,14 @@ class LightSnapshot {
     // response. `data` is what Communications hands the callback for a JSON
     // response: the three-key { "areas" => ..., "states" => ..., "groups" => ... }
     // Dictionary. Each section parses defensively; a missing or malformed body
-    // yields an empty snapshot.
-    static function fromTemplateData(data as Dictionary or String or Null) as LightSnapshot {
+    // yields an empty LightState.
+    static function fromTemplateData(data as Dictionary or String or Null) as LightState {
         if (!(data instanceof Dictionary)) {
-            return new LightSnapshot([] as Array<Dictionary>, {} as Dictionary<String, Boolean>,
+            return new LightState([] as Array<Dictionary>, {} as Dictionary<String, Boolean>,
                                      {} as Dictionary<String, Boolean>);
         }
         var body = data as Dictionary;
-        return new LightSnapshot(parseAreas(body.get("areas")), parseStates(body.get("states")),
+        return new LightState(parseAreas(body.get("areas")), parseStates(body.get("states")),
                                  parseGroups(body.get("groups")));
     }
 

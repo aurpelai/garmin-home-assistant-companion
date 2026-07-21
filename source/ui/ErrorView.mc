@@ -13,7 +13,7 @@ class ErrorView extends WatchUi.View {
     }
 
     function onUpdate(dc as Graphics.Dc) as Void {
-        TextDraw.centeredMessage(dc, _message);
+        CenteredMessage.draw(dc, _message);
     }
 }
 

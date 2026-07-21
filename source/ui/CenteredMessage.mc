@@ -4,16 +4,16 @@ import Toybox.Lang;
 // Shared text helpers for the simple centered-message screens (LoadingView,
 // ErrorView). dc.drawText does not wrap, so we greedily word-wrap to the
 // available width and draw the lines centered as a block.
-module TextDraw {
+module CenteredMessage {
 
     // Clear to black and draw `text` word-wrapped, centered in the screen.
-    function centeredMessage(dc as Graphics.Dc, text as String) as Void {
+    function draw(dc as Graphics.Dc, text as String) as Void {
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
         dc.clear();
 
         var font = Graphics.FONT_MEDIUM;
         var maxWidth = (dc.getWidth() * 4) / 5;   // ~80%, clear of the bezel
-        var lines = wrap(text, font, maxWidth, dc.method(:getTextWidthInPixels));
+        var lines = splitToLines(text, font, maxWidth, dc.method(:getTextWidthInPixels));
 
         var lineHeight = dc.getFontHeight(font);
         var startY = (dc.getHeight() / 2) - ((lineHeight * lines.size()) / 2);
@@ -27,9 +27,9 @@ module TextDraw {
     // (dc.getTextWidthInPixels); injected so this logic is unit-testable without
     // a Dc. A single word wider than maxWidth is kept on its own line rather
     // than dropped.
-    function wrap(text as String, font as Graphics.FontType, maxWidth as Number,
+    function splitToLines(text as String, font as Graphics.FontType, maxWidth as Number,
                   measure as Method(text as String, font as Graphics.FontType) as Number) as Array<String> {
-        var words = splitOnSpaces(text);
+        var words = splitToWords(text);
         var lines = [] as Array<String>;
         var line = "";
         for (var i = 0; i < words.size(); i++) {
@@ -50,7 +50,7 @@ module TextDraw {
 
     // Split on single spaces (Monkey C String has no split()). Collapses runs
     // of spaces by skipping empty tokens.
-    function splitOnSpaces(text as String) as Array<String> {
+    function splitToWords(text as String) as Array<String> {
         var out = [] as Array<String>;
         var start = 0;
         var i = 0;

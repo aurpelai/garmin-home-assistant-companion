@@ -6,7 +6,7 @@ import Toybox.WatchUi;
 // row toggles it, and the switch flips itself optimistically.
 class LightMenu extends WatchUi.Menu2 {
 
-    function initialize(store as LightStore, title as String, lights as Array<String>) {
+    function initialize(session as LightSession, title as String, lights as Array<String>) {
         Menu2.initialize({ :title => title });
 
         if (lights.size() == 0) {
@@ -15,19 +15,19 @@ class LightMenu extends WatchUi.Menu2 {
             return;
         }
         for (var i = 0; i < lights.size(); i++) {
-            addItem(makeItem(store, lights[i]));
+            addItem(makeItem(session, lights[i]));
         }
     }
 
-    static function makeItem(store as LightStore, entityId as String) as WatchUi.ToggleMenuItem {
+    static function makeItem(session as LightSession, entityId as String) as WatchUi.ToggleMenuItem {
         return new WatchUi.ToggleMenuItem(
-            friendlyName(entityId), idleSubLabel(store, entityId),
-            entityId, store.isOn(entityId), null);
+            friendlyName(entityId), idleSubLabel(session, entityId),
+            entityId, session.isOn(entityId), null);
     }
 
     // TODO(#4): group member count. Null today; both render and restore route
     // through here so #4 changes only this body, not the toggle path.
-    static function idleSubLabel(store as LightStore, entityId as String) as String or Null {
+    static function idleSubLabel(session as LightSession, entityId as String) as String or Null {
         return null;
     }
 
@@ -56,11 +56,11 @@ class LightMenu extends WatchUi.Menu2 {
 }
 
 class LightMenuDelegate extends WatchUi.Menu2InputDelegate {
-    private var _store as LightStore;
+    private var _session as LightSession;
 
-    function initialize(store as LightStore) {
+    function initialize(session as LightSession) {
         Menu2InputDelegate.initialize();
-        _store = store;
+        _session = session;
     }
 
     function onSelect(item as WatchUi.MenuItem) as Void {
@@ -70,34 +70,34 @@ class LightMenuDelegate extends WatchUi.Menu2InputDelegate {
         var toggle = item as WatchUi.ToggleMenuItem;
         // Capture the idle sublabel now so completion restores it rather than
         // blindly clearing it.
-        var idle = LightMenu.idleSubLabel(_store, entityId);
+        var idle = LightMenu.idleSubLabel(_session, entityId);
         toggle.setSubLabel(WatchUi.loadResource(Rez.Strings.Toggling) as String);
         WatchUi.requestUpdate();
-        _store.toggle(entityId,
-            new ToggleHandler(toggle, _store, entityId, idle).method(:onComplete));
+        _session.toggle(entityId,
+            new ToggleHandler(toggle, _session, entityId, idle).method(:onComplete));
     }
 }
 
 // Corrects a single row once its toggle completes: snaps the native switch back
-// to the store's state (a no-op on success, a flip-back on failure) and restores
+// to the session's state (a no-op on success, a flip-back on failure) and restores
 // the idle sublabel that the in-flight "Toggling" note replaced.
 class ToggleHandler {
     private var _item as WatchUi.ToggleMenuItem;
-    private var _store as LightStore;
+    private var _session as LightSession;
     private var _entityId as String;
     private var _idleSubLabel as String or Null;
 
     function initialize(
-            item as WatchUi.ToggleMenuItem, store as LightStore, entityId as String,
+            item as WatchUi.ToggleMenuItem, session as LightSession, entityId as String,
             idleSubLabel as String or Null) {
         _item = item;
-        _store = store;
+        _session = session;
         _entityId = entityId;
         _idleSubLabel = idleSubLabel;
     }
 
     function onComplete() as Void {
-        _item.setEnabled(_store.isOn(_entityId));
+        _item.setEnabled(_session.isOn(_entityId));
         _item.setSubLabel(_idleSubLabel);
         WatchUi.requestUpdate();
     }

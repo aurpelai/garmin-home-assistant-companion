@@ -1,7 +1,7 @@
 import Toybox.Lang;
 import Toybox.Test;
 
-// Unit tests for the pure parsing/derivation logic in LightSnapshot.
+// Unit tests for the pure parsing/derivation logic in LightState.
 // Run: monkeyc --unit-test ... then `monkeydo bin/test.prg venu3 -t`.
 
 (:test)
@@ -13,12 +13,12 @@ function parsesTemplateData(logger as Test.Logger) as Boolean {
         },
         "states" => {}
     };
-    var snapshot = LightSnapshot.fromTemplateData(data);
-    Test.assertEqual(snapshot.areas.size(), 2);
+    var state = LightState.fromTemplateData(data);
+    Test.assertEqual(state.areas.size(), 2);
     // Areas are sorted by name: Bedroom before Kitchen.
-    Test.assertEqual(snapshot.areas[0].get(:name) as String, "Bedroom");
-    Test.assertEqual(snapshot.areas[1].get(:name) as String, "Kitchen");
-    Test.assertEqual((snapshot.lightsForArea("Kitchen")).size(), 2);
+    Test.assertEqual(state.areas[0].get(:name) as String, "Bedroom");
+    Test.assertEqual(state.areas[1].get(:name) as String, "Kitchen");
+    Test.assertEqual((state.lightsForArea("Kitchen")).size(), 2);
     return true;
 }
 
@@ -31,9 +31,9 @@ function skipsAreasWithNoLights(logger as Test.Logger) as Boolean {
         },
         "states" => {}
     };
-    var snapshot = LightSnapshot.fromTemplateData(data);
-    Test.assertEqual(snapshot.areas.size(), 1);
-    Test.assertEqual(snapshot.areas[0].get(:name) as String, "Hall");
+    var state = LightState.fromTemplateData(data);
+    Test.assertEqual(state.areas.size(), 1);
+    Test.assertEqual(state.areas[0].get(:name) as String, "Hall");
     return true;
 }
 
@@ -46,8 +46,8 @@ function allLightsDedupesAndSorts(logger as Test.Logger) as Boolean {
         },
         "states" => {}
     };
-    var snapshot = LightSnapshot.fromTemplateData(data);
-    var all = snapshot.allLights();
+    var state = LightState.fromTemplateData(data);
+    var all = state.allLights();
     Test.assertEqual(all.size(), 3);
     Test.assertEqual(all[0], "light.a");
     Test.assertEqual(all[1], "light.b");
@@ -62,10 +62,10 @@ function isGroupReflectsGroupsSection(logger as Test.Logger) as Boolean {
         "states" => {},
         "groups" => ["light.grp"]
     };
-    var snapshot = LightSnapshot.fromTemplateData(data);
-    Test.assert(snapshot.isGroup("light.grp"));
-    Test.assert(!snapshot.isGroup("light.plain"));
-    Test.assert(!snapshot.isGroup("light.unknown"));
+    var state = LightState.fromTemplateData(data);
+    Test.assert(state.isGroup("light.grp"));
+    Test.assert(!state.isGroup("light.plain"));
+    Test.assert(!state.isGroup("light.unknown"));
     return true;
 }
 
@@ -78,8 +78,8 @@ function allLightsOrdersGroupsFirstThenAlpha(logger as Test.Logger) as Boolean {
         "states" => {},
         "groups" => ["light.zzz_group"]
     };
-    var snapshot = LightSnapshot.fromTemplateData(data);
-    var all = snapshot.allLights();
+    var state = LightState.fromTemplateData(data);
+    var all = state.allLights();
     Test.assertEqual(all.size(), 3);
     Test.assertEqual(all[0], "light.zzz_group");   // group first
     Test.assertEqual(all[1], "light.apple");       // then plain, alphabetical
@@ -94,8 +94,8 @@ function lightsForAreaOrdersGroupsFirst(logger as Test.Logger) as Boolean {
         "states" => {},
         "groups" => ["light.a_group", "light.b_group"]
     };
-    var snapshot = LightSnapshot.fromTemplateData(data);
-    var lights = snapshot.lightsForArea("Living");
+    var state = LightState.fromTemplateData(data);
+    var lights = state.lightsForArea("Living");
     Test.assertEqual(lights.size(), 4);
     // Groups first, alphabetical among themselves.
     Test.assertEqual(lights[0], "light.a_group");
@@ -113,9 +113,9 @@ function missingGroupsKeyFallsBackToAlpha(logger as Test.Logger) as Boolean {
         "areas" => { "A" => ["light.c", "light.a", "light.b"] },
         "states" => {}
     };
-    var snapshot = LightSnapshot.fromTemplateData(data);
-    Test.assert(!snapshot.isGroup("light.a"));
-    var all = snapshot.allLights();
+    var state = LightState.fromTemplateData(data);
+    Test.assert(!state.isGroup("light.a"));
+    var all = state.allLights();
     Test.assertEqual(all.size(), 3);
     Test.assertEqual(all[0], "light.a");
     Test.assertEqual(all[1], "light.b");
@@ -131,9 +131,9 @@ function nonArrayGroupsDegradesCleanly(logger as Test.Logger) as Boolean {
         "states" => {},
         "groups" => "nope"
     };
-    var snapshot = LightSnapshot.fromTemplateData(data);
-    Test.assert(!snapshot.isGroup("light.a"));
-    var all = snapshot.allLights();
+    var state = LightState.fromTemplateData(data);
+    Test.assert(!state.isGroup("light.a"));
+    var all = state.allLights();
     Test.assertEqual(all[0], "light.a");
     Test.assertEqual(all[1], "light.b");
     return true;
@@ -141,17 +141,17 @@ function nonArrayGroupsDegradesCleanly(logger as Test.Logger) as Boolean {
 
 (:test)
 function malformedInputYieldsEmptyMap(logger as Test.Logger) as Boolean {
-    Test.assert(LightSnapshot.fromTemplateData(null).isEmpty());
-    Test.assert(LightSnapshot.fromTemplateData("not a dict").isEmpty());
+    Test.assert(LightState.fromTemplateData(null).isEmpty());
+    Test.assert(LightState.fromTemplateData("not a dict").isEmpty());
     return true;
 }
 
 (:test)
 function ignoresNonStringLightEntries(logger as Test.Logger) as Boolean {
     var data = { "areas" => { "Mix" => ["light.ok", 42, null] }, "states" => {} };
-    var snapshot = LightSnapshot.fromTemplateData(data);
-    Test.assertEqual(snapshot.lightsForArea("Mix").size(), 1);
-    Test.assertEqual(snapshot.lightsForArea("Mix")[0], "light.ok");
+    var state = LightState.fromTemplateData(data);
+    Test.assertEqual(state.lightsForArea("Mix").size(), 1);
+    Test.assertEqual(state.lightsForArea("Mix")[0], "light.ok");
     return true;
 }
 
@@ -161,26 +161,26 @@ function parsesStatesIntoIsOn(logger as Test.Logger) as Boolean {
         "areas" => { "Kitchen" => ["light.kitchen", "light.pantry"] },
         "states" => { "light.kitchen" => true, "light.pantry" => false }
     };
-    var snapshot = LightSnapshot.fromTemplateData(data);
-    Test.assert(snapshot.isOn("light.kitchen"));
-    Test.assert(!snapshot.isOn("light.pantry"));
+    var state = LightState.fromTemplateData(data);
+    Test.assert(state.isOn("light.kitchen"));
+    Test.assert(!state.isOn("light.pantry"));
     return true;
 }
 
 (:test)
 function missingStatesKeyDegradesToAllOff(logger as Test.Logger) as Boolean {
     var data = { "areas" => { "Hall" => ["light.hall"] } };
-    var snapshot = LightSnapshot.fromTemplateData(data);
+    var state = LightState.fromTemplateData(data);
     // Unknown entity reads as off.
-    Test.assert(!snapshot.isOn("light.hall"));
+    Test.assert(!state.isOn("light.hall"));
     return true;
 }
 
 (:test)
 function nonDictionaryStatesDegradesCleanly(logger as Test.Logger) as Boolean {
     var data = { "areas" => { "Hall" => ["light.hall"] }, "states" => "nope" };
-    var snapshot = LightSnapshot.fromTemplateData(data);
-    Test.assert(!snapshot.isOn("light.hall"));
+    var state = LightState.fromTemplateData(data);
+    Test.assert(!state.isOn("light.hall"));
     return true;
 }
 
@@ -190,9 +190,9 @@ function dropsNonBooleanStateValues(logger as Test.Logger) as Boolean {
         "areas" => { "Hall" => ["light.hall", "light.porch"] },
         "states" => { "light.hall" => "on", "light.porch" => true }
     };
-    var snapshot = LightSnapshot.fromTemplateData(data);
+    var state = LightState.fromTemplateData(data);
     // "on" (a String, not a Boolean) is dropped -> reads as off.
-    Test.assert(!snapshot.isOn("light.hall"));
-    Test.assert(snapshot.isOn("light.porch"));
+    Test.assert(!state.isOn("light.hall"));
+    Test.assert(state.isOn("light.porch"));
     return true;
 }
