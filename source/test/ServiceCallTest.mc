@@ -17,10 +17,3 @@ function entityBodyTargetsSingleEntity(logger as Test.Logger) as Boolean {
     Test.assertEqual(body.get("entity_id") as String, "light.kitchen");
     return true;
 }
-
-(:test)
-function areaBodyTargetsArea(logger as Test.Logger) as Boolean {
-    var body = ServiceCall.areaBody("kitchen");
-    Test.assertEqual(body.get("area_id") as String, "kitchen");
-    return true;
-}

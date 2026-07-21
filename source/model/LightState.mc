@@ -101,9 +101,10 @@ class LightState {
                 plain.add(entityId);
             }
         }
-        var ordered = sortStrings(grouped);
-        ordered.addAll(sortStrings(plain));
-        return ordered;
+        grouped.sort(null);
+        plain.sort(null);
+        grouped.addAll(plain);
+        return grouped;
     }
 
     // --- section parsers ---
@@ -116,8 +117,8 @@ class LightState {
             return out;
         }
 
-        var names = (raw as Dictionary).keys();
-        names = sortStrings(names as Array<String>);
+        var names = (raw as Dictionary).keys() as Array<String>;
+        names.sort(null);
 
         for (var index = 0; index < names.size(); index++) {
             var name = names[index] as String;
@@ -175,34 +176,5 @@ class LightState {
             }
         }
         return out;
-    }
-
-    // Simple insertion sort — device string arrays here are small (areas, lights
-    // per area), and Monkey C has no stable built-in sort for arbitrary arrays.
-    static function sortStrings(strings as Array<String>) as Array<String> {
-        var sorted = strings.slice(0, null) as Array<String>;
-        for (var index = 1; index < sorted.size(); index++) {
-            var key = sorted[index];
-            var position = index - 1;
-            while (position >= 0 && compare(sorted[position], key) > 0) {
-                sorted[position + 1] = sorted[position];
-                position--;
-            }
-            sorted[position + 1] = key;
-        }
-        return sorted;
-    }
-
-    // Lexicographic compare by char code. Monkey C's String has no compareTo,
-    // so compare code point by code point. Returns <0, 0, or >0.
-    static function compare(first as String, second as String) as Number {
-        var firstChars = first.toCharArray();
-        var secondChars = second.toCharArray();
-        var shared = (firstChars.size() < secondChars.size()) ? firstChars.size() : secondChars.size();
-        for (var index = 0; index < shared; index++) {
-            var diff = firstChars[index].toNumber() - secondChars[index].toNumber();
-            if (diff != 0) { return diff; }
-        }
-        return firstChars.size() - secondChars.size();
     }
 }
