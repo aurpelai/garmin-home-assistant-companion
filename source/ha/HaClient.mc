@@ -4,7 +4,7 @@ import Toybox.System;
 
 // Networking core. Wraps Communications.makeWebRequest with Bearer auth and
 // JSON, and exposes the operations the UI needs:
-//   - fetchLightSnapshot: one POST /api/template call rendering both the
+//   - fetchLightState: one POST /api/template call rendering both the
 //     areas→lights join AND each light's on/off state (a plain GET /api/states
 //     returns every entity in the instance and blows past Connect IQ's HTTP
 //     response-size limit, so states ride along in the template instead).
@@ -34,7 +34,7 @@ class HaClient {
     // A backslash in this string would be sent unescaped by the Connect IQ JSON
     // serializer, producing an invalid JSON escape and a 400 "Invalid JSON
     // specified" from HA.
-    private const LIGHT_SNAPSHOT_TEMPLATE =
+    private const LIGHT_STATE_TEMPLATE =
         "{% set ns = namespace(m={}, s={}, groups=[]) %}" +
         "{% for a in areas() %}" +
         "{% set ns.lights = [] %}" +
@@ -57,31 +57,31 @@ class HaClient {
 
     // --- public API ---
 
-    function fetchLightSnapshot(callback as Method) as Void {
-        var body = { "template" => LIGHT_SNAPSHOT_TEMPLATE };
-        post("/api/template", body, new Responder(callback, :onTemplate));
+    function fetchLightState(callback as Method) as Void {
+        var body = { "template" => LIGHT_STATE_TEMPLATE };
+        post("/api/template", body, new ResponseHandler(callback, :onTemplate));
     }
 
     // A single light, vs. callAreaService's whole-area call below.
     function callLightService(service as Number, entityId as String, callback as Method) as Void {
         post(ServiceCall.servicePath(service), ServiceCall.entityBody(entityId),
-             new Responder(callback, :onService));
+             new ResponseHandler(callback, :onService));
     }
 
     // Toggle/turn a whole area by sending its entity list as an array. HA accepts
     // an array for entity_id — this avoids relying on area_id at the REST layer.
     function callAreaService(service as Number, entityIds as Array<String>, callback as Method) as Void {
         post(ServiceCall.servicePath(service), { "entity_id" => entityIds },
-             new Responder(callback, :onService));
+             new ResponseHandler(callback, :onService));
     }
 
     // --- transport ---
 
-    private function post(path as String, body as Dictionary, responder as Responder) as Void {
+    private function post(path as String, body as Dictionary, handler as ResponseHandler) as Void {
         Communications.makeWebRequest(
             Settings.getBaseUrl() + path, body as Dictionary<Object, Object>,
             options(Communications.HTTP_REQUEST_METHOD_POST),
-            responder.method(:onResponse));
+            handler.method(:onResponse));
     }
 
     // Typed to the shape makeWebRequest expects for its options argument, so it
@@ -103,7 +103,7 @@ class HaClient {
 
 // Adapts a raw makeWebRequest callback (code, data) into a typed result handed
 // to the caller's callback. `kind` selects how the body is interpreted.
-class Responder {
+class ResponseHandler {
     private var _callback as Method;
     private var _kind as Symbol;
 
@@ -128,7 +128,7 @@ class Responder {
                 if (data instanceof Lang.String) {
                     System.println("Template returned unparsed String: " + data);
                 }
-                _callback.invoke(LightSnapshot.fromTemplateData(data), null);
+                _callback.invoke(LightState.fromTemplateData(data), null);
                 break;
             case :onService:
                 _callback.invoke(true, null);
