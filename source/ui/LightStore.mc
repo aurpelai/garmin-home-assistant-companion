@@ -3,7 +3,7 @@ import Toybox.Lang;
 // Shared UI-side state passed between the area and light menus: the HA client,
 // the immutable server-truth snapshot (areas + loaded states), and a mutable
 // copy of the states map. Toggles update the mutable copy optimistically so the
-// icon flips immediately, leaving the snapshot as the untouched server truth.
+// switch flips immediately, leaving the snapshot as the untouched server truth.
 class LightStore {
     public var client as HaClient;
     private var _snapshot as LightSnapshot;
@@ -46,7 +46,7 @@ class LightStore {
         var newOn = !isOn(entityId);
         states.put(entityId, newOn);
         client.callLightService(ServiceCall.SERVICE_TOGGLE, entityId,
-            new ToggleReconciler(self, entityId, newOn, onDone).method(:onResult));
+            new ServiceCallResult(self, entityId, newOn, onDone).method(:onResult));
     }
 
     function revert(entityId as String, attemptedOn as Boolean) as Void {
@@ -54,8 +54,9 @@ class LightStore {
     }
 }
 
-// Reverts the optimistic state flip if the service call failed.
-class ToggleReconciler {
+// Handles a light service-call result: reverts the optimistic state flip if the
+// call failed, then hands off to the UI-side settle callback either way.
+class ServiceCallResult {
     private var _store as LightStore;
     private var _entityId as String;
     private var _attemptedOn as Boolean;

@@ -1,9 +1,9 @@
 import Toybox.Lang;
 import Toybox.WatchUi;
 
-// Lights within an area (or the combined "All lights" list). Each row shows the
-// light's friendly name and an on/off icon; selecting a row toggles it and
-// flips the icon optimistically.
+// Lights within an area (or the combined "All lights" list). Each row is a
+// native toggle showing the light's friendly name and on/off state; selecting a
+// row toggles it, and the switch flips itself optimistically.
 class LightMenu extends WatchUi.Menu2 {
 
     function initialize(store as LightStore, title as String, lights as Array<String>) {
@@ -19,10 +19,18 @@ class LightMenu extends WatchUi.Menu2 {
         }
     }
 
-    static function makeItem(store as LightStore, entityId as String) as WatchUi.IconMenuItem {
-        var icon = new WatchUi.Bitmap({
-            :rez => store.isOn(entityId) ? Rez.Drawables.IconOn : Rez.Drawables.IconOff });
-        return new WatchUi.IconMenuItem(friendlyName(entityId), null, entityId, icon, null);
+    static function makeItem(store as LightStore, entityId as String) as WatchUi.ToggleMenuItem {
+        return new WatchUi.ToggleMenuItem(
+            friendlyName(entityId), restingSubLabel(store, entityId),
+            entityId, store.isOn(entityId), null);
+    }
+
+    // A row's sublabel when nothing is in flight. Empty today; #4 fills it with
+    // the group's member count. This is the single seam #4 changes: the initial
+    // render and the post-toggle restore both read the resting value from here,
+    // so the toggle path needs no change when counts land.
+    static function restingSubLabel(store as LightStore, entityId as String) as String or Null {
+        return null;
     }
 
     // "light.kitchen_ceiling" -> "Kitchen Ceiling"
@@ -61,26 +69,38 @@ class LightMenuDelegate extends WatchUi.Menu2InputDelegate {
         var id = item.getId();
         if (!(id instanceof String)) { return; }  // e.g. the :none placeholder
         var entityId = id as String;
-        _store.toggle(entityId, new IconUpdater(item as WatchUi.IconMenuItem, _store, entityId).method(:refresh));
+        var toggle = item as WatchUi.ToggleMenuItem;
+        // Capture the resting sublabel now so it can be restored on settle,
+        // rather than blindly cleared (#4 makes this a group's member count).
+        var resting = LightMenu.restingSubLabel(_store, entityId);
+        toggle.setSubLabel(WatchUi.loadResource(Rez.Strings.Toggling) as String);
+        WatchUi.requestUpdate();
+        _store.toggle(entityId,
+            new ToggleSettler(toggle, _store, entityId, resting).method(:settle));
     }
 }
 
-// Updates a single row's icon to reflect the (possibly reverted) state after a
-// toggle round-trips.
-class IconUpdater {
-    private var _item as WatchUi.IconMenuItem;
+// Corrects a single row after its toggle round-trips: snaps the native switch
+// back to the store's state (a no-op on success, a flip-back on failure) and
+// restores the resting sublabel that the in-flight "Toggling" note replaced.
+class ToggleSettler {
+    private var _item as WatchUi.ToggleMenuItem;
     private var _store as LightStore;
     private var _entityId as String;
+    private var _restingSubLabel as String or Null;
 
-    function initialize(item as WatchUi.IconMenuItem, store as LightStore, entityId as String) {
+    function initialize(
+            item as WatchUi.ToggleMenuItem, store as LightStore, entityId as String,
+            restingSubLabel as String or Null) {
         _item = item;
         _store = store;
         _entityId = entityId;
+        _restingSubLabel = restingSubLabel;
     }
 
-    function refresh() as Void {
-        _item.setIcon(new WatchUi.Bitmap({
-            :rez => _store.isOn(_entityId) ? Rez.Drawables.IconOn : Rez.Drawables.IconOff }));
+    function settle() as Void {
+        _item.setEnabled(_store.isOn(_entityId));
+        _item.setSubLabel(_restingSubLabel);
         WatchUi.requestUpdate();
     }
 }
