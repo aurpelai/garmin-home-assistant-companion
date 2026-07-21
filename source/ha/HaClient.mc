@@ -3,9 +3,11 @@ import Toybox.Lang;
 import Toybox.System;
 
 // Networking core. Wraps Communications.makeWebRequest with Bearer auth and
-// JSON, and exposes the three operations the UI needs:
-//   - fetchAreaLightMap: one POST /api/template call, server-side areas→lights join
-//   - fetchStates:       GET /api/states for current on/off per entity
+// JSON, and exposes the operations the UI needs:
+//   - fetchLightSnapshot: one POST /api/template call rendering both the
+//     areas→lights join AND each light's on/off state (a plain GET /api/states
+//     returns every entity in the instance and blows past Connect IQ's HTTP
+//     response-size limit, so states ride along in the template instead).
 //   - callLightService:  POST /api/services/light/{turn_on|turn_off|toggle}
 //
 // Connect IQ is single-threaded and callback-based: every method takes a
@@ -16,43 +18,51 @@ class HaClient {
     // Jinja rendered by HA. Must end in `| tojson` — /api/template returns plain
     // text, so without it the body would be a Python-repr dict, not valid JSON.
     //
+    // Renders { "areas": { areaName: [lightId, ...] }, "states": { lightId: bool },
+    //          "groups": [lightId, ...] }.
+    // The single inner area-walk collects an area's lights, records each light's
+    // on/off state via is_state (a real JSON boolean, not a string), and flags
+    // which lights are light groups. A light group is a light.* entity whose
+    // `entity_id` state attribute is defined (it holds the group's member ids);
+    // a plain light has no such attribute, so `state_attr(e, 'entity_id')` is
+    // none. "groups" is a flat list of those group ids (deduped on read by the
+    // model). Lights with no area are never visited by areas()/area_entities()
+    // and are thus naturally excluded.
+    //
     // Deliberately backslash-free: we filter light entities with
     // `.startswith('light.')` instead of a regex like select('match','^light\.').
     // A backslash in this string would be sent unescaped by the Connect IQ JSON
     // serializer, producing an invalid JSON escape and a 400 "Invalid JSON
     // specified" from HA.
-    private const AREA_LIGHTS_TEMPLATE =
-        "{% set ns = namespace(m={}) %}" +
+    private const LIGHT_SNAPSHOT_TEMPLATE =
+        "{% set ns = namespace(m={}, s={}, groups=[]) %}" +
         "{% for a in areas() %}" +
         "{% set ns.lights = [] %}" +
         "{% for e in area_entities(a) %}" +
         "{% if e.startswith('light.') %}" +
         "{% set ns.lights = ns.lights + [e] %}" +
+        "{% set ns.s = dict(ns.s, **{e: is_state(e, 'on')}) %}" +
+        "{% if state_attr(e, 'entity_id') is not none %}" +
+        "{% set ns.groups = ns.groups + [e] %}" +
+        "{% endif %}" +
         "{% endif %}" +
         "{% endfor %}" +
         "{% if ns.lights | count > 0 %}" +
         "{% set ns.m = dict(ns.m, **{area_name(a): ns.lights}) %}" +
         "{% endif %}" +
         "{% endfor %}" +
-        "{{ ns.m | tojson }}";
+        "{{ dict(areas=ns.m, states=ns.s, groups=ns.groups) | tojson }}";
 
     function initialize() {}
 
     // --- public API ---
 
-    // callback: method(result as AreaLightMap, err as Number or Null)
-    function fetchAreaLightMap(callback as Method) as Void {
-        var body = { "template" => AREA_LIGHTS_TEMPLATE };
+    function fetchLightSnapshot(callback as Method) as Void {
+        var body = { "template" => LIGHT_SNAPSHOT_TEMPLATE };
         post("/api/template", body, new Responder(callback, :onTemplate));
     }
 
-    // callback: method(states as Dictionary<String, Boolean>, err as Number or Null)
-    // Maps entity_id -> isOn for every light entity in /api/states.
-    function fetchStates(callback as Method) as Void {
-        get("/api/states", new Responder(callback, :onStates));
-    }
-
-    // Toggle/turn a single light. callback: method(ok as Boolean, err as Number or Null)
+    // A single light, vs. callAreaService's whole-area call below.
     function callLightService(service as Number, entityId as String, callback as Method) as Void {
         post(ServiceCall.servicePath(service), ServiceCall.entityBody(entityId),
              new Responder(callback, :onService));
@@ -66,12 +76,6 @@ class HaClient {
     }
 
     // --- transport ---
-
-    private function get(path as String, responder as Responder) as Void {
-        Communications.makeWebRequest(
-            Settings.getBaseUrl() + path, null, options(Communications.HTTP_REQUEST_METHOD_GET),
-            responder.method(:onResponse));
-    }
 
     private function post(path as String, body as Dictionary, responder as Responder) as Void {
         Communications.makeWebRequest(
@@ -124,35 +128,11 @@ class Responder {
                 if (data instanceof Lang.String) {
                     System.println("Template returned unparsed String: " + data);
                 }
-                _callback.invoke(AreaLightMap.fromTemplateData(data), null);
-                break;
-            case :onStates:
-                _callback.invoke(parseStates(data), null);
+                _callback.invoke(LightSnapshot.fromTemplateData(data), null);
                 break;
             case :onService:
                 _callback.invoke(true, null);
                 break;
         }
-    }
-
-    // /api/states → Array of { "entity_id" => ..., "state" => "on"|"off", ... }.
-    // Reduce to entity_id -> isOn for light.* entities only.
-    private function parseStates(data as Object or Null) as Dictionary<String, Boolean> {
-        var out = {} as Dictionary<String, Boolean>;
-        if (!(data instanceof Array)) {
-            return out;
-        }
-        var arr = data as Array;
-        for (var i = 0; i < arr.size(); i++) {
-            var e = arr[i];
-            if (e instanceof Dictionary) {
-                var id = e.get("entity_id");
-                var state = e.get("state");
-                if (id instanceof String && (id as String).find("light.") == 0 && state instanceof String) {
-                    out.put(id as String, (state as String).equals("on"));
-                }
-            }
-        }
-        return out;
     }
 }
