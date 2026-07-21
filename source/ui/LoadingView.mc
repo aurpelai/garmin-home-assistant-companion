@@ -36,17 +36,17 @@ class LoadingView extends WatchUi.View {
     }
 
     // On any request/transport error the client invokes us with (null, code), so a
-    // non-null err is the only failure path — a null state never arrives alongside
-    // a null err.
-    function onLoaded(state as LightState or Null, err as Number or Null) as Void {
-        if (err != null) { showError(errorStringFor(err)); return; }
+    // non-null error is the only failure path — a null state never arrives alongside
+    // a null error.
+    function onLoaded(state as LightState or Null, error as Number or Null) as Void {
+        if (error != null) { showError(errorStringFor(error)); return; }
         var session = new LightSession(_client, state as LightState);
         WatchUi.switchToView(new AreaMenu(session), new AreaMenuDelegate(session),
             WatchUi.SLIDE_IMMEDIATE);
     }
 
-    function setMessage(msg as String) as Void {
-        _message = msg;
+    function setMessage(message as String) as Void {
+        _message = message;
         WatchUi.requestUpdate();
     }
 
@@ -54,9 +54,9 @@ class LoadingView extends WatchUi.View {
         CenteredMessage.draw(dc, _message);
     }
 
-    private function showError(resId as ResourceId) as Void {
-        var msg = WatchUi.loadResource(resId) as String;
-        WatchUi.switchToView(new ErrorView(msg), new ErrorDelegate(), WatchUi.SLIDE_IMMEDIATE);
+    private function showError(id as ResourceId) as Void {
+        var message = WatchUi.loadResource(id) as String;
+        WatchUi.switchToView(new ErrorView(message), new ErrorDelegate(), WatchUi.SLIDE_IMMEDIATE);
     }
 
     private function errorStringFor(code as Number) as ResourceId {
