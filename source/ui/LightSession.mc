@@ -40,6 +40,14 @@ class LightSession {
         return _state.getName(entityId);
     }
 
+    function isGroup(entityId as String) as Boolean {
+        return _state.isGroup(entityId);
+    }
+
+    function getMemberCount(entityId as String) as Number {
+        return _state.getMemberCount(entityId);
+    }
+
     function isOn(entityId as String) as Boolean {
         var state = states.get(entityId);
         return (state == null) ? false : (state as Boolean);

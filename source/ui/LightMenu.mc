@@ -25,10 +25,15 @@ class LightMenu extends WatchUi.Menu2 {
             entityId, session.isOn(entityId), null);
     }
 
-    // TODO(#4): group member count. Null today; both render and restore route
-    // through here so #4 changes only this body, not the toggle path.
+    // A group row's idle sublabel is its member count ("4 lights", "1 light"); a
+    // plain light has none. Both initial render and post-toggle restore route
+    // through here, so this is the single seam that decides the idle sublabel.
     static function idleSubLabel(session as LightSession, entityId as String) as String or Null {
-        return null;
+        if (!session.isGroup(entityId)) {
+            return null;
+        }
+        var count = session.getMemberCount(entityId);
+        return count + (count == 1 ? " light" : " lights");
     }
 }
 
