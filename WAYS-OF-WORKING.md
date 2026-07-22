@@ -1,6 +1,19 @@
 # Ways of working
 
-How we do things in this repo. Lean for now — currently just the spec convention.
+How we do things in this repo. Lean for now — the issue lifecycle and the spec convention.
+
+## Issue lifecycle
+
+An issue moves through four stages, each named by the label it carries and the action it needs next. The label names the action, so landing on a ticket tells you which step to run:
+
+| Label | State | Next action |
+| --- | --- | --- |
+| `unconfirmed` | Authored, not yet human-vetted | vet it (is it real / worth doing?) |
+| `needs-grilling` | Vetted; design not yet grilled | grill it (stress-test the design) |
+| `needs-spec` | Grilled; design settled, spec not yet filed | write the spec |
+| `spec-ready` | Spec filed | implement |
+
+`blocked` is orthogonal (waiting on another issue) and can sit alongside any stage. An issue with no lifecycle label is ready with nothing pending. The stages are distinct steps — grilling settles the design, then a spec writes it up — so a ticket sits at `needs-spec` only after it has actually been grilled.
 
 ## Filing a spec
 
@@ -23,9 +36,9 @@ A spec ticket:
   - A `Spec:`-titled issue gets **`spec`** (it captures a settled design, so it is not
     "unvetted").
   - Every other new issue gets **`unconfirmed`** — unvetted until a maintainer confirms it.
-- When a spec is filed, the person filing it promotes the **original** issue to
-  **`spec-ready`** (remove `needs-spec`, add `spec-ready`). This is a manual step: the
-  filer knows which issue the spec is for.
+- Advancing through the lifecycle is manual, one label swap per stage as its step is done:
+  vetting swaps `unconfirmed` → `needs-grilling`; grilling swaps `needs-grilling` →
+  `needs-spec`; filing the spec swaps `needs-spec` → `spec-ready`.
 
 ## What `spec-ready` means
 
