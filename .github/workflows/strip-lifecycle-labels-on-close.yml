@@ -1,0 +1,35 @@
+name: Strip lifecycle labels on close
+
+# Lifecycle labels (unconfirmed / needs-grilling / needs-spec / spec-ready) each name a
+# pending pre-code action (see WAYS-OF-WORKING.md). A closed issue has none, so the
+# terminal state is *no lifecycle label*. This strips any that linger when an issue
+# closes — by any means (merged PR, won't-do, manual). Type labels (feature/bug/…),
+# `spec`, and `blocked` are left untouched.
+
+on:
+  issues:
+    types: [closed]
+
+permissions:
+  issues: write
+
+jobs:
+  strip:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Remove lingering lifecycle labels
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE: ${{ github.event.issue.html_url }}
+          LABELS: ${{ toJSON(github.event.issue.labels.*.name) }}
+        run: |
+          # LABELS is a JSON array of the issue's label names. Iterate exact names
+          # (jq -e .[] emits one per line, whole strings) and drop any that are
+          # lifecycle labels — matching the full name, so hyphenated names like
+          # needs-spec never confuse needs-grilling.
+          present="$(jq -r '.[]' <<< "$LABELS")"
+          for label in unconfirmed needs-grilling needs-spec spec-ready; do
+            if grep -qxF "$label" <<< "$present"; then
+              gh issue edit "$ISSUE" --remove-label "$label"
+            fi
+          done
