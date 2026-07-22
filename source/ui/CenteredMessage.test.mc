@@ -4,6 +4,7 @@ import Toybox.Test;
 
 // Tests for the pure line-splitting logic. A fake measure function models a
 // monospace font: 10 px per character.
+(:test)
 module CenteredMessageTest {
 
     function fakeMeasure(text as String, font as Graphics.FontType) as Number {

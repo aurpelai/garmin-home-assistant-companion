@@ -5,6 +5,7 @@ import Toybox.WatchUi;
 // Exercises the light-menu row seams directly on the session's state map, so no
 // networking is involved.
 
+(:test)
 module LightMenuTest {
 
     function sessionWith(states as Dictionary<String, Boolean>) as LightSession {
