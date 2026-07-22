@@ -1,6 +1,18 @@
 # Ways of working
 
-How we do things in this repo. Lean for now — the issue lifecycle and the spec convention.
+How we do things in this repo. Lean for now — one design principle, the issue lifecycle, and the spec convention.
+
+## Build for now, enable the future
+
+Build the current feature; don't build the future. Every design decision keeps future work _reachable_ without _implementing_ it now.
+
+Concretely:
+
+- Solve the feature in front of you with the simplest correct design. Extra generality earns its place only when there is a second real consumer to shape it — one hypothetical consumer is not enough.
+- Where the future is known (for example, this app will grow beyond lights to other entity domains), don't bake an assumption that would have to be unpicked later. Keep names and concepts neutral enough that extending is additive, not a rewrite.
+- Prefer the change that a future feature can build _on top of_ over the change that a future feature would have to _tear out_. When unsure which a decision is, that uncertainty is the thing to resolve before committing.
+
+The test for any decision: does it make the eventual feature cheaper to add, without paying for it today?
 
 ## Issue lifecycle
 
