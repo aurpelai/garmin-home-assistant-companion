@@ -25,6 +25,16 @@ module LightMenuTest {
         });
         return new LightSession(new HaClient(), state);
     }
+
+    function sessionWithGroups(states as Dictionary<String, Boolean>,
+                              groups as Dictionary<String, Number>) as LightSession {
+        var state = LightState.fromTemplateData({
+            "areas" => { "Room" => states.keys() },
+            "states" => states,
+            "groups" => groups
+        });
+        return new LightSession(new HaClient(), state);
+    }
 }
 
 (:test)
@@ -69,6 +79,44 @@ function idleSubLabelRestoredAfterToggle(logger as Test.Logger) as Boolean {
     new ToggleHandler(item, session, "light.x", "3 lights").onComplete();
 
     Test.assertEqual(item.getSubLabel() as String, "3 lights");
+    return true;
+}
+
+(:test)
+function groupRowShowsMemberCount(logger as Test.Logger) as Boolean {
+    var session = LightMenuTest.sessionWithGroups(
+        { "light.grp" => true }, { "light.grp" => 4 });
+
+    Test.assertEqual(LightMenu.idleSubLabel(session, "light.grp") as String, "4 lights");
+    return true;
+}
+
+(:test)
+function singleMemberGroupIsSingular(logger as Test.Logger) as Boolean {
+    var session = LightMenuTest.sessionWithGroups(
+        { "light.grp" => true }, { "light.grp" => 1 });
+
+    Test.assertEqual(LightMenu.idleSubLabel(session, "light.grp") as String, "1 light");
+    return true;
+}
+
+(:test)
+function zeroMemberGroupShowsZero(logger as Test.Logger) as Boolean {
+    // A group that expands to nothing reads "0 lights" honestly until empty
+    // groups are filtered upstream; the plural branch covers zero.
+    var session = LightMenuTest.sessionWithGroups(
+        { "light.grp" => true }, { "light.grp" => 0 });
+
+    Test.assertEqual(LightMenu.idleSubLabel(session, "light.grp") as String, "0 lights");
+    return true;
+}
+
+(:test)
+function plainLightHasNoSubLabel(logger as Test.Logger) as Boolean {
+    var session = LightMenuTest.sessionWithGroups(
+        { "light.plain" => true }, {} as Dictionary<String, Number>);
+
+    Test.assert(LightMenu.idleSubLabel(session, "light.plain") == null);
     return true;
 }
 

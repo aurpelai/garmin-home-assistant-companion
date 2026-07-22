@@ -60,12 +60,52 @@ function isGroupReflectsGroupsSection(logger as Test.Logger) as Boolean {
     var data = {
         "areas" => { "A" => ["light.grp", "light.plain"] },
         "states" => {},
-        "groups" => ["light.grp"]
+        "groups" => { "light.grp" => 3 }
     };
     var state = LightState.fromTemplateData(data);
     Test.assert(state.isGroup("light.grp"));
     Test.assert(!state.isGroup("light.plain"));
     Test.assert(!state.isGroup("light.unknown"));
+    return true;
+}
+
+(:test)
+function memberCountReflectsGroupsSection(logger as Test.Logger) as Boolean {
+    var data = {
+        "areas" => { "A" => ["light.grp"] },
+        "states" => {},
+        "groups" => { "light.grp" => 4 }
+    };
+    var state = LightState.fromTemplateData(data);
+    Test.assertEqual(state.getMemberCount("light.grp"), 4);
+    return true;
+}
+
+(:test)
+function dropsInvalidGroupCounts(logger as Test.Logger) as Boolean {
+    // The crash-guard case: a value that is not a valid non-negative integer
+    // (null / string / array / negative) drops the entry entirely, so the entity
+    // is not a group and carries no count — it renders as a plain row rather than
+    // flowing a bad value into the sublabel and crashing the menu.
+    var data = {
+        "areas" => { "A" => ["light.nullc", "light.strc", "light.arrc", "light.negc", "light.ok"] },
+        "states" => {},
+        "groups" => {
+            "light.nullc" => null,
+            "light.strc" => "3",
+            "light.arrc" => ["light.a"],
+            "light.negc" => -1,
+            "light.ok" => 2
+        }
+    };
+    var state = LightState.fromTemplateData(data);
+    Test.assert(!state.isGroup("light.nullc"));
+    Test.assert(!state.isGroup("light.strc"));
+    Test.assert(!state.isGroup("light.arrc"));
+    Test.assert(!state.isGroup("light.negc"));
+    // The one valid entry survives.
+    Test.assert(state.isGroup("light.ok"));
+    Test.assertEqual(state.getMemberCount("light.ok"), 2);
     return true;
 }
 
@@ -76,7 +116,7 @@ function allLightsOrdersGroupsFirstThenAlpha(logger as Test.Logger) as Boolean {
     var data = {
         "areas" => { "A" => ["light.apple", "light.zzz_group", "light.mango"] },
         "states" => {},
-        "groups" => ["light.zzz_group"]
+        "groups" => { "light.zzz_group" => 2 }
     };
     var state = LightState.fromTemplateData(data);
     var all = state.allLights();
@@ -92,7 +132,7 @@ function lightsForAreaOrdersGroupsFirst(logger as Test.Logger) as Boolean {
     var data = {
         "areas" => { "Living" => ["light.lamp", "light.b_group", "light.a_group", "light.ceiling"] },
         "states" => {},
-        "groups" => ["light.a_group", "light.b_group"]
+        "groups" => { "light.a_group" => 1, "light.b_group" => 4 }
     };
     var state = LightState.fromTemplateData(data);
     var lights = state.lightsForArea("Living");
@@ -172,7 +212,7 @@ function missingGroupsKeyFallsBackToAlpha(logger as Test.Logger) as Boolean {
 }
 
 (:test)
-function nonArrayGroupsDegradesCleanly(logger as Test.Logger) as Boolean {
+function nonMapGroupsDegradesCleanly(logger as Test.Logger) as Boolean {
     // A malformed "groups" section: nothing is a group, ordering stays alphabetical.
     var data = {
         "areas" => { "A" => ["light.b", "light.a"] },

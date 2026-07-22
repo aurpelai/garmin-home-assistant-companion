@@ -6,14 +6,15 @@ import Toybox.Lang;
 //   { "areas":  { areaName: [entityId, ...], ... },
 //     "states": { entityId: true|false, ... },
 //     "names":  { entityId: "Kitchen Island", ... },
-//     "groups": [entityId, ...] }
+//     "groups": { entityId: memberCount, ... } }
 // LightState splits that body, wrapping the areas section into an
 // area-ordered structure (from which the flat "all lights" list derives),
 // parsing the states section into an entity_id -> Boolean map, parsing the
 // names section into an entity_id -> String map (the name Home Assistant
 // itself shows for each light, used as the row label and the sort key), and
-// parsing the groups section into a set of the light ids that are light groups
-// (used to order groups ahead of plain lights in every list view).
+// parsing the groups section into an entity_id -> member count map. A light id
+// present in that map is a light group (used to order groups ahead of plain
+// lights in every list view); its value is how many lights the group controls.
 //
 // Each section degrades independently: non-conforming input yields an empty
 // result rather than throwing (watch UX: show "no lights" / all-off, not a
@@ -26,13 +27,14 @@ class LightState {
     public var states as Dictionary<String, Boolean>;
     // entity_id -> display name, HA's own name for each light.
     private var names as Dictionary<String, String>;
-    // Set of entity_ids that are light groups (value always true; membership is
-    // the signal). Backs group-first ordering in the list views.
-    private var groups as Dictionary<String, Boolean>;
+    // entity_id -> member count for the light groups. Key presence is the
+    // is-a-group signal (backs group-first ordering); the value is how many lights
+    // the group controls (backs the "N lights" row sublabel).
+    private var groups as Dictionary<String, Number>;
 
     function initialize(areas as Array<Dictionary>, states as Dictionary<String, Boolean>,
                         names as Dictionary<String, String>,
-                        groups as Dictionary<String, Boolean>) {
+                        groups as Dictionary<String, Number>) {
         self.areas = areas;
         self.states = states;
         self.names = names;
@@ -47,7 +49,7 @@ class LightState {
     static function fromTemplateData(data as Dictionary or String or Null) as LightState {
         if (!(data instanceof Dictionary)) {
             return new LightState([] as Array<Dictionary>, {} as Dictionary<String, Boolean>,
-                                     {} as Dictionary<String, String>, {} as Dictionary<String, Boolean>);
+                                     {} as Dictionary<String, String>, {} as Dictionary<String, Number>);
         }
         var body = data as Dictionary;
         return new LightState(parseAreas(body.get("areas")), parseStates(body.get("states")),
@@ -77,6 +79,13 @@ class LightState {
 
     function isGroup(entityId as String) as Boolean {
         return groups.hasKey(entityId);
+    }
+
+    // How many lights the group controls. Only meaningful for a group (isGroup
+    // true); parseGroups guarantees every present key maps to a non-negative
+    // integer, so this never returns null for a group.
+    function getMemberCount(entityId as String) as Number {
+        return groups.get(entityId) as Number;
     }
 
     // Deduplicated, group-first-then-alphabetical union of every area's lights —
@@ -222,14 +231,29 @@ class LightState {
         return out;
     }
 
-    // The "groups" section: [entityId, ...] -> a set of group ids (value always
-    // true). A non-Array or missing value yields an empty set; non-String
-    // entries are dropped.
-    private static function parseGroups(raw as Object or Null) as Dictionary<String, Boolean> {
-        var out = {} as Dictionary<String, Boolean>;
-        var ids = onlyStrings(raw);
-        for (var index = 0; index < ids.size(); index++) {
-            out.put(ids[index], true);
+    // The "groups" section: { entityId: memberCount } -> entity_id -> Number.
+    // Keeps only entries with a String key and a non-negative-integer value; a
+    // non-Dictionary or missing value yields an empty map. Dropping any entry
+    // whose value is not a valid count (null, string, array, negative) is a
+    // crash guard, not polish: a present key must always carry a usable count, or
+    // the null would flow to the row sublabel's string concatenation and throw at
+    // row-build time. In normal operation the server-side count filter can only
+    // emit a valid integer; the invalid case is reachable only via a
+    // server-contract violation, and dropping the entry degrades it to a plain
+    // (non-group) row.
+    private static function parseGroups(raw as Object or Null) as Dictionary<String, Number> {
+        var out = {} as Dictionary<String, Number>;
+        if (!(raw instanceof Dictionary)) {
+            return out;
+        }
+        var section = raw as Dictionary;
+        var entityIds = section.keys();
+        for (var index = 0; index < entityIds.size(); index++) {
+            var entityId = entityIds[index];
+            var count = section.get(entityId);
+            if (entityId instanceof String && count instanceof Number && (count as Number) >= 0) {
+                out.put(entityId as String, count as Number);
+            }
         }
         return out;
     }
