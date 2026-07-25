@@ -36,7 +36,7 @@ module LightMenuTest {
         return new LightSession(new HaClient(), state);
     }
 
-    function snapshotOf(states as Dictionary<String, Boolean>) as LightState {
+    function stateOf(states as Dictionary<String, Boolean>) as LightState {
         return LightState.fromTemplateData({
             "areas" => { "Room" => states.keys() },
             "states" => states
@@ -54,11 +54,11 @@ function rowSwitchReflectsIsOnWhenBuilt(logger as Test.Logger) as Boolean {
 }
 
 (:test)
-function reconciledRowReflectsConvergedTruth(logger as Test.Logger) as Boolean {
+function appliedStateRowReflectsConvergedTruth(logger as Test.Logger) as Boolean {
     var session = LightMenuTest.sessionWith({ "light.x" => true });
     var menu = new LightMenu(session, "Room", ["light.x"]);
 
-    session.reconcile(LightMenuTest.snapshotOf({ "light.x" => false }));
+    session.applyState(LightMenuTest.stateOf({ "light.x" => false }));
     menu.refresh();
 
     Test.assert(!(menu.getItem(menu.findItemById("light.x")) as WatchUi.ToggleMenuItem).isEnabled());

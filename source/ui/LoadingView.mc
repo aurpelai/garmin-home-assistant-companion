@@ -45,7 +45,7 @@ class LoadingView extends WatchUi.View {
         // Replacing the app-owned session wholesale is safe ONLY because
         // onLoaded runs solely at startup/retry, with no live state-view holding
         // the prior session. Mid-session refresh MUST go through
-        // onActive/reconcile (in place), never here — else the app reference and
+        // onActive/applyState (in place), never here — else the app reference and
         // a view's constructor-injected reference would diverge.
         (Application.getApp() as HaControllerApp).setSession(session);
         WatchUi.switchToView(new AreaMenu(session), new AreaMenuDelegate(session),

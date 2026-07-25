@@ -7,7 +7,7 @@ import Toybox.WatchUi;
 // is a plain loading view that kicks off the initial HA fetch in onShow().
 //
 // Resume/foreground handling lives in onActive(): the task-switcher fires it on
-// return to the foreground, and it reconciles the app-owned session in place
+// return to the foreground, and it refreshes the app-owned session in place
 // then repaints the current state-showing view. The app holds two references
 // for this — the live session (written once by LoadingView.onLoaded) and the
 // current view (registered by each state-showing view's onShow).
@@ -36,8 +36,8 @@ class HaControllerApp extends Application.AppBase {
     }
 
     // Task-switcher foreground hook. With no session yet (mid-load, ErrorView)
-    // this is inert — LoadingView owns the fetch there. Otherwise reconcile the
-    // session in place off a fresh snapshot, then repaint the current view.
+    // this is inert — LoadingView owns the fetch there. Otherwise refresh the
+    // session in place off a fresh LightState, then repaint the current view.
     function onActive(state as Dictionary or Null) as Void {
         if (_session == null) {
             return;
@@ -48,7 +48,7 @@ class HaControllerApp extends Application.AppBase {
     function onRefreshed() as Void {
         // Duck-typed repaint: Monkey C has no interfaces and Menu2 owns the
         // single base-class slot, so state-showing views expose a named refresh
-        // method instead. Skip when no view is registered (reconcile-only). A
+        // method instead. Skip when no view is registered (state-apply only). A
         // new state-showing view must join the cast union below.
         var view = _currentView;
         if (view != null && view has :refresh) {

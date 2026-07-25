@@ -53,8 +53,8 @@ class LightSession {
         return (state == null) ? false : (state as Boolean);
     }
 
-    // Flip local state and fire the toggle. The result callback reconciles on
-    // failure (reverts the optimistic flip).
+    // Flip local state and fire the toggle. The result callback reverts the
+    // optimistic flip on failure.
     function toggle(entityId as String, onComplete as Method) as Void {
         var newOn = !isOn(entityId);
         states.put(entityId, newOn);
@@ -66,16 +66,16 @@ class LightSession {
         states.put(entityId, !attemptedOn);
     }
 
-    // Re-sync from a freshly fetched server-truth snapshot (most-recent-fetch
-    // wins). The new snapshot becomes the server truth backing structural reads
-    // on the next menu construction; the live on/off map converges to it now.
+    // Re-sync from a freshly fetched LightState (most-recent-fetch wins). The
+    // new state becomes the server truth backing structural reads on the next
+    // menu construction; the live on/off map converges to it now.
     //
     // Only entities already present in the live map are updated, and only when
-    // the snapshot actually knows them — a snapshot that omits an entity leaves
+    // the fresh state actually knows them — a state that omits an entity leaves
     // its value alone rather than reading the isOn default and flipping it off.
     // Keys are never added or dropped here: structural drift (entities or group
     // membership appearing/disappearing) is deferred to the next navigation.
-    function reconcile(state as LightState) as Void {
+    function applyState(state as LightState) as Void {
         _state = state;
 
         var entityIds = states.keys();
@@ -88,7 +88,7 @@ class LightSession {
     }
 
     // The single silent-convergence path for {action-completion, navigation,
-    // resume}: fetch a snapshot, reconcile onto it, then invoke onDone. A fetch
+    // resume}: fetch fresh state, apply it, then invoke onDone. A fetch
     // failure is swallowed (last-known state stays and heals on the next
     // trigger), yet onDone still fires so callers need no error branch.
     function refresh(onDone as Method) as Void {
@@ -107,7 +107,7 @@ class RefreshHandler {
 
     function onFetched(state as LightState or Null, error as Number or Null) as Void {
         if (error == null) {
-            _session.reconcile(state as LightState);
+            _session.applyState(state as LightState);
         }
         _onDone.invoke();
     }

@@ -7,7 +7,7 @@ import Toybox.WatchUi;
 // row toggles it, and the switch flips itself optimistically.
 //
 // The menu renders from cached session state instantly. onShow is the
-// navigation trigger: it fires a fresh snapshot fetch and, when it returns,
+// navigation trigger: it fires a fresh state fetch and, when it returns,
 // silently converges the visible rows to server truth without ever blocking on
 // the network. Resume is handled separately by the app's onActive; onShow may
 // also fire on resume, a tolerated harmless double-fetch.
@@ -91,7 +91,7 @@ class LightMenuDelegate extends WatchUi.Menu2InputDelegate {
 }
 
 // Once a toggle resolves, snaps the switch to the session's state — a no-op on
-// success, a flip-back on failure — then reconciles every visible row.
+// success, a flip-back on failure — then refreshes every visible row.
 class ToggleHandler {
     private var _menu as LightMenu;
     private var _item as WatchUi.ToggleMenuItem;
