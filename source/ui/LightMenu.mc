@@ -1,3 +1,4 @@
+import Toybox.Application;
 import Toybox.Lang;
 import Toybox.WatchUi;
 
@@ -5,10 +6,11 @@ import Toybox.WatchUi;
 // native toggle showing the light's friendly name and on/off state; selecting a
 // row toggles it, and the switch flips itself optimistically.
 //
-// The menu renders from cached session state instantly. onShow fires a fresh
-// snapshot fetch and, when it returns, silently converges the visible rows to
-// server truth — so entering the view (navigation) and returning to it (resume)
-// both self-heal without ever blocking on the network.
+// The menu renders from cached session state instantly. onShow is the
+// navigation trigger: it fires a fresh snapshot fetch and, when it returns,
+// silently converges the visible rows to server truth without ever blocking on
+// the network. Resume is handled separately by the app's onActive; onShow may
+// also fire on resume, a tolerated harmless double-fetch.
 class LightMenu extends WatchUi.Menu2 {
     private var _session as LightSession;
     private var _lights as Array<String>;
@@ -29,11 +31,14 @@ class LightMenu extends WatchUi.Menu2 {
     }
 
     function onShow() as Void {
-        _session.refresh(method(:refreshRows));
+        (Application.getApp() as HaControllerApp).setCurrentView(self);
+        _session.refresh(method(:refresh));
     }
 
-    // Only the on/off markers move; the item list is never rebuilt.
-    function refreshRows() as Void {
+    // The named repaint seam onActive dispatches to (see AreaMenu.refresh); any
+    // new state-showing view implements it. Only the on/off markers move; the
+    // item list is never rebuilt, so scroll and focus survive.
+    function refresh() as Void {
         for (var i = 0; i < _lights.size(); i++) {
             var entityId = _lights[i];
             var index = findItemById(entityId);
@@ -106,6 +111,6 @@ class ToggleHandler {
         _item.setEnabled(_session.isOn(_entityId));
         WatchUi.requestUpdate();
 
-        _session.refresh(_menu.method(:refreshRows));
+        _session.refresh(_menu.method(:refresh));
     }
 }

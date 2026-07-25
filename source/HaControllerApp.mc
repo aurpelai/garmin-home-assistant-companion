@@ -6,16 +6,53 @@ import Toybox.WatchUi;
 // returning a Menu2 directly here crashes on some devices, so the first screen
 // is a plain loading view that kicks off the initial HA fetch in onShow().
 //
-// Resume/foreground handling lives in the views, not here: the top menu's
-// onShow fires on return to the foreground and reconciles there, so no
-// AppBase-level resume hook is wired.
+// Resume/foreground handling lives in onActive(): the task-switcher fires it on
+// return to the foreground, and it reconciles the app-owned session in place
+// then repaints the current state-showing view. The app holds two references
+// for this — the live session (written once by LoadingView.onLoaded) and the
+// current view (registered by each state-showing view's onShow).
 class HaControllerApp extends Application.AppBase {
+    private var _session as LightSession or Null;
+    private var _currentView as WatchUi.Views or Null;
 
     function initialize() {
         AppBase.initialize();
+        _session = null;
+        _currentView = null;
     }
 
     function getInitialView() as [WatchUi.Views] or [WatchUi.Views, WatchUi.InputDelegates] {
         return [new LoadingView(), new LoadingDelegate()];
+    }
+
+    // Replace the live session (LoadingView.onLoaded, at startup/retry).
+    function setSession(session as LightSession) as Void {
+        _session = session;
+    }
+
+    // Register the view onActive should repaint (a state-showing view's onShow).
+    function setCurrentView(view as WatchUi.Views) as Void {
+        _currentView = view;
+    }
+
+    // Task-switcher foreground hook. With no session yet (mid-load, ErrorView)
+    // this is inert — LoadingView owns the fetch there. Otherwise reconcile the
+    // session in place off a fresh snapshot, then repaint the current view.
+    function onActive(state as Dictionary or Null) as Void {
+        if (_session == null) {
+            return;
+        }
+        _session.refresh(method(:onRefreshed));
+    }
+
+    function onRefreshed() as Void {
+        // Duck-typed repaint: Monkey C has no interfaces and Menu2 owns the
+        // single base-class slot, so state-showing views expose a named refresh
+        // method instead. Skip when no view is registered (reconcile-only). A
+        // new state-showing view must join the cast union below.
+        var view = _currentView;
+        if (view != null && view has :refresh) {
+            (view as LightMenu or AreaMenu).refresh();
+        }
     }
 }

@@ -59,7 +59,7 @@ function reconciledRowReflectsConvergedTruth(logger as Test.Logger) as Boolean {
     var menu = new LightMenu(session, "Room", ["light.x"]);
 
     session.reconcile(LightMenuTest.snapshotOf({ "light.x" => false }));
-    menu.refreshRows();
+    menu.refresh();
 
     Test.assert(!(menu.getItem(menu.findItemById("light.x")) as WatchUi.ToggleMenuItem).isEnabled());
     return true;

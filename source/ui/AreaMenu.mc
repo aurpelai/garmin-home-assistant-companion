@@ -1,3 +1,4 @@
+import Toybox.Application;
 import Toybox.Lang;
 import Toybox.WatchUi;
 
@@ -16,6 +17,15 @@ class AreaMenu extends WatchUi.Menu2 {
             var name = areas[i].get(:name) as String;
             addItem(new WatchUi.MenuItem(name, null, name, null));
         }
+    }
+
+    function onShow() as Void {
+        (Application.getApp() as HaControllerApp).setCurrentView(self);
+    }
+
+    // The named repaint seam onActive dispatches to (see LightMenu.refresh).
+    // No-op here: the area menu shows no light state.
+    function refresh() as Void {
     }
 }
 

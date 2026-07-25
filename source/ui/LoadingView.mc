@@ -1,3 +1,4 @@
+import Toybox.Application;
 import Toybox.Graphics;
 import Toybox.Lang;
 import Toybox.WatchUi;
@@ -41,6 +42,12 @@ class LoadingView extends WatchUi.View {
     function onLoaded(state as LightState or Null, error as Number or Null) as Void {
         if (error != null) { showError(errorStringFor(error)); return; }
         var session = new LightSession(_client, state as LightState);
+        // Replacing the app-owned session wholesale is safe ONLY because
+        // onLoaded runs solely at startup/retry, with no live state-view holding
+        // the prior session. Mid-session refresh MUST go through
+        // onActive/reconcile (in place), never here — else the app reference and
+        // a view's constructor-injected reference would diverge.
+        (Application.getApp() as HaControllerApp).setSession(session);
         WatchUi.switchToView(new AreaMenu(session), new AreaMenuDelegate(session),
             WatchUi.SLIDE_IMMEDIATE);
     }
