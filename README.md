@@ -1,5 +1,8 @@
 # Companion for Home Assistant
 
+[![CI](https://github.com/aurpelai/garmin-home-assistant-companion/actions/workflows/ci.yml/badge.svg)](https://github.com/aurpelai/garmin-home-assistant-companion/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 A Garmin Connect IQ watch app for controlling and monitoring Home Assistant from your wrist. The first capability is lights — toggle them individually or by area — with more entity types and data display planned.
 
 ## Requirements
@@ -26,102 +29,13 @@ The app talks directly to HA's REST API from the watch via `Communications.makeW
 3. Install "Companion for Home Assistant" on your watch via Connect IQ.
 4. Open the app's settings through the Garmin Connect Mobile app (Device → HA Companion → Settings), and enter your HA base URL and the token. **Paste the token — don't retype it**; a single mistyped character breaks auth.
 
-## Development
-
-### SDK setup
-
-Install the Connect IQ SDK and either put its `bin/` directory on `PATH`, or point `CIQ_SDK` at the SDK root:
-
-```sh
-export CIQ_SDK="$HOME/Library/Application Support/Garmin/ConnectIQ/Sdks/<version>"
-```
-
-A developer signing key is required to produce builds. Generate one once (git-ignored, handled via `openssl` under the hood):
-
-```sh
-make key
-```
-
-### Build, run, test
-
-All Makefile targets accept `DEVICE=<id>` to override the default (`venu3`).
-
-```sh
-make build   # compile a debug build for DEVICE
-make sim     # launch the Connect IQ simulator (leave running in another shell)
-make run     # build + launch the app in the simulator
-make test    # build + run unit tests (requires `make sim` running elsewhere)
-make key     # generate developer_key.der (once)
-make clean   # remove build output
-```
-
-### Project structure
-
-```
-manifest.xml            App metadata: id, products, permissions, min API level
-monkey.jungle           Build source-set definition
-Makefile                Build/run/test convenience targets
-
-source/
-  HaControllerApp.mc    App entry point
-  config/
-    Settings.mc         Reads HA URL + token from app Properties
-  ha/
-    HaClient.mc          Networking against the HA REST API
-    ServiceCall.mc       Builds light service-call payloads
-  model/
-    AreaLightMap.mc      Pure parsing/derivation of area -> lights data
-  ui/
-    LoadingView.mc        Loading-state view
-    LoadingDelegate.mc     Loading-state input delegate
-    AreaMenu.mc            Area list menu
-    LightMenu.mc           Light list menu (per area / individual)
-    LightStore.mc          In-memory light/area state
-    ErrorView.mc            Error display
-  test/
-    AreaLightMapTest.mc    Unit tests for area/light parsing
-    ServiceCallTest.mc     Unit tests for service-call payload building
-
-resources/
-  strings/, settings/, drawables/   App strings, Connect IQ settings schema, icons
-
-.github/workflows/ci.yml   CI pipeline
-scripts/run-tests.sh        Headless simulator test runner used by CI
-```
-
-## Testing
-
-Unit tests live in `source/test/*.mc`, written with Monkey C's `(:test)` annotations. They cover the pure logic that doesn't require a network: `AreaLightMap` parsing and service-call payload building. Networking itself isn't unit-testable in the Connect IQ test framework and is verified in the simulator or on-device instead.
-
-Run tests locally:
-
-```sh
-make sim     # in one shell — leave running
-make test    # in another shell
-```
-
-Or use the headless runner, which launches the simulator itself, builds and runs the tests, and returns a real exit code by parsing the console output for the `PASSED` summary (`monkeydo`'s own exit code is unreliable for test results):
-
-```sh
-scripts/run-tests.sh
-```
-
-## CI
-
-`.github/workflows/ci.yml` runs on `ubuntu-latest` inside the
-[`matco/connectiq-tester`](https://github.com/matco/connectiq-tester) container,
-which bundles the Connect IQ SDK and runs a headless simulator via Xvfb — so the
-whole build-and-test step runs on Linux with no Garmin login and no committed
-signing key (the container generates a temporary self-signed certificate).
-
-The **SDK version is pinned by the image tag**: `v2.8.0` bakes SDK 9.2.0, matching
-what we develop against. Bumping the SDK is a deliberate tag bump — using
-`:latest` would let it drift. No repository secrets are required, so CI also runs
-on pull requests from forks.
-
 ## Roadmap / Status
 
 Initial scaffold. Current (MVP) functionality: turn lights on/off or toggle them, individually or per Home Assistant area. Further features are expected on top of this base.
+
+## Contributing
+
+Contributions welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) for setup and the PR process, and [WAYS-OF-WORKING.md](WAYS-OF-WORKING.md) for how the project runs.
 
 ## License
 
