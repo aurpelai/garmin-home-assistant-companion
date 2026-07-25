@@ -35,7 +35,7 @@ class LightMenu extends WatchUi.Menu2 {
         _session.refreshState(method(:redraw));
     }
 
-    // The named repaint seam onActive dispatches to (see AreaMenu.redraw); any
+    // The named redraw seam onActive dispatches to (see AreaMenu.redraw); any
     // new state-showing view implements it. Only the on/off markers move; the
     // item list is never rebuilt, so scroll and focus survive.
     function redraw() as Void {

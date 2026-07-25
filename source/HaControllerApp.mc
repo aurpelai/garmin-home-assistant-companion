@@ -8,7 +8,7 @@ import Toybox.WatchUi;
 //
 // Resume/foreground handling lives in onActive(): the task-switcher fires it on
 // return to the foreground, and it refreshes the app-owned session in place
-// then repaints the current state-showing view. The app holds two references
+// then redraws the current state-showing view. The app holds two references
 // for this — the live session (written once by LoadingView.onLoaded) and the
 // current view (registered by each state-showing view's onShow).
 class HaControllerApp extends Application.AppBase {
@@ -30,14 +30,14 @@ class HaControllerApp extends Application.AppBase {
         _session = session;
     }
 
-    // Register the view onActive should repaint (a state-showing view's onShow).
+    // Register the view onActive should redraw (a state-showing view's onShow).
     function setCurrentView(view as WatchUi.Views) as Void {
         _currentView = view;
     }
 
     // Task-switcher foreground hook. With no session yet (mid-load, ErrorView)
     // this is inert — LoadingView owns the fetch there. Otherwise refresh the
-    // session in place off a fresh LightState, then repaint the current view.
+    // session in place off a fresh LightState, then redraw the current view.
     function onActive(state as Dictionary or Null) as Void {
         if (_session == null) {
             return;
@@ -46,7 +46,7 @@ class HaControllerApp extends Application.AppBase {
     }
 
     function onRefreshed() as Void {
-        // Duck-typed repaint: Monkey C has no interfaces and Menu2 owns the
+        // Duck-typed redraw: Monkey C has no interfaces and Menu2 owns the
         // single base-class slot, so state-showing views expose a named redraw
         // method instead. Skip when no view is registered (state-apply only). A
         // new state-showing view must join the cast union below.

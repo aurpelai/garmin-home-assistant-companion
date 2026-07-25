@@ -23,7 +23,7 @@ class AreaMenu extends WatchUi.Menu2 {
         (Application.getApp() as HaControllerApp).setCurrentView(self);
     }
 
-    // The named repaint seam onActive dispatches to (see LightMenu.redraw).
+    // The named redraw seam onActive dispatches to (see LightMenu.redraw).
     // No-op here: the area menu shows no light state.
     function redraw() as Void {
     }
