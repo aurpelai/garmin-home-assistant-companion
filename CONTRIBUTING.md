@@ -43,10 +43,6 @@ make clean   # remove build output
 same shell — they just need the simulator already open. Tests cover the pure logic that
 doesn't require a network; networking is verified in the simulator or on-device instead.
 
-Or use `scripts/run-tests.sh`, the headless runner, which launches the simulator itself,
-builds and runs the tests, and returns a real exit code by parsing the console output for
-the `PASSED` summary (`monkeydo`'s own exit code is unreliable for test results).
-
 ## Continuous integration
 
 `.github/workflows/ci.yml` runs on `ubuntu-latest` inside the
