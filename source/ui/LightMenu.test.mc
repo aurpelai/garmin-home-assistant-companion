@@ -35,6 +35,13 @@ module LightMenuTest {
         });
         return new LightSession(new HaClient(), state);
     }
+
+    function stateOf(states as Dictionary<String, Boolean>) as LightState {
+        return LightState.fromTemplateData({
+            "areas" => { "Room" => states.keys() },
+            "states" => states
+        });
+    }
 }
 
 (:test)
@@ -47,36 +54,25 @@ function rowSwitchReflectsIsOnWhenBuilt(logger as Test.Logger) as Boolean {
 }
 
 (:test)
-function switchStaysOnAfterSuccessfulToggle(logger as Test.Logger) as Boolean {
+function appliedStateRowReflectsConvergedTruth(logger as Test.Logger) as Boolean {
     var session = LightMenuTest.sessionWith({ "light.x" => true });
-    var item = new WatchUi.ToggleMenuItem("X", "Toggling…", "light.x", true, null);
+    var menu = new LightMenu(session, "Room", ["light.x"]);
 
-    new ToggleHandler(item, session, "light.x", null).onComplete();
+    session.applyState(LightMenuTest.stateOf({ "light.x" => false }));
+    menu.redraw();
 
-    Test.assert(item.isEnabled());
-    Test.assert(item.getSubLabel() == null);
+    Test.assert(!(menu.getItem(menu.findItemById("light.x")) as WatchUi.ToggleMenuItem).isEnabled());
     return true;
 }
 
 (:test)
-function switchFlipsBackAfterFailedToggle(logger as Test.Logger) as Boolean {
-    // Switch still shows on (auto-flipped on tap); session reverted to off.
-    var session = LightMenuTest.sessionWith({ "light.x" => false });
-    var item = new WatchUi.ToggleMenuItem("X", "Toggling…", "light.x", true, null);
+function toggleShowsNoTransientSubLabel(logger as Test.Logger) as Boolean {
+    var session = LightMenuTest.sessionWithGroups(
+        { "light.grp" => true }, { "light.grp" => 3 });
+    var menu = new LightMenu(session, "Room", ["light.grp"]);
+    var item = menu.getItem(menu.findItemById("light.grp")) as WatchUi.ToggleMenuItem;
 
-    new ToggleHandler(item, session, "light.x", null).onComplete();
-
-    Test.assert(!item.isEnabled());
-    Test.assert(item.getSubLabel() == null);
-    return true;
-}
-
-(:test)
-function idleSubLabelRestoredAfterToggle(logger as Test.Logger) as Boolean {
-    var session = LightMenuTest.sessionWith({ "light.x" => true });
-    var item = new WatchUi.ToggleMenuItem("X", "Toggling…", "light.x", true, null);
-
-    new ToggleHandler(item, session, "light.x", "3 lights").onComplete();
+    new LightMenuDelegate(menu, session).onSelect(item);
 
     Test.assertEqual(item.getSubLabel() as String, "3 lights");
     return true;

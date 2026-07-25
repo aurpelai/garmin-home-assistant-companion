@@ -27,12 +27,12 @@ class LightSession {
         return _state.areas;
     }
 
-    function allLights() as Array<String> {
-        return _state.allLights();
+    function listAllLights() as Array<String> {
+        return _state.listAllLights();
     }
 
-    function lightsForArea(name as String) as Array<String> {
-        return _state.lightsForArea(name);
+    function listLightsInArea(name as String) as Array<String> {
+        return _state.listLightsInArea(name);
     }
 
     // HA's display name for a light (bare id as last-resort fallback).
@@ -53,17 +53,63 @@ class LightSession {
         return (state == null) ? false : (state as Boolean);
     }
 
-    // Flip local state and fire the toggle. The result callback reconciles on
-    // failure (reverts the optimistic flip).
-    function toggle(entityId as String, onComplete as Method) as Void {
+    // Flip local state and fire the toggle. The result callback reverts the
+    // optimistic flip on failure.
+    function toggleState(entityId as String, onComplete as Method) as Void {
         var newOn = !isOn(entityId);
         states.put(entityId, newOn);
         client.callLightService(ServiceCall.SERVICE_TOGGLE, entityId,
             new ToggleResultHandler(self, entityId, newOn, onComplete).method(:onResult));
     }
 
-    function revert(entityId as String, attemptedOn as Boolean) as Void {
+    function revertState(entityId as String, attemptedOn as Boolean) as Void {
         states.put(entityId, !attemptedOn);
+    }
+
+    // Re-sync from a freshly fetched LightState (most-recent-fetch wins). The
+    // new state becomes the server truth backing structural reads on the next
+    // menu construction; the live on/off map converges to it now.
+    //
+    // Only entities already present in the live map are updated, and only when
+    // the fresh state actually knows them — a state that omits an entity leaves
+    // its value alone rather than reading the isOn default and flipping it off.
+    // Keys are never added or dropped here: structural drift (entities or group
+    // membership appearing/disappearing) is deferred to the next navigation.
+    function applyState(state as LightState) as Void {
+        _state = state;
+
+        var entityIds = states.keys();
+        for (var index = 0; index < entityIds.size(); index++) {
+            var entityId = entityIds[index];
+            if (state.states.hasKey(entityId)) {
+                states.put(entityId, state.isOn(entityId));
+            }
+        }
+    }
+
+    // The single silent-convergence path for {action-completion, navigation,
+    // resume}: fetch fresh state, apply it, then invoke onDone. A fetch
+    // failure is swallowed (last-known state stays and heals on the next
+    // trigger), yet onDone still fires so callers need no error branch.
+    function refreshState(onDone as Method) as Void {
+        client.fetchLightState(new RefreshHandler(self, onDone).method(:onFetched));
+    }
+}
+
+class RefreshHandler {
+    private var _session as LightSession;
+    private var _onDone as Method;
+
+    function initialize(session as LightSession, onDone as Method) {
+        _session = session;
+        _onDone = onDone;
+    }
+
+    function onFetched(state as LightState or Null, error as Number or Null) as Void {
+        if (error == null) {
+            _session.applyState(state as LightState);
+        }
+        _onDone.invoke();
     }
 }
 
@@ -84,7 +130,7 @@ class ToggleResultHandler {
 
     function onResult(ok as Boolean or Null, error as Number or Null) as Void {
         if (error != null) {
-            _session.revert(_entityId, _attemptedOn);
+            _session.revertState(_entityId, _attemptedOn);
         }
         _onComplete.invoke();
     }

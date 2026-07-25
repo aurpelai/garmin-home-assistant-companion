@@ -11,7 +11,7 @@ module CenteredMessage {
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
         dc.clear();
 
-        var font = Graphics.FONT_MEDIUM;
+        var font = Graphics.FONT_SMALL;
         var maxWidth = (dc.getWidth() * 4) / 5;   // ~80%, clear of the bezel
         var lines = splitToLines(text, font, maxWidth, dc.method(:getTextWidthInPixels));
 
@@ -26,11 +26,28 @@ module CenteredMessage {
     // Greedy word wrap. `measure` is a function (text, font) -> pixel width
     // (dc.getTextWidthInPixels); injected so this logic is unit-testable without
     // a Dc. A single word wider than maxWidth is kept on its own line rather
-    // than dropped.
+    // than dropped. An explicit "\n" forces a break; a "\n\n" leaves a blank
+    // line between paragraphs.
     function splitToLines(text as String, font as Graphics.FontType, maxWidth as Number,
                   measure as Method(text as String, font as Graphics.FontType) as Number) as Array<String> {
-        var words = splitToWords(text);
         var lines = [] as Array<String>;
+        var paragraphs = splitOnNewlines(text);
+        for (var p = 0; p < paragraphs.size(); p++) {
+            wrapParagraph(paragraphs[p], font, maxWidth, measure, lines);
+        }
+        return lines;
+    }
+
+    // Word-wrap one newline-free paragraph, appending its lines to `out`. An
+    // empty paragraph (from a "\n\n") contributes one blank line.
+    function wrapParagraph(text as String, font as Graphics.FontType, maxWidth as Number,
+                  measure as Method(text as String, font as Graphics.FontType) as Number,
+                  out as Array<String>) as Void {
+        var words = splitToWords(text);
+        if (words.size() == 0) {
+            out.add("");
+            return;
+        }
         var line = "";
         for (var i = 0; i < words.size(); i++) {
             var word = words[i];
@@ -38,14 +55,28 @@ module CenteredMessage {
             if (line.equals("") || measure.invoke(candidate, font) <= maxWidth) {
                 line = candidate;
             } else {
-                lines.add(line);
+                out.add(line);
                 line = word;
             }
         }
-        if (!line.equals("")) {
-            lines.add(line);
+        out.add(line);
+    }
+
+    // Split on "\n" (Monkey C String has no split()). Empty segments are kept,
+    // so "a\n\nb" yields ["a", "", "b"] and the caller can render the gap.
+    function splitOnNewlines(text as String) as Array<String> {
+        var out = [] as Array<String>;
+        var start = 0;
+        var i = 0;
+        var chars = text.toCharArray();
+        while (i <= chars.size()) {
+            if (i == chars.size() || chars[i] == '\n') {
+                out.add(text.substring(start, i) as String);
+                start = i + 1;
+            }
+            i++;
         }
-        return lines;
+        return out;
     }
 
     // Split on single spaces (Monkey C String has no split()). Collapses runs

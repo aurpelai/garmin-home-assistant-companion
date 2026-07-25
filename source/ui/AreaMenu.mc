@@ -1,3 +1,4 @@
+import Toybox.Application;
 import Toybox.Lang;
 import Toybox.WatchUi;
 
@@ -17,6 +18,15 @@ class AreaMenu extends WatchUi.Menu2 {
             addItem(new WatchUi.MenuItem(name, null, name, null));
         }
     }
+
+    function onShow() as Void {
+        (Application.getApp() as HaControllerApp).setCurrentView(self);
+    }
+
+    // The named redraw seam onActive dispatches to (see LightMenu.redraw).
+    // No-op here: the area menu shows no light state.
+    function redraw() as Void {
+    }
 }
 
 class AreaMenuDelegate extends WatchUi.Menu2InputDelegate {
@@ -33,12 +43,12 @@ class AreaMenuDelegate extends WatchUi.Menu2InputDelegate {
         var lights;
         if (id == :allLights) {
             title = WatchUi.loadResource(Rez.Strings.AllLights) as String;
-            lights = _session.allLights();
+            lights = _session.listAllLights();
         } else {
             title = id as String;
-            lights = _session.lightsForArea(id as String);
+            lights = _session.listLightsInArea(id as String);
         }
-        WatchUi.pushView(new LightMenu(_session, title, lights),
-            new LightMenuDelegate(_session), WatchUi.SLIDE_LEFT);
+        var menu = new LightMenu(_session, title, lights);
+        WatchUi.pushView(menu, new LightMenuDelegate(menu, _session), WatchUi.SLIDE_LEFT);
     }
 }
