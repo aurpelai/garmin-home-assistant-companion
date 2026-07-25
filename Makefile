@@ -48,7 +48,7 @@ test: ## Build + run unit tests in the simulator (must be running: make sim)
 	"$(MONKEYC)" -f $(JUNGLE) -d $(DEVICE) --unit-test -o bin/test.prg -y $(KEY) $(STRICT)
 	"$(MONKEYDO)" bin/test.prg $(DEVICE) -t
 
-sim: ## Launch the Connect IQ simulator (leave running in another shell)
+sim: ## Launch the Connect IQ simulator (opens it, then returns)
 	"$(CONNECTIQ)"
 
 run: build ## Launch the (strict-built) app in the simulator (must be running)

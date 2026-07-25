@@ -33,15 +33,15 @@ All Makefile targets accept `DEVICE=<id>` to override the default (`venu3`).
 ```sh
 make build   # compile a debug build for DEVICE
 make lint    # compile with -l 3 -w and fail on any compiler warning
-make sim     # launch the Connect IQ simulator (leave running in another shell)
-make run     # build + launch the app in the simulator
-make test    # build + run unit tests (requires `make sim` running elsewhere)
+make sim     # launch the Connect IQ simulator (opens it, then returns)
+make run     # build + launch the app in the running simulator
+make test    # build + run unit tests in the running simulator
 make clean   # remove build output
 ```
 
-Unit tests need the simulator running: `make sim` in one shell, `make test` in another.
-Tests cover the pure logic that doesn't require a network; networking is verified in the
-simulator or on-device instead.
+`make sim` opens the simulator and exits, so `make run` and `make test` can follow in the
+same shell — they just need the simulator already open. Tests cover the pure logic that
+doesn't require a network; networking is verified in the simulator or on-device instead.
 
 Or use `scripts/run-tests.sh`, the headless runner, which launches the simulator itself,
 builds and runs the tests, and returns a real exit code by parsing the console output for
