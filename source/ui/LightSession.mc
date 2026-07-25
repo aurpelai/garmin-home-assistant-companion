@@ -7,7 +7,7 @@ import Toybox.Lang;
 class LightSession {
     public var client as HaClient;
     private var _state as LightState;
-    public var states as Dictionary<String, Boolean>;   // entity_id -> isOn, mutable
+    private var _states as Dictionary<String, Boolean>;   // entity_id -> isOn, mutable
 
     function initialize(client as HaClient, state as LightState) {
         self.client = client;
@@ -19,7 +19,7 @@ class LightSession {
         for (var index = 0; index < entityIds.size(); index++) {
             copy.put(entityIds[index], state.isOn(entityIds[index]));
         }
-        self.states = copy;
+        self._states = copy;
     }
 
     // Area-structure reads delegate to the LightState so menus don't reach into it.
@@ -48,22 +48,29 @@ class LightSession {
         return _state.getMemberCount(entityId);
     }
 
+    // An entity the overlay does not track reads as off.
     function isOn(entityId as String) as Boolean {
-        var state = states.get(entityId);
+        var state = _states.get(entityId);
         return (state == null) ? false : (state as Boolean);
+    }
+
+    // Whether the overlay tracks this entity at all — for callers that need to
+    // distinguish absent from present-but-off, which isOn's off default cannot.
+    function isTracked(entityId as String) as Boolean {
+        return _states.hasKey(entityId);
     }
 
     // Flip local state and fire the toggle. The result callback reverts the
     // optimistic flip on failure.
     function toggleState(entityId as String, onComplete as Method) as Void {
         var newOn = !isOn(entityId);
-        states.put(entityId, newOn);
+        _states.put(entityId, newOn);
         client.toggleLight(entityId,
             new ToggleResultHandler(self, entityId, newOn, onComplete).method(:onResult));
     }
 
     function revertState(entityId as String, attemptedOn as Boolean) as Void {
-        states.put(entityId, !attemptedOn);
+        _states.put(entityId, !attemptedOn);
     }
 
     // Re-sync from a freshly fetched LightState (most-recent-fetch wins). The
@@ -78,11 +85,11 @@ class LightSession {
     function applyState(state as LightState) as Void {
         _state = state;
 
-        var entityIds = states.keys();
+        var entityIds = _states.keys();
         for (var index = 0; index < entityIds.size(); index++) {
             var entityId = entityIds[index];
             if (state.states.hasKey(entityId)) {
-                states.put(entityId, state.isOn(entityId));
+                _states.put(entityId, state.isOn(entityId));
             }
         }
     }

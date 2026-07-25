@@ -1,12 +1,10 @@
 import Toybox.Lang;
 import Toybox.Test;
 
-// Exercises applyState — re-syncing a live session from a fresh server-truth
-// LightState — directly on the session's state map, so no networking is involved.
-//
-// The toggle/refresh tests below instead drive the async branches through
-// FakeHaClient, firing the captured callback to observe revert-on-failure and
-// swallow-but-complete.
+// Exercises the session through its interface: applyState convergence and the
+// synchronous optimistic state, plus the async toggle/refresh branches driven
+// through FakeHaClient by firing its captured callback (revert-on-failure,
+// swallow-but-complete). No live network is involved.
 
 (:test)
 module LightSessionTest {
@@ -35,6 +33,14 @@ module LightSessionTest {
     }
 }
 
+// toggleState takes a completion callback; tests that only need the optimistic
+// flip pass this no-op.
+(:test)
+class NoopCompletion {
+    function onComplete() as Void {
+    }
+}
+
 (:test)
 function applyStateConvergesExistingStatesToServerTruth(logger as Test.Logger) as Boolean {
     var session = LightSessionTest.sessionWith({ "light.a" => true, "light.b" => false });
@@ -51,7 +57,7 @@ function applyStateOverwritesOptimisticDisagreement(logger as Test.Logger) as Bo
     // An optimistic flip (light.x on) that the server never applied is silently
     // overwritten by the fresh state's server truth (off).
     var session = LightSessionTest.sessionWith({ "light.x" => false });
-    session.states.put("light.x", true);
+    session.toggleState("light.x", new NoopCompletion().method(:onComplete));
 
     session.applyState(LightSessionTest.stateOf({ "light.x" => false }));
 
@@ -80,7 +86,7 @@ function applyStateDoesNotAdoptNewStateKeys(logger as Test.Logger) as Boolean {
 
     session.applyState(LightSessionTest.stateOf({ "light.a" => true, "light.new" => true }));
 
-    Test.assert(!session.states.hasKey("light.new"));
+    Test.assert(!session.isTracked("light.new"));
     Test.assert(session.isOn("light.a"));
     return true;
 }
@@ -96,7 +102,7 @@ function applyStateKeepsAbsentEntityUntouched(logger as Test.Logger) as Boolean 
 
     Test.assert(session.isOn("light.a"));
     Test.assert(session.isOn("light.gone"));
-    Test.assert(session.states.hasKey("light.gone"));
+    Test.assert(session.isTracked("light.gone"));
     return true;
 }
 
@@ -131,7 +137,8 @@ function toggleStateKeepsFlipOnSuccess(logger as Test.Logger) as Boolean {
 (:test)
 function refreshStateHealsOptimisticDisagreementOnSuccess(logger as Test.Logger) as Boolean {
     var session = LightSessionTest.fakeSessionWith({ "light.a" => false });
-    session.states.put("light.a", true);   // optimistic flip the server never applied
+    // Optimistic flip the server never applied.
+    session.toggleState("light.a", new NoopCompletion().method(:onComplete));
     var spy = new CompletionSpy();
 
     session.refreshState(spy.method(:onDone));
