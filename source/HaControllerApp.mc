@@ -42,17 +42,17 @@ class HaControllerApp extends Application.AppBase {
         if (_session == null) {
             return;
         }
-        _session.refresh(method(:onRefreshed));
+        _session.refreshState(method(:onRefreshed));
     }
 
     function onRefreshed() as Void {
         // Duck-typed repaint: Monkey C has no interfaces and Menu2 owns the
-        // single base-class slot, so state-showing views expose a named refresh
+        // single base-class slot, so state-showing views expose a named redraw
         // method instead. Skip when no view is registered (state-apply only). A
         // new state-showing view must join the cast union below.
         var view = _currentView;
-        if (view != null && view has :refresh) {
-            (view as LightMenu or AreaMenu).refresh();
+        if (view != null && view has :redraw) {
+            (view as LightMenu or AreaMenu).redraw();
         }
     }
 }

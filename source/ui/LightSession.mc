@@ -27,12 +27,12 @@ class LightSession {
         return _state.areas;
     }
 
-    function allLights() as Array<String> {
-        return _state.allLights();
+    function listAllLights() as Array<String> {
+        return _state.listAllLights();
     }
 
-    function lightsForArea(name as String) as Array<String> {
-        return _state.lightsForArea(name);
+    function listLightsInArea(name as String) as Array<String> {
+        return _state.listLightsInArea(name);
     }
 
     // HA's display name for a light (bare id as last-resort fallback).
@@ -55,14 +55,14 @@ class LightSession {
 
     // Flip local state and fire the toggle. The result callback reverts the
     // optimistic flip on failure.
-    function toggle(entityId as String, onComplete as Method) as Void {
+    function toggleState(entityId as String, onComplete as Method) as Void {
         var newOn = !isOn(entityId);
         states.put(entityId, newOn);
         client.callLightService(ServiceCall.SERVICE_TOGGLE, entityId,
             new ToggleResultHandler(self, entityId, newOn, onComplete).method(:onResult));
     }
 
-    function revert(entityId as String, attemptedOn as Boolean) as Void {
+    function revertState(entityId as String, attemptedOn as Boolean) as Void {
         states.put(entityId, !attemptedOn);
     }
 
@@ -91,7 +91,7 @@ class LightSession {
     // resume}: fetch fresh state, apply it, then invoke onDone. A fetch
     // failure is swallowed (last-known state stays and heals on the next
     // trigger), yet onDone still fires so callers need no error branch.
-    function refresh(onDone as Method) as Void {
+    function refreshState(onDone as Method) as Void {
         client.fetchLightState(new RefreshHandler(self, onDone).method(:onFetched));
     }
 }
@@ -130,7 +130,7 @@ class ToggleResultHandler {
 
     function onResult(ok as Boolean or Null, error as Number or Null) as Void {
         if (error != null) {
-            _session.revert(_entityId, _attemptedOn);
+            _session.revertState(_entityId, _attemptedOn);
         }
         _onComplete.invoke();
     }

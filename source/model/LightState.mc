@@ -90,7 +90,7 @@ class LightState {
 
     // Deduplicated, group-first-then-alphabetical union of every area's lights —
     // backs the "All lights" view.
-    function allLights() as Array<String> {
+    function listAllLights() as Array<String> {
         var seen = {} as Dictionary<String, Boolean>;
         var flat = [] as Array<String>;
         for (var areaIndex = 0; areaIndex < areas.size(); areaIndex++) {
@@ -106,7 +106,7 @@ class LightState {
         return orderGroupsFirst(flat);
     }
 
-    function lightsForArea(name as String) as Array<String> {
+    function listLightsInArea(name as String) as Array<String> {
         for (var areaIndex = 0; areaIndex < areas.size(); areaIndex++) {
             if ((areas[areaIndex].get(:name) as String).equals(name)) {
                 return orderGroupsFirst(areas[areaIndex].get(:lights) as Array<String>);

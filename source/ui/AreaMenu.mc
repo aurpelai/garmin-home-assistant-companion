@@ -23,9 +23,9 @@ class AreaMenu extends WatchUi.Menu2 {
         (Application.getApp() as HaControllerApp).setCurrentView(self);
     }
 
-    // The named repaint seam onActive dispatches to (see LightMenu.refresh).
+    // The named repaint seam onActive dispatches to (see LightMenu.redraw).
     // No-op here: the area menu shows no light state.
-    function refresh() as Void {
+    function redraw() as Void {
     }
 }
 
@@ -43,10 +43,10 @@ class AreaMenuDelegate extends WatchUi.Menu2InputDelegate {
         var lights;
         if (id == :allLights) {
             title = WatchUi.loadResource(Rez.Strings.AllLights) as String;
-            lights = _session.allLights();
+            lights = _session.listAllLights();
         } else {
             title = id as String;
-            lights = _session.lightsForArea(id as String);
+            lights = _session.listLightsInArea(id as String);
         }
         var menu = new LightMenu(_session, title, lights);
         WatchUi.pushView(menu, new LightMenuDelegate(menu, _session), WatchUi.SLIDE_LEFT);

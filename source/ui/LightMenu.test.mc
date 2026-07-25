@@ -59,7 +59,7 @@ function appliedStateRowReflectsConvergedTruth(logger as Test.Logger) as Boolean
     var menu = new LightMenu(session, "Room", ["light.x"]);
 
     session.applyState(LightMenuTest.stateOf({ "light.x" => false }));
-    menu.refresh();
+    menu.redraw();
 
     Test.assert(!(menu.getItem(menu.findItemById("light.x")) as WatchUi.ToggleMenuItem).isEnabled());
     return true;

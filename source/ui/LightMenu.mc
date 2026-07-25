@@ -32,13 +32,13 @@ class LightMenu extends WatchUi.Menu2 {
 
     function onShow() as Void {
         (Application.getApp() as HaControllerApp).setCurrentView(self);
-        _session.refresh(method(:refresh));
+        _session.refreshState(method(:redraw));
     }
 
-    // The named repaint seam onActive dispatches to (see AreaMenu.refresh); any
+    // The named repaint seam onActive dispatches to (see AreaMenu.redraw); any
     // new state-showing view implements it. Only the on/off markers move; the
     // item list is never rebuilt, so scroll and focus survive.
-    function refresh() as Void {
+    function redraw() as Void {
         for (var i = 0; i < _lights.size(); i++) {
             var entityId = _lights[i];
             var index = findItemById(entityId);
@@ -85,7 +85,7 @@ class LightMenuDelegate extends WatchUi.Menu2InputDelegate {
         var entityId = id as String;
         // The native ToggleMenuItem already flipped on tap; it stays flipped
         // with no in-flight affordance until server truth arrives.
-        _session.toggle(entityId,
+        _session.toggleState(entityId,
             new ToggleHandler(_menu, item as WatchUi.ToggleMenuItem, _session, entityId).method(:onComplete));
     }
 }
@@ -111,6 +111,6 @@ class ToggleHandler {
         _item.setEnabled(_session.isOn(_entityId));
         WatchUi.requestUpdate();
 
-        _session.refresh(_menu.method(:refresh));
+        _session.refreshState(_menu.method(:redraw));
     }
 }
