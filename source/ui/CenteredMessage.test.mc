@@ -33,6 +33,29 @@ function textBreaksOnWidth(logger as Test.Logger) as Boolean {
 }
 
 (:test)
+function explicitNewlineForcesBreak(logger as Test.Logger) as Boolean {
+    // "\n" breaks even when the text would otherwise fit on one line.
+    var lines = CenteredMessage.splitToLines("hi\nthere", Graphics.FONT_MEDIUM, 200,
+        new Lang.Method(CenteredMessageTest, :fakeMeasure));
+    Test.assertEqual(lines.size(), 2);
+    Test.assertEqual(lines[0], "hi");
+    Test.assertEqual(lines[1], "there");
+    return true;
+}
+
+(:test)
+function blankLineBetweenParagraphs(logger as Test.Logger) as Boolean {
+    // "\n\n" leaves one empty line between the two paragraphs.
+    var lines = CenteredMessage.splitToLines("first\n\nsecond", Graphics.FONT_MEDIUM, 200,
+        new Lang.Method(CenteredMessageTest, :fakeMeasure));
+    Test.assertEqual(lines.size(), 3);
+    Test.assertEqual(lines[0], "first");
+    Test.assertEqual(lines[1], "");
+    Test.assertEqual(lines[2], "second");
+    return true;
+}
+
+(:test)
 function overlongWordKeepsOwnLine(logger as Test.Logger) as Boolean {
     // "supercalifragilistic" (20 chars = 200px) exceeds maxWidth 100 but must
     // not be dropped — it gets its own line.
