@@ -5,9 +5,10 @@ welcome — whether it's a new entity type, a UI fix, or a docs improvement.
 
 ## Reporting bugs & requesting features
 
-Open a GitHub issue. For bugs, include your watch model, the SDK and app version, the
-steps to reproduce, and what you expected versus what actually happened. For feature
-requests, describe the capability and why it's useful.
+Open a GitHub issue. For bugs, include your watch model, its software version (on the
+watch: Settings → System → About), the app version, the steps to reproduce, and what you
+expected versus what actually happened. For feature requests, describe the capability and
+why it's useful.
 
 ## Getting started
 
