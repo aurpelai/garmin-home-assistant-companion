@@ -58,7 +58,7 @@ class LightSession {
     function toggleState(entityId as String, onComplete as Method) as Void {
         var newOn = !isOn(entityId);
         states.put(entityId, newOn);
-        client.callLightService(ServiceCall.SERVICE_TOGGLE, entityId,
+        client.callLightService(entityId,
             new ToggleResultHandler(self, entityId, newOn, onComplete).method(:onResult));
     }
 
