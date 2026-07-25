@@ -38,7 +38,7 @@ class AreaMenuDelegate extends WatchUi.Menu2InputDelegate {
             title = id as String;
             lights = _session.lightsForArea(id as String);
         }
-        WatchUi.pushView(new LightMenu(_session, title, lights),
-            new LightMenuDelegate(_session), WatchUi.SLIDE_LEFT);
+        var menu = new LightMenu(_session, title, lights);
+        WatchUi.pushView(menu, new LightMenuDelegate(menu, _session), WatchUi.SLIDE_LEFT);
     }
 }

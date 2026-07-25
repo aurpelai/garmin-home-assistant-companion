@@ -65,6 +65,52 @@ class LightSession {
     function revert(entityId as String, attemptedOn as Boolean) as Void {
         states.put(entityId, !attemptedOn);
     }
+
+    // Re-sync from a freshly fetched server-truth snapshot (most-recent-fetch
+    // wins). The new snapshot becomes the server truth backing structural reads
+    // on the next menu construction; the live on/off map converges to it now.
+    //
+    // Only entities already present in the live map are updated, and only when
+    // the snapshot actually knows them — a snapshot that omits an entity leaves
+    // its value alone rather than reading the isOn default and flipping it off.
+    // Keys are never added or dropped here: structural drift (entities or group
+    // membership appearing/disappearing) is deferred to the next navigation.
+    function reconcile(state as LightState) as Void {
+        _state = state;
+
+        var entityIds = states.keys();
+        for (var index = 0; index < entityIds.size(); index++) {
+            var entityId = entityIds[index];
+            if (state.states.hasKey(entityId)) {
+                states.put(entityId, state.isOn(entityId));
+            }
+        }
+    }
+
+    // The single silent-convergence path for {action-completion, navigation,
+    // resume}: fetch a snapshot, reconcile onto it, then invoke onDone. A fetch
+    // failure is swallowed (last-known state stays and heals on the next
+    // trigger), yet onDone still fires so callers need no error branch.
+    function refresh(onDone as Method) as Void {
+        client.fetchLightState(new RefreshHandler(self, onDone).method(:onFetched));
+    }
+}
+
+class RefreshHandler {
+    private var _session as LightSession;
+    private var _onDone as Method;
+
+    function initialize(session as LightSession, onDone as Method) {
+        _session = session;
+        _onDone = onDone;
+    }
+
+    function onFetched(state as LightState or Null, error as Number or Null) as Void {
+        if (error == null) {
+            _session.reconcile(state as LightState);
+        }
+        _onDone.invoke();
+    }
 }
 
 // Handles a light service-call result: reverts the optimistic state flip if the
