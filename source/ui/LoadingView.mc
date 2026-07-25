@@ -66,7 +66,7 @@ class LoadingView extends WatchUi.View {
         WatchUi.switchToView(new ErrorView(message), new ErrorDelegate(), WatchUi.SLIDE_IMMEDIATE);
     }
 
-    private function errorStringFor(code as Number) as ResourceId {
+    function errorStringFor(code as Number) as ResourceId {
         if (code == 401 || code == 403) { return Rez.Strings.ErrAuth; }
         if (code < 0) { return Rez.Strings.ErrNetwork; }
         return Rez.Strings.ErrUnknown;
