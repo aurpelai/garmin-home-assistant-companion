@@ -1,5 +1,60 @@
 # Contributing
 
+Thanks for contributing. Bug reports, feature requests, and pull requests are all
+welcome — whether it's a new entity type, a UI fix, or a docs improvement.
+
+## Reporting bugs & requesting features
+
+Open a GitHub issue. For bugs, include your watch model, its software version (on the
+watch: Settings → System → About), the app version, the steps to reproduce, and what you
+expected versus what actually happened. For feature requests, describe the capability and
+why it's useful.
+
+## Getting started
+
+Install the Connect IQ SDK and either put its `bin/` directory on `PATH`, or point
+`CIQ_SDK` at the SDK root:
+
+```sh
+export CIQ_SDK="$HOME/Library/Application Support/Garmin/ConnectIQ/Sdks/<version>"
+```
+
+A developer signing key is required to produce builds. Generate one once (git-ignored,
+handled via `openssl` under the hood):
+
+```sh
+make key
+```
+
+## Build, run, test
+
+All Makefile targets accept `DEVICE=<id>` to override the default (`venu3`).
+
+```sh
+make build   # compile a debug build for DEVICE
+make lint    # compile with -l 3 -w and fail on any compiler warning
+make sim     # launch the Connect IQ simulator (opens it, then returns)
+make run     # build + launch the app in the running simulator
+make test    # build + run unit tests in the running simulator
+make clean   # remove build output
+```
+
+`make sim` opens the simulator and exits, so `make run` and `make test` can follow in the
+same shell — they just need the simulator already open. Tests cover the pure logic that
+doesn't require a network; networking is verified in the simulator or on-device instead.
+
+## Continuous integration
+
+`.github/workflows/ci.yml` runs on `ubuntu-latest` inside the
+[`matco/connectiq-tester`](https://github.com/matco/connectiq-tester) container, which
+bundles the Connect IQ SDK and runs a headless simulator via Xvfb — so the whole
+build-and-test step runs on Linux with no Garmin login and no committed signing key (the
+container generates a temporary self-signed certificate).
+
+The **SDK version is pinned by the image tag** (baking SDK 9.2.0, matching what we develop
+against), not `:latest` — bumping the SDK is a deliberate tag bump. No repository secrets
+are required, so CI also runs on pull requests from forks.
+
 ## Workflow
 
 Trunk-based: branch off `main`, open a PR, **squash-merge** back. One PR is one
@@ -55,3 +110,9 @@ The Store assigns the app version **at upload time** — you type it into the St
 dashboard per submission; the build carries no authoritative version. **Type the
 version to match the git tag** (tag `v0.2.0` → enter `0.2.0`). Nothing enforces
 this automatically. Paste the matching `CHANGELOG.md` section into "what's new".
+
+## How we work
+
+See [WAYS-OF-WORKING.md](WAYS-OF-WORKING.md) for the design principle we hold to, the
+issue lifecycle (how a ticket moves from unconfirmed to spec-ready), and the spec-filing
+convention.
