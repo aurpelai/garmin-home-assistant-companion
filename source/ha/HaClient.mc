@@ -50,11 +50,13 @@ class HaClient {
         "{% set ns.lights = [] %}" +
         "{% for e in area_entities(a) %}" +
         "{% if e.startswith('light.') %}" +
+        "{% if state_attr(e, 'entity_id') is none or expand(e) | count > 0 %}" +
         "{% set ns.lights = ns.lights + [e] %}" +
         "{% set ns.s = dict(ns.s, **{e: is_state(e, 'on')}) %}" +
         "{% set ns.n = dict(ns.n, **{e: states[e].name}) %}" +
         "{% if state_attr(e, 'entity_id') is not none %}" +
         "{% set ns.groups = dict(ns.groups, **{e: expand(e) | count}) %}" +
+        "{% endif %}" +
         "{% endif %}" +
         "{% endif %}" +
         "{% endfor %}" +
