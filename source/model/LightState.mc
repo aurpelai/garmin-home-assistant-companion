@@ -74,8 +74,9 @@ class LightState {
         return (state == null) ? false : (state as Boolean);
     }
 
-    // Absent entities default to available (contrast isOn, which defaults them
-    // off) — missing availability info must never mark a light unavailable.
+    // The template emits an availability entry for every light, so a null here
+    // means a server-contract violation (as with isOn). It defaults to available
+    // rather than off: a contract breach must not mark a working light down.
     function isAvailable(entityId as String) as Boolean {
         var value = available.get(entityId);
         return (value == null) ? true : (value as Boolean);
