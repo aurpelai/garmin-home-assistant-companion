@@ -49,6 +49,23 @@ jobs:
             exit 1
           fi
 
+          # A monkey.jungle "<id>.resourcePath" line for a device the manifest
+          # no longer lists is dead config nothing else surfaces: the line is
+          # additive so it doesn't break the build, and the matrix is manifest-
+          # driven so it never builds that device. Assert the jungle ids are a
+          # subset of the manifest ids to catch such an orphan here. The reverse
+          # (a manifest device with no jungle line) builds fine off base
+          # resources and is deliberately not checked.
+          manifest_ids=$(printf '%s' "$list" | jq -r '.[]' | sort)
+          jungle_ids=$(grep -oE '^[A-Za-z0-9]+\.resourcePath' monkey.jungle | sed -E 's/\.resourcePath$//' | grep -vx base | sort)
+
+          orphans=$(comm -23 <(printf '%s\n' "$jungle_ids") <(printf '%s\n' "$manifest_ids"))
+          if [ -n "$orphans" ]; then
+            echo "These monkey.jungle device ids are not present in manifest.xml (orphaned resourcePath lines):" >&2
+            printf '  %s\n' $orphans >&2
+            exit 1
+          fi
+
           echo "list=$list" >> "$GITHUB_OUTPUT"
 
   test-build:
