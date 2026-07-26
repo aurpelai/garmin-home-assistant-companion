@@ -112,3 +112,88 @@ jobs:
         uses: matco/action-connectiq-tester@60fd2e8179994e075d3a58c6250f32aa20e2b37b
         with:
           device: venu3
+
+  boot-smoke:
+    name: Boot smoke (fenix8solar51mm)
+    runs-on: ubuntu-latest
+    # A whole-job cap so a wedged simulator fails fast instead of stalling to
+    # the runner default. An earlier bare container: + run: sim launch (see the
+    # header comment) hung for minutes; this job supplies its own Xvfb, as the
+    # image's own entrypoint does, on the expectation that the missing display
+    # was the cause. Whether that fully settles it is confirmed by this job
+    # completing quickly on CI rather than hitting this cap.
+    timeout-minutes: 5
+    container:
+      # Same pinned image as test-build. Driven directly with container: + run:
+      # rather than matco's action, because that action is hardwired to the
+      # unit-test suite (-t) and can't launch a plain app.
+      image: ghcr.io/matco/connectiq-tester@sha256:7a6f586cb0e0393ff288da09cf27b6dad40a0058a346c529b99fd0fc19858f0f
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Generate ephemeral developer key
+        # Test builds are never shipped, so a throwaway key is sufficient.
+        run: openssl genrsa -out developer_key.pem 4096 && openssl pkcs8 -topk8 -inform PEM -outform DER -in developer_key.pem -out developer_key.der -nocrypt
+
+      - name: Boot the app and check for a startup crash
+        # One device only: the startup path is device-agnostic, so a single
+        # device exercises it, and runtime cost scales per-device while the
+        # value of repeating it doesn't. No settings are configured in CI, so
+        # the app deterministically lands on its no-config error screen —
+        # still exercising the full boot path.
+        #
+        # A healthy boot is silent, so there's nothing positive to grep for.
+        # Two signals decide the result. A crash: the runtime prints a report
+        # ending in the literal line "Encountered an app crash.", and the
+        # crash ends monkeydo's session so its process exits. So a clean boot
+        # is "no crash marker AND monkeydo still running on the error screen".
+        # If monkeydo instead died leaving no marker, the harness never really
+        # ran the app (Xvfb/simulator/sideload failure) — that is an infra
+        # failure, not a pass, and must fail loudly rather than read as clean.
+        # monkeydo's exit code is unusable either way (0 on clean boot and on
+        # crash), so process liveness, not exit code, is the signal.
+        run: |
+          mkdir -p bin
+
+          if ! monkeyc \
+            -f monkey.jungle \
+            -d fenix8solar51mm \
+            -o bin/app.prg \
+            -y developer_key.der \
+            -l 3 -w
+          then
+            echo "FAIL: build did not produce an app to boot"
+            exit 1
+          fi
+
+          export DISPLAY=:1
+          Xvfb "$DISPLAY" -screen 0 1280x1024x24 &
+          xvfb_pid=$!
+
+          simulator > /dev/null 2>&1 &
+          sim_pid=$!
+
+          trap 'kill "$xvfb_pid" "$sim_pid" "$do_pid" 2>/dev/null' EXIT
+
+          sleep 5
+
+          monkeydo bin/app.prg fenix8solar51mm > /tmp/boot.txt 2>&1 &
+          do_pid=$!
+
+          sleep 15
+
+          echo "--- captured boot output ---"
+          cat /tmp/boot.txt
+
+          if grep -qF 'Encountered an app crash.' /tmp/boot.txt; then
+            echo "FAIL: app crashed during startup"
+            exit 1
+          fi
+
+          if ! kill -0 "$do_pid" 2>/dev/null; then
+            echo "FAIL: app run ended with no crash marker — the simulator or app launch did not run as expected, so a clean boot was not actually observed"
+            exit 1
+          fi
+
+          echo "OK: app booted and is still running with no crash"
