@@ -58,7 +58,7 @@ class LightSession {
     function toggleState(entityId as String, onComplete as Method) as Void {
         var newOn = !isOn(entityId);
         states.put(entityId, newOn);
-        client.callLightService(entityId,
+        client.toggleLight(entityId,
             new ToggleResultHandler(self, entityId, newOn, onComplete).method(:onResult));
     }
 
@@ -113,7 +113,7 @@ class RefreshHandler {
     }
 }
 
-// Handles a light service-call result: reverts the optimistic state flip if the
+// Handles a light-toggle result: reverts the optimistic state flip if the
 // call failed, then hands off to the UI-side completion callback either way.
 class ToggleResultHandler {
     private var _session as LightSession;

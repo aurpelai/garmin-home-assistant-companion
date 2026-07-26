@@ -8,7 +8,7 @@ import Toybox.System;
 //     areas→lights join AND each light's on/off state (a plain GET /api/states
 //     returns every entity in the instance and blows past Connect IQ's HTTP
 //     response-size limit, so states ride along in the template instead).
-//   - callLightService:  POST /api/services/light/toggle
+//   - toggleLight:  POST /api/services/light/toggle
 //
 // Connect IQ is single-threaded and callback-based: every method takes a
 // Lang.Method callback invoked with the parsed result. Callers sequence
@@ -73,7 +73,7 @@ class HaClient {
         post("/api/template", body, new ResponseHandler(callback, :onTemplate));
     }
 
-    function callLightService(entityId as String, callback as Method) as Void {
+    function toggleLight(entityId as String, callback as Method) as Void {
         post("/api/services/light/toggle", { "entity_id" => entityId },
              new ResponseHandler(callback, :onService));
     }
