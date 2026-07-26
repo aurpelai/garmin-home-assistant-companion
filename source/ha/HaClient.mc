@@ -83,13 +83,13 @@ class HaClient {
     private function post(path as String, body as Dictionary, handler as ResponseHandler) as Void {
         Communications.makeWebRequest(
             Settings.getBaseUrl() + path, body as Dictionary<Object, Object>,
-            options(Communications.HTTP_REQUEST_METHOD_POST),
+            buildOptions(Communications.HTTP_REQUEST_METHOD_POST),
             handler.method(:onResponse));
     }
 
     // Typed to the shape makeWebRequest expects for its options argument, so it
     // matches under strict type checking (-l 3).
-    private function options(httpMethod as Communications.HttpRequestMethod) as {
+    private function buildOptions(httpMethod as Communications.HttpRequestMethod) as {
             :method as Communications.HttpRequestMethod,
             :headers as Dictionary,
             :responseType as Communications.HttpResponseContentType } {
