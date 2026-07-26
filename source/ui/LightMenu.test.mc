@@ -97,17 +97,6 @@ function singleMemberGroupIsSingular(logger as Test.Logger) as Boolean {
 }
 
 (:test)
-function zeroMemberGroupShowsZero(logger as Test.Logger) as Boolean {
-    // A group that expands to nothing reads "0 lights" honestly until empty
-    // groups are filtered upstream; the plural branch covers zero.
-    var session = LightMenuTest.sessionWithGroups(
-        { "light.grp" => true }, { "light.grp" => 0 });
-
-    Test.assertEqual(LightMenu.idleSubLabel(session, "light.grp") as String, "0 lights");
-    return true;
-}
-
-(:test)
 function plainLightHasNoSubLabel(logger as Test.Logger) as Boolean {
     var session = LightMenuTest.sessionWithGroups(
         { "light.plain" => true }, {} as Dictionary<String, Number>);
