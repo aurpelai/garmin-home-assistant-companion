@@ -7,9 +7,8 @@ base.resourcePath = resources
 # icon per device, and launcher size does not map cleanly to screen resolution
 # (venu3s / vivoactive5 / vivoactive6 are all 390x390 but need 70 / 56 / 54 px),
 # so device-id or resolution qualifiers don't work. Instead each device is wired
-# to a size bucket. The buckets (resources-launcher-<N>/) are generated from one
-# master by scripts/generate_launcher_icons.py; LauncherIcon is declared inside
-# each bucket, not in base resources/. Jungle has no "device group" syntax, so
+# to a size bucket. LauncherIcon is declared inside each bucket
+# (resources-launcher-<N>/), not in base resources/. Jungle has no "device group" syntax, so
 # each device id gets its own line pointing at its size bucket.
 launcher40 = resources-launcher-40
 launcher54 = resources-launcher-54
