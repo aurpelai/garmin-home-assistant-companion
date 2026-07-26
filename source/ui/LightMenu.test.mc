@@ -36,6 +36,18 @@ module LightMenuTest {
         return new LightSession(new HaClient(), state);
     }
 
+    function sessionWithAvailability(states as Dictionary<String, Boolean>,
+                                    groups as Dictionary<String, Number>,
+                                    available as Dictionary<String, Boolean>) as LightSession {
+        var state = LightState.fromTemplateData({
+            "areas" => { "Room" => states.keys() },
+            "states" => states,
+            "groups" => groups,
+            "available" => available
+        });
+        return new LightSession(new HaClient(), state);
+    }
+
     function stateOf(states as Dictionary<String, Boolean>) as LightState {
         return LightState.fromTemplateData({
             "areas" => { "Room" => states.keys() },
@@ -48,8 +60,8 @@ module LightMenuTest {
 function rowSwitchReflectsIsOnWhenBuilt(logger as Test.Logger) as Boolean {
     var session = LightMenuTest.sessionWith({ "light.on" => true, "light.off" => false });
 
-    Test.assert(LightMenu.makeItem(session, "light.on").isEnabled());
-    Test.assert(!LightMenu.makeItem(session, "light.off").isEnabled());
+    Test.assert(LightMenu.buildItem(session, "light.on").isEnabled());
+    Test.assert(!LightMenu.buildItem(session, "light.off").isEnabled());
     return true;
 }
 
@@ -83,7 +95,7 @@ function groupRowShowsMemberCount(logger as Test.Logger) as Boolean {
     var session = LightMenuTest.sessionWithGroups(
         { "light.grp" => true }, { "light.grp" => 4 });
 
-    Test.assertEqual(LightMenu.idleSubLabel(session, "light.grp") as String, "4 lights");
+    Test.assertEqual(LightMenu.buildSubLabel(session, "light.grp") as String, "4 lights");
     return true;
 }
 
@@ -92,7 +104,7 @@ function singleMemberGroupIsSingular(logger as Test.Logger) as Boolean {
     var session = LightMenuTest.sessionWithGroups(
         { "light.grp" => true }, { "light.grp" => 1 });
 
-    Test.assertEqual(LightMenu.idleSubLabel(session, "light.grp") as String, "1 light");
+    Test.assertEqual(LightMenu.buildSubLabel(session, "light.grp") as String, "1 light");
     return true;
 }
 
@@ -101,7 +113,27 @@ function plainLightHasNoSubLabel(logger as Test.Logger) as Boolean {
     var session = LightMenuTest.sessionWithGroups(
         { "light.plain" => true }, {} as Dictionary<String, Number>);
 
-    Test.assert(LightMenu.idleSubLabel(session, "light.plain") == null);
+    Test.assert(LightMenu.buildSubLabel(session, "light.plain") == null);
+    return true;
+}
+
+(:test)
+function unavailablePlainRowShowsUnavailable(logger as Test.Logger) as Boolean {
+    var session = LightMenuTest.sessionWithAvailability(
+        { "light.plain" => false }, {} as Dictionary<String, Number>,
+        { "light.plain" => false });
+
+    Test.assertEqual(LightMenu.buildSubLabel(session, "light.plain") as String, "Unavailable");
+    return true;
+}
+
+(:test)
+function unavailableGroupRowShowsGroupUnavailable(logger as Test.Logger) as Boolean {
+    var session = LightMenuTest.sessionWithAvailability(
+        { "light.grp" => false }, { "light.grp" => 3 },
+        { "light.grp" => false });
+
+    Test.assertEqual(LightMenu.buildSubLabel(session, "light.grp") as String, "Group unavailable");
     return true;
 }
 
@@ -111,7 +143,7 @@ function rowLabelUsesHaName(logger as Test.Logger) as Boolean {
         { "light.kitchen" => true },
         { "light.kitchen" => "Kitchen Island" });
 
-    Test.assertEqual(LightMenu.makeItem(session, "light.kitchen").getLabel() as String, "Kitchen Island");
+    Test.assertEqual(LightMenu.buildItem(session, "light.kitchen").getLabel() as String, "Kitchen Island");
     return true;
 }
 
@@ -121,7 +153,7 @@ function rowLabelFallsBackToIdWhenNameMissing(logger as Test.Logger) as Boolean 
         { "light.kitchen" => true },
         {} as Dictionary<String, String>);
 
-    Test.assertEqual(LightMenu.makeItem(session, "light.kitchen").getLabel() as String, "light.kitchen");
+    Test.assertEqual(LightMenu.buildItem(session, "light.kitchen").getLabel() as String, "light.kitchen");
     return true;
 }
 
@@ -131,6 +163,6 @@ function rowLabelFallsBackToIdWhenNameEmpty(logger as Test.Logger) as Boolean {
         { "light.kitchen" => true },
         { "light.kitchen" => "" });
 
-    Test.assertEqual(LightMenu.makeItem(session, "light.kitchen").getLabel() as String, "light.kitchen");
+    Test.assertEqual(LightMenu.buildItem(session, "light.kitchen").getLabel() as String, "light.kitchen");
     return true;
 }

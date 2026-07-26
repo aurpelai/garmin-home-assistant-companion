@@ -259,7 +259,6 @@ function parsesStatesIntoIsOn(logger as Test.Logger) as Boolean {
 function missingStatesKeyDegradesToAllOff(logger as Test.Logger) as Boolean {
     var data = { "areas" => { "Hall" => ["light.hall"] } };
     var state = LightState.fromTemplateData(data);
-    // Unknown entity reads as off.
     Test.assert(!state.isOn("light.hall"));
     return true;
 }
@@ -279,9 +278,67 @@ function dropsNonBooleanStateValues(logger as Test.Logger) as Boolean {
         "states" => { "light.hall" => "on", "light.porch" => true }
     };
     var state = LightState.fromTemplateData(data);
-    // "on" (a String, not a Boolean) is dropped -> reads as off.
     Test.assert(!state.isOn("light.hall"));
     Test.assert(state.isOn("light.porch"));
+    return true;
+}
+
+(:test)
+function parsesAvailableIntoIsAvailable(logger as Test.Logger) as Boolean {
+    var data = {
+        "areas" => { "Kitchen" => ["light.kitchen", "light.pantry"] },
+        "states" => {},
+        "available" => { "light.kitchen" => true, "light.pantry" => false }
+    };
+    var state = LightState.fromTemplateData(data);
+    Test.assert(state.isAvailable("light.kitchen"));
+    Test.assert(!state.isAvailable("light.pantry"));
+    return true;
+}
+
+(:test)
+function missingAvailableEntryDefaultsToAvailable(logger as Test.Logger) as Boolean {
+    var data = { "areas" => { "Hall" => ["light.hall"] }, "states" => {} };
+    var state = LightState.fromTemplateData(data);
+    Test.assert(state.isAvailable("light.hall"));
+    Test.assert(state.isAvailable("light.unknown"));
+    return true;
+}
+
+(:test)
+function dropsNonBooleanAvailableValues(logger as Test.Logger) as Boolean {
+    var data = {
+        "areas" => { "Hall" => ["light.hall", "light.porch"] },
+        "states" => {},
+        "available" => { "light.hall" => "yes", "light.porch" => false }
+    };
+    var state = LightState.fromTemplateData(data);
+    Test.assert(state.isAvailable("light.hall"));
+    Test.assert(!state.isAvailable("light.porch"));
+    return true;
+}
+
+(:test)
+function ordersAvailableBeforeUnavailable(logger as Test.Logger) as Boolean {
+    var data = {
+        "areas" => { "A" => [
+            "light.avail_plain", "light.avail_group",
+            "light.down_plain", "light.down_group"
+        ] },
+        "states" => {},
+        "groups" => { "light.avail_group" => 2, "light.down_group" => 3 },
+        "available" => {
+            "light.avail_plain" => true, "light.avail_group" => true,
+            "light.down_plain" => false, "light.down_group" => false
+        }
+    };
+    var state = LightState.fromTemplateData(data);
+    var all = state.listAllLights();
+    Test.assertEqual(all.size(), 4);
+    Test.assertEqual(all[0], "light.avail_group");
+    Test.assertEqual(all[1], "light.avail_plain");
+    Test.assertEqual(all[2], "light.down_group");
+    Test.assertEqual(all[3], "light.down_plain");
     return true;
 }
 
@@ -301,7 +358,6 @@ function parsesNamesIntoGetName(logger as Test.Logger) as Boolean {
 function missingNamesKeyFallsBackToId(logger as Test.Logger) as Boolean {
     var data = { "areas" => { "Hall" => ["light.hall"] }, "states" => {} };
     var state = LightState.fromTemplateData(data);
-    // No "names" section: getName returns the bare id.
     Test.assertEqual(state.getName("light.hall"), "light.hall");
     return true;
 }
@@ -322,7 +378,6 @@ function dropsNonStringNameValues(logger as Test.Logger) as Boolean {
         "names" => { "light.hall" => 42, "light.porch" => "Porch" }
     };
     var state = LightState.fromTemplateData(data);
-    // 42 (not a String) is dropped -> getName falls back to the id.
     Test.assertEqual(state.getName("light.hall"), "light.hall");
     Test.assertEqual(state.getName("light.porch"), "Porch");
     return true;
@@ -336,7 +391,6 @@ function emptyNameFallsBackToId(logger as Test.Logger) as Boolean {
         "names" => { "light.hall" => "" }
     };
     var state = LightState.fromTemplateData(data);
-    // Empty string counts as no name.
     Test.assertEqual(state.getName("light.hall"), "light.hall");
     return true;
 }

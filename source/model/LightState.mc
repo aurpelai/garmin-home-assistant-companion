@@ -2,19 +2,21 @@ import Toybox.Lang;
 
 // Pure data + parsing layer. No networking, no UI — this is the unit-tested core.
 //
-// The combined HA /api/template call returns a JSON object with four keys:
-//   { "areas":  { areaName: [entityId, ...], ... },
-//     "states": { entityId: true|false, ... },
-//     "names":  { entityId: "Kitchen Island", ... },
-//     "groups": { entityId: memberCount, ... } }
+// The combined HA /api/template call returns a JSON object with five keys:
+//   { "areas":     { areaName: [entityId, ...], ... },
+//     "states":    { entityId: true|false, ... },
+//     "names":     { entityId: "Kitchen Island", ... },
+//     "groups":    { entityId: memberCount, ... },
+//     "available": { entityId: true|false, ... } }
 // LightState splits that body, wrapping the areas section into an
 // area-ordered structure (from which the flat "all lights" list derives),
 // parsing the states section into an entity_id -> Boolean map, parsing the
 // names section into an entity_id -> String map (the name Home Assistant
-// itself shows for each light, used as the row label and the sort key), and
-// parsing the groups section into an entity_id -> member count map. A light id
-// present in that map is a light group (used to order groups ahead of plain
-// lights in every list view); its value is how many lights the group controls.
+// itself shows for each light, used as the row label and the sort key),
+// parsing the groups section into an entity_id -> member count map (a light id
+// present in that map is a light group, used to order groups ahead of plain
+// lights in every list view; its value is how many lights the group controls),
+// and parsing the available section into an entity_id -> Boolean map.
 //
 // Each section degrades independently: non-conforming input yields an empty
 // result rather than throwing (watch UX: show "no lights" / all-off, not a
@@ -31,29 +33,36 @@ class LightState {
     // is-a-group signal (backs group-first ordering); the value is how many lights
     // the group controls (backs the "N lights" row sublabel).
     private var groups as Dictionary<String, Number>;
+    // Parallel to states, deliberately not folded into it: on/off and
+    // availability are independent facts about a light.
+    private var available as Dictionary<String, Boolean>;
 
     function initialize(areas as Array<Dictionary>, states as Dictionary<String, Boolean>,
                         names as Dictionary<String, String>,
-                        groups as Dictionary<String, Number>) {
+                        groups as Dictionary<String, Number>,
+                        available as Dictionary<String, Boolean>) {
         self.areas = areas;
         self.states = states;
         self.names = names;
         self.groups = groups;
+        self.available = available;
     }
 
     // Build from the already-JSON-parsed body of the combined /api/template
     // response. `data` is what Communications hands the callback for a JSON
-    // response: the four-key { "areas" => ..., "states" => ..., "names" => ...,
-    // "groups" => ... } Dictionary. Each section parses defensively; a missing
-    // or malformed body yields an empty LightState.
+    // response: the five-key { "areas" => ..., "states" => ..., "names" => ...,
+    // "groups" => ..., "available" => ... } Dictionary. Each section parses
+    // defensively; a missing or malformed body yields an empty LightState.
     static function fromTemplateData(data as Dictionary or String or Null) as LightState {
         if (!(data instanceof Dictionary)) {
             return new LightState([] as Array<Dictionary>, {} as Dictionary<String, Boolean>,
-                                     {} as Dictionary<String, String>, {} as Dictionary<String, Number>);
+                                     {} as Dictionary<String, String>, {} as Dictionary<String, Number>,
+                                     {} as Dictionary<String, Boolean>);
         }
         var body = data as Dictionary;
         return new LightState(parseAreas(body.get("areas")), parseStates(body.get("states")),
-                                 parseNames(body.get("names")), parseGroups(body.get("groups")));
+                                 parseNames(body.get("names")), parseGroups(body.get("groups")),
+                                 parseAvailable(body.get("available")));
     }
 
     function isEmpty() as Boolean {
@@ -63,6 +72,14 @@ class LightState {
     function isOn(entityId as String) as Boolean {
         var state = states.get(entityId);
         return (state == null) ? false : (state as Boolean);
+    }
+
+    // The template emits an availability entry for every light, so a null here
+    // means a server-contract violation (as with isOn). It defaults to available
+    // rather than off: a contract breach must not mark a working light down.
+    function isAvailable(entityId as String) as Boolean {
+        var value = available.get(entityId);
+        return (value == null) ? true : (value as Boolean);
     }
 
     // HA's display name for a light. Falls back to the bare entity id when the
@@ -103,16 +120,35 @@ class LightState {
                 }
             }
         }
-        return orderGroupsFirst(flat);
+        return orderAvailableFirst(flat);
     }
 
     function listLightsInArea(name as String) as Array<String> {
         for (var areaIndex = 0; areaIndex < areas.size(); areaIndex++) {
             if ((areas[areaIndex].get(:name) as String).equals(name)) {
-                return orderGroupsFirst(areas[areaIndex].get(:lights) as Array<String>);
+                return orderAvailableFirst(areas[areaIndex].get(:lights) as Array<String>);
             }
         }
         return [] as Array<String>;
+    }
+
+    // Availability is the primary partition: every available light precedes every
+    // unavailable one, with the group-first ordering re-run within each partition.
+    private function orderAvailableFirst(ids as Array<String>) as Array<String> {
+        var availableIds = [] as Array<String>;
+        var unavailableIds = [] as Array<String>;
+        for (var index = 0; index < ids.size(); index++) {
+            var entityId = ids[index];
+            if (isAvailable(entityId)) {
+                availableIds.add(entityId);
+            } else {
+                unavailableIds.add(entityId);
+            }
+        }
+
+        var ordered = orderGroupsFirst(availableIds);
+        ordered.addAll(orderGroupsFirst(unavailableIds));
+        return ordered;
     }
 
     // Light groups first (by name among themselves), then plain lights (by name
@@ -207,6 +243,25 @@ class LightState {
             var state = section.get(entityId);
             if (entityId instanceof String && state instanceof Boolean) {
                 out.put(entityId as String, state as Boolean);
+            }
+        }
+        return out;
+    }
+
+    // The "available" section: { entityId: bool } -> entity_id -> Boolean, dropping
+    // non-String keys and non-Boolean values.
+    private static function parseAvailable(raw as Object or Null) as Dictionary<String, Boolean> {
+        var out = {} as Dictionary<String, Boolean>;
+        if (!(raw instanceof Dictionary)) {
+            return out;
+        }
+        var section = raw as Dictionary;
+        var entityIds = section.keys();
+        for (var index = 0; index < entityIds.size(); index++) {
+            var entityId = entityIds[index];
+            var value = section.get(entityId);
+            if (entityId instanceof String && value instanceof Boolean) {
+                out.put(entityId as String, value as Boolean);
             }
         }
         return out;

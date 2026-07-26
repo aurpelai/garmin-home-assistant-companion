@@ -31,6 +31,16 @@ module LightSessionTest {
         });
         return new LightSession(new FakeHaClient(), state);
     }
+
+    function sessionWithAvailable(states as Dictionary<String, Boolean>,
+                                 available as Dictionary<String, Boolean>) as LightSession {
+        var state = LightState.fromTemplateData({
+            "areas" => { "Room" => states.keys() },
+            "states" => states,
+            "available" => available
+        });
+        return new LightSession(new HaClient(), state);
+    }
 }
 
 // toggleState takes a completion callback; tests that only need the optimistic
@@ -159,5 +169,21 @@ function refreshStateSwallowsFailureButStillCompletes(logger as Test.Logger) as 
 
     Test.assert(session.isOn("light.a"));   // last-known state survives
     Test.assert(spy.fired);
+    return true;
+}
+
+(:test)
+function isAvailableMirrorsServerTruthUnaffectedByToggle(logger as Test.Logger) as Boolean {
+    var session = LightSessionTest.sessionWithAvailable(
+        { "light.a" => false, "light.down" => false },
+        { "light.a" => true, "light.down" => false });
+    Test.assert(session.isAvailable("light.a"));
+    Test.assert(!session.isAvailable("light.down"));
+
+    session.toggleState("light.a", new NoopCompletion().method(:onComplete));
+    session.toggleState("light.down", new NoopCompletion().method(:onComplete));
+
+    Test.assert(session.isAvailable("light.a"));
+    Test.assert(!session.isAvailable("light.down"));
     return true;
 }

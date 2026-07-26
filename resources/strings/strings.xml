@@ -13,6 +13,8 @@
     <string id="LoadingAreas">Loading areas…</string>
     <string id="AllLights">All lights</string>
     <string id="NoLights">No lights found</string>
+    <string id="Unavailable">Unavailable</string>
+    <string id="GroupUnavailable">Group unavailable</string>
 
     <!-- Errors -->
     <string id="ErrNoConfig">Set URL and token in the app settings</string>
