@@ -4,7 +4,7 @@ name: Label new issues
 # removes the label once they've confirmed the ticket.
 #
 # Spec tickets are the exception: a `Spec: …` title means the issue is a spec artifact
-# that already came out of a grilled design (see WAYS-OF-WORKING.md), so it gets `spec`
+# for a design that's already settled (see WAYS-OF-WORKING.md), so it gets `spec`
 # instead of `unconfirmed`.
 
 on:

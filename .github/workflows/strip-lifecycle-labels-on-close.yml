@@ -1,10 +1,9 @@
 name: Strip lifecycle labels on close
 
-# Lifecycle labels (unconfirmed / needs-grilling / needs-spec / spec-ready) each name a
-# pending pre-code action (see WAYS-OF-WORKING.md). A closed issue has none, so the
-# terminal state is *no lifecycle label*. This strips any that linger when an issue
-# closes — by any means (merged PR, won't-do, manual). Type labels (feature/bug/…),
-# `spec`, and `blocked` are left untouched.
+# Lifecycle labels (unconfirmed / ready-to-spec / ready-to-build) each name the state of
+# an in-flight issue (see WAYS-OF-WORKING.md). A closed issue is terminal, so it carries
+# none. This strips any that linger when an issue closes — by any means (merged PR,
+# won't-do, manual). Type labels (feature/bug/…), `spec`, and `blocked` are left untouched.
 
 on:
   issues:
@@ -26,9 +25,9 @@ jobs:
           # LABELS is a JSON array of the issue's label names. Iterate exact names
           # (jq -e .[] emits one per line, whole strings) and drop any that are
           # lifecycle labels — matching the full name, so hyphenated names like
-          # needs-spec never confuse needs-grilling.
+          # ready-to-spec never confuse ready-to-build.
           present="$(jq -r '.[]' <<< "$LABELS")"
-          for label in unconfirmed needs-grilling needs-spec spec-ready; do
+          for label in unconfirmed ready-to-spec ready-to-build; do
             if grep -qxF "$label" <<< "$present"; then
               gh issue edit "$ISSUE" --remove-label "$label"
             fi
