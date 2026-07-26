@@ -10,3 +10,5 @@ developer_key*
 
 # Editor / OS
 .DS_Store
+
+.claude/
