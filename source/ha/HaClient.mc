@@ -24,11 +24,12 @@ class HaClient {
     // The single inner area-walk collects an area's lights, records each light's
     // on/off state via is_state (a real JSON boolean, not a string), records the
     // name Home Assistant shows for each light, records how many lights each
-    // light group controls, and records whether HA currently reaches each light
-    // (not is_state unavailable — a real JSON boolean). A light group is a light.* entity whose `entity_id`
-    // state attribute is defined (it holds the group's member ids); a plain light
-    // has no such attribute, so `state_attr(e, 'entity_id')` is none. "groups" maps
-    // each group id to its member count — `expand(e) | count`, the number of leaf
+    // light group controls, and records each light's availability via
+    // `not is_state(e, 'unavailable')` (a real JSON boolean). A light group is a
+    // light.* entity whose `entity_id` state attribute is defined (it holds the
+    // group's member ids); a plain light has no such attribute, so
+    // `state_attr(e, 'entity_id')` is none. "groups" maps each group id to its
+    // member count — `expand(e) | count`, the number of leaf
     // entities the group expands to (recursing through any nested groups), computed
     // server-side into a scalar so member lists never reach the watch. Lights with
     // no area are never visited by areas()/area_entities() and are thus naturally

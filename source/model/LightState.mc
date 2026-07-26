@@ -16,9 +16,7 @@ import Toybox.Lang;
 // parsing the groups section into an entity_id -> member count map (a light id
 // present in that map is a light group, used to order groups ahead of plain
 // lights in every list view; its value is how many lights the group controls),
-// and parsing the available section into an entity_id -> Boolean map (whether
-// Home Assistant currently reaches the light; an unavailable light is shown but
-// not toggleable, and sorts below the available ones).
+// and parsing the available section into an entity_id -> Boolean map.
 //
 // Each section degrades independently: non-conforming input yields an empty
 // result rather than throwing (watch UX: show "no lights" / all-off, not a
@@ -35,10 +33,8 @@ class LightState {
     // is-a-group signal (backs group-first ordering); the value is how many lights
     // the group controls (backs the "N lights" row sublabel).
     private var groups as Dictionary<String, Number>;
-    // entity_id -> Boolean (isAvailable), whether HA currently reaches the light.
     // Parallel to states, deliberately not folded into it: on/off and
-    // reachable are independent facts. An entity absent from this map defaults to
-    // available, so missing availability info never spuriously marks a light down.
+    // availability are independent facts about a light.
     private var available as Dictionary<String, Boolean>;
 
     function initialize(areas as Array<Dictionary>, states as Dictionary<String, Boolean>,
@@ -78,9 +74,8 @@ class LightState {
         return (state == null) ? false : (state as Boolean);
     }
 
-    // Whether HA currently reaches the light. An entity we have no availability
-    // info for defaults to available, so absence never spuriously marks a light
-    // down (contrast isOn, which defaults absent entities off).
+    // Absent entities default to available (contrast isOn, which defaults them
+    // off) — missing availability info must never mark a light unavailable.
     function isAvailable(entityId as String) as Boolean {
         var value = available.get(entityId);
         return (value == null) ? true : (value as Boolean);
@@ -136,10 +131,8 @@ class LightState {
         return [] as Array<String>;
     }
 
-    // Availability is the primary partition: every available light (groups first,
-    // then plain, each alphabetical) precedes every unavailable one (same
-    // group-first ordering among themselves). An unavailable light can't be
-    // toggled, so it sinks below the ones the user can act on.
+    // Availability is the primary partition: every available light precedes every
+    // unavailable one, with the group-first ordering re-run within each partition.
     private function orderAvailableFirst(ids as Array<String>) as Array<String> {
         var availableIds = [] as Array<String>;
         var unavailableIds = [] as Array<String>;
@@ -254,9 +247,8 @@ class LightState {
         return out;
     }
 
-    // The "available" section: { entityId: bool } -> entity_id -> Boolean,
-    // dropping non-String keys and non-Boolean values. A missing or non-Dictionary
-    // section yields an empty map, which reads through isAvailable as all-available.
+    // The "available" section: { entityId: bool } -> entity_id -> Boolean, dropping
+    // non-String keys and non-Boolean values.
     private static function parseAvailable(raw as Object or Null) as Dictionary<String, Boolean> {
         var out = {} as Dictionary<String, Boolean>;
         if (!(raw instanceof Dictionary)) {

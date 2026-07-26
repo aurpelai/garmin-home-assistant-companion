@@ -174,8 +174,6 @@ function refreshStateSwallowsFailureButStillCompletes(logger as Test.Logger) as 
 
 (:test)
 function isAvailableMirrorsServerTruthUnaffectedByToggle(logger as Test.Logger) as Boolean {
-    // Availability is server truth only: the optimistic on/off toggle path never
-    // touches it, so isAvailable stays put across toggles.
     var session = LightSessionTest.sessionWithAvailable(
         { "light.a" => false, "light.down" => false },
         { "light.a" => true, "light.down" => false });

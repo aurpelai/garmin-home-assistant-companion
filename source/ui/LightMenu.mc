@@ -58,11 +58,8 @@ class LightMenu extends WatchUi.Menu2 {
             entityId, session.isOn(entityId), null);
     }
 
-    // A row's sublabel: an unavailable light reports its status ("Group
-    // unavailable" / "Unavailable"); an available group shows its member count
-    // ("4 lights", "1 light"); an available plain light has none. Both row
-    // construction and redraw route through here, so this is the single seam that
-    // decides the sublabel.
+    // The single seam for a row's sublabel: both construction and redraw route
+    // through here, so the two never disagree on what a row shows.
     static function buildSubLabel(session as LightSession, entityId as String) as String or Null {
         if (!session.isAvailable(entityId)) {
             var stringId = session.isGroup(entityId) ? Rez.Strings.GroupUnavailable : Rez.Strings.Unavailable;
