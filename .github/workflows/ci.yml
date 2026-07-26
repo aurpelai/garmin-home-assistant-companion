@@ -181,19 +181,40 @@ jobs:
           monkeydo bin/app.prg fenix8solar51mm > /tmp/boot.txt 2>&1 &
           do_pid=$!
 
-          sleep 15
+          # Poll rather than sleep-then-check once: a crash may surface at any
+          # point in the window, so decide the moment either signal fires — the
+          # marker appears, or the run's process exits — instead of racing a
+          # single check against an arbitrary instant. Surviving the whole
+          # window with the process still alive is the clean boot.
+          for _ in $(seq 1 20); do
+            if grep -qF 'Encountered an app crash.' /tmp/boot.txt; then
+              echo "--- captured boot output ---"
+              cat /tmp/boot.txt
+              echo "FAIL: app crashed during startup"
+              exit 1
+            fi
+
+            if ! kill -0 "$do_pid" 2>/dev/null; then
+              echo "--- captured boot output ---"
+              cat /tmp/boot.txt
+
+              # The writer has exited, so the file is now fully flushed —
+              # re-grep before blaming infra, in case a crash report landed
+              # only as the session tore down.
+              if grep -qF 'Encountered an app crash.' /tmp/boot.txt; then
+                echo "FAIL: app crashed during startup"
+                exit 1
+              fi
+
+              echo "FAIL: app run ended with no crash marker — the simulator or app launch did not run as expected, so a clean boot was not actually observed"
+              exit 1
+            fi
+
+            sleep 1
+          done
 
           echo "--- captured boot output ---"
           cat /tmp/boot.txt
-
-          if grep -qF 'Encountered an app crash.' /tmp/boot.txt; then
-            echo "FAIL: app crashed during startup"
-            exit 1
-          fi
-
-          if ! kill -0 "$do_pid" 2>/dev/null; then
-            echo "FAIL: app run ended with no crash marker — the simulator or app launch did not run as expected, so a clean boot was not actually observed"
-            exit 1
-          fi
+          echo "OK: app booted and stayed running with no crash"
 
           echo "OK: app booted and is still running with no crash"
