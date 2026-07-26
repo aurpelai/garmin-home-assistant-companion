@@ -19,11 +19,13 @@ class HaClient {
     // text, so without it the body would be a Python-repr dict, not valid JSON.
     //
     // Renders { "areas": { areaName: [lightId, ...] }, "states": { lightId: bool },
-    //          "names": { lightId: "Display Name" }, "groups": { lightId: memberCount } }.
+    //          "names": { lightId: "Display Name" }, "groups": { lightId: memberCount },
+    //          "available": { lightId: bool } }.
     // The single inner area-walk collects an area's lights, records each light's
     // on/off state via is_state (a real JSON boolean, not a string), records the
-    // name Home Assistant shows for each light, and records how many lights each
-    // light group controls. A light group is a light.* entity whose `entity_id`
+    // name Home Assistant shows for each light, records how many lights each
+    // light group controls, and records whether HA currently reaches each light
+    // (not is_state unavailable — a real JSON boolean). A light group is a light.* entity whose `entity_id`
     // state attribute is defined (it holds the group's member ids); a plain light
     // has no such attribute, so `state_attr(e, 'entity_id')` is none. "groups" maps
     // each group id to its member count — `expand(e) | count`, the number of leaf
@@ -45,7 +47,7 @@ class HaClient {
     // serializer, producing an invalid JSON escape and a 400 "Invalid JSON
     // specified" from HA.
     private const LIGHT_STATE_TEMPLATE =
-        "{% set ns = namespace(m={}, s={}, n={}, groups={}) %}" +
+        "{% set ns = namespace(m={}, s={}, n={}, groups={}, avail={}) %}" +
         "{% for a in areas() %}" +
         "{% set ns.lights = [] %}" +
         "{% for e in area_entities(a) %}" +
@@ -54,6 +56,7 @@ class HaClient {
         "{% set ns.lights = ns.lights + [e] %}" +
         "{% set ns.s = dict(ns.s, **{e: is_state(e, 'on')}) %}" +
         "{% set ns.n = dict(ns.n, **{e: states[e].name}) %}" +
+        "{% set ns.avail = dict(ns.avail, **{e: not is_state(e, 'unavailable')}) %}" +
         "{% if state_attr(e, 'entity_id') is not none %}" +
         "{% set ns.groups = dict(ns.groups, **{e: expand(e) | count}) %}" +
         "{% endif %}" +
@@ -64,7 +67,7 @@ class HaClient {
         "{% set ns.m = dict(ns.m, **{area_name(a): ns.lights}) %}" +
         "{% endif %}" +
         "{% endfor %}" +
-        "{{ dict(areas=ns.m, states=ns.s, names=ns.n, groups=ns.groups) | tojson }}";
+        "{{ dict(areas=ns.m, states=ns.s, names=ns.n, groups=ns.groups, available=ns.avail) | tojson }}";
 
     function initialize() {}
 

@@ -54,6 +54,12 @@ class LightSession {
         return (state == null) ? false : (state as Boolean);
     }
 
+    // Availability is server truth only, never optimistically mutated, so it
+    // reads straight from the LightState rather than the mutable copy.
+    function isAvailable(entityId as String) as Boolean {
+        return _state.isAvailable(entityId);
+    }
+
     // Whether the live state map tracks this entity at all — for callers that
     // need to distinguish absent from present-but-off, which isOn's off default
     // cannot.

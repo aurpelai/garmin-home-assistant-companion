@@ -26,7 +26,7 @@ class LightMenu extends WatchUi.Menu2 {
             return;
         }
         for (var i = 0; i < lights.size(); i++) {
-            addItem(makeItem(session, lights[i]));
+            addItem(buildItem(session, lights[i]));
         }
     }
 
@@ -47,20 +47,27 @@ class LightMenu extends WatchUi.Menu2 {
             }
             var item = getItem(index) as WatchUi.ToggleMenuItem;
             item.setEnabled(_session.isOn(entityId));
+            item.setSubLabel(buildSubLabel(_session, entityId));
         }
         WatchUi.requestUpdate();
     }
 
-    static function makeItem(session as LightSession, entityId as String) as WatchUi.ToggleMenuItem {
+    static function buildItem(session as LightSession, entityId as String) as WatchUi.ToggleMenuItem {
         return new WatchUi.ToggleMenuItem(
-            session.getName(entityId), idleSubLabel(session, entityId),
+            session.getName(entityId), buildSubLabel(session, entityId),
             entityId, session.isOn(entityId), null);
     }
 
-    // A group row's idle sublabel is its member count ("4 lights", "1 light"); a
-    // plain light has none. Both initial render and post-toggle restore route
-    // through here, so this is the single seam that decides the idle sublabel.
-    static function idleSubLabel(session as LightSession, entityId as String) as String or Null {
+    // A row's sublabel: an unavailable light reports its status ("Group
+    // unavailable" / "Unavailable"); an available group shows its member count
+    // ("4 lights", "1 light"); an available plain light has none. Both row
+    // construction and redraw route through here, so this is the single seam that
+    // decides the sublabel.
+    static function buildSubLabel(session as LightSession, entityId as String) as String or Null {
+        if (!session.isAvailable(entityId)) {
+            var stringId = session.isGroup(entityId) ? Rez.Strings.GroupUnavailable : Rez.Strings.Unavailable;
+            return WatchUi.loadResource(stringId) as String;
+        }
         if (!session.isGroup(entityId)) {
             return null;
         }
@@ -81,12 +88,22 @@ class LightMenuDelegate extends WatchUi.Menu2InputDelegate {
 
     function onSelect(item as WatchUi.MenuItem) as Void {
         var id = item.getId();
-        if (!(id instanceof String)) { return; }  // e.g. the :none placeholder
+        if (!(id instanceof String)) {
+            return;   // e.g. the :none placeholder
+        }
         var entityId = id as String;
+        var toggle = item as WatchUi.ToggleMenuItem;
+        if (!_session.isAvailable(entityId)) {
+            // Unavailable rows aren't toggleable: undo the native tap's flip and
+            // fire no service call.
+            toggle.setEnabled(!toggle.isEnabled());
+            WatchUi.requestUpdate();
+            return;
+        }
         // The native ToggleMenuItem already flipped on tap; it stays flipped
         // with no in-flight affordance until server truth arrives.
         _session.toggleState(entityId,
-            new ToggleHandler(_menu, item as WatchUi.ToggleMenuItem, _session, entityId).method(:onComplete));
+            new ToggleHandler(_menu, toggle, _session, entityId).method(:onComplete));
     }
 }
 

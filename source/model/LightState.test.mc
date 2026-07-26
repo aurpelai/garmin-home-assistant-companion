@@ -286,6 +286,71 @@ function dropsNonBooleanStateValues(logger as Test.Logger) as Boolean {
 }
 
 (:test)
+function parsesAvailableIntoIsAvailable(logger as Test.Logger) as Boolean {
+    var data = {
+        "areas" => { "Kitchen" => ["light.kitchen", "light.pantry"] },
+        "states" => {},
+        "available" => { "light.kitchen" => true, "light.pantry" => false }
+    };
+    var state = LightState.fromTemplateData(data);
+    Test.assert(state.isAvailable("light.kitchen"));
+    Test.assert(!state.isAvailable("light.pantry"));
+    return true;
+}
+
+(:test)
+function missingAvailableEntryDefaultsToAvailable(logger as Test.Logger) as Boolean {
+    // An entity we have no availability info for is assumed available, so absence
+    // never spuriously marks a light down.
+    var data = { "areas" => { "Hall" => ["light.hall"] }, "states" => {} };
+    var state = LightState.fromTemplateData(data);
+    Test.assert(state.isAvailable("light.hall"));
+    Test.assert(state.isAvailable("light.unknown"));
+    return true;
+}
+
+(:test)
+function dropsNonBooleanAvailableValues(logger as Test.Logger) as Boolean {
+    var data = {
+        "areas" => { "Hall" => ["light.hall", "light.porch"] },
+        "states" => {},
+        "available" => { "light.hall" => "yes", "light.porch" => false }
+    };
+    var state = LightState.fromTemplateData(data);
+    // "yes" (a String, not a Boolean) is dropped -> defaults back to available.
+    Test.assert(state.isAvailable("light.hall"));
+    Test.assert(!state.isAvailable("light.porch"));
+    return true;
+}
+
+(:test)
+function ordersAvailableBeforeUnavailable(logger as Test.Logger) as Boolean {
+    // Availability is the primary partition: available-groups, then
+    // available-plain, then unavailable-groups, then unavailable-plain, each
+    // alphabetical within its partition.
+    var data = {
+        "areas" => { "A" => [
+            "light.avail_plain", "light.avail_group",
+            "light.down_plain", "light.down_group"
+        ] },
+        "states" => {},
+        "groups" => { "light.avail_group" => 2, "light.down_group" => 3 },
+        "available" => {
+            "light.avail_plain" => true, "light.avail_group" => true,
+            "light.down_plain" => false, "light.down_group" => false
+        }
+    };
+    var state = LightState.fromTemplateData(data);
+    var all = state.listAllLights();
+    Test.assertEqual(all.size(), 4);
+    Test.assertEqual(all[0], "light.avail_group");   // available group
+    Test.assertEqual(all[1], "light.avail_plain");   // available plain
+    Test.assertEqual(all[2], "light.down_group");    // unavailable group
+    Test.assertEqual(all[3], "light.down_plain");    // unavailable plain
+    return true;
+}
+
+(:test)
 function parsesNamesIntoGetName(logger as Test.Logger) as Boolean {
     var data = {
         "areas" => { "Kitchen" => ["light.kitchen"] },
