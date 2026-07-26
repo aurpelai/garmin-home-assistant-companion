@@ -48,14 +48,15 @@ class LightSession {
         return _state.getMemberCount(entityId);
     }
 
-    // An entity the overlay does not track reads as off.
+    // An entity absent from the live state map reads as off.
     function isOn(entityId as String) as Boolean {
         var state = _states.get(entityId);
         return (state == null) ? false : (state as Boolean);
     }
 
-    // Whether the overlay tracks this entity at all — for callers that need to
-    // distinguish absent from present-but-off, which isOn's off default cannot.
+    // Whether the live state map tracks this entity at all — for callers that
+    // need to distinguish absent from present-but-off, which isOn's off default
+    // cannot.
     function isTracked(entityId as String) as Boolean {
         return _states.hasKey(entityId);
     }
