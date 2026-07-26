@@ -86,10 +86,10 @@ When your change is user-visible, add a fragment in the same PR:
 changie new
 ```
 
-It prompts for a **kind** (Added / Changed / Fixed / Removed / Security) and a
-one-line description, then writes a file under `.changes/unreleased/`. Commit that
-file with your change. Fragments carry no commit hashes, so the changelog stays
-clean enough to paste into the Connect IQ Store "what's new" field.
+It prompts for a **kind** (🎉 New / ✨ Improved / 🔧 Fixed) and a one-line
+description, then writes a file under `.changes/unreleased/`. Commit that file
+with your change. Fragments carry no commit hashes, so the changelog stays clean
+and user-facing.
 
 Purely internal changes (refactors, CI, docs) don't need a fragment.
 
@@ -109,7 +109,30 @@ git-tag convention added only to the tag and Release.
 The Store assigns the app version **at upload time** — you type it into the Store
 dashboard per submission; the build carries no authoritative version. **Type the
 version to match the git tag** (tag `v0.2.0` → enter `0.2.0`). Nothing enforces
-this automatically. Paste the matching `CHANGELOG.md` section into "what's new".
+this automatically.
+
+#### Changelog vs. release notes
+
+`CHANGELOG.md` and the Store's "what's new" are two different documents:
+
+- The **changelog** accumulates one section per git release. Every
+  `workflow_dispatch` run appends a version, so several git releases can pile up
+  between two Store submissions.
+- The **release notes** are the Store's "what's new" for a single submission. They
+  cover *everything* shipped since the last Store release — often several
+  changelog versions at once — consolidated into one clean, user-facing block.
+
+So a Store submission isn't a copy of one changelog section. Compile the release
+notes by consolidating every changelog entry from the last Store-published
+version up to now: read those sections, merge overlapping items, drop anything
+that only mattered to an intermediate git release, and rewrite the result as one
+short "what's new". The changelog is the source; the release notes are an
+editorial pass over a version range of it.
+
+The start of that range is the last version actually published to the Store.
+We'll likely mark Store releases with their own git tag so the range is
+mechanical; until that convention lands, take the start version from the Store
+dashboard.
 
 ## How we work
 

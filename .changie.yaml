@@ -23,11 +23,11 @@ changeFormat: '- {{.Body}}'
 # `auto` lets `changie batch auto` pick the highest implied bump from the pending
 # fragments, so the author only chooses a kind — never types a version.
 kinds:
-  - label: "✨ New"
+  - label: "🎉 New"
     auto: minor
-  - label: "⚡ Improved"
+  - label: "✨ Improved"
     auto: minor
-  - label: "🐛 Fixed"
+  - label: "🔧 Fixed"
     auto: patch
 
 # Fragment body is a single free-text line the author writes in `changie new`.
