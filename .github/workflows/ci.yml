@@ -3,9 +3,9 @@ name: CI
 # Two verification gates, both surfacing a check on the PR:
 #   test-build — type-checks production sources + the (:test) suite with the
 #     Monkey C compiler at strict level (-l 3 -w, warnings = failure) across
-#     representative target devices. Runs the compiler directly inside the
-#     matco/connectiq-tester image (bundles the SDK + credential-gated device
-#     files), which is safe under container: + run:.
+#     every device targeted by manifest.xml. Runs the compiler directly inside
+#     the matco/connectiq-tester image (bundles the SDK + credential-gated
+#     device files), which is safe under container: + run:.
 #   test-run   — runs the (:test) suite in the headless simulator to catch
 #     wrong expected values a compile can't. Uses matco's ACTION, not a
 #     container step: the simulator is a GUI process needing the entrypoint's
@@ -24,8 +24,36 @@ permissions:
   contents: read
 
 jobs:
+  devices:
+    name: Derive device matrix from manifest.xml
+    runs-on: ubuntu-latest
+    outputs:
+      list: ${{ steps.list.outputs.list }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Parse product ids into a JSON array
+        id: list
+        # manifest.xml is the single source of truth for targeted devices, so
+        # the matrix is derived from it rather than hand-picked, keeping the
+        # two from drifting apart.
+        run: |
+          list=$(grep -oE 'iq:product id="[^"]+"' manifest.xml | sed -E 's/.*id="([^"]+)".*/\1/' | jq -R -s -c 'split("\n") | map(select(length>0))')
+
+          # An empty list would expand to zero build jobs and let CI pass
+          # having compiled nothing — the silent gate this whole check exists
+          # to prevent. Fail loudly instead if the manifest parses to nothing.
+          if [ "$list" = "[]" ]; then
+            echo "No products parsed from manifest.xml" >&2
+            exit 1
+          fi
+
+          echo "list=$list" >> "$GITHUB_OUTPUT"
+
   test-build:
     name: Type-check (${{ matrix.device }})
+    needs: devices
     runs-on: ubuntu-latest
     container:
       # ghcr.io/matco/connectiq-tester:v2.8.0 — pinned by digest for
@@ -35,9 +63,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # One device per launcher-icon size band + the user's own hardware,
-        # so resource resolution and per-device builds are all exercised.
-        device: [fenix8solar51mm, venu3, vivoactive5, fr265]
+        # Every device targeted by manifest.xml, so resource resolution and
+        # per-device builds are all exercised.
+        device: ${{ fromJSON(needs.devices.outputs.list) }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -47,13 +75,25 @@ jobs:
         run: openssl genrsa -out developer_key.pem 4096 && openssl pkcs8 -topk8 -inform PEM -outform DER -in developer_key.pem -out developer_key.der -nocrypt
 
       - name: Type-check with --unit-test (strict, warnings = failure)
+        # monkeyc exits 0 even when it prints WARNING lines, so the warnings
+        # have to be grepped out of the captured output and turned into an
+        # explicit failure.
         run: |
-          monkeyc \
+          mkdir -p bin
+
+          out=$(monkeyc \
             -d ${{ matrix.device }} \
             -f monkey.jungle \
             -o bin/test_${{ matrix.device }}.prg \
             -y developer_key.der \
-            -l 3 -w --unit-test
+            -l 3 -w --unit-test 2>&1)
+
+          echo "$out"
+
+          if echo "$out" | grep -qE '^WARNING'; then
+            echo "FAIL: compiler warnings present"
+            exit 1
+          fi
 
   test-run:
     name: Run tests (venu3)
