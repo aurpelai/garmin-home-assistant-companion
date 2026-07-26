@@ -21,7 +21,7 @@ class FakeHaClient extends HaClient {
         _fetchCallback = callback;
     }
 
-    function callLightService(service as Number, entityId as String, callback as Method) as Void {
+    function toggleLight(entityId as String, callback as Method) as Void {
         _serviceCallback = callback;
     }
 
