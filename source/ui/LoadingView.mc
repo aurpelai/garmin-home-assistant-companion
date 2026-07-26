@@ -40,7 +40,7 @@ class LoadingView extends WatchUi.View {
     // non-null error is the only failure path — a null state never arrives alongside
     // a null error.
     function onLoaded(state as LightState or Null, error as Number or Null) as Void {
-        if (error != null) { showError(errorStringFor(error)); return; }
+        if (error != null) { showError(resolveErrorMessage(error)); return; }
         var session = new LightSession(_client, state as LightState);
         // Replacing the app-owned session wholesale is safe ONLY because
         // onLoaded runs solely at startup/retry, with no live state-view holding
@@ -66,7 +66,7 @@ class LoadingView extends WatchUi.View {
         WatchUi.switchToView(new ErrorView(message), new ErrorDelegate(), WatchUi.SLIDE_IMMEDIATE);
     }
 
-    private function errorStringFor(code as Number) as ResourceId {
+    function resolveErrorMessage(code as Number) as ResourceId {
         if (code == 401 || code == 403) { return Rez.Strings.ErrAuth; }
         if (code < 0) { return Rez.Strings.ErrNetwork; }
         return Rez.Strings.ErrUnknown;

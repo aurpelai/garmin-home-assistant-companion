@@ -3,6 +3,10 @@ import Toybox.Test;
 
 // Exercises applyState — re-syncing a live session from a fresh server-truth
 // LightState — directly on the session's state map, so no networking is involved.
+//
+// The toggle/refresh tests below instead drive the async branches through
+// FakeHaClient, firing the captured callback to observe revert-on-failure and
+// swallow-but-complete.
 
 (:test)
 module LightSessionTest {
@@ -20,6 +24,14 @@ module LightSessionTest {
             "areas" => { "Room" => states.keys() },
             "states" => states
         });
+    }
+
+    function fakeSessionWith(states as Dictionary<String, Boolean>) as LightSession {
+        var state = LightState.fromTemplateData({
+            "areas" => { "Room" => states.keys() },
+            "states" => states
+        });
+        return new LightSession(new FakeHaClient(), state);
     }
 }
 
@@ -85,5 +97,60 @@ function applyStateKeepsAbsentEntityUntouched(logger as Test.Logger) as Boolean 
     Test.assert(session.isOn("light.a"));
     Test.assert(session.isOn("light.gone"));
     Test.assert(session.states.hasKey("light.gone"));
+    return true;
+}
+
+(:test)
+function toggleStateRevertsOptimisticFlipOnFailure(logger as Test.Logger) as Boolean {
+    var session = LightSessionTest.fakeSessionWith({ "light.a" => false });
+    var spy = new CompletionSpy();
+
+    session.toggleState("light.a", spy.method(:onComplete));
+    Test.assert(session.isOn("light.a"));   // flipped optimistically
+
+    (session.client as FakeHaClient).fireServiceFailure();
+
+    Test.assert(!session.isOn("light.a"));   // reverted
+    Test.assert(spy.fired);
+    return true;
+}
+
+(:test)
+function toggleStateKeepsFlipOnSuccess(logger as Test.Logger) as Boolean {
+    var session = LightSessionTest.fakeSessionWith({ "light.a" => false });
+    var spy = new CompletionSpy();
+
+    session.toggleState("light.a", spy.method(:onComplete));
+    (session.client as FakeHaClient).fireServiceSuccess();
+
+    Test.assert(session.isOn("light.a"));
+    Test.assert(spy.fired);
+    return true;
+}
+
+(:test)
+function refreshStateHealsOptimisticDisagreementOnSuccess(logger as Test.Logger) as Boolean {
+    var session = LightSessionTest.fakeSessionWith({ "light.a" => false });
+    session.states.put("light.a", true);   // optimistic flip the server never applied
+    var spy = new CompletionSpy();
+
+    session.refreshState(spy.method(:onDone));
+    (session.client as FakeHaClient).fireFetchSuccess(LightSessionTest.stateOf({ "light.a" => false }));
+
+    Test.assert(!session.isOn("light.a"));
+    Test.assert(spy.fired);
+    return true;
+}
+
+(:test)
+function refreshStateSwallowsFailureButStillCompletes(logger as Test.Logger) as Boolean {
+    var session = LightSessionTest.fakeSessionWith({ "light.a" => true });
+    var spy = new CompletionSpy();
+
+    session.refreshState(spy.method(:onDone));
+    (session.client as FakeHaClient).fireFetchFailure();
+
+    Test.assert(session.isOn("light.a"));   // last-known state survives
+    Test.assert(spy.fired);
     return true;
 }
