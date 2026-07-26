@@ -1,7 +1,4 @@
 <svg width="40" height="40" viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Master launcher icon (HA Companion). Single source of truth; the per-size
-       resources-launcher-<N>/launcher.svg files are generated from this by
-       scripts/generate_launcher_icons.py, which only rewrites width/height. -->
   <!-- Bulb glass -->
   <path d="M200 40c-66 0-120 54-120 120 0 46 26 86 64 106 8 4 12 12 12 20v18h88v-18c0-8 4-16 12-20 38-20 64-60 64-106 0-66-54-120-120-120z" fill="#FFC107"/>
   <!-- Base -->
