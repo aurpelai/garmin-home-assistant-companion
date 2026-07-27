@@ -47,11 +47,15 @@ class HaClient {
     // A backslash in this string would be sent unescaped by the Connect IQ JSON
     // serializer, producing an invalid JSON escape and a 400 "Invalid JSON
     // specified" from HA.
+    //
+    // `is_hidden_entity` requires Home Assistant 2023.4 or newer. Keep the
+    // reject in the walk's loop header: every entity kind added later inherits
+    // the exclusion for free.
     private const LIGHT_STATE_TEMPLATE =
         "{% set ns = namespace(m={}, s={}, n={}, groups={}, avail={}) %}" +
         "{% for a in areas() %}" +
         "{% set ns.lights = [] %}" +
-        "{% for e in area_entities(a) %}" +
+        "{% for e in (area_entities(a) | reject('is_hidden_entity')) %}" +
         "{% if e.startswith('light.') %}" +
         "{% if state_attr(e, 'entity_id') is none or expand(e) | count > 0 %}" +
         "{% set ns.lights = ns.lights + [e] %}" +
