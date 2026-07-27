@@ -1,19 +1,19 @@
 import Toybox.Lang;
 
 // Shared UI-side state passed between the area and light menus: the HA client,
-// the immutable server-truth LightState (areas + loaded states), and a mutable
+// the immutable server-truth HomeState (areas + loaded states), and a mutable
 // copy of the states map. Toggles update the mutable copy optimistically so the
-// switch flips immediately, leaving the LightState as the untouched server truth.
-class LightSession {
+// switch flips immediately, leaving the HomeState as the untouched server truth.
+class HomeSession {
     public var client as HaClient;
-    private var _state as LightState;
+    private var _state as HomeState;
     private var _states as Dictionary<String, Boolean>;   // entity_id -> isOn, mutable
 
-    function initialize(client as HaClient, state as LightState) {
+    function initialize(client as HaClient, state as HomeState) {
         self.client = client;
         _state = state;
         // Copy the loaded states so optimistic toggles never mutate the
-        // LightState (which stays immutable server-truth).
+        // HomeState (which stays immutable server-truth).
         var copy = {} as Dictionary<String, Boolean>;
         var entityIds = state.states.keys();
         for (var index = 0; index < entityIds.size(); index++) {
@@ -22,7 +22,7 @@ class LightSession {
         self._states = copy;
     }
 
-    // Area-structure reads delegate to the LightState so menus don't reach into it.
+    // Area-structure reads delegate to the HomeState so menus don't reach into it.
     function areas() as Array<Dictionary> {
         return _state.areas;
     }
@@ -51,7 +51,7 @@ class LightSession {
     }
 
     // Availability is server truth only, never optimistically mutated, so it
-    // reads straight from the LightState rather than the mutable copy.
+    // reads straight from the HomeState rather than the mutable copy.
     function isAvailable(entityId as String) as Boolean {
         return _state.isAvailable(entityId);
     }
@@ -76,7 +76,7 @@ class LightSession {
         _states.put(entityId, !attemptedOn);
     }
 
-    // Re-sync from a freshly fetched LightState (most-recent-fetch wins). The
+    // Re-sync from a freshly fetched HomeState (most-recent-fetch wins). The
     // new state becomes the server truth backing structural reads on the next
     // menu construction; the live on/off map converges to it now.
     //
@@ -85,7 +85,7 @@ class LightSession {
     // its value alone rather than reading the isOn default and flipping it off.
     // Keys are never added or dropped here: structural drift (entities or group
     // membership appearing/disappearing) is deferred to the next navigation.
-    function applyState(state as LightState) as Void {
+    function applyState(state as HomeState) as Void {
         _state = state;
 
         var entityIds = _states.keys();
@@ -102,22 +102,22 @@ class LightSession {
     // failure is swallowed (last-known state stays and heals on the next
     // trigger), yet onDone still fires so callers need no error branch.
     function refreshState(onDone as Method) as Void {
-        client.fetchLightState(new RefreshHandler(self, onDone).method(:onFetched));
+        client.fetchHomeState(new RefreshHandler(self, onDone).method(:onFetched));
     }
 }
 
 class RefreshHandler {
-    private var _session as LightSession;
+    private var _session as HomeSession;
     private var _onDone as Method;
 
-    function initialize(session as LightSession, onDone as Method) {
+    function initialize(session as HomeSession, onDone as Method) {
         _session = session;
         _onDone = onDone;
     }
 
-    function onFetched(state as LightState or Null, error as Number or Null) as Void {
+    function onFetched(state as HomeState or Null, error as Number or Null) as Void {
         if (error == null) {
-            _session.applyState(state as LightState);
+            _session.applyState(state as HomeState);
         }
         _onDone.invoke();
     }
@@ -126,12 +126,12 @@ class RefreshHandler {
 // Handles a light-toggle result: reverts the optimistic state flip if the
 // call failed, then hands off to the UI-side completion callback either way.
 class ToggleResultHandler {
-    private var _session as LightSession;
+    private var _session as HomeSession;
     private var _entityId as String;
     private var _attemptedOn as Boolean;
     private var _onComplete as Method;
 
-    function initialize(session as LightSession, entityId as String, attemptedOn as Boolean, onComplete as Method) {
+    function initialize(session as HomeSession, entityId as String, attemptedOn as Boolean, onComplete as Method) {
         _session = session;
         _entityId = entityId;
         _attemptedOn = attemptedOn;

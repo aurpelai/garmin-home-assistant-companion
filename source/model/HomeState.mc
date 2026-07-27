@@ -8,7 +8,7 @@ import Toybox.Lang;
 //     "names":     { entityId: "Kitchen Island", ... },
 //     "groups":    { entityId: memberCount, ... },
 //     "available": { entityId: true|false, ... } }
-// LightState splits that body, wrapping the areas section into an
+// HomeState splits that body, wrapping the areas section into an
 // area-ordered structure, parsing the states section into an entity_id ->
 // Boolean map, parsing the names section into an entity_id -> String map
 // (the name Home Assistant itself shows for each light, used as the row
@@ -22,7 +22,7 @@ import Toybox.Lang;
 // result rather than throwing (watch UX: show "no lights" / all-off, not a
 // crash).
 
-class LightState {
+class HomeState {
     // Array of { :name => String, :lights => Array<String> }, sorted by area name.
     public var areas as Array<Dictionary>;
     // entity_id -> Boolean (isOn), the server's on/off truth at load time.
@@ -52,15 +52,15 @@ class LightState {
     // response. `data` is what Communications hands the callback for a JSON
     // response: the five-key { "areas" => ..., "states" => ..., "names" => ...,
     // "groups" => ..., "available" => ... } Dictionary. Each section parses
-    // defensively; a missing or malformed body yields an empty LightState.
-    static function fromTemplateData(data as Dictionary or String or Null) as LightState {
+    // defensively; a missing or malformed body yields an empty HomeState.
+    static function fromTemplateData(data as Dictionary or String or Null) as HomeState {
         if (!(data instanceof Dictionary)) {
-            return new LightState([] as Array<Dictionary>, {} as Dictionary<String, Boolean>,
+            return new HomeState([] as Array<Dictionary>, {} as Dictionary<String, Boolean>,
                                      {} as Dictionary<String, String>, {} as Dictionary<String, Number>,
                                      {} as Dictionary<String, Boolean>);
         }
         var body = data as Dictionary;
-        return new LightState(parseAreas(body.get("areas")), parseStates(body.get("states")),
+        return new HomeState(parseAreas(body.get("areas")), parseStates(body.get("states")),
                                  parseNames(body.get("names")), parseGroups(body.get("groups")),
                                  parseAvailable(body.get("available")));
     }

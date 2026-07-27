@@ -2,7 +2,7 @@ import Toybox.Lang;
 import Toybox.Test;
 
 // FakeHaClient and CompletionSpy are the transport test double and its
-// completion-observation helper: reused by LightSession's async-branch tests.
+// completion-observation helper: reused by HomeSession's async-branch tests.
 // ResponseHandler's normalization is pure and synchronous, so it is exercised
 // directly below with no fake needed.
 
@@ -17,7 +17,7 @@ class FakeHaClient extends HaClient {
         HaClient.initialize();
     }
 
-    function fetchLightState(callback as Method) as Void {
+    function fetchHomeState(callback as Method) as Void {
         _fetchCallback = callback;
     }
 
@@ -25,7 +25,7 @@ class FakeHaClient extends HaClient {
         _serviceCallback = callback;
     }
 
-    function fireFetchSuccess(state as LightState) as Void {
+    function fireFetchSuccess(state as HomeState) as Void {
         (_fetchCallback as Method).invoke(state, null);
     }
 
@@ -88,7 +88,7 @@ function onResponseNormalizesNon200ToError(logger as Test.Logger) as Boolean {
 }
 
 (:test)
-function onResponseNormalizesTemplateSuccessToLightState(logger as Test.Logger) as Boolean {
+function onResponseNormalizesTemplateSuccessToHomeState(logger as Test.Logger) as Boolean {
     var capture = new ResultCapture();
     var handler = new ResponseHandler(capture.method(:onResult), :onTemplate);
 
@@ -97,8 +97,8 @@ function onResponseNormalizesTemplateSuccessToLightState(logger as Test.Logger) 
         "states" => { "light.a" => true }
     });
 
-    Test.assert(capture.result instanceof LightState);
-    Test.assert((capture.result as LightState).isOn("light.a"));
+    Test.assert(capture.result instanceof HomeState);
+    Test.assert((capture.result as HomeState).isOn("light.a"));
     Test.assert(capture.error == null);
     return true;
 }

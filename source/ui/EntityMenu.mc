@@ -11,11 +11,11 @@ import Toybox.WatchUi;
 // silently converges the visible rows to server truth without ever blocking on
 // the network. Resume is handled separately by the app's onActive; onShow may
 // also fire on resume, a tolerated harmless double-fetch.
-class LightMenu extends WatchUi.Menu2 {
-    private var _session as LightSession;
+class EntityMenu extends WatchUi.Menu2 {
+    private var _session as HomeSession;
     private var _lights as Array<String>;
 
-    function initialize(session as LightSession, title as String, lights as Array<String>) {
+    function initialize(session as HomeSession, title as String, lights as Array<String>) {
         Menu2.initialize({ :title => title });
         _session = session;
         _lights = lights;
@@ -52,7 +52,7 @@ class LightMenu extends WatchUi.Menu2 {
         WatchUi.requestUpdate();
     }
 
-    static function buildItem(session as LightSession, entityId as String) as WatchUi.ToggleMenuItem {
+    static function buildItem(session as HomeSession, entityId as String) as WatchUi.ToggleMenuItem {
         return new WatchUi.ToggleMenuItem(
             session.getName(entityId), buildSubLabel(session, entityId),
             entityId, session.isOn(entityId), null);
@@ -60,7 +60,7 @@ class LightMenu extends WatchUi.Menu2 {
 
     // The single seam for a row's sublabel: both construction and redraw route
     // through here, so the two never disagree on what a row shows.
-    static function buildSubLabel(session as LightSession, entityId as String) as String or Null {
+    static function buildSubLabel(session as HomeSession, entityId as String) as String or Null {
         if (!session.isAvailable(entityId)) {
             var stringId = session.isGroup(entityId) ? Rez.Strings.GroupUnavailable : Rez.Strings.Unavailable;
             return WatchUi.loadResource(stringId) as String;
@@ -73,11 +73,11 @@ class LightMenu extends WatchUi.Menu2 {
     }
 }
 
-class LightMenuDelegate extends WatchUi.Menu2InputDelegate {
-    private var _menu as LightMenu;
-    private var _session as LightSession;
+class EntityMenuDelegate extends WatchUi.Menu2InputDelegate {
+    private var _menu as EntityMenu;
+    private var _session as HomeSession;
 
-    function initialize(menu as LightMenu, session as LightSession) {
+    function initialize(menu as EntityMenu, session as HomeSession) {
         Menu2InputDelegate.initialize();
         _menu = menu;
         _session = session;
@@ -107,13 +107,13 @@ class LightMenuDelegate extends WatchUi.Menu2InputDelegate {
 // Once a toggle resolves, snaps the switch to the session's state — a no-op on
 // success, a flip-back on failure — then refreshes every visible row.
 class ToggleHandler {
-    private var _menu as LightMenu;
+    private var _menu as EntityMenu;
     private var _item as WatchUi.ToggleMenuItem;
-    private var _session as LightSession;
+    private var _session as HomeSession;
     private var _entityId as String;
 
     function initialize(
-            menu as LightMenu, item as WatchUi.ToggleMenuItem, session as LightSession,
+            menu as EntityMenu, item as WatchUi.ToggleMenuItem, session as HomeSession,
             entityId as String) {
         _menu = menu;
         _item = item;

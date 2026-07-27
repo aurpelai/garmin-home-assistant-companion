@@ -1,7 +1,7 @@
 import Toybox.Lang;
 import Toybox.Test;
 
-// Unit tests for the pure parsing/derivation logic in LightState.
+// Unit tests for the pure parsing/derivation logic in HomeState.
 // Run: monkeyc --unit-test ... then `monkeydo bin/test.prg venu3 -t`.
 
 (:test)
@@ -13,7 +13,7 @@ function parsesTemplateData(logger as Test.Logger) as Boolean {
         },
         "states" => {}
     };
-    var state = LightState.fromTemplateData(data);
+    var state = HomeState.fromTemplateData(data);
     Test.assertEqual(state.areas.size(), 2);
     // Areas are sorted by name: Bedroom before Kitchen.
     Test.assertEqual(state.areas[0].get(:name) as String, "Bedroom");
@@ -31,7 +31,7 @@ function skipsAreasWithNoLights(logger as Test.Logger) as Boolean {
         },
         "states" => {}
     };
-    var state = LightState.fromTemplateData(data);
+    var state = HomeState.fromTemplateData(data);
     Test.assertEqual(state.areas.size(), 1);
     Test.assertEqual(state.areas[0].get(:name) as String, "Hall");
     return true;
@@ -43,8 +43,8 @@ function isEmptyWhenNoAreaHasLights(logger as Test.Logger) as Boolean {
         "areas" => { "Empty" => [] as Array<String> },
         "states" => {}
     };
-    Test.assert(LightState.fromTemplateData(data).isEmpty());
-    Test.assert(!LightState.fromTemplateData({
+    Test.assert(HomeState.fromTemplateData(data).isEmpty());
+    Test.assert(!HomeState.fromTemplateData({
         "areas" => { "Hall" => ["light.hall"] },
         "states" => {}
     }).isEmpty());
@@ -58,7 +58,7 @@ function isGroupReflectsGroupsSection(logger as Test.Logger) as Boolean {
         "states" => {},
         "groups" => { "light.grp" => 3 }
     };
-    var state = LightState.fromTemplateData(data);
+    var state = HomeState.fromTemplateData(data);
     Test.assert(state.isGroup("light.grp"));
     Test.assert(!state.isGroup("light.plain"));
     Test.assert(!state.isGroup("light.unknown"));
@@ -72,7 +72,7 @@ function memberCountReflectsGroupsSection(logger as Test.Logger) as Boolean {
         "states" => {},
         "groups" => { "light.grp" => 4 }
     };
-    var state = LightState.fromTemplateData(data);
+    var state = HomeState.fromTemplateData(data);
     Test.assertEqual(state.getMemberCount("light.grp"), 4);
     return true;
 }
@@ -94,7 +94,7 @@ function dropsInvalidGroupCounts(logger as Test.Logger) as Boolean {
             "light.ok" => 2
         }
     };
-    var state = LightState.fromTemplateData(data);
+    var state = HomeState.fromTemplateData(data);
     Test.assert(!state.isGroup("light.nullc"));
     Test.assert(!state.isGroup("light.strc"));
     Test.assert(!state.isGroup("light.arrc"));
@@ -114,7 +114,7 @@ function ordersGroupsFirstDespiteName(logger as Test.Logger) as Boolean {
         "states" => {},
         "groups" => { "light.zzz_group" => 2 }
     };
-    var state = LightState.fromTemplateData(data);
+    var state = HomeState.fromTemplateData(data);
     var lights = state.listLightsInArea("A");
     Test.assertEqual(lights.size(), 3);
     Test.assertEqual(lights[0], "light.zzz_group");   // group first
@@ -130,7 +130,7 @@ function listLightsInAreaOrdersGroupsFirst(logger as Test.Logger) as Boolean {
         "states" => {},
         "groups" => { "light.a_group" => 1, "light.b_group" => 4 }
     };
-    var state = LightState.fromTemplateData(data);
+    var state = HomeState.fromTemplateData(data);
     var lights = state.listLightsInArea("Living");
     Test.assertEqual(lights.size(), 4);
     // Groups first, alphabetical among themselves.
@@ -151,7 +151,7 @@ function ordersByNameNotId(logger as Test.Logger) as Boolean {
         "states" => {},
         "names" => { "light.aaa" => "Zebra", "light.zzz" => "Aaa" }
     };
-    var state = LightState.fromTemplateData(data);
+    var state = HomeState.fromTemplateData(data);
     var lights = state.listLightsInArea("A");
     Test.assertEqual(lights.size(), 2);
     Test.assertEqual(lights[0], "light.zzz");   // name "Aaa" first
@@ -168,7 +168,7 @@ function nameOrderIsCaseInsensitive(logger as Test.Logger) as Boolean {
         "states" => {},
         "names" => { "light.one" => "Banana", "light.two" => "apple" }
     };
-    var state = LightState.fromTemplateData(data);
+    var state = HomeState.fromTemplateData(data);
     var lights = state.listLightsInArea("A");
     Test.assertEqual(lights[0], "light.two");   // "apple"
     Test.assertEqual(lights[1], "light.one");   // "Banana"
@@ -183,7 +183,7 @@ function equalNamesBreakTieOnId(logger as Test.Logger) as Boolean {
         "states" => {},
         "names" => { "light.a" => "Lamp", "light.b" => "Lamp" }
     };
-    var state = LightState.fromTemplateData(data);
+    var state = HomeState.fromTemplateData(data);
     var lights = state.listLightsInArea("A");
     Test.assertEqual(lights[0], "light.a");   // equal names -> id tiebreak
     Test.assertEqual(lights[1], "light.b");
@@ -197,7 +197,7 @@ function missingGroupsKeyFallsBackToAlpha(logger as Test.Logger) as Boolean {
         "areas" => { "A" => ["light.c", "light.a", "light.b"] },
         "states" => {}
     };
-    var state = LightState.fromTemplateData(data);
+    var state = HomeState.fromTemplateData(data);
     Test.assert(!state.isGroup("light.a"));
     var lights = state.listLightsInArea("A");
     Test.assertEqual(lights.size(), 3);
@@ -215,7 +215,7 @@ function nonMapGroupsDegradesCleanly(logger as Test.Logger) as Boolean {
         "states" => {},
         "groups" => "nope"
     };
-    var state = LightState.fromTemplateData(data);
+    var state = HomeState.fromTemplateData(data);
     Test.assert(!state.isGroup("light.a"));
     var lights = state.listLightsInArea("A");
     Test.assertEqual(lights[0], "light.a");
@@ -225,15 +225,15 @@ function nonMapGroupsDegradesCleanly(logger as Test.Logger) as Boolean {
 
 (:test)
 function malformedInputYieldsEmptyMap(logger as Test.Logger) as Boolean {
-    Test.assert(LightState.fromTemplateData(null).isEmpty());
-    Test.assert(LightState.fromTemplateData("not a dict").isEmpty());
+    Test.assert(HomeState.fromTemplateData(null).isEmpty());
+    Test.assert(HomeState.fromTemplateData("not a dict").isEmpty());
     return true;
 }
 
 (:test)
 function ignoresNonStringLightEntries(logger as Test.Logger) as Boolean {
     var data = { "areas" => { "Mix" => ["light.ok", 42, null] }, "states" => {} };
-    var state = LightState.fromTemplateData(data);
+    var state = HomeState.fromTemplateData(data);
     Test.assertEqual(state.listLightsInArea("Mix").size(), 1);
     Test.assertEqual(state.listLightsInArea("Mix")[0], "light.ok");
     return true;
@@ -245,7 +245,7 @@ function parsesStatesIntoIsOn(logger as Test.Logger) as Boolean {
         "areas" => { "Kitchen" => ["light.kitchen", "light.pantry"] },
         "states" => { "light.kitchen" => true, "light.pantry" => false }
     };
-    var state = LightState.fromTemplateData(data);
+    var state = HomeState.fromTemplateData(data);
     Test.assert(state.isOn("light.kitchen"));
     Test.assert(!state.isOn("light.pantry"));
     return true;
@@ -254,7 +254,7 @@ function parsesStatesIntoIsOn(logger as Test.Logger) as Boolean {
 (:test)
 function missingStatesKeyDegradesToAllOff(logger as Test.Logger) as Boolean {
     var data = { "areas" => { "Hall" => ["light.hall"] } };
-    var state = LightState.fromTemplateData(data);
+    var state = HomeState.fromTemplateData(data);
     Test.assert(!state.isOn("light.hall"));
     return true;
 }
@@ -262,7 +262,7 @@ function missingStatesKeyDegradesToAllOff(logger as Test.Logger) as Boolean {
 (:test)
 function nonDictionaryStatesDegradesCleanly(logger as Test.Logger) as Boolean {
     var data = { "areas" => { "Hall" => ["light.hall"] }, "states" => "nope" };
-    var state = LightState.fromTemplateData(data);
+    var state = HomeState.fromTemplateData(data);
     Test.assert(!state.isOn("light.hall"));
     return true;
 }
@@ -273,7 +273,7 @@ function dropsNonBooleanStateValues(logger as Test.Logger) as Boolean {
         "areas" => { "Hall" => ["light.hall", "light.porch"] },
         "states" => { "light.hall" => "on", "light.porch" => true }
     };
-    var state = LightState.fromTemplateData(data);
+    var state = HomeState.fromTemplateData(data);
     Test.assert(!state.isOn("light.hall"));
     Test.assert(state.isOn("light.porch"));
     return true;
@@ -286,7 +286,7 @@ function parsesAvailableIntoIsAvailable(logger as Test.Logger) as Boolean {
         "states" => {},
         "available" => { "light.kitchen" => true, "light.pantry" => false }
     };
-    var state = LightState.fromTemplateData(data);
+    var state = HomeState.fromTemplateData(data);
     Test.assert(state.isAvailable("light.kitchen"));
     Test.assert(!state.isAvailable("light.pantry"));
     return true;
@@ -295,7 +295,7 @@ function parsesAvailableIntoIsAvailable(logger as Test.Logger) as Boolean {
 (:test)
 function missingAvailableEntryDefaultsToAvailable(logger as Test.Logger) as Boolean {
     var data = { "areas" => { "Hall" => ["light.hall"] }, "states" => {} };
-    var state = LightState.fromTemplateData(data);
+    var state = HomeState.fromTemplateData(data);
     Test.assert(state.isAvailable("light.hall"));
     Test.assert(state.isAvailable("light.unknown"));
     return true;
@@ -308,7 +308,7 @@ function dropsNonBooleanAvailableValues(logger as Test.Logger) as Boolean {
         "states" => {},
         "available" => { "light.hall" => "yes", "light.porch" => false }
     };
-    var state = LightState.fromTemplateData(data);
+    var state = HomeState.fromTemplateData(data);
     Test.assert(state.isAvailable("light.hall"));
     Test.assert(!state.isAvailable("light.porch"));
     return true;
@@ -328,7 +328,7 @@ function ordersAvailableBeforeUnavailable(logger as Test.Logger) as Boolean {
             "light.down_plain" => false, "light.down_group" => false
         }
     };
-    var state = LightState.fromTemplateData(data);
+    var state = HomeState.fromTemplateData(data);
     var lights = state.listLightsInArea("A");
     Test.assertEqual(lights.size(), 4);
     Test.assertEqual(lights[0], "light.avail_group");
@@ -345,7 +345,7 @@ function parsesNamesIntoGetName(logger as Test.Logger) as Boolean {
         "states" => {},
         "names" => { "light.kitchen" => "Kitchen Island" }
     };
-    var state = LightState.fromTemplateData(data);
+    var state = HomeState.fromTemplateData(data);
     Test.assertEqual(state.getName("light.kitchen"), "Kitchen Island");
     return true;
 }
@@ -353,7 +353,7 @@ function parsesNamesIntoGetName(logger as Test.Logger) as Boolean {
 (:test)
 function missingNamesKeyFallsBackToId(logger as Test.Logger) as Boolean {
     var data = { "areas" => { "Hall" => ["light.hall"] }, "states" => {} };
-    var state = LightState.fromTemplateData(data);
+    var state = HomeState.fromTemplateData(data);
     Test.assertEqual(state.getName("light.hall"), "light.hall");
     return true;
 }
@@ -361,7 +361,7 @@ function missingNamesKeyFallsBackToId(logger as Test.Logger) as Boolean {
 (:test)
 function nonDictionaryNamesDegradesCleanly(logger as Test.Logger) as Boolean {
     var data = { "areas" => { "Hall" => ["light.hall"] }, "states" => {}, "names" => "nope" };
-    var state = LightState.fromTemplateData(data);
+    var state = HomeState.fromTemplateData(data);
     Test.assertEqual(state.getName("light.hall"), "light.hall");
     return true;
 }
@@ -373,7 +373,7 @@ function dropsNonStringNameValues(logger as Test.Logger) as Boolean {
         "states" => {},
         "names" => { "light.hall" => 42, "light.porch" => "Porch" }
     };
-    var state = LightState.fromTemplateData(data);
+    var state = HomeState.fromTemplateData(data);
     Test.assertEqual(state.getName("light.hall"), "light.hall");
     Test.assertEqual(state.getName("light.porch"), "Porch");
     return true;
@@ -386,7 +386,7 @@ function emptyNameFallsBackToId(logger as Test.Logger) as Boolean {
         "states" => {},
         "names" => { "light.hall" => "" }
     };
-    var state = LightState.fromTemplateData(data);
+    var state = HomeState.fromTemplateData(data);
     Test.assertEqual(state.getName("light.hall"), "light.hall");
     return true;
 }

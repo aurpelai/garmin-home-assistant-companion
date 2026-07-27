@@ -4,7 +4,7 @@ import Toybox.System;
 
 // Networking core. Wraps Communications.makeWebRequest with Bearer auth and
 // JSON, and exposes the operations the UI needs:
-//   - fetchLightState: one POST /api/template call rendering both the
+//   - fetchHomeState: one POST /api/template call rendering both the
 //     areas→lights join AND each light's on/off state (a plain GET /api/states
 //     returns every entity in the instance and blows past Connect IQ's HTTP
 //     response-size limit, so states ride along in the template instead).
@@ -51,7 +51,7 @@ class HaClient {
     // `is_hidden_entity` requires Home Assistant 2023.4 or newer. Keep the
     // reject in the walk's loop header: every entity kind added later inherits
     // the exclusion for free.
-    private const LIGHT_STATE_TEMPLATE =
+    private const HOME_STATE_TEMPLATE =
         "{% set ns = namespace(m={}, s={}, n={}, groups={}, avail={}) %}" +
         "{% for a in areas() %}" +
         "{% set ns.lights = [] %}" +
@@ -78,8 +78,8 @@ class HaClient {
 
     // --- public API ---
 
-    function fetchLightState(callback as Method) as Void {
-        var body = { "template" => LIGHT_STATE_TEMPLATE };
+    function fetchHomeState(callback as Method) as Void {
+        var body = { "template" => HOME_STATE_TEMPLATE };
         post("/api/template", body, new ResponseHandler(callback, :onTemplate));
     }
 
@@ -141,7 +141,7 @@ class ResponseHandler {
                 if (data instanceof Lang.String) {
                     System.println("Template returned unparsed String: " + data);
                 }
-                _callback.invoke(LightState.fromTemplateData(data), null);
+                _callback.invoke(HomeState.fromTemplateData(data), null);
                 break;
             case :onService:
                 _callback.invoke(true, null);

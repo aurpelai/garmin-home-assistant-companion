@@ -12,7 +12,7 @@ import Toybox.WatchUi;
 // for this — the live session (written once by LoadingView.onLoaded) and the
 // current view (registered by each state-showing view's onShow).
 class HaControllerApp extends Application.AppBase {
-    private var _session as LightSession or Null;
+    private var _session as HomeSession or Null;
     private var _currentView as WatchUi.Views or Null;
 
     function initialize() {
@@ -26,7 +26,7 @@ class HaControllerApp extends Application.AppBase {
     }
 
     // Replace the live session (LoadingView.onLoaded, at startup/retry).
-    function setSession(session as LightSession) as Void {
+    function setSession(session as HomeSession) as Void {
         _session = session;
     }
 
@@ -37,7 +37,7 @@ class HaControllerApp extends Application.AppBase {
 
     // Task-switcher foreground hook. With no session yet (mid-load, ErrorView)
     // this is inert — LoadingView owns the fetch there. Otherwise refresh the
-    // session in place off a fresh LightState, then redraw the current view.
+    // session in place off a fresh HomeState, then redraw the current view.
     function onActive(state as Dictionary or Null) as Void {
         if (_session == null) {
             return;
@@ -52,7 +52,7 @@ class HaControllerApp extends Application.AppBase {
         // new state-showing view must join the cast union below.
         var view = _currentView;
         if (view != null && view has :redraw) {
-            (view as LightMenu or AreaMenu).redraw();
+            (view as EntityMenu or AreaMenu).redraw();
         }
     }
 }
