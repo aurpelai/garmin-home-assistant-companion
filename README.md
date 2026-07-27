@@ -17,10 +17,11 @@ A Garmin Connect IQ watch app for controlling and monitoring Home Assistant from
 
 - HA reachable over **HTTPS with a publicly-trusted certificate**. Self-signed certificates are rejected by Connect IQ with no override, so a LAN-only HTTP instance will not work. The easiest path is [Home Assistant Cloud (Nabu Casa)](https://www.nabucasa.com/); the DIY alternative is a reverse proxy with a Let's Encrypt certificate.
 - A long-lived access token for authentication.
+- **Home Assistant 2023.4 or newer.** The app's template uses a function added in that release.
 
 ## How it works
 
-The app talks directly to HA's REST API from the watch via `Communications.makeWebRequest` — there's no custom backend and no companion app. Requests are authenticated with a Bearer token. To group lights by area with zero extra configuration (no YAML, no helper entities), the app POSTs a small Jinja template to HA's `/api/template` endpoint, which returns a JSON map of area name → light entity ids.
+The app talks directly to HA's REST API from the watch via `Communications.makeWebRequest` — there's no custom backend and no companion app. Requests are authenticated with a Bearer token. To group lights by area with zero extra configuration (no YAML, no helper entities), the app POSTs a small Jinja template to HA's `/api/template` endpoint, which returns a JSON map of area name → light entity ids. Entities you have hidden in Home Assistant are filtered out by that template, so they never reach the watch.
 
 ## User setup
 
