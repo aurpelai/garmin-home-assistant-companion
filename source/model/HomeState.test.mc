@@ -450,7 +450,7 @@ function dropsAreaWithNeitherLightsNorSensors(logger as Test.Logger) as Boolean 
 }
 
 (:test)
-function areaWithLightsOnlyHasNoSensorRows(logger as Test.Logger) as Boolean {
+function areaWithLightsOnlyHasNoSensors(logger as Test.Logger) as Boolean {
     var data = {
         "areas" => { "Hall" => ["light.b", "light.a"] },
         "sensors" => { "Hall" => [] as Array<String> },
@@ -517,15 +517,13 @@ function malformedReadingsSectionYieldsNoReadings(logger as Test.Logger) as Bool
 }
 
 (:test)
-function unmentionedSensorHasNoReading(logger as Test.Logger) as Boolean {
-    // No reading is what the row renders as unavailable, so it must resolve
-    // rather than throw for an id the payload never mentioned.
+function sensorMissingFromReadingsHasNoReading(logger as Test.Logger) as Boolean {
     var data = {
         "areas" => { "Hall" => [] as Array<String> },
-        "sensors" => { "Hall" => ["sensor.temp"] },
+        "sensors" => { "Hall" => ["sensor.temp", "sensor.unread"] },
         "states" => {},
         "readings" => { "sensor.temp" => "24.6 C" }
     };
-    Test.assert(HomeState.fromTemplateData(data).getReading("sensor.ghost") == null);
+    Test.assert(HomeState.fromTemplateData(data).getReading("sensor.unread") == null);
     return true;
 }

@@ -12,82 +12,20 @@ import Toybox.WatchUi;
 (:test)
 module EntityMenuTest {
 
-    function sessionWith(states as Dictionary<String, Boolean>) as HomeSession {
-        var state = HomeState.fromTemplateData({
-            "areas" => { "Room" => states.keys() },
-            "states" => states
-        });
-        return new HomeSession(new HaClient(), state);
+    function stateOf(payload as Dictionary) as HomeState {
+        return HomeState.fromTemplateData(payload);
     }
 
-    function sessionWithNames(states as Dictionary<String, Boolean>,
-                             names as Dictionary<String, String>) as HomeSession {
-        var state = HomeState.fromTemplateData({
-            "areas" => { "Room" => states.keys() },
-            "states" => states,
-            "names" => names
-        });
-        return new HomeSession(new HaClient(), state);
-    }
-
-    function sessionWithGroups(states as Dictionary<String, Boolean>,
-                              groups as Dictionary<String, Number>) as HomeSession {
-        var state = HomeState.fromTemplateData({
-            "areas" => { "Room" => states.keys() },
-            "states" => states,
-            "groups" => groups
-        });
-        return new HomeSession(new HaClient(), state);
-    }
-
-    function sessionWithAvailability(states as Dictionary<String, Boolean>,
-                                    groups as Dictionary<String, Number>,
-                                    available as Dictionary<String, Boolean>) as HomeSession {
-        var state = HomeState.fromTemplateData({
-            "areas" => { "Room" => states.keys() },
-            "states" => states,
-            "groups" => groups,
-            "available" => available
-        });
-        return new HomeSession(new HaClient(), state);
-    }
-
-    function stateOf(states as Dictionary<String, Boolean>) as HomeState {
-        return HomeState.fromTemplateData({
-            "areas" => { "Room" => states.keys() },
-            "states" => states
-        });
-    }
-
-    function stateWithSensors(states as Dictionary<String, Boolean>, sensors as Array<String>,
-                             readings as Dictionary<String, String>,
-                             available as Dictionary<String, Boolean>) as HomeState {
-        return HomeState.fromTemplateData({
-            "areas" => { "Room" => states.keys() },
-            "sensors" => { "Room" => sensors },
-            "states" => states,
-            "readings" => readings,
-            "available" => available
-        });
-    }
-
-    function sessionWithSensors(states as Dictionary<String, Boolean>, sensors as Array<String>,
-                               readings as Dictionary<String, String>) as HomeSession {
-        return new HomeSession(new HaClient(), stateWithSensors(
-            states, sensors, readings, {} as Dictionary<String, Boolean>));
-    }
-
-    function sessionWithSensorAvailability(sensors as Array<String>,
-                                          readings as Dictionary<String, String>,
-                                          available as Dictionary<String, Boolean>) as HomeSession {
-        return new HomeSession(new HaClient(), stateWithSensors(
-            {} as Dictionary<String, Boolean>, sensors, readings, available));
+    function sessionOf(payload as Dictionary) as HomeSession {
+        return new HomeSession(new HaClient(), stateOf(payload));
     }
 }
 
 (:test)
 function rowSwitchReflectsIsOnWhenBuilt(logger as Test.Logger) as Boolean {
-    var session = EntityMenuTest.sessionWith({ "light.on" => true, "light.off" => false });
+    var session = EntityMenuTest.sessionOf({
+        "states" => { "light.on" => true, "light.off" => false }
+    });
 
     Test.assert(EntityMenu.buildItem(session, "light.on").isEnabled());
     Test.assert(!EntityMenu.buildItem(session, "light.off").isEnabled());
@@ -96,10 +34,10 @@ function rowSwitchReflectsIsOnWhenBuilt(logger as Test.Logger) as Boolean {
 
 (:test)
 function appliedStateRowReflectsConvergedTruth(logger as Test.Logger) as Boolean {
-    var session = EntityMenuTest.sessionWith({ "light.x" => true });
+    var session = EntityMenuTest.sessionOf({ "states" => { "light.x" => true } });
     var menu = new EntityMenu(session, "Room", ["light.x"], [] as Array<String>);
 
-    session.applyState(EntityMenuTest.stateOf({ "light.x" => false }));
+    session.applyState(EntityMenuTest.stateOf({ "states" => { "light.x" => false } }));
     menu.redraw();
 
     Test.assert(!(menu.getItem(menu.findItemById("light.x")) as WatchUi.ToggleMenuItem).isEnabled());
@@ -108,8 +46,10 @@ function appliedStateRowReflectsConvergedTruth(logger as Test.Logger) as Boolean
 
 (:test)
 function toggleShowsNoTransientSubLabel(logger as Test.Logger) as Boolean {
-    var session = EntityMenuTest.sessionWithGroups(
-        { "light.grp" => true }, { "light.grp" => 3 });
+    var session = EntityMenuTest.sessionOf({
+        "states" => { "light.grp" => true },
+        "groups" => { "light.grp" => 3 }
+    });
     var menu = new EntityMenu(session, "Room", ["light.grp"], [] as Array<String>);
     var item = menu.getItem(menu.findItemById("light.grp")) as WatchUi.ToggleMenuItem;
 
@@ -121,8 +61,10 @@ function toggleShowsNoTransientSubLabel(logger as Test.Logger) as Boolean {
 
 (:test)
 function groupRowShowsMemberCount(logger as Test.Logger) as Boolean {
-    var session = EntityMenuTest.sessionWithGroups(
-        { "light.grp" => true }, { "light.grp" => 4 });
+    var session = EntityMenuTest.sessionOf({
+        "states" => { "light.grp" => true },
+        "groups" => { "light.grp" => 4 }
+    });
 
     Test.assertEqual(EntityMenu.buildSubLabel(session, "light.grp") as String, "4 lights");
     return true;
@@ -130,8 +72,10 @@ function groupRowShowsMemberCount(logger as Test.Logger) as Boolean {
 
 (:test)
 function singleMemberGroupIsSingular(logger as Test.Logger) as Boolean {
-    var session = EntityMenuTest.sessionWithGroups(
-        { "light.grp" => true }, { "light.grp" => 1 });
+    var session = EntityMenuTest.sessionOf({
+        "states" => { "light.grp" => true },
+        "groups" => { "light.grp" => 1 }
+    });
 
     Test.assertEqual(EntityMenu.buildSubLabel(session, "light.grp") as String, "1 light");
     return true;
@@ -139,8 +83,10 @@ function singleMemberGroupIsSingular(logger as Test.Logger) as Boolean {
 
 (:test)
 function plainLightHasNoSubLabel(logger as Test.Logger) as Boolean {
-    var session = EntityMenuTest.sessionWithGroups(
-        { "light.plain" => true }, {} as Dictionary<String, Number>);
+    var session = EntityMenuTest.sessionOf({
+        "states" => { "light.plain" => true },
+        "groups" => {} as Dictionary<String, Number>
+    });
 
     Test.assert(EntityMenu.buildSubLabel(session, "light.plain") == null);
     return true;
@@ -148,9 +94,10 @@ function plainLightHasNoSubLabel(logger as Test.Logger) as Boolean {
 
 (:test)
 function unavailablePlainRowShowsUnavailable(logger as Test.Logger) as Boolean {
-    var session = EntityMenuTest.sessionWithAvailability(
-        { "light.plain" => false }, {} as Dictionary<String, Number>,
-        { "light.plain" => false });
+    var session = EntityMenuTest.sessionOf({
+        "states" => { "light.plain" => false },
+        "available" => { "light.plain" => false }
+    });
 
     Test.assertEqual(EntityMenu.buildSubLabel(session, "light.plain") as String, "Unavailable");
     return true;
@@ -158,9 +105,11 @@ function unavailablePlainRowShowsUnavailable(logger as Test.Logger) as Boolean {
 
 (:test)
 function unavailableGroupRowShowsGroupUnavailable(logger as Test.Logger) as Boolean {
-    var session = EntityMenuTest.sessionWithAvailability(
-        { "light.grp" => false }, { "light.grp" => 3 },
-        { "light.grp" => false });
+    var session = EntityMenuTest.sessionOf({
+        "states" => { "light.grp" => false },
+        "groups" => { "light.grp" => 3 },
+        "available" => { "light.grp" => false }
+    });
 
     Test.assertEqual(EntityMenu.buildSubLabel(session, "light.grp") as String, "Group unavailable");
     return true;
@@ -168,9 +117,10 @@ function unavailableGroupRowShowsGroupUnavailable(logger as Test.Logger) as Bool
 
 (:test)
 function rowLabelUsesHaName(logger as Test.Logger) as Boolean {
-    var session = EntityMenuTest.sessionWithNames(
-        { "light.kitchen" => true },
-        { "light.kitchen" => "Kitchen Island" });
+    var session = EntityMenuTest.sessionOf({
+        "states" => { "light.kitchen" => true },
+        "names" => { "light.kitchen" => "Kitchen Island" }
+    });
 
     Test.assertEqual(EntityMenu.buildItem(session, "light.kitchen").getLabel() as String, "Kitchen Island");
     return true;
@@ -178,9 +128,10 @@ function rowLabelUsesHaName(logger as Test.Logger) as Boolean {
 
 (:test)
 function rowLabelFallsBackToIdWhenNameMissing(logger as Test.Logger) as Boolean {
-    var session = EntityMenuTest.sessionWithNames(
-        { "light.kitchen" => true },
-        {} as Dictionary<String, String>);
+    var session = EntityMenuTest.sessionOf({
+        "states" => { "light.kitchen" => true },
+        "names" => {} as Dictionary<String, String>
+    });
 
     Test.assertEqual(EntityMenu.buildItem(session, "light.kitchen").getLabel() as String, "light.kitchen");
     return true;
@@ -188,9 +139,10 @@ function rowLabelFallsBackToIdWhenNameMissing(logger as Test.Logger) as Boolean 
 
 (:test)
 function rowLabelFallsBackToIdWhenNameEmpty(logger as Test.Logger) as Boolean {
-    var session = EntityMenuTest.sessionWithNames(
-        { "light.kitchen" => true },
-        { "light.kitchen" => "" });
+    var session = EntityMenuTest.sessionOf({
+        "states" => { "light.kitchen" => true },
+        "names" => { "light.kitchen" => "" }
+    });
 
     Test.assertEqual(EntityMenu.buildItem(session, "light.kitchen").getLabel() as String, "light.kitchen");
     return true;
@@ -198,11 +150,13 @@ function rowLabelFallsBackToIdWhenNameEmpty(logger as Test.Logger) as Boolean {
 
 (:test)
 function sensorRowsFollowLightRowsInSensorOrder(logger as Test.Logger) as Boolean {
-    var session = EntityMenuTest.sessionWithSensors(
-        { "light.x" => true },
-        ["sensor.temperature", "sensor.humidity", "sensor.illuminance"],
-        { "sensor.temperature" => "21.5 C", "sensor.humidity" => "43 %",
-          "sensor.illuminance" => "120 lx" });
+    var session = EntityMenuTest.sessionOf({
+        "areas" => { "Room" => ["light.x"] },
+        "sensors" => { "Room" => ["sensor.temperature", "sensor.humidity", "sensor.illuminance"] },
+        "states" => { "light.x" => true },
+        "readings" => { "sensor.temperature" => "21.5 C", "sensor.humidity" => "43 %",
+                        "sensor.illuminance" => "120 lx" }
+    });
     var menu = new EntityMenu(session, "Room", ["light.x"], session.listSensorsInArea("Room"));
 
     Test.assertEqual((menu.getItem(0) as WatchUi.MenuItem).getId() as String, "light.x");
@@ -215,23 +169,25 @@ function sensorRowsFollowLightRowsInSensorOrder(logger as Test.Logger) as Boolea
 
 (:test)
 function areaWithNoEntitiesShowsOneInertRow(logger as Test.Logger) as Boolean {
-    var session = EntityMenuTest.sessionWith({} as Dictionary<String, Boolean>);
+    var client = new FakeHaClient();
+    var session = new HomeSession(client, EntityMenuTest.stateOf({} as Dictionary));
     var menu = new EntityMenu(session, "Room", [] as Array<String>, [] as Array<String>);
     var item = menu.getItem(0) as WatchUi.MenuItem;
 
     Test.assertEqual(item.getLabel() as String, "No entities found");
     Test.assert(menu.getItem(1) == null);
 
-    // Must not reach the toggle path, which would cast the :none id to a String.
     new EntityMenuDelegate(menu, session).onSelect(item);
+
+    Test.assertEqual(client.toggleCount, 0);
     return true;
 }
 
 (:test)
 function sensorRowShowsReadingAsSubLabel(logger as Test.Logger) as Boolean {
-    var session = EntityMenuTest.sessionWithSensors(
-        {} as Dictionary<String, Boolean>, ["sensor.temperature"],
-        { "sensor.temperature" => "21.5 C" });
+    var session = EntityMenuTest.sessionOf({
+        "readings" => { "sensor.temperature" => "21.5 C" }
+    });
     var item = EntityMenu.buildSensorItem(session, "sensor.temperature");
 
     Test.assertEqual(item.getSubLabel() as String, "21.5 C");
@@ -240,9 +196,10 @@ function sensorRowShowsReadingAsSubLabel(logger as Test.Logger) as Boolean {
 
 (:test)
 function unavailableSensorRowShowsUnavailable(logger as Test.Logger) as Boolean {
-    var session = EntityMenuTest.sessionWithSensorAvailability(
-        ["sensor.temperature"], { "sensor.temperature" => "unavailable" },
-        { "sensor.temperature" => false });
+    var session = EntityMenuTest.sessionOf({
+        "readings" => { "sensor.temperature" => "unavailable" },
+        "available" => { "sensor.temperature" => false }
+    });
 
     Test.assertEqual(EntityMenu.buildReading(session, "sensor.temperature"), "Unavailable");
     return true;
@@ -255,9 +212,9 @@ function unavailableSensorRowShowsUnavailable(logger as Test.Logger) as Boolean 
 
 (:test)
 function sensorRowWithoutReadingShowsUnavailable(logger as Test.Logger) as Boolean {
-    var session = EntityMenuTest.sessionWithSensors(
-        {} as Dictionary<String, Boolean>, ["sensor.temperature"],
-        {} as Dictionary<String, String>);
+    var session = EntityMenuTest.sessionOf({
+        "readings" => {} as Dictionary<String, String>
+    });
 
     Test.assertEqual(EntityMenu.buildReading(session, "sensor.temperature"), "Unavailable");
     return true;
@@ -265,9 +222,11 @@ function sensorRowWithoutReadingShowsUnavailable(logger as Test.Logger) as Boole
 
 (:test)
 function selectingSensorRowLeavesEverythingAlone(logger as Test.Logger) as Boolean {
-    var session = EntityMenuTest.sessionWithSensors(
-        {} as Dictionary<String, Boolean>, ["sensor.temperature"],
-        { "sensor.temperature" => "21.5 C" });
+    var session = EntityMenuTest.sessionOf({
+        "areas" => { "Room" => [] as Array<String> },
+        "sensors" => { "Room" => ["sensor.temperature"] },
+        "readings" => { "sensor.temperature" => "21.5 C" }
+    });
     var menu = new EntityMenu(session, "Room", [] as Array<String>,
                               session.listSensorsInArea("Room"));
     var item = menu.getItem(menu.findItemById("sensor.temperature")) as WatchUi.MenuItem;
@@ -282,15 +241,20 @@ function selectingSensorRowLeavesEverythingAlone(logger as Test.Logger) as Boole
 
 (:test)
 function appliedStateRowsShowNewReadingsInPlace(logger as Test.Logger) as Boolean {
-    var session = EntityMenuTest.sessionWithSensors(
-        { "light.x" => true }, ["sensor.temperature", "sensor.humidity"],
-        { "sensor.temperature" => "21.5 C", "sensor.humidity" => "43 %" });
+    var session = EntityMenuTest.sessionOf({
+        "areas" => { "Room" => ["light.x"] },
+        "sensors" => { "Room" => ["sensor.temperature", "sensor.humidity"] },
+        "states" => { "light.x" => true },
+        "readings" => { "sensor.temperature" => "21.5 C", "sensor.humidity" => "43 %" }
+    });
     var menu = new EntityMenu(session, "Room", ["light.x"], session.listSensorsInArea("Room"));
 
-    session.applyState(EntityMenuTest.stateWithSensors(
-        { "light.x" => false }, ["sensor.temperature", "sensor.humidity"],
-        { "sensor.temperature" => "22.1 C", "sensor.humidity" => "44 %" },
-        {} as Dictionary<String, Boolean>));
+    session.applyState(EntityMenuTest.stateOf({
+        "areas" => { "Room" => ["light.x"] },
+        "sensors" => { "Room" => ["sensor.temperature", "sensor.humidity"] },
+        "states" => { "light.x" => false },
+        "readings" => { "sensor.temperature" => "22.1 C", "sensor.humidity" => "44 %" }
+    }));
     menu.redraw();
 
     Test.assertEqual((menu.getItem(1) as WatchUi.MenuItem).getSubLabel() as String, "22.1 C");

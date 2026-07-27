@@ -13,8 +13,13 @@ class FakeHaClient extends HaClient {
     private var _fetchCallback as Method?;
     private var _serviceCallback as Method?;
 
+    // Only the latest callback is kept, so a test asserting that a row fired
+    // nothing needs this counter to tell no call from one call.
+    public var toggleCount as Number;
+
     function initialize() {
         HaClient.initialize();
+        toggleCount = 0;
     }
 
     function fetchHomeState(callback as Method) as Void {
@@ -23,6 +28,7 @@ class FakeHaClient extends HaClient {
 
     function toggleLight(entityId as String, callback as Method) as Void {
         _serviceCallback = callback;
+        toggleCount++;
     }
 
     function fireFetchSuccess(state as HomeState) as Void {
