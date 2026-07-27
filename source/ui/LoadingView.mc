@@ -6,10 +6,10 @@ import Toybox.WatchUi;
 // First screen and startup orchestrator. onShow() (a View lifecycle callback the
 // framework invokes) drives the initial load:
 //   1. checks settings are present (else -> ErrorView with ErrNoConfig)
-//   2. fetches the home state — areas→lights and current on/off states in a
-//      single POST /api/template
-//   3. replaces itself with the AreaMenu, or with a message when no area has
-//      any lights
+//   2. fetches the home state — each area's lights and sensors, with their
+//      states and readings, in a single POST /api/template
+//   3. replaces itself with the AreaMenu, or with a message when no area holds
+//      anything the app can show
 // Any request error routes to an ErrorView keyed on the HTTP/comm code.
 class LoadingView extends WatchUi.View {
     private var _message as String;
@@ -45,7 +45,7 @@ class LoadingView extends WatchUi.View {
 
         var loaded = state as HomeState;
         if (loaded.isEmpty()) {
-            showRetryScreen(Rez.Strings.NoLightsInAnyArea);
+            showRetryScreen(Rez.Strings.NoEntitiesInAnyArea);
             return;
         }
 

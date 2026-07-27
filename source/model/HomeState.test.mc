@@ -23,22 +23,7 @@ function parsesTemplateData(logger as Test.Logger) as Boolean {
 }
 
 (:test)
-function skipsAreasWithNoLights(logger as Test.Logger) as Boolean {
-    var data = {
-        "areas" => {
-            "Empty" => [] as Array<String>,
-            "Hall" => ["light.hall"]
-        },
-        "states" => {}
-    };
-    var state = HomeState.fromTemplateData(data);
-    Test.assertEqual(state.areas.size(), 1);
-    Test.assertEqual(state.areas[0].get(:name) as String, "Hall");
-    return true;
-}
-
-(:test)
-function isEmptyWhenNoAreaHasLights(logger as Test.Logger) as Boolean {
+function isEmptyWhenNoAreaHasEntities(logger as Test.Logger) as Boolean {
     var data = {
         "areas" => { "Empty" => [] as Array<String> },
         "states" => {}
@@ -388,5 +373,159 @@ function emptyNameFallsBackToId(logger as Test.Logger) as Boolean {
     };
     var state = HomeState.fromTemplateData(data);
     Test.assertEqual(state.getName("light.hall"), "light.hall");
+    return true;
+}
+
+(:test)
+function listsAreaSensorsInPayloadOrder(logger as Test.Logger) as Boolean {
+    // The template hands sensors over already grouped by kind, so the model must
+    // preserve that order rather than sorting as it does for lights.
+    var data = {
+        "areas" => { "Hall" => ["light.hall"] },
+        "sensors" => { "Hall" => ["sensor.zzz_temp", "sensor.aaa_humidity", "sensor.mmm_lux"] },
+        "states" => {}
+    };
+    var sensors = HomeState.fromTemplateData(data).listSensorsInArea("Hall");
+    Test.assertEqual(sensors.size(), 3);
+    Test.assertEqual(sensors[0], "sensor.zzz_temp");
+    Test.assertEqual(sensors[1], "sensor.aaa_humidity");
+    Test.assertEqual(sensors[2], "sensor.mmm_lux");
+    return true;
+}
+
+(:test)
+function readingsAreExposedAsSentByServer(logger as Test.Logger) as Boolean {
+    var data = {
+        "areas" => { "Hall" => [] as Array<String> },
+        "sensors" => { "Hall" => ["sensor.temp"] },
+        "states" => {},
+        "readings" => { "sensor.temp" => "24.6 C" }
+    };
+    Test.assertEqual(HomeState.fromTemplateData(data).getReading("sensor.temp") as String, "24.6 C");
+    return true;
+}
+
+(:test)
+function sensorNamesAndAvailabilityResolveLikeLights(logger as Test.Logger) as Boolean {
+    var data = {
+        "areas" => { "Hall" => [] as Array<String> },
+        "sensors" => { "Hall" => ["sensor.temp", "sensor.dead"] },
+        "states" => {},
+        "names" => { "sensor.temp" => "Hall Temperature" },
+        "available" => { "sensor.temp" => true, "sensor.dead" => false }
+    };
+    var state = HomeState.fromTemplateData(data);
+    Test.assertEqual(state.getName("sensor.temp"), "Hall Temperature");
+    Test.assert(state.isAvailable("sensor.temp"));
+    Test.assert(!state.isAvailable("sensor.dead"));
+    return true;
+}
+
+(:test)
+function keepsAreaWithSensorsButNoLights(logger as Test.Logger) as Boolean {
+    var data = {
+        "areas" => { "Hall" => [] as Array<String> },
+        "sensors" => { "Hall" => ["sensor.temp"] },
+        "states" => {}
+    };
+    var state = HomeState.fromTemplateData(data);
+    Test.assertEqual(state.areas.size(), 1);
+    Test.assertEqual(state.areas[0].get(:name) as String, "Hall");
+    Test.assertEqual(state.listLightsInArea("Hall").size(), 0);
+    Test.assertEqual(state.listSensorsInArea("Hall").size(), 1);
+    return true;
+}
+
+(:test)
+function dropsAreaWithNeitherLightsNorSensors(logger as Test.Logger) as Boolean {
+    var data = {
+        "areas" => { "Bare" => [] as Array<String>, "Hall" => ["light.hall"] },
+        "sensors" => { "Bare" => [] as Array<String>, "Hall" => [] as Array<String> },
+        "states" => {}
+    };
+    var state = HomeState.fromTemplateData(data);
+    Test.assertEqual(state.areas.size(), 1);
+    Test.assertEqual(state.areas[0].get(:name) as String, "Hall");
+    return true;
+}
+
+(:test)
+function areaWithLightsOnlyHasNoSensorRows(logger as Test.Logger) as Boolean {
+    var data = {
+        "areas" => { "Hall" => ["light.b", "light.a"] },
+        "sensors" => { "Hall" => [] as Array<String> },
+        "states" => {}
+    };
+    var state = HomeState.fromTemplateData(data);
+    var lights = state.listLightsInArea("Hall");
+    Test.assertEqual(lights.size(), 2);
+    Test.assertEqual(lights[0], "light.a");
+    Test.assertEqual(lights[1], "light.b");
+    Test.assertEqual(state.listSensorsInArea("Hall").size(), 0);
+    return true;
+}
+
+(:test)
+function missingSensorsSectionYieldsNoSensors(logger as Test.Logger) as Boolean {
+    var data = { "areas" => { "Hall" => ["light.hall"] }, "states" => {} };
+    var state = HomeState.fromTemplateData(data);
+    Test.assertEqual(state.areas.size(), 1);
+    Test.assertEqual(state.listSensorsInArea("Hall").size(), 0);
+    return true;
+}
+
+(:test)
+function malformedSensorsSectionYieldsNoSensors(logger as Test.Logger) as Boolean {
+    var nonDictionary = {
+        "areas" => { "Hall" => ["light.hall"] },
+        "sensors" => "nope",
+        "states" => {}
+    };
+    Test.assertEqual(HomeState.fromTemplateData(nonDictionary).listSensorsInArea("Hall").size(), 0);
+
+    var nonStringEntries = {
+        "areas" => { "Hall" => ["light.hall"] },
+        "sensors" => { "Hall" => ["sensor.ok", 42, null] },
+        "states" => {}
+    };
+    var sensors = HomeState.fromTemplateData(nonStringEntries).listSensorsInArea("Hall");
+    Test.assertEqual(sensors.size(), 1);
+    Test.assertEqual(sensors[0], "sensor.ok");
+    return true;
+}
+
+(:test)
+function malformedReadingsSectionYieldsNoReadings(logger as Test.Logger) as Boolean {
+    var nonDictionary = {
+        "areas" => { "Hall" => [] as Array<String> },
+        "sensors" => { "Hall" => ["sensor.temp"] },
+        "states" => {},
+        "readings" => "nope"
+    };
+    Test.assert(HomeState.fromTemplateData(nonDictionary).getReading("sensor.temp") == null);
+
+    var nonStringValues = {
+        "areas" => { "Hall" => [] as Array<String> },
+        "sensors" => { "Hall" => ["sensor.numeric", "sensor.temp"] },
+        "states" => {},
+        "readings" => { "sensor.numeric" => 24, "sensor.temp" => "24.6 C" }
+    };
+    var state = HomeState.fromTemplateData(nonStringValues);
+    Test.assert(state.getReading("sensor.numeric") == null);
+    Test.assertEqual(state.getReading("sensor.temp") as String, "24.6 C");
+    return true;
+}
+
+(:test)
+function unmentionedSensorHasNoReading(logger as Test.Logger) as Boolean {
+    // No reading is what the row renders as unavailable, so it must resolve
+    // rather than throw for an id the payload never mentioned.
+    var data = {
+        "areas" => { "Hall" => [] as Array<String> },
+        "sensors" => { "Hall" => ["sensor.temp"] },
+        "states" => {},
+        "readings" => { "sensor.temp" => "24.6 C" }
+    };
+    Test.assert(HomeState.fromTemplateData(data).getReading("sensor.ghost") == null);
     return true;
 }

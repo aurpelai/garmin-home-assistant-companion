@@ -2,9 +2,11 @@ import Toybox.Application;
 import Toybox.Lang;
 import Toybox.WatchUi;
 
-// Lights within an area. Each row is a native toggle showing the light's
-// friendly name and on/off state; selecting a row toggles it, and the switch
-// flips itself optimistically.
+// The entities of one area: its lights first, then its sensor readings. A light
+// row is a native toggle showing the light's friendly name and on/off state;
+// selecting it toggles the light, and the switch flips itself optimistically. A
+// sensor row is a plain, inert row showing the reading as its sublabel. An area
+// holding neither gets one inert row saying so.
 //
 // The menu renders from cached session state instantly. onShow is the
 // navigation trigger: it fires a fresh state fetch and, when it returns,
@@ -14,19 +16,29 @@ import Toybox.WatchUi;
 class EntityMenu extends WatchUi.Menu2 {
     private var _session as HomeSession;
     private var _lights as Array<String>;
+    private var _sensors as Array<String>;
 
-    function initialize(session as HomeSession, title as String, lights as Array<String>) {
+    function initialize(session as HomeSession, title as String, lights as Array<String>,
+                        sensors as Array<String>) {
         Menu2.initialize({ :title => title });
         _session = session;
         _lights = lights;
+        _sensors = sensors;
 
-        if (lights.size() == 0) {
+        // Not dead code, despite an area only reaching the payload when it holds
+        // something: the area list's rows are built once and refresh never adds
+        // or removes them, so a refresh that drops an area leaves a row that
+        // still opens onto nothing.
+        if (lights.size() == 0 && sensors.size() == 0) {
             addItem(new WatchUi.MenuItem(
-                WatchUi.loadResource(Rez.Strings.NoLights) as String, null, :none, null));
+                WatchUi.loadResource(Rez.Strings.NoEntities) as String, null, :none, null));
             return;
         }
         for (var i = 0; i < lights.size(); i++) {
             addItem(buildItem(session, lights[i]));
+        }
+        for (var i = 0; i < sensors.size(); i++) {
+            addItem(buildSensorItem(session, sensors[i]));
         }
     }
 
@@ -36,8 +48,8 @@ class EntityMenu extends WatchUi.Menu2 {
     }
 
     // The named redraw seam onActive dispatches to (see AreaMenu.redraw); any
-    // new state-showing view implements it. Only the on/off markers move; the
-    // item list is never rebuilt, so scroll and focus survive.
+    // new state-showing view implements it. Rows are updated in place and never
+    // added, removed or reordered, so scroll and focus survive.
     function redraw() as Void {
         for (var i = 0; i < _lights.size(); i++) {
             var entityId = _lights[i];
@@ -49,6 +61,14 @@ class EntityMenu extends WatchUi.Menu2 {
             item.setEnabled(_session.isOn(entityId));
             item.setSubLabel(buildSubLabel(_session, entityId));
         }
+        for (var i = 0; i < _sensors.size(); i++) {
+            var entityId = _sensors[i];
+            var index = findItemById(entityId);
+            if (index < 0) {
+                continue;
+            }
+            (getItem(index) as WatchUi.MenuItem).setSubLabel(buildReading(_session, entityId));
+        }
         WatchUi.requestUpdate();
     }
 
@@ -58,8 +78,16 @@ class EntityMenu extends WatchUi.Menu2 {
             entityId, session.isOn(entityId), null);
     }
 
-    // The single seam for a row's sublabel: both construction and redraw route
-    // through here, so the two never disagree on what a row shows.
+    // A reading is a plain MenuItem, never a toggle: that is what makes the row
+    // inert (see EntityMenuDelegate.onSelect). It still carries the entity id, so
+    // redraw can find it.
+    static function buildSensorItem(session as HomeSession, entityId as String) as WatchUi.MenuItem {
+        return new WatchUi.MenuItem(
+            session.getName(entityId), buildReading(session, entityId), entityId, null);
+    }
+
+    // The single seam for a light row's sublabel: both construction and redraw
+    // route through here, so the two never disagree on what a row shows.
     static function buildSubLabel(session as HomeSession, entityId as String) as String or Null {
         if (!session.isAvailable(entityId)) {
             var stringId = session.isGroup(entityId) ? Rez.Strings.GroupUnavailable : Rez.Strings.Unavailable;
@@ -70,6 +98,16 @@ class EntityMenu extends WatchUi.Menu2 {
         }
         var count = session.getMemberCount(entityId);
         return count + (count == 1 ? " light" : " lights");
+    }
+
+    // The same seam for a sensor row: HA's own formatting, verbatim, or the
+    // unavailable label when there is no value to trust.
+    static function buildReading(session as HomeSession, entityId as String) as String {
+        var reading = session.getReading(entityId);
+        if (!session.isAvailable(entityId) || reading == null) {
+            return WatchUi.loadResource(Rez.Strings.Unavailable) as String;
+        }
+        return reading as String;
     }
 }
 
@@ -84,12 +122,11 @@ class EntityMenuDelegate extends WatchUi.Menu2InputDelegate {
     }
 
     function onSelect(item as WatchUi.MenuItem) as Void {
-        var id = item.getId();
-        if (!(id instanceof String)) {
-            return;   // e.g. the :none placeholder
+        if (!(item instanceof WatchUi.ToggleMenuItem)) {
+            return;   // a reading or the no-entities row: inert, and no toggle to cast to
         }
-        var entityId = id as String;
         var toggle = item as WatchUi.ToggleMenuItem;
+        var entityId = toggle.getId() as String;
         if (!_session.isAvailable(entityId)) {
             // Unavailable rows aren't toggleable: undo the native tap's flip and
             // fire no service call.

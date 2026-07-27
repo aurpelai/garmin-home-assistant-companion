@@ -3,7 +3,7 @@
 [![CI](https://github.com/aurpelai/garmin-home-assistant-companion/actions/workflows/ci.yml/badge.svg)](https://github.com/aurpelai/garmin-home-assistant-companion/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-A Garmin Connect IQ watch app for controlling and monitoring Home Assistant from your wrist. The first capability is lights — toggle them individually or by area — with more entity types and data display planned.
+A Garmin Connect IQ watch app for controlling and monitoring Home Assistant from your wrist. Open a room to toggle its lights, individually or as a group, and to read its temperature, humidity, and light level. More entity types are planned.
 
 ## Requirements
 
@@ -21,7 +21,7 @@ A Garmin Connect IQ watch app for controlling and monitoring Home Assistant from
 
 ## How it works
 
-The app talks directly to HA's REST API from the watch via `Communications.makeWebRequest` — there's no custom backend and no companion app. Requests are authenticated with a Bearer token. To group lights by area with zero extra configuration (no YAML, no helper entities), the app POSTs a small Jinja template to HA's `/api/template` endpoint, which returns a JSON map of area name → light entity ids. Entities you have hidden in Home Assistant are filtered out by that template, so they never reach the watch.
+The app talks directly to HA's REST API from the watch via `Communications.makeWebRequest` — there's no custom backend and no companion app. Requests are authenticated with a Bearer token. To group entities by area with zero extra configuration (no YAML, no helper entities), the app POSTs a small Jinja template to HA's `/api/template` endpoint, which returns a JSON map of area name → the lights and the temperature, humidity, and illuminance sensors in that area, along with each light's on/off state and each sensor's reading formatted the way Home Assistant formats it. Entities you have hidden in Home Assistant are filtered out by that template, so they never reach the watch.
 
 ## User setup
 
@@ -32,7 +32,7 @@ The app talks directly to HA's REST API from the watch via `Communications.makeW
 
 ## Roadmap / Status
 
-Initial scaffold. Current (MVP) functionality: turn lights on/off or toggle them, individually or per Home Assistant area. Further features are expected on top of this base.
+Initial scaffold. Current (MVP) functionality: browse Home Assistant areas, toggle the lights in each of them, and read each area's temperature, humidity, and illuminance sensors. Further features are expected on top of this base.
 
 ## Contributing
 

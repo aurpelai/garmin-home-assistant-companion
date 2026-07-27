@@ -1,6 +1,6 @@
 import Toybox.Lang;
 
-// Shared UI-side state passed between the area and light menus: the HA client,
+// Shared UI-side state passed between the area and entity menus: the HA client,
 // the immutable server-truth HomeState (areas + loaded states), and a mutable
 // copy of the states map. Toggles update the mutable copy optimistically so the
 // switch flips immediately, leaving the HomeState as the untouched server truth.
@@ -31,9 +31,19 @@ class HomeSession {
         return _state.listLightsInArea(name);
     }
 
-    // HA's display name for a light (bare id as last-resort fallback).
+    function listSensorsInArea(name as String) as Array<String> {
+        return _state.listSensorsInArea(name);
+    }
+
+    // HA's display name for an entity (bare id as last-resort fallback).
     function getName(entityId as String) as String {
         return _state.getName(entityId);
+    }
+
+    // A sensor's HA-formatted value, null when the server sent none. Server truth
+    // only, like availability, so it reads straight from the HomeState.
+    function getReading(entityId as String) as String or Null {
+        return _state.getReading(entityId);
     }
 
     function isGroup(entityId as String) as Boolean {
