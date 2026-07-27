@@ -26,7 +26,10 @@ class LoadingView extends WatchUi.View {
     // Framework lifecycle: fires when this view becomes visible. Kick off the
     // load exactly once.
     function onShow() as Void {
-        if (_started) { return; }
+        if (_started) {
+            return;
+        }
+
         _started = true;
 
         if (!Settings.isConfigured()) {
@@ -41,7 +44,10 @@ class LoadingView extends WatchUi.View {
     // non-null error is the only failure path — a null state never arrives alongside
     // a null error.
     function onLoaded(state as LightState or Null, error as Number or Null) as Void {
-        if (error != null) { showRetryScreen(resolveErrorMessage(error)); return; }
+        if (error != null) {
+            showRetryScreen(resolveErrorMessage(error));
+            return;
+        }
 
         var loaded = state as LightState;
         if (loaded.isEmpty()) {
@@ -75,8 +81,14 @@ class LoadingView extends WatchUi.View {
     }
 
     function resolveErrorMessage(code as Number) as ResourceId {
-        if (code == 401 || code == 403) { return Rez.Strings.ErrAuth; }
-        if (code < 0) { return Rez.Strings.ErrNetwork; }
+        if (code == 401 || code == 403) {
+            return Rez.Strings.ErrAuth;
+        }
+
+        if (code < 0) {
+            return Rez.Strings.ErrNetwork;
+        }
+
         return Rez.Strings.ErrUnknown;
     }
 }
