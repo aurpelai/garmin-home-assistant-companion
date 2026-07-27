@@ -26,62 +26,39 @@ class HaClient {
     //           "names":     { entityId: "Display Name" },
     //           "available": { entityId: bool } }.
     //
-    // The light walk records each light's on/off state via is_state (a real JSON
-    // boolean, not a string), its name, its availability, and — for light groups —
-    // how many lights the group controls. A light group is a light.* entity whose
-    // `entity_id` state attribute is defined (it holds the group's member ids); a
-    // plain light has no such attribute, so `state_attr(e, 'entity_id')` is none.
-    // "groups" maps each group id to how many of its member lights survive the
-    // same hidden-entity filter, counted server-side into a scalar so member
-    // lists never reach the watch. Filtering the members and not just the group
-    // is what keeps the number a row shows from contradicting the entities the
-    // app is willing to show; a group whose members are all hidden drops out
-    // along with them. `expand` recurses through nested groups and yields leaf
-    // entities, so hiding an intermediate group hides that group's own row
-    // without hiding the lights beneath it. Entities with no area are never
-    // visited by areas()/area_entities() and are thus naturally excluded.
-    //
-    // Looping the sensor kinds outside the entity loop is what makes each area's
-    // sensor list arrive already grouped by kind, so the watch never sorts it;
-    // within a kind the order is Home Assistant's own area order.
-    // "readings" holds `states(e, true, true)` — the state rendered with HA's own
-    // display precision and unit, as a string, so the watch never parses, rounds
-    // or appends a unit and cannot disagree with the user's dashboard. That call
-    // needs Home Assistant 2023.3 or newer, below the app's documented floor.
-    //
-    // A sensor reporting `unknown` is marked unavailable alongside one reporting
-    // `unavailable`: never-reported and currently-dead are the same thing to a
-    // reader, and folding them together keeps the client to a single rule.
-    //
-    // The filtered entity list is materialized with `| list` because reject()
-    // yields a generator, which the per-kind walks would find exhausted.
-    //
-    // An area is emitted when it holds at least one visible entity the app can
-    // show, of either kind — so a sensor-only area appears, carrying an empty
-    // light list.
-    //
-    // The name is `states[e].name` — Home Assistant's own display name: the
-    // user-set friendly name if any, else HA's built-in fallback (the object id
-    // with underscores as spaces, lower case). It is not a guaranteed value: an
-    // area-assigned entity carrying no state object at all yields no name here
-    // and takes the whole `| tojson` down with it, failing the request rather
-    // than one row. The model's bare-id fallback does not rescue that.
-    //
     // Deliberately backslash-free: we filter entities with `.startswith(...)`
     // instead of a regex like select('match','^light\.'). A backslash in this
     // string would be sent unescaped by the Connect IQ JSON serializer, producing
     // an invalid JSON escape and a 400 "Invalid JSON specified" from HA.
     //
-    // `is_hidden_entity` requires Home Assistant 2023.4 or newer. Keep the reject
-    // in the filtered list every walk reads: every entity kind added later
-    // inherits the exclusion for free.
+    // Entities belonging to no area are never visited by areas()/area_entities()
+    // and are thus excluded without a rule of their own.
     private const HOME_STATE_TEMPLATE =
         "{% set ns = namespace(lightsByArea={}, sensorsByArea={}, states={}, names={}, " +
             "groups={}, available={}, readings={}, lights=[], sensors=[]) %}" +
         "{% for a in areas() %}" +
+
+        // Hidden entities are rejected once, here, so every walk below inherits
+        // the exclusion and so does every entity kind added later. Requires Home
+        // Assistant 2023.4. Materialized with `| list` because reject() yields a
+        // generator, which the per-kind walks would find exhausted.
         "{% set visible = area_entities(a) | reject('is_hidden_entity') | list %}" +
         "{% set ns.lights = [] %}" +
         "{% set ns.sensors = [] %}" +
+
+        // A light group is a light.* entity whose `entity_id` attribute holds its
+        // member ids; a plain light has no such attribute. A group's count is the
+        // members surviving the same hidden-entity test, so the number a row
+        // shows cannot contradict the entities the app will list, and a group
+        // left with none drops out alongside them. `expand` recurses to leaf
+        // entities, so hiding an intermediate group hides that group's own row
+        // without hiding the lights beneath it.
+        //
+        // `states[e].name` is Home Assistant's own display name: the user-set
+        // friendly name if any, else its built-in fallback. It is not guaranteed
+        // — an area-assigned entity carrying no state object yields no name and
+        // takes the whole `| tojson` down with it, failing the request rather
+        // than one row. The model's bare-id fallback does not rescue that.
         "{% for e in visible %}" +
         "{% if e.startswith('light.') %}" +
         "{% set isGroup = state_attr(e, 'entity_id') is not none %}" +
@@ -98,6 +75,17 @@ class HaClient {
         "{% endif %}" +
         "{% endif %}" +
         "{% endfor %}" +
+
+        // Looping the kinds outside the entity loop is what makes each area's
+        // sensor list arrive already grouped by kind, so the watch never sorts;
+        // within a kind the order is Home Assistant's own.
+        //
+        // A reading is `states(e, true, true)`: HA's own display precision and
+        // unit, as a string, so the watch never parses, rounds or appends a unit
+        // and cannot disagree with the user's dashboard. Needs HA 2023.3.
+        //
+        // `unknown` folds into unavailable, because never-reported and
+        // currently-dead read the same to someone glancing at a watch.
         "{% for kind in ['temperature', 'humidity', 'illuminance'] %}" +
         "{% for e in visible %}" +
         "{% if e.startswith('sensor.') and state_attr(e, 'device_class') == kind %}" +
@@ -109,6 +97,9 @@ class HaClient {
         "{% endif %}" +
         "{% endfor %}" +
         "{% endfor %}" +
+
+        // One visible entity of either kind is enough to emit the area, so a
+        // sensor-only area appears carrying an empty light list.
         "{% if ns.lights or ns.sensors %}" +
         "{% set ns.lightsByArea = dict(ns.lightsByArea, **{area_name(a): ns.lights}) %}" +
         "{% set ns.sensorsByArea = dict(ns.sensorsByArea, **{area_name(a): ns.sensors}) %}" +

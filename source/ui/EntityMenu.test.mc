@@ -197,7 +197,7 @@ function sensorRowShowsReadingAsSubLabel(logger as Test.Logger) as Boolean {
 (:test)
 function unavailableSensorRowShowsUnavailable(logger as Test.Logger) as Boolean {
     var session = EntityMenuTest.sessionOf({
-        "readings" => { "sensor.temperature" => "unavailable" },
+        "readings" => { "sensor.temperature" => "22 °C" },
         "available" => { "sensor.temperature" => false }
     });
 
