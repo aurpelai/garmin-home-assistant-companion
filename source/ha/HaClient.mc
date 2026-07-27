@@ -28,19 +28,23 @@ class HaClient {
     // `not is_state(e, 'unavailable')` (a real JSON boolean). A light group is a
     // light.* entity whose `entity_id` state attribute is defined (it holds the
     // group's member ids); a plain light has no such attribute, so
-    // `state_attr(e, 'entity_id')` is none. "groups" maps each group id to its
-    // member count — `expand(e) | count`, the number of leaf
-    // entities the group expands to (recursing through any nested groups), computed
-    // server-side into a scalar so member lists never reach the watch. Lights with
-    // no area are never visited by areas()/area_entities() and are thus naturally
-    // excluded.
+    // `state_attr(e, 'entity_id')` is none. "groups" maps each group id to how
+    // many of its member lights survive the same hidden-entity filter, counted
+    // server-side into a scalar so member lists never reach the watch. Filtering
+    // the members and not just the group is what keeps the number a row shows
+    // from contradicting the entities the app is willing to show; a group whose
+    // members are all hidden drops out along with them. `expand` recurses through
+    // nested groups and yields leaf entities, so hiding an intermediate group
+    // hides that group's own row without hiding the lights beneath it. Lights
+    // with no area are never visited by areas()/area_entities() and are thus
+    // naturally excluded.
     //
     // The name is `states[e].name` — Home Assistant's own display name: the
     // user-set friendly name if any, else HA's built-in fallback (the object id
-    // with underscores as spaces, lower case). This is never none, so a name is
-    // emitted for every light; the model's bare-id fallback covers only a
-    // server-contract violation. (This is the expression to confirm against a
-    // live instance, per the spec's verification note.)
+    // with underscores as spaces, lower case). It is not a guaranteed value: an
+    // area-assigned entity carrying no state object at all yields no name here
+    // and takes the whole `| tojson` down with it, failing the request rather
+    // than one row. The model's bare-id fallback does not rescue that.
     //
     // Deliberately backslash-free: we filter light entities with
     // `.startswith('light.')` instead of a regex like select('match','^light\.').
@@ -57,13 +61,16 @@ class HaClient {
         "{% set ns.lights = [] %}" +
         "{% for e in (area_entities(a) | reject('is_hidden_entity')) %}" +
         "{% if e.startswith('light.') %}" +
-        "{% if state_attr(e, 'entity_id') is none or expand(e) | count > 0 %}" +
+        "{% set isGroup = state_attr(e, 'entity_id') is not none %}" +
+        "{% set visibleMembers = expand(e) | rejectattr('entity_id', 'is_hidden_entity') " +
+            "| list | count if isGroup else 0 %}" +
+        "{% if not isGroup or visibleMembers > 0 %}" +
         "{% set ns.lights = ns.lights + [e] %}" +
         "{% set ns.s = dict(ns.s, **{e: is_state(e, 'on')}) %}" +
         "{% set ns.n = dict(ns.n, **{e: states[e].name}) %}" +
         "{% set ns.avail = dict(ns.avail, **{e: not is_state(e, 'unavailable')}) %}" +
-        "{% if state_attr(e, 'entity_id') is not none %}" +
-        "{% set ns.groups = dict(ns.groups, **{e: expand(e) | count}) %}" +
+        "{% if isGroup %}" +
+        "{% set ns.groups = dict(ns.groups, **{e: visibleMembers}) %}" +
         "{% endif %}" +
         "{% endif %}" +
         "{% endif %}" +
