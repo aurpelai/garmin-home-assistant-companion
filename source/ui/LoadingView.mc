@@ -8,7 +8,8 @@ import Toybox.WatchUi;
 //   1. checks settings are present (else -> ErrorView with ErrNoConfig)
 //   2. fetches the light state — areas→lights and current on/off states in a
 //      single POST /api/template
-//   3. replaces itself with the AreaMenu
+//   3. replaces itself with the AreaMenu, or with a message when no area has
+//      any lights
 // Any request error routes to an ErrorView keyed on the HTTP/comm code.
 class LoadingView extends WatchUi.View {
     private var _message as String;
@@ -29,7 +30,7 @@ class LoadingView extends WatchUi.View {
         _started = true;
 
         if (!Settings.isConfigured()) {
-            showError(Rez.Strings.ErrNoConfig);
+            showRetryScreen(Rez.Strings.ErrNoConfig);
             return;
         }
         setMessage(WatchUi.loadResource(Rez.Strings.LoadingAreas) as String);
@@ -40,8 +41,15 @@ class LoadingView extends WatchUi.View {
     // non-null error is the only failure path — a null state never arrives alongside
     // a null error.
     function onLoaded(state as LightState or Null, error as Number or Null) as Void {
-        if (error != null) { showError(resolveErrorMessage(error)); return; }
-        var session = new LightSession(_client, state as LightState);
+        if (error != null) { showRetryScreen(resolveErrorMessage(error)); return; }
+
+        var loaded = state as LightState;
+        if (loaded.isEmpty()) {
+            showRetryScreen(Rez.Strings.NoLightsInAnyArea);
+            return;
+        }
+
+        var session = new LightSession(_client, loaded);
         // Replacing the app-owned session wholesale is safe ONLY because
         // onLoaded runs solely at startup/retry, with no live state-view holding
         // the prior session. Mid-session refresh MUST go through
@@ -61,7 +69,7 @@ class LoadingView extends WatchUi.View {
         CenteredMessage.draw(dc, _message);
     }
 
-    private function showError(id as ResourceId) as Void {
+    private function showRetryScreen(id as ResourceId) as Void {
         var message = WatchUi.loadResource(id) as String;
         WatchUi.switchToView(new ErrorView(message), new ErrorDelegate(), WatchUi.SLIDE_IMMEDIATE);
     }

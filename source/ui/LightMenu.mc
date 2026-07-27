@@ -2,9 +2,9 @@ import Toybox.Application;
 import Toybox.Lang;
 import Toybox.WatchUi;
 
-// Lights within an area (or the combined "All lights" list). Each row is a
-// native toggle showing the light's friendly name and on/off state; selecting a
-// row toggles it, and the switch flips itself optimistically.
+// Lights within an area. Each row is a native toggle showing the light's
+// friendly name and on/off state; selecting a row toggles it, and the switch
+// flips itself optimistically.
 //
 // The menu renders from cached session state instantly. onShow is the
 // navigation trigger: it fires a fresh state fetch and, when it returns,

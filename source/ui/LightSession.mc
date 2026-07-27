@@ -27,10 +27,6 @@ class LightSession {
         return _state.areas;
     }
 
-    function listAllLights() as Array<String> {
-        return _state.listAllLights();
-    }
-
     function listLightsInArea(name as String) as Array<String> {
         return _state.listLightsInArea(name);
     }

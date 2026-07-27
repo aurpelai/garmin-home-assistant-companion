@@ -133,7 +133,7 @@ class ResponseHandler {
             case :onTemplate:
                 // /api/template returns text/plain containing JSON. If Connect IQ
                 // handed us an unparsed String instead of a Dictionary, log it so
-                // the empty-menu case is diagnosable.
+                // the empty case is diagnosable.
                 if (data instanceof Lang.String) {
                     System.println("Template returned unparsed String: " + data);
                 }
