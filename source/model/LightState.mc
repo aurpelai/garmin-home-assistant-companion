@@ -9,14 +9,14 @@ import Toybox.Lang;
 //     "groups":    { entityId: memberCount, ... },
 //     "available": { entityId: true|false, ... } }
 // LightState splits that body, wrapping the areas section into an
-// area-ordered structure (from which the flat "all lights" list derives),
-// parsing the states section into an entity_id -> Boolean map, parsing the
-// names section into an entity_id -> String map (the name Home Assistant
-// itself shows for each light, used as the row label and the sort key),
-// parsing the groups section into an entity_id -> member count map (a light id
-// present in that map is a light group, used to order groups ahead of plain
-// lights in every list view; its value is how many lights the group controls),
-// and parsing the available section into an entity_id -> Boolean map.
+// area-ordered structure, parsing the states section into an entity_id ->
+// Boolean map, parsing the names section into an entity_id -> String map
+// (the name Home Assistant itself shows for each light, used as the row
+// label and the sort key), parsing the groups section into an entity_id ->
+// member count map (a light id present in that map is a light group, used
+// to order groups ahead of plain lights in the light list; its value is
+// how many lights the group controls), and parsing the available section
+// into an entity_id -> Boolean map.
 //
 // Each section degrades independently: non-conforming input yields an empty
 // result rather than throwing (watch UX: show "no lights" / all-off, not a
@@ -103,24 +103,6 @@ class LightState {
     // integer, so this never returns null for a group.
     function getMemberCount(entityId as String) as Number {
         return groups.get(entityId) as Number;
-    }
-
-    // Deduplicated, group-first-then-alphabetical union of every area's lights —
-    // backs the "All lights" view.
-    function listAllLights() as Array<String> {
-        var seen = {} as Dictionary<String, Boolean>;
-        var flat = [] as Array<String>;
-        for (var areaIndex = 0; areaIndex < areas.size(); areaIndex++) {
-            var lights = areas[areaIndex].get(:lights) as Array<String>;
-            for (var lightIndex = 0; lightIndex < lights.size(); lightIndex++) {
-                var entityId = lights[lightIndex];
-                if (!seen.hasKey(entityId)) {
-                    seen.put(entityId, true);
-                    flat.add(entityId);
-                }
-            }
-        }
-        return orderAvailableFirst(flat);
     }
 
     function listLightsInArea(name as String) as Array<String> {

@@ -38,20 +38,16 @@ function skipsAreasWithNoLights(logger as Test.Logger) as Boolean {
 }
 
 (:test)
-function listAllLightsDedupesAndSorts(logger as Test.Logger) as Boolean {
+function isEmptyWhenNoAreaHasLights(logger as Test.Logger) as Boolean {
     var data = {
-        "areas" => {
-            "A" => ["light.b", "light.a"],
-            "B" => ["light.a", "light.c"]   // light.a duplicated across areas
-        },
+        "areas" => { "Empty" => [] as Array<String> },
         "states" => {}
     };
-    var state = LightState.fromTemplateData(data);
-    var all = state.listAllLights();
-    Test.assertEqual(all.size(), 3);
-    Test.assertEqual(all[0], "light.a");
-    Test.assertEqual(all[1], "light.b");
-    Test.assertEqual(all[2], "light.c");
+    Test.assert(LightState.fromTemplateData(data).isEmpty());
+    Test.assert(!LightState.fromTemplateData({
+        "areas" => { "Hall" => ["light.hall"] },
+        "states" => {}
+    }).isEmpty());
     return true;
 }
 
@@ -110,7 +106,7 @@ function dropsInvalidGroupCounts(logger as Test.Logger) as Boolean {
 }
 
 (:test)
-function listAllLightsOrdersGroupsFirstThenAlpha(logger as Test.Logger) as Boolean {
+function ordersGroupsFirstDespiteName(logger as Test.Logger) as Boolean {
     // "light.zzz_group" sorts AFTER the plain lights alphabetically but must
     // still come first because it is a group.
     var data = {
@@ -119,11 +115,11 @@ function listAllLightsOrdersGroupsFirstThenAlpha(logger as Test.Logger) as Boole
         "groups" => { "light.zzz_group" => 2 }
     };
     var state = LightState.fromTemplateData(data);
-    var all = state.listAllLights();
-    Test.assertEqual(all.size(), 3);
-    Test.assertEqual(all[0], "light.zzz_group");   // group first
-    Test.assertEqual(all[1], "light.apple");       // then plain, alphabetical
-    Test.assertEqual(all[2], "light.mango");
+    var lights = state.listLightsInArea("A");
+    Test.assertEqual(lights.size(), 3);
+    Test.assertEqual(lights[0], "light.zzz_group");   // group first
+    Test.assertEqual(lights[1], "light.apple");       // then plain, alphabetical
+    Test.assertEqual(lights[2], "light.mango");
     return true;
 }
 
@@ -156,10 +152,10 @@ function ordersByNameNotId(logger as Test.Logger) as Boolean {
         "names" => { "light.aaa" => "Zebra", "light.zzz" => "Aaa" }
     };
     var state = LightState.fromTemplateData(data);
-    var all = state.listAllLights();
-    Test.assertEqual(all.size(), 2);
-    Test.assertEqual(all[0], "light.zzz");   // name "Aaa" first
-    Test.assertEqual(all[1], "light.aaa");   // name "Zebra" second
+    var lights = state.listLightsInArea("A");
+    Test.assertEqual(lights.size(), 2);
+    Test.assertEqual(lights[0], "light.zzz");   // name "Aaa" first
+    Test.assertEqual(lights[1], "light.aaa");   // name "Zebra" second
     return true;
 }
 
@@ -173,9 +169,9 @@ function nameOrderIsCaseInsensitive(logger as Test.Logger) as Boolean {
         "names" => { "light.one" => "Banana", "light.two" => "apple" }
     };
     var state = LightState.fromTemplateData(data);
-    var all = state.listAllLights();
-    Test.assertEqual(all[0], "light.two");   // "apple"
-    Test.assertEqual(all[1], "light.one");   // "Banana"
+    var lights = state.listLightsInArea("A");
+    Test.assertEqual(lights[0], "light.two");   // "apple"
+    Test.assertEqual(lights[1], "light.one");   // "Banana"
     return true;
 }
 
@@ -188,9 +184,9 @@ function equalNamesBreakTieOnId(logger as Test.Logger) as Boolean {
         "names" => { "light.a" => "Lamp", "light.b" => "Lamp" }
     };
     var state = LightState.fromTemplateData(data);
-    var all = state.listAllLights();
-    Test.assertEqual(all[0], "light.a");   // equal names -> id tiebreak
-    Test.assertEqual(all[1], "light.b");
+    var lights = state.listLightsInArea("A");
+    Test.assertEqual(lights[0], "light.a");   // equal names -> id tiebreak
+    Test.assertEqual(lights[1], "light.b");
     return true;
 }
 
@@ -203,11 +199,11 @@ function missingGroupsKeyFallsBackToAlpha(logger as Test.Logger) as Boolean {
     };
     var state = LightState.fromTemplateData(data);
     Test.assert(!state.isGroup("light.a"));
-    var all = state.listAllLights();
-    Test.assertEqual(all.size(), 3);
-    Test.assertEqual(all[0], "light.a");
-    Test.assertEqual(all[1], "light.b");
-    Test.assertEqual(all[2], "light.c");
+    var lights = state.listLightsInArea("A");
+    Test.assertEqual(lights.size(), 3);
+    Test.assertEqual(lights[0], "light.a");
+    Test.assertEqual(lights[1], "light.b");
+    Test.assertEqual(lights[2], "light.c");
     return true;
 }
 
@@ -221,9 +217,9 @@ function nonMapGroupsDegradesCleanly(logger as Test.Logger) as Boolean {
     };
     var state = LightState.fromTemplateData(data);
     Test.assert(!state.isGroup("light.a"));
-    var all = state.listAllLights();
-    Test.assertEqual(all[0], "light.a");
-    Test.assertEqual(all[1], "light.b");
+    var lights = state.listLightsInArea("A");
+    Test.assertEqual(lights[0], "light.a");
+    Test.assertEqual(lights[1], "light.b");
     return true;
 }
 
@@ -333,12 +329,12 @@ function ordersAvailableBeforeUnavailable(logger as Test.Logger) as Boolean {
         }
     };
     var state = LightState.fromTemplateData(data);
-    var all = state.listAllLights();
-    Test.assertEqual(all.size(), 4);
-    Test.assertEqual(all[0], "light.avail_group");
-    Test.assertEqual(all[1], "light.avail_plain");
-    Test.assertEqual(all[2], "light.down_group");
-    Test.assertEqual(all[3], "light.down_plain");
+    var lights = state.listLightsInArea("A");
+    Test.assertEqual(lights.size(), 4);
+    Test.assertEqual(lights[0], "light.avail_group");
+    Test.assertEqual(lights[1], "light.avail_plain");
+    Test.assertEqual(lights[2], "light.down_group");
+    Test.assertEqual(lights[3], "light.down_plain");
     return true;
 }
 
