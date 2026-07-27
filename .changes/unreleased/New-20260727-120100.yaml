@@ -1,0 +1,3 @@
+kind: "🎉 New"
+body: "**Opening an area shows its temperature, humidity, and light level** — read-only rows below the lights, each with the value exactly as Home Assistant formats it."
+time: 2026-07-27T12:01:00.000000+03:00

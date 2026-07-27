@@ -4,10 +4,10 @@ import Toybox.System;
 
 // Networking core. Wraps Communications.makeWebRequest with Bearer auth and
 // JSON, and exposes the operations the UI needs:
-//   - fetchLightState: one POST /api/template call rendering both the
-//     areas→lights join AND each light's on/off state (a plain GET /api/states
+//   - fetchHomeState: one POST /api/template call rendering each area's entities
+//     AND their states, names and sensor readings (a plain GET /api/states
 //     returns every entity in the instance and blows past Connect IQ's HTTP
-//     response-size limit, so states ride along in the template instead).
+//     response-size limit, so everything rides along in the template instead).
 //   - toggleLight:  POST /api/services/light/toggle
 //
 // Connect IQ is single-threaded and callback-based: every method takes a
@@ -18,75 +18,103 @@ class HaClient {
     // Jinja rendered by HA. Must end in `| tojson` — /api/template returns plain
     // text, so without it the body would be a Python-repr dict, not valid JSON.
     //
-    // Renders { "areas": { areaName: [lightId, ...] }, "states": { lightId: bool },
-    //          "names": { lightId: "Display Name" }, "groups": { lightId: memberCount },
-    //          "available": { lightId: bool } }.
-    // The single inner area-walk collects an area's lights, records each light's
-    // on/off state via is_state (a real JSON boolean, not a string), records the
-    // name Home Assistant shows for each light, records how many lights each
-    // light group controls, and records each light's availability via
-    // `not is_state(e, 'unavailable')` (a real JSON boolean). A light group is a
-    // light.* entity whose `entity_id` state attribute is defined (it holds the
-    // group's member ids); a plain light has no such attribute, so
-    // `state_attr(e, 'entity_id')` is none. "groups" maps each group id to how
-    // many of its member lights survive the same hidden-entity filter, counted
-    // server-side into a scalar so member lists never reach the watch. Filtering
-    // the members and not just the group is what keeps the number a row shows
-    // from contradicting the entities the app is willing to show; a group whose
-    // members are all hidden drops out along with them. `expand` recurses through
-    // nested groups and yields leaf entities, so hiding an intermediate group
-    // hides that group's own row without hiding the lights beneath it. Lights
-    // with no area are never visited by areas()/area_entities() and are thus
-    // naturally excluded.
+    // Renders { "areas":     { areaName: [lightId, ...] },
+    //           "sensors":   { areaName: [sensorId, ...] },
+    //           "states":    { lightId: bool },
+    //           "groups":    { lightId: memberCount },
+    //           "readings":  { sensorId: "24.6 °C" },
+    //           "names":     { entityId: "Display Name" },
+    //           "available": { entityId: bool } }.
     //
-    // The name is `states[e].name` — Home Assistant's own display name: the
-    // user-set friendly name if any, else HA's built-in fallback (the object id
-    // with underscores as spaces, lower case). It is not a guaranteed value: an
-    // area-assigned entity carrying no state object at all yields no name here
-    // and takes the whole `| tojson` down with it, failing the request rather
-    // than one row. The model's bare-id fallback does not rescue that.
+    // Deliberately backslash-free: we filter entities with `.startswith(...)`
+    // instead of a regex like select('match','^light\.'). A backslash in this
+    // string would be sent unescaped by the Connect IQ JSON serializer, producing
+    // an invalid JSON escape and a 400 "Invalid JSON specified" from HA.
     //
-    // Deliberately backslash-free: we filter light entities with
-    // `.startswith('light.')` instead of a regex like select('match','^light\.').
-    // A backslash in this string would be sent unescaped by the Connect IQ JSON
-    // serializer, producing an invalid JSON escape and a 400 "Invalid JSON
-    // specified" from HA.
-    //
-    // `is_hidden_entity` requires Home Assistant 2023.4 or newer. Keep the
-    // reject in the walk's loop header: every entity kind added later inherits
-    // the exclusion for free.
-    private const LIGHT_STATE_TEMPLATE =
-        "{% set ns = namespace(m={}, s={}, n={}, groups={}, avail={}) %}" +
+    // Entities belonging to no area are never visited by areas()/area_entities()
+    // and are thus excluded without a rule of their own.
+    private const HOME_STATE_TEMPLATE =
+        "{% set ns = namespace(lightsByArea={}, sensorsByArea={}, states={}, names={}, " +
+            "groups={}, available={}, readings={}, lights=[], sensors=[]) %}" +
         "{% for a in areas() %}" +
+
+        // Hidden entities are rejected once, here, so every walk below inherits
+        // the exclusion and so does every entity kind added later. Requires Home
+        // Assistant 2023.4. Materialized with `| list` because reject() yields a
+        // generator, which the per-kind walks would find exhausted.
+        "{% set visible = area_entities(a) | reject('is_hidden_entity') | list %}" +
         "{% set ns.lights = [] %}" +
-        "{% for e in (area_entities(a) | reject('is_hidden_entity')) %}" +
+        "{% set ns.sensors = [] %}" +
+
+        // A light group is a light.* entity whose `entity_id` attribute holds its
+        // member ids; a plain light has no such attribute. A group's count is the
+        // members surviving the same hidden-entity test, so the number a row
+        // shows cannot contradict the entities the app will list, and a group
+        // left with none drops out alongside them. `expand` recurses to leaf
+        // entities, so hiding an intermediate group hides that group's own row
+        // without hiding the lights beneath it.
+        //
+        // `states[e].name` is Home Assistant's own display name: the user-set
+        // friendly name if any, else its built-in fallback. It is not guaranteed
+        // — an area-assigned entity carrying no state object yields no name and
+        // takes the whole `| tojson` down with it, failing the request rather
+        // than one row. The model's bare-id fallback does not rescue that.
+        "{% for e in visible %}" +
         "{% if e.startswith('light.') %}" +
         "{% set isGroup = state_attr(e, 'entity_id') is not none %}" +
         "{% set visibleMembers = expand(e) | rejectattr('entity_id', 'is_hidden_entity') " +
             "| list | count if isGroup else 0 %}" +
         "{% if not isGroup or visibleMembers > 0 %}" +
         "{% set ns.lights = ns.lights + [e] %}" +
-        "{% set ns.s = dict(ns.s, **{e: is_state(e, 'on')}) %}" +
-        "{% set ns.n = dict(ns.n, **{e: states[e].name}) %}" +
-        "{% set ns.avail = dict(ns.avail, **{e: not is_state(e, 'unavailable')}) %}" +
+        "{% set ns.states = dict(ns.states, **{e: is_state(e, 'on')}) %}" +
+        "{% set ns.names = dict(ns.names, **{e: states[e].name}) %}" +
+        "{% set ns.available = dict(ns.available, **{e: not is_state(e, 'unavailable')}) %}" +
         "{% if isGroup %}" +
         "{% set ns.groups = dict(ns.groups, **{e: visibleMembers}) %}" +
         "{% endif %}" +
         "{% endif %}" +
         "{% endif %}" +
         "{% endfor %}" +
-        "{% if ns.lights | count > 0 %}" +
-        "{% set ns.m = dict(ns.m, **{area_name(a): ns.lights}) %}" +
+
+        // Looping the kinds outside the entity loop is what makes each area's
+        // sensor list arrive already grouped by kind, so the watch never sorts;
+        // within a kind the order is Home Assistant's own.
+        //
+        // A reading is `states(e, true, true)`: HA's own display precision and
+        // unit, as a string, so the watch never parses, rounds or appends a unit
+        // and cannot disagree with the user's dashboard. Needs HA 2023.3.
+        //
+        // `unknown` folds into unavailable, because never-reported and
+        // currently-dead read the same to someone glancing at a watch.
+        "{% for kind in ['temperature', 'humidity', 'illuminance'] %}" +
+        "{% for e in visible %}" +
+        "{% if e.startswith('sensor.') and state_attr(e, 'device_class') == kind %}" +
+        "{% set ns.sensors = ns.sensors + [e] %}" +
+        "{% set ns.readings = dict(ns.readings, **{e: states(e, true, true)}) %}" +
+        "{% set ns.names = dict(ns.names, **{e: states[e].name}) %}" +
+        "{% set ns.available = dict(ns.available, " +
+            "**{e: not is_state(e, 'unavailable') and not is_state(e, 'unknown')}) %}" +
         "{% endif %}" +
         "{% endfor %}" +
-        "{{ dict(areas=ns.m, states=ns.s, names=ns.n, groups=ns.groups, available=ns.avail) | tojson }}";
+        "{% endfor %}" +
+
+        // One visible entity of either kind is enough to emit the area, so a
+        // sensor-only area appears carrying an empty light list.
+        "{% if ns.lights or ns.sensors %}" +
+        "{% set ns.lightsByArea = dict(ns.lightsByArea, **{area_name(a): ns.lights}) %}" +
+        "{% set ns.sensorsByArea = dict(ns.sensorsByArea, **{area_name(a): ns.sensors}) %}" +
+        "{% endif %}" +
+        "{% endfor %}" +
+        "{{ dict(areas=ns.lightsByArea, sensors=ns.sensorsByArea, states=ns.states, " +
+            "groups=ns.groups, readings=ns.readings, names=ns.names, " +
+            "available=ns.available) | tojson }}";
 
     function initialize() {}
 
     // --- public API ---
 
-    function fetchLightState(callback as Method) as Void {
-        var body = { "template" => LIGHT_STATE_TEMPLATE };
+    function fetchHomeState(callback as Method) as Void {
+        var body = { "template" => HOME_STATE_TEMPLATE };
         post("/api/template", body, new ResponseHandler(callback, :onTemplate));
     }
 
@@ -148,7 +176,7 @@ class ResponseHandler {
                 if (data instanceof Lang.String) {
                     System.println("Template returned unparsed String: " + data);
                 }
-                _callback.invoke(LightState.fromTemplateData(data), null);
+                _callback.invoke(HomeState.fromTemplateData(data), null);
                 break;
             case :onService:
                 _callback.invoke(true, null);

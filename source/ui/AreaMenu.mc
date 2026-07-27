@@ -2,10 +2,10 @@ import Toybox.Application;
 import Toybox.Lang;
 import Toybox.WatchUi;
 
-// Top-level menu: one row per area that has lights. Each MenuItem's id
-// carries the area name.
+// Top-level menu: one row per area that has anything the app can show. Each
+// MenuItem's id carries the area name.
 class AreaMenu extends WatchUi.Menu2 {
-    function initialize(session as LightSession) {
+    function initialize(session as HomeSession) {
         Menu2.initialize({ :title => WatchUi.loadResource(Rez.Strings.AppName) as String });
 
         var areas = session.areas();
@@ -19,24 +19,24 @@ class AreaMenu extends WatchUi.Menu2 {
         (Application.getApp() as HaControllerApp).setCurrentView(self);
     }
 
-    // The named redraw seam onActive dispatches to (see LightMenu.redraw).
-    // No-op here: the area menu shows no light state.
+    // The named redraw seam onActive dispatches to (see EntityMenu.redraw).
+    // No-op here: an area row shows only its name, so no state can go stale.
     function redraw() as Void {
     }
 }
 
 class AreaMenuDelegate extends WatchUi.Menu2InputDelegate {
-    private var _session as LightSession;
+    private var _session as HomeSession;
 
-    function initialize(session as LightSession) {
+    function initialize(session as HomeSession) {
         Menu2InputDelegate.initialize();
         _session = session;
     }
 
     function onSelect(item as WatchUi.MenuItem) as Void {
         var area = item.getId() as String;
-        var lights = _session.listLightsInArea(area);
-        var menu = new LightMenu(_session, area, lights);
-        WatchUi.pushView(menu, new LightMenuDelegate(menu, _session), WatchUi.SLIDE_LEFT);
+        var menu = new EntityMenu(_session, area, _session.listLightsInArea(area),
+                                  _session.listSensorsInArea(area));
+        WatchUi.pushView(menu, new EntityMenuDelegate(menu, _session), WatchUi.SLIDE_LEFT);
     }
 }

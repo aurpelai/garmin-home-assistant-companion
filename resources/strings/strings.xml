@@ -11,8 +11,8 @@
     <!-- UI -->
     <string id="Loading">Loading…</string>
     <string id="LoadingAreas">Loading areas…</string>
-    <string id="NoLights">No lights found</string>
-    <string id="NoLightsInAnyArea">No lights in any area</string>
+    <string id="NoEntities">No entities found</string>
+    <string id="NoEntitiesInAnyArea">No entities in any area</string>
     <string id="Unavailable">Unavailable</string>
     <string id="GroupUnavailable">Group unavailable</string>
 

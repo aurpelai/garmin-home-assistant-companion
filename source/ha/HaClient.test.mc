@@ -2,7 +2,7 @@ import Toybox.Lang;
 import Toybox.Test;
 
 // FakeHaClient and CompletionSpy are the transport test double and its
-// completion-observation helper: reused by LightSession's async-branch tests.
+// completion-observation helper: reused by HomeSession's async-branch tests.
 // ResponseHandler's normalization is pure and synchronous, so it is exercised
 // directly below with no fake needed.
 
@@ -13,19 +13,25 @@ class FakeHaClient extends HaClient {
     private var _fetchCallback as Method?;
     private var _serviceCallback as Method?;
 
+    // Only the latest callback is kept, so a test asserting that a row fired
+    // nothing needs this counter to tell no call from one call.
+    public var toggleCount as Number;
+
     function initialize() {
         HaClient.initialize();
+        toggleCount = 0;
     }
 
-    function fetchLightState(callback as Method) as Void {
+    function fetchHomeState(callback as Method) as Void {
         _fetchCallback = callback;
     }
 
     function toggleLight(entityId as String, callback as Method) as Void {
         _serviceCallback = callback;
+        toggleCount++;
     }
 
-    function fireFetchSuccess(state as LightState) as Void {
+    function fireFetchSuccess(state as HomeState) as Void {
         (_fetchCallback as Method).invoke(state, null);
     }
 
@@ -88,7 +94,7 @@ function onResponseNormalizesNon200ToError(logger as Test.Logger) as Boolean {
 }
 
 (:test)
-function onResponseNormalizesTemplateSuccessToLightState(logger as Test.Logger) as Boolean {
+function onResponseNormalizesTemplateSuccessToHomeState(logger as Test.Logger) as Boolean {
     var capture = new ResultCapture();
     var handler = new ResponseHandler(capture.method(:onResult), :onTemplate);
 
@@ -97,8 +103,8 @@ function onResponseNormalizesTemplateSuccessToLightState(logger as Test.Logger) 
         "states" => { "light.a" => true }
     });
 
-    Test.assert(capture.result instanceof LightState);
-    Test.assert((capture.result as LightState).isOn("light.a"));
+    Test.assert(capture.result instanceof HomeState);
+    Test.assert((capture.result as HomeState).isOn("light.a"));
     Test.assert(capture.error == null);
     return true;
 }
