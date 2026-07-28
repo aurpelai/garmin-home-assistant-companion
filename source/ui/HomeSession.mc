@@ -66,7 +66,9 @@ class HomeSession {
     // An entity absent from the live state map reads as off.
     function isOn(entityId as String) as Boolean {
         var state = _states.get(entityId);
-        return (state == null) ? false : (state as Boolean);
+        return state == null
+            ? false
+            : state as Boolean;
     }
 
     // Availability is server truth only, never optimistically mutated, so it

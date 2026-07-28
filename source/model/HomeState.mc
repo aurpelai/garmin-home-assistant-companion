@@ -102,7 +102,9 @@ class HomeState {
 
     function isOn(entityId as String) as Boolean {
         var state = states.get(entityId);
-        return (state == null) ? false : (state as Boolean);
+        return state == null
+            ? false
+            : state as Boolean;
     }
 
     // The template emits an availability entry for every entity, so a null here
@@ -110,7 +112,9 @@ class HomeState {
     // rather than off: a contract breach must not mark a working light down.
     function isAvailable(entityId as String) as Boolean {
         var value = available.get(entityId);
-        return (value == null) ? true : (value as Boolean);
+        return value == null
+            ? true
+            : value as Boolean;
     }
 
     // A sensor's value as HA formatted it (its own precision and unit), or null
@@ -118,21 +122,30 @@ class HomeState {
     // unavailable.
     function getReading(entityId as String) as String or Null {
         var reading = readings.get(entityId);
-        return (reading == null) ? null : (reading as Dictionary).get(:display) as String or Null;
+        if (reading == null) {
+            return null;
+        }
+        return (reading as Dictionary).get(:display) as String or Null;
     }
 
     // A sensor's raw numeric value, for comparison (ranges). Null when the
     // payload carries no reading for the id.
     function getReadingValue(entityId as String) as Float or Null {
         var reading = readings.get(entityId);
-        return (reading == null) ? null : (reading as Dictionary).get(:value) as Float or Null;
+        if (reading == null) {
+            return null;
+        }
+        return (reading as Dictionary).get(:value) as Float or Null;
     }
 
     // A sensor's unit, for composing a range that shows the unit once. Null when
     // the payload carries no reading for the id.
     function getReadingUnit(entityId as String) as String or Null {
         var reading = readings.get(entityId);
-        return (reading == null) ? null : (reading as Dictionary).get(:unit) as String or Null;
+        if (reading == null) {
+            return null;
+        }
+        return (reading as Dictionary).get(:unit) as String or Null;
     }
 
     // A sensor's device_class ("temperature"/"humidity"/"illuminance"), or null
