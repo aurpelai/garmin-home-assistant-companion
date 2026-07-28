@@ -218,7 +218,10 @@ class HomeState {
             for (var areaIndex = 0; areaIndex < floorAreas.size(); areaIndex++) {
                 floored.put(floorAreas[areaIndex], true);
             }
-            out.add({ :name => floor.get(:name) as String, :areas => floorAreas });
+            out.add({
+                :name => floor.get(:name) as String,
+                :areas => floorAreas
+            });
         }
 
         var unfloored = [] as Array<String>;
@@ -229,7 +232,10 @@ class HomeState {
             }
         }
         if (unfloored.size() > 0) {
-            out.add({ :name => null, :areas => sortAreaNames(unfloored) });
+            out.add({
+                :name => null,
+                :areas => sortAreaNames(unfloored)
+            });
         }
 
         return out;
@@ -374,7 +380,11 @@ class HomeState {
             var lights = onlyStrings((rawLights as Dictionary).get(name));
             var sensors = onlyStrings(sensorSection.get(name));
             if (lights.size() + sensors.size() > 0) {
-                out.add({ :name => name, :lights => lights, :sensors => sensors });
+                out.add({
+                    :name => name,
+                    :lights => lights,
+                    :sensors => sensors
+                });
             }
         }
         return out;
@@ -439,15 +449,29 @@ class HomeState {
             if (!(display instanceof String)) {
                 continue;
             }
-            var value = (entry as Dictionary).get("value");
-            var unit = (entry as Dictionary).get("unit");
             out.put(entityId as String, {
-                :value => (value instanceof Float || value instanceof Number) ? (value as Number).toFloat() : 0.0,
+                :value => toFloatOrZero((entry as Dictionary).get("value")),
                 :display => display as String,
-                :unit => (unit instanceof String) ? unit as String : ""
+                :unit => toStringOrEmpty((entry as Dictionary).get("unit"))
             });
         }
         return out;
+    }
+
+    // A reading's numeric value, defaulting to 0.0 when absent or not a number.
+    private static function toFloatOrZero(raw as Object or Null) as Float {
+        if (raw instanceof Float || raw instanceof Number) {
+            return (raw as Number).toFloat();
+        }
+        return 0.0;
+    }
+
+    // A reading's unit, defaulting to the empty string when absent or not a String.
+    private static function toStringOrEmpty(raw as Object or Null) as String {
+        if (raw instanceof String) {
+            return raw as String;
+        }
+        return "";
     }
 
     // The "groups" section: { entityId: memberCount } -> entity_id -> Number.
@@ -497,7 +521,10 @@ class HomeState {
             if (!(name instanceof String)) {
                 continue;
             }
-            out.add({ :name => name as String, :areas => onlyStrings((entry as Dictionary).get("areas")) });
+            out.add({
+                :name => name as String,
+                :areas => onlyStrings((entry as Dictionary).get("areas"))
+            });
         }
         return out;
     }
