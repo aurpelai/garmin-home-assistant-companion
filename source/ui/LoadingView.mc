@@ -8,7 +8,7 @@ import Toybox.WatchUi;
 //   1. checks settings are present (else -> ErrorView with ErrNoConfig)
 //   2. fetches the home state — each area's lights and sensors, with their
 //      states and readings, in a single POST /api/template
-//   3. replaces itself with the AreaMenu, or with a message when no area holds
+//   3. replaces itself with the card loop, or with a message when no area holds
 //      anything the app can show
 // Any request error routes to an ErrorView keyed on the HTTP/comm code.
 class LoadingView extends WatchUi.View {
@@ -62,7 +62,8 @@ class LoadingView extends WatchUi.View {
         // onActive/applyState (in place), never here — else the app reference and
         // a view's constructor-injected reference would diverge.
         (Application.getApp() as HaControllerApp).setSession(session);
-        WatchUi.switchToView(new AreaMenu(session), new AreaMenuDelegate(session),
+        var view = new CardLoopView(session);
+        WatchUi.switchToView(view, new CardLoopDelegate(view, session),
             WatchUi.SLIDE_IMMEDIATE);
     }
 

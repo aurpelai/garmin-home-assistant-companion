@@ -47,8 +47,8 @@ class EntityMenu extends WatchUi.Menu2 {
         _session.refreshState(method(:redraw));
     }
 
-    // The named redraw seam onActive dispatches to (see AreaMenu.redraw); any
-    // new state-showing view implements it. Rows are updated in place and never
+    // The named redraw seam onActive dispatches to (see CardLoopView.redraw);
+    // any new state-showing view implements it. Rows are updated in place and never
     // added, removed or reordered, so scroll and focus survive.
     function redraw() as Void {
         for (var i = 0; i < _lights.size(); i++) {
