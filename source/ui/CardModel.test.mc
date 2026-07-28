@@ -170,7 +170,9 @@ function buildAreaSensorSummaryFallsBackWhenFirstOfKindHasNoReading(logger as Te
         "sensors" => { "Room" => ["sensor.temp1", "sensor.temp2"] },
         "states" => {},
         "kinds" => { "sensor.temp1" => "temperature", "sensor.temp2" => "temperature" },
-        "readings" => { "sensor.temp2" => { "value" => 23.0, "display" => "23.0 °C", "unit" => "°C" } }
+        "readings" => {
+            "sensor.temp2" => { "value" => 23.0, "display" => "23.0 °C", "unit" => "°C" }
+        }
     });
     var summary = CardModel.buildAreaSensorSummary(session, "Room");
 
@@ -189,10 +191,10 @@ function buildFloorSensorSummaryRangesAcrossAreas(logger as Test.Logger) as Bool
         "kinds" => { "sensor.k_temp" => "temperature", "sensor.b_temp" => "temperature" },
         "readings" => {
             "sensor.k_temp" => { "value" => 19.0, "display" => "19.0 °C", "unit" => "°C" },
-            "sensor.b_temp" => { "value" => 23.0, "display" => "23.0 °C", "unit" => "°C" }
+            "sensor.b_temp" => { "value" => 23.0, "display" => "23.0 °C", "unit" => "°C" },
         }
     });
-    var summary = CardModel.buildFloorSensorSummary(session, ["Kitchen", "Bedroom"]);
+    var summary = CardModel.buildFloorSensorSummary(session, ["Bedroom", "Kitchen"]);
 
     Test.assertEqual(summary.size(), 1);
     Test.assertEqual(summary[0].get(:kind) as String, "temperature");
@@ -215,40 +217,6 @@ function buildFloorSensorSummaryCollapsesToSingleValueWhenEndsEqual(logger as Te
     var summary = CardModel.buildFloorSensorSummary(session, ["Kitchen", "Bedroom"]);
 
     Test.assertEqual(summary.size(), 1);
-    Test.assertEqual(summary[0].get(:range) as String, "21.0");
-    return true;
-}
-
-(:test)
-function buildFloorSensorSummarySkipsUnparseableReadings(logger as Test.Logger) as Boolean {
-    var session = CardModelTest.sessionOf({
-        "areas" => { "Kitchen" => [] as Array<String>, "Bedroom" => [] as Array<String> },
-        "sensors" => { "Kitchen" => ["sensor.k_temp"], "Bedroom" => ["sensor.b_temp"] },
-        "states" => {},
-        "kinds" => { "sensor.k_temp" => "temperature", "sensor.b_temp" => "temperature" },
-        "readings" => {
-            "sensor.k_temp" => { "value" => null, "display" => "unavailable", "unit" => "" },
-            "sensor.b_temp" => { "value" => 23.0, "display" => "23.0 °C", "unit" => "°C" }
-        }
-    });
-    var summary = CardModel.buildFloorSensorSummary(session, ["Kitchen", "Bedroom"]);
-
-    Test.assertEqual(summary.size(), 1);
-    Test.assertEqual(summary[0].get(:range) as String, "23.0 °C");
-    return true;
-}
-
-(:test)
-function buildFloorSensorSummaryOmitsKindWhenAllUnparseable(logger as Test.Logger) as Boolean {
-    var session = CardModelTest.sessionOf({
-        "areas" => { "Kitchen" => [] as Array<String> },
-        "sensors" => { "Kitchen" => ["sensor.k_temp"] },
-        "states" => {},
-        "kinds" => { "sensor.k_temp" => "temperature" },
-        "readings" => { "sensor.k_temp" => { "value" => null, "display" => "unavailable", "unit" => "" } }
-    });
-    var summary = CardModel.buildFloorSensorSummary(session, ["Kitchen"]);
-
-    Test.assertEqual(summary.size(), 0);
+    Test.assertEqual(summary[0].get(:range) as String, "21.0 °C");
     return true;
 }

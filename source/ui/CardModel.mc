@@ -18,8 +18,9 @@ module CardModel {
             var areaNames = group.get(:areas) as Array<String>;
 
             if (floorName != null) {
-                cards.add(buildFloorCard(session, floorName as String, areaNames));
+                cards.add(buildFloorCard(session, floorName, areaNames));
             }
+
             for (var areaIndex = 0; areaIndex < areaNames.size(); areaIndex++) {
                 cards.add(buildAreaCard(session, areaNames[areaIndex], floorName));
             }
@@ -56,6 +57,7 @@ module CardModel {
         var lights = session.listLightsInArea(name);
         var lightCount = 0;
         var onCount = 0;
+
         for (var index = 0; index < lights.size(); index++) {
             var light = lights[index];
             if (session.isGroup(light)) {
@@ -66,14 +68,16 @@ module CardModel {
                 onCount++;
             }
         }
+
         if (lightCount == 0) {
             return null;
         }
+
         if (onCount == 1) {
             return WatchUi.loadResource(Rez.Strings.OneLightOn) as String;
         }
-        var template = WatchUi.loadResource(Rez.Strings.LightsOn) as String;
-        return Lang.format(template, [onCount]);
+
+        return Lang.format(WatchUi.loadResource(Rez.Strings.LightsOn) as String, [onCount]);
     }
 
     // The first readable sensor of each kind present in the area, in the order
@@ -88,18 +92,24 @@ module CardModel {
         for (var index = 0; index < sensors.size(); index++) {
             var entityId = sensors[index];
             var kind = session.getKind(entityId);
-            if (kind == null || seenKinds.hasKey(kind as String)) {
+
+            if (kind == null || seenKinds.hasKey(kind)) {
                 continue;
             }
 
             var reading = session.getReading(entityId);
+
             if (reading == null) {
                 continue;
             }
 
-            seenKinds.put(kind as String, true);
-            summary.add({ :kind => kind as String, :reading => reading as String });
+            seenKinds.put(kind, true);
+            summary.add({
+                :kind => kind,
+                :reading => reading
+            });
         }
+
         return summary;
     }
 
@@ -118,70 +128,99 @@ module CardModel {
                 var kind = session.getKind(entityId);
                 var reading = session.getReading(entityId);
                 var value = session.getReadingValue(entityId);
+                var unit = session.getReadingUnit(entityId);
+
                 if (kind == null || reading == null || value == null) {
                     continue;
                 }
 
-                if (!readingsByKind.hasKey(kind as String)) {
-                    readingsByKind.put(kind as String, [] as Array<Dictionary>);
-                    kindOrder.add(kind as String);
+                if (!readingsByKind.hasKey(kind)) {
+                    readingsByKind.put(kind, [] as Array<Dictionary>);
+                    kindOrder.add(kind);
                 }
-                (readingsByKind.get(kind as String) as Array<Dictionary>).add({
-                    :value => value as Float,
-                    :display => reading as String
+
+                (readingsByKind.get(kind) as Array<Dictionary>).add({
+                    :value => value,
+                    :display => reading,
+                    :unit => unit
                 });
             }
         }
 
         var summary = [] as Array<Dictionary>;
+
         for (var index = 0; index < kindOrder.size(); index++) {
             var kind = kindOrder[index];
             var range = buildRange(readingsByKind.get(kind) as Array<Dictionary>);
-            if (range != null) {
-                summary.add({ :kind => kind, :range => range as String });
-            }
-        }
-        return summary;
-    }
 
-    // The min-max range across a kind's readings, using the parsed numeric value
-    // for comparison and the HA display string for the visible precision.
-    function buildRange(readings as Array<Dictionary>) as String or Null {
-        var minValue = null as Float or Null;
-        var maxValue = null as Float or Null;
-        var minText = "";
-        var maxText = "";
-
-        for (var index = 0; index < readings.size(); index++) {
-            var reading = readings[index];
-            var numericValue = reading.get(:value) as Float or Null;
-            var display = reading.get(:display) as String or Null;
-            if (numericValue == null || display == null) {
+            if (range == null) {
                 continue;
             }
 
-            if (minValue == null || numericValue < (minValue as Float)) {
-                minValue = numericValue;
-                minText = display as String;
-            }
-            if (maxValue == null || numericValue >= (maxValue as Float)) {
-                maxValue = numericValue;
-                maxText = display as String;
+            summary.add({
+                :kind => kind,
+                :range => range
+            });
+        }
+
+        return summary;
+    }
+
+    function stripUnit(display as String, unit as String or Null) as String {
+        if (unit == null || unit.length() == 0) {
+            return display;
+        }
+
+        var unitPosition = display.find(unit);
+
+        if (unitPosition == null || unitPosition <= 0) {
+            return display;
+        }
+
+        // Skip trailing space if present
+        if (unitPosition > 0) {
+            var char = display.substring(unitPosition - 1, unitPosition);
+            if (char != null && char.equals(" ")) {
+                unitPosition = unitPosition - 1;
             }
         }
 
-        if (minValue == null) {
+        if (unitPosition > 0) {
+            return (display.substring(0, unitPosition) as String);
+        }
+
+        return display;
+    }
+
+    function buildRange(readings as Array<Dictionary>) as String or Null {
+        if (readings.size() == 0) {
             return null;
         }
 
-        if ((minValue as Float) != (maxValue as Float)) {
-            var minDisplay = minText as String;
-            var spaceIndex = minDisplay.find(" ") as Number or Null;
-            if (spaceIndex != null && (spaceIndex as Number) >= 0) {
-                minDisplay = minDisplay.substring(0, spaceIndex as Number);
+        // TODO we could just sort readings array and take first/last
+
+        var minReading = readings[0];
+        var maxReading = readings[0];
+
+        var rangeString = maxReading.get(:display) as String;
+
+        for (var i = 0; i < readings.size(); i++) {
+            var value = readings[i].get(:value) as Float;
+
+            if (value < minReading.get(:value) as Float) {
+                minReading = readings[i];
             }
-            return minDisplay + "–" + maxText;
+
+            if (value > maxReading.get(:value) as Float) {
+                maxReading = readings[i];
+            }
         }
-        return maxText;
+
+        if (minReading.get(:value) as Float != maxReading.get(:value) as Float) {
+            var minValue = stripUnit(minReading.get(:display) as String, minReading.get(:unit) as String or Null);
+            rangeString = minValue + "–" + rangeString;
+        }
+
+        return rangeString;
     }
 }
