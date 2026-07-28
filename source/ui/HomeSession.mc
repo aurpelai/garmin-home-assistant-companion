@@ -46,6 +46,15 @@ class HomeSession {
         return _state.getReading(entityId);
     }
 
+    // A sensor's device_class, null when the payload carries no kind for the id.
+    function getKind(entityId as String) as String or Null {
+        return _state.getKind(entityId);
+    }
+
+    function groupedFloors() as Array<Dictionary> {
+        return _state.groupedFloors();
+    }
+
     function isGroup(entityId as String) as Boolean {
         return _state.isGroup(entityId);
     }

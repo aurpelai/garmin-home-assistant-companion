@@ -24,7 +24,9 @@ class HaClient {
     //           "groups":    { lightId: memberCount },
     //           "readings":  { sensorId: "24.6 °C" },
     //           "names":     { entityId: "Display Name" },
-    //           "available": { entityId: bool } }.
+    //           "available": { entityId: bool },
+    //           "floors":    [ { "name": "Upstairs", "areas": ["Kitchen", ...] }, ... ],
+    //           "kinds":     { sensorId: "temperature" } }.
     //
     // Deliberately backslash-free: we filter entities with `.startswith(...)`
     // instead of a regex like select('match','^light\.'). A backslash in this
@@ -35,7 +37,7 @@ class HaClient {
     // and are thus excluded without a rule of their own.
     private const HOME_STATE_TEMPLATE =
         "{% set ns = namespace(lightsByArea={}, sensorsByArea={}, states={}, names={}, " +
-            "groups={}, available={}, readings={}, lights=[], sensors=[]) %}" +
+            "groups={}, available={}, readings={}, kinds={}, lights=[], sensors=[], floors=[]) %}" +
         "{% for a in areas() %}" +
 
         // Hidden entities are rejected once, here, so every walk below inherits
@@ -94,20 +96,34 @@ class HaClient {
         "{% set ns.names = dict(ns.names, **{e: states[e].name}) %}" +
         "{% set ns.available = dict(ns.available, " +
             "**{e: not is_state(e, 'unavailable') and not is_state(e, 'unknown')}) %}" +
+        "{% set ns.kinds = dict(ns.kinds, **{e: kind}) %}" +
         "{% endif %}" +
         "{% endfor %}" +
         "{% endfor %}" +
 
-        // One visible entity of either kind is enough to emit the area, so a
-        // sensor-only area appears carrying an empty light list.
+        // Emit the area only if it holds at least one entity we support (a
+        // light or a sensor). An area whose only entities are kinds this version
+        // doesn't render (e.g. a garage of car entities) is left out entirely.
         "{% if ns.lights or ns.sensors %}" +
         "{% set ns.lightsByArea = dict(ns.lightsByArea, **{area_name(a): ns.lights}) %}" +
         "{% set ns.sensorsByArea = dict(ns.sensorsByArea, **{area_name(a): ns.sensors}) %}" +
         "{% endif %}" +
         "{% endfor %}" +
+
+        // Floors are independent of the area loop above: HA exposes them via
+        // their own floors()/floor_areas() functions, in floors()'s own order
+        // (never re-sorted here — HomeState groups on-device).
+        // floorList lives on the namespace: a plain `{% set %}` inside the for
+        // loop would be scoped to the iteration and never escape, leaving floors
+        // empty (Jinja's loop-scoping trap).
+        "{% for f in floors() %}" +
+        "{% set floorAreas = floor_areas(f) | map('area_name') | list %}" +
+        "{% set ns.floors = ns.floors + [dict(name=floor_name(f), areas=floorAreas)] %}" +
+        "{% endfor %}" +
+
         "{{ dict(areas=ns.lightsByArea, sensors=ns.sensorsByArea, states=ns.states, " +
             "groups=ns.groups, readings=ns.readings, names=ns.names, " +
-            "available=ns.available) | tojson }}";
+            "available=ns.available, floors=ns.floors, kinds=ns.kinds) | tojson }}";
 
     function initialize() {}
 
