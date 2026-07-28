@@ -35,8 +35,8 @@ module CardModel {
             :name => name,
             :floor => floorName,
             :selectable => true,
-            :lightSummary => areaLightSummary(session, name),
-            :sensorSummary => areaSensorSummary(session, name)
+            :lightSummary => buildAreaLightSummary(session, name),
+            :sensorSummary => buildAreaSensorSummary(session, name)
         };
     }
 
@@ -46,15 +46,13 @@ module CardModel {
             :type => :floor,
             :name => name,
             :selectable => false,
-            :sensorSummary => floorSensorSummary(session, areaNames)
+            :sensorSummary => buildFloorSensorSummary(session, areaNames)
         };
     }
 
     // Counts individual lights that are on, skipping group entities — HA marks
     // a group on when any member is on, so counting groups would double-count.
-    // Null when the area has no individual lights, so the card omits the row
-    // rather than showing "0 lights on".
-    function areaLightSummary(session as HomeSession, name as String) as String or Null {
+    function buildAreaLightSummary(session as HomeSession, name as String) as String or Null {
         var lights = session.listLightsInArea(name);
         var lightCount = 0;
         var onCount = 0;
@@ -82,7 +80,7 @@ module CardModel {
     // its kind is first encountered (the template already groups sensors by
     // kind). A sensor with no reading is skipped so a later same-kind sensor can
     // fill the kind. One entry per kind: { :kind => String, :reading => String }.
-    function areaSensorSummary(session as HomeSession, name as String) as Array<Dictionary> {
+    function buildAreaSensorSummary(session as HomeSession, name as String) as Array<Dictionary> {
         var sensors = session.listSensorsInArea(name);
         var seenKinds = {} as Dictionary<String, Boolean>;
         var summary = [] as Array<Dictionary>;
@@ -106,13 +104,12 @@ module CardModel {
     }
 
     // A min-max range per kind across every sensor of that kind in the floor's
-    // areas, collapsing to a single value when the ends are equal. A reading
-    // that String.toFloat() can't parse a leading number from is skipped; a
-    // kind with nothing left to range over is omitted entirely. One entry per
-    // kind: { :kind => String, :range => String }.
-    function floorSensorSummary(session as HomeSession, areaNames as Array<String>) as Array<Dictionary> {
+    // areas, collapsing to a single value when the ends are equal. Readings with
+    // no numeric value are skipped; a kind with nothing left to range over is
+    // omitted entirely. One entry per kind: { :kind => String, :range => String }.
+    function buildFloorSensorSummary(session as HomeSession, areaNames as Array<String>) as Array<Dictionary> {
         var kindOrder = [] as Array<String>;
-        var readingsByKind = {} as Dictionary<String, Array<String> >;
+        var readingsByKind = {} as Dictionary<String, Array<Dictionary> >;
 
         for (var areaIndex = 0; areaIndex < areaNames.size(); areaIndex++) {
             var sensors = session.listSensorsInArea(areaNames[areaIndex]);
@@ -120,22 +117,26 @@ module CardModel {
                 var entityId = sensors[sensorIndex];
                 var kind = session.getKind(entityId);
                 var reading = session.getReading(entityId);
-                if (kind == null || reading == null) {
+                var value = session.getReadingValue(entityId);
+                if (kind == null || reading == null || value == null) {
                     continue;
                 }
 
                 if (!readingsByKind.hasKey(kind as String)) {
-                    readingsByKind.put(kind as String, [] as Array<String>);
+                    readingsByKind.put(kind as String, [] as Array<Dictionary>);
                     kindOrder.add(kind as String);
                 }
-                (readingsByKind.get(kind as String) as Array<String>).add(reading as String);
+                (readingsByKind.get(kind as String) as Array<Dictionary>).add({
+                    :value => value as Float,
+                    :display => reading as String
+                });
             }
         }
 
         var summary = [] as Array<Dictionary>;
         for (var index = 0; index < kindOrder.size(); index++) {
             var kind = kindOrder[index];
-            var range = rangeOf(readingsByKind.get(kind) as Array<String>);
+            var range = buildRange(readingsByKind.get(kind) as Array<Dictionary>);
             if (range != null) {
                 summary.add({ :kind => kind, :range => range as String });
             }
@@ -143,68 +144,44 @@ module CardModel {
         return summary;
     }
 
-    // The min-max range across a kind's readings, formatted with the unit
-    // suffix of the reading that produced the max (min and max share a unit in
-    // practice — every reading of a kind comes from the same HA formatter).
-    // Unparseable readings (toFloat() == null) are skipped; null when none
-    // parse. Collapses to a single value when min == max.
-    function rangeOf(readings as Array<String>) as String or Null {
+    // The min-max range across a kind's readings, using the parsed numeric value
+    // for comparison and the HA display string for the visible precision.
+    function buildRange(readings as Array<Dictionary>) as String or Null {
         var minValue = null as Float or Null;
         var maxValue = null as Float or Null;
-        var maxSuffix = "";
+        var minText = "";
+        var maxText = "";
 
         for (var index = 0; index < readings.size(); index++) {
             var reading = readings[index];
-            var value = reading.toFloat();
-            if (value == null) {
+            var numericValue = reading.get(:value) as Float or Null;
+            var display = reading.get(:display) as String or Null;
+            if (numericValue == null || display == null) {
                 continue;
             }
 
-            var numericValue = value as Float;
             if (minValue == null || numericValue < (minValue as Float)) {
                 minValue = numericValue;
+                minText = display as String;
             }
             if (maxValue == null || numericValue >= (maxValue as Float)) {
                 maxValue = numericValue;
-                maxSuffix = suffixOf(reading, numericValue);
+                maxText = display as String;
             }
         }
 
         if (minValue == null) {
             return null;
         }
-        if ((minValue as Float) == (maxValue as Float)) {
-            return formatNumber(minValue as Float) + maxSuffix;
-        }
-        return formatNumber(minValue as Float) + "–" + formatNumber(maxValue as Float) + maxSuffix;
-    }
 
-    // Whatever HA appended after the leading number toFloat() consumed (e.g.
-    // " °C" out of "24.6 °C"), found by stripping the parsed value's own
-    // rendering off the front of the reading. Falls back to the raw reading
-    // (minus nothing) only if the value re-renders differently than HA's
-    // formatting — in practice HA's leading-number text always matches.
-    function suffixOf(reading as String, value as Float) as String {
-        // Longer, more specific candidate first: "23.0" must be tried before
-        // "23", or the bare integer would match as a false-positive prefix of
-        // "23.0 °C" and leave ".0" stuck onto the suffix.
-        var candidates = [value.format("%.1f"), value.toNumber() + ""] as Array<String>;
-        for (var index = 0; index < candidates.size(); index++) {
-            var prefix = candidates[index];
-            if (reading.length() >= prefix.length() &&
-                    (reading.substring(0, prefix.length()) as String).equals(prefix)) {
-                return reading.substring(prefix.length(), reading.length()) as String;
+        if ((minValue as Float) != (maxValue as Float)) {
+            var minDisplay = minText as String;
+            var spaceIndex = minDisplay.find(" ") as Number or Null;
+            if (spaceIndex != null && (spaceIndex as Number) >= 0) {
+                minDisplay = minDisplay.substring(0, spaceIndex as Number);
             }
+            return minDisplay + "–" + maxText;
         }
-        return "";
-    }
-
-    // Trims a trailing ".0" so a whole-number range reads "19" rather than
-    // "19.0", while a genuine fraction like "19.5" is preserved.
-    function formatNumber(value as Float) as String {
-        if (value == value.toNumber()) {
-            return value.toNumber() + "";
-        }
-        return value.format("%.1f");
+        return maxText;
     }
 }
