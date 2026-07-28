@@ -560,7 +560,7 @@ function malformedKindsSectionYieldsNoKinds(logger as Test.Logger) as Boolean {
 }
 
 (:test)
-function groupedFloorsPreservesFloorsKeyOrder(logger as Test.Logger) as Boolean {
+function buildFloorGroupsPreservesFloorsKeyOrder(logger as Test.Logger) as Boolean {
     // Floors must come out in input order, never re-sorted, even though "Zeta"
     // sorts after "Attic" alphabetically.
     var data = {
@@ -571,7 +571,7 @@ function groupedFloorsPreservesFloorsKeyOrder(logger as Test.Logger) as Boolean 
             { "name" => "Attic", "areas" => ["Cellar"] }
         ]
     };
-    var grouped = HomeState.fromTemplateData(data).groupedFloors();
+    var grouped = HomeState.fromTemplateData(data).buildFloorGroups();
     Test.assertEqual(grouped.size(), 2);
     Test.assertEqual(grouped[0].get(:name) as String, "Zeta Floor");
     Test.assertEqual(grouped[1].get(:name) as String, "Attic");
@@ -579,7 +579,7 @@ function groupedFloorsPreservesFloorsKeyOrder(logger as Test.Logger) as Boolean 
 }
 
 (:test)
-function groupedFloorsSortsAreasAlphabeticallyWithinAFloor(logger as Test.Logger) as Boolean {
+function buildFloorGroupsSortsAreasAlphabeticallyWithinAFloor(logger as Test.Logger) as Boolean {
     var data = {
         "areas" => { "Zebra Room" => ["light.z"], "Alpha Room" => ["light.a"] },
         "states" => {},
@@ -587,7 +587,7 @@ function groupedFloorsSortsAreasAlphabeticallyWithinAFloor(logger as Test.Logger
             { "name" => "Upstairs", "areas" => ["Zebra Room", "Alpha Room"] }
         ]
     };
-    var grouped = HomeState.fromTemplateData(data).groupedFloors();
+    var grouped = HomeState.fromTemplateData(data).buildFloorGroups();
     Test.assertEqual(grouped.size(), 1);
     var floorAreas = grouped[0].get(:areas) as Array<String>;
     Test.assertEqual(floorAreas[0], "Alpha Room");
@@ -596,7 +596,7 @@ function groupedFloorsSortsAreasAlphabeticallyWithinAFloor(logger as Test.Logger
 }
 
 (:test)
-function groupedFloorsSurfacesUnflooredAreasAsTrailingBucket(logger as Test.Logger) as Boolean {
+function buildFloorGroupsSurfacesUnflooredAreasAsTrailingBucket(logger as Test.Logger) as Boolean {
     var data = {
         "areas" => { "Kitchen" => ["light.k"], "Garage" => ["light.g"], "Attic" => ["light.a"] },
         "states" => {},
@@ -604,7 +604,7 @@ function groupedFloorsSurfacesUnflooredAreasAsTrailingBucket(logger as Test.Logg
             { "name" => "Ground Floor", "areas" => ["Kitchen"] }
         ]
     };
-    var grouped = HomeState.fromTemplateData(data).groupedFloors();
+    var grouped = HomeState.fromTemplateData(data).buildFloorGroups();
     Test.assertEqual(grouped.size(), 2);
     Test.assertEqual(grouped[0].get(:name) as String, "Ground Floor");
     Test.assertEqual((grouped[0].get(:areas) as Array<String>)[0], "Kitchen");
@@ -618,7 +618,7 @@ function groupedFloorsSurfacesUnflooredAreasAsTrailingBucket(logger as Test.Logg
 }
 
 (:test)
-function groupedFloorsDropsAFloorWhoseAreasAllHaveNoEntities(logger as Test.Logger) as Boolean {
+function buildFloorGroupsDropsAFloorWhoseAreasAllHaveNoEntities(logger as Test.Logger) as Boolean {
     var data = {
         "areas" => { "Kitchen" => ["light.k"] },
         "states" => {},
@@ -627,19 +627,19 @@ function groupedFloorsDropsAFloorWhoseAreasAllHaveNoEntities(logger as Test.Logg
             { "name" => "Empty Floor", "areas" => ["Basement"] }
         ]
     };
-    var grouped = HomeState.fromTemplateData(data).groupedFloors();
+    var grouped = HomeState.fromTemplateData(data).buildFloorGroups();
     Test.assertEqual(grouped.size(), 1);
     Test.assertEqual(grouped[0].get(:name) as String, "Ground Floor");
     return true;
 }
 
 (:test)
-function groupedFloorsIsFlatAlphabeticalWhenNoFloors(logger as Test.Logger) as Boolean {
+function buildFloorGroupsIsFlatAlphabeticalWhenNoFloors(logger as Test.Logger) as Boolean {
     var data = {
         "areas" => { "Zebra Room" => ["light.z"], "Alpha Room" => ["light.a"] },
         "states" => {}
     };
-    var grouped = HomeState.fromTemplateData(data).groupedFloors();
+    var grouped = HomeState.fromTemplateData(data).buildFloorGroups();
     Test.assertEqual(grouped.size(), 1);
     Test.assert(grouped[0].get(:name) == null);
     var areasOut = grouped[0].get(:areas) as Array<String>;
@@ -650,9 +650,9 @@ function groupedFloorsIsFlatAlphabeticalWhenNoFloors(logger as Test.Logger) as B
 }
 
 (:test)
-function groupedFloorsIsEmptyWhenNoAreas(logger as Test.Logger) as Boolean {
+function buildFloorGroupsIsEmptyWhenNoAreas(logger as Test.Logger) as Boolean {
     var data = { "areas" => {} as Dictionary, "states" => {} };
-    Test.assertEqual(HomeState.fromTemplateData(data).groupedFloors().size(), 0);
+    Test.assertEqual(HomeState.fromTemplateData(data).buildFloorGroups().size(), 0);
     return true;
 }
 
@@ -663,7 +663,7 @@ function malformedFloorsSectionDegradesToUnflooredList(logger as Test.Logger) as
         "states" => {},
         "floors" => "nope"
     };
-    var grouped = HomeState.fromTemplateData(data).groupedFloors();
+    var grouped = HomeState.fromTemplateData(data).buildFloorGroups();
     Test.assertEqual(grouped.size(), 1);
     Test.assert(grouped[0].get(:name) == null);
     Test.assertEqual((grouped[0].get(:areas) as Array<String>)[0], "Hall");

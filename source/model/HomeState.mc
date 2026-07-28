@@ -2,7 +2,7 @@ import Toybox.Lang;
 
 // Pure data + parsing layer. No networking, no UI — this is the unit-tested core.
 //
-// The combined HA /api/template call returns a JSON object with nine keys:
+// The combined HA /api/template call returns a JSON object with the following keys:
 //   { "areas":     { areaName: [entityId, ...], ... },
 //     "sensors":   { areaName: [entityId, ...], ... },
 //     "states":    { entityId: true|false, ... },
@@ -73,7 +73,7 @@ class HomeState {
 
     // Build from the already-JSON-parsed body of the combined /api/template
     // response. `data` is what Communications hands the callback for a JSON
-    // response: the nine-key { "areas" => ..., "sensors" => ..., "states" => ...,
+    // response: the { "areas" => ..., "sensors" => ..., "states" => ...,
     // "names" => ..., "groups" => ..., "readings" => ..., "available" => ...,
     // "floors" => ..., "kinds" => ... } Dictionary. Each section parses
     // defensively; a missing or malformed body yields an empty HomeState.
@@ -174,7 +174,7 @@ class HomeState {
     // a home with no areas at all yields an empty array.
     //
     // Each entry is { :name => String or Null, :areas => Array<String> }.
-    function groupedFloors() as Array<Dictionary> {
+    function buildFloorGroups() as Array<Dictionary> {
         var floored = {} as Dictionary<String, Boolean>;
         var out = [] as Array<Dictionary>;
 

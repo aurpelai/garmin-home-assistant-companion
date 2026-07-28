@@ -51,8 +51,8 @@ class HomeSession {
         return _state.getKind(entityId);
     }
 
-    function groupedFloors() as Array<Dictionary> {
-        return _state.groupedFloors();
+    function buildFloorGroups() as Array<Dictionary> {
+        return _state.buildFloorGroups();
     }
 
     function isGroup(entityId as String) as Boolean {
