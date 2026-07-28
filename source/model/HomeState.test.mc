@@ -399,9 +399,12 @@ function readingsAreExposedAsSentByServer(logger as Test.Logger) as Boolean {
         "areas" => { "Hall" => [] as Array<String> },
         "sensors" => { "Hall" => ["sensor.temp"] },
         "states" => {},
-        "readings" => { "sensor.temp" => "24.6 C" }
+        "readings" => { "sensor.temp" => { "value" => 24.58, "display" => "24.6 C", "unit" => "C" } }
     };
-    Test.assertEqual(HomeState.fromTemplateData(data).getReading("sensor.temp") as String, "24.6 C");
+    var state = HomeState.fromTemplateData(data);
+    Test.assertEqual(state.getReading("sensor.temp") as String, "24.6 C");
+    Test.assertEqual(state.getReadingValue("sensor.temp") as Float, 24.58);
+    Test.assertEqual(state.getReadingUnit("sensor.temp") as String, "C");
     return true;
 }
 
@@ -504,14 +507,19 @@ function malformedReadingsSectionYieldsNoReadings(logger as Test.Logger) as Bool
     };
     Test.assert(HomeState.fromTemplateData(nonDictionary).getReading("sensor.temp") == null);
 
-    var nonStringValues = {
+    var malformedEntries = {
         "areas" => { "Hall" => [] as Array<String> },
-        "sensors" => { "Hall" => ["sensor.numeric", "sensor.temp"] },
+        "sensors" => { "Hall" => ["sensor.bare", "sensor.nodisplay", "sensor.temp"] },
         "states" => {},
-        "readings" => { "sensor.numeric" => 24, "sensor.temp" => "24.6 C" }
+        "readings" => {
+            "sensor.bare" => "24.6 C",
+            "sensor.nodisplay" => { "value" => 24.6, "unit" => "C" },
+            "sensor.temp" => { "value" => 24.58, "display" => "24.6 C", "unit" => "C" }
+        }
     };
-    var state = HomeState.fromTemplateData(nonStringValues);
-    Test.assert(state.getReading("sensor.numeric") == null);
+    var state = HomeState.fromTemplateData(malformedEntries);
+    Test.assert(state.getReading("sensor.bare") == null);
+    Test.assert(state.getReading("sensor.nodisplay") == null);
     Test.assertEqual(state.getReading("sensor.temp") as String, "24.6 C");
     return true;
 }
@@ -522,7 +530,7 @@ function sensorMissingFromReadingsHasNoReading(logger as Test.Logger) as Boolean
         "areas" => { "Hall" => [] as Array<String> },
         "sensors" => { "Hall" => ["sensor.temp", "sensor.unread"] },
         "states" => {},
-        "readings" => { "sensor.temp" => "24.6 C" }
+        "readings" => { "sensor.temp" => { "value" => 24.58, "display" => "24.6 C", "unit" => "C" } }
     };
     Test.assert(HomeState.fromTemplateData(data).getReading("sensor.unread") == null);
     return true;

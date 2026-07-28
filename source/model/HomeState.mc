@@ -20,8 +20,9 @@ import Toybox.Lang;
 // member count map (a light id present in that map is a light group, used
 // to order groups ahead of plain lights in the light list; its value is
 // how many lights the group controls), parsing the readings section into an
-// entity_id -> String map (each sensor's value as Home Assistant formatted it),
-// parsing the available section into an entity_id -> Boolean map, parsing the
+// entity_id -> { value, display, unit } map (the raw number for comparison, HA's
+// formatted string for display, and the unit), parsing the available section
+// into an entity_id -> Boolean map, parsing the
 // floors section into an ordered list of { name, areas } (HA's own floors()
 // order, never re-sorted), and parsing the kinds section into an entity_id ->
 // device_class String map (temperature/humidity/illuminance).
@@ -45,8 +46,9 @@ class HomeState {
     // Parallel to states, deliberately not folded into it: on/off and
     // availability are independent facts about a light.
     private var available as Dictionary<String, Boolean>;
-    // entity_id -> the sensor's value as HA formatted it, unit included.
-    private var readings as Dictionary<String, String>;
+    // entity_id -> { :value => Float (raw, for comparison), :display => String
+    // (HA's formatted string, its own precision + unit), :unit => String }.
+    private var readings as Dictionary<String, Dictionary>;
     // Ordered as HA's floors() returns them: Array of
     // { :name => String, :areas => Array<String> } (area names, HA's own order).
     private var floors as Array<Dictionary>;
@@ -58,7 +60,7 @@ class HomeState {
                         names as Dictionary<String, String>,
                         groups as Dictionary<String, Number>,
                         available as Dictionary<String, Boolean>,
-                        readings as Dictionary<String, String>,
+                        readings as Dictionary<String, Dictionary>,
                         floors as Array<Dictionary>,
                         kinds as Dictionary<String, String>) {
         self.areas = areas;
@@ -81,7 +83,7 @@ class HomeState {
         if (!(data instanceof Dictionary)) {
             return new HomeState([] as Array<Dictionary>, {} as Dictionary<String, Boolean>,
                                      {} as Dictionary<String, String>, {} as Dictionary<String, Number>,
-                                     {} as Dictionary<String, Boolean>, {} as Dictionary<String, String>,
+                                     {} as Dictionary<String, Boolean>, {} as Dictionary<String, Dictionary>,
                                      [] as Array<Dictionary>, {} as Dictionary<String, String>);
         }
         var body = data as Dictionary;
@@ -89,7 +91,7 @@ class HomeState {
                                  parseBooleanMap(body.get("states")),
                                  parseStringMap(body.get("names")), parseGroups(body.get("groups")),
                                  parseBooleanMap(body.get("available")),
-                                 parseStringMap(body.get("readings")),
+                                 parseReadings(body.get("readings")),
                                  parseFloors(body.get("floors")),
                                  parseStringMap(body.get("kinds")));
     }
@@ -111,10 +113,26 @@ class HomeState {
         return (value == null) ? true : (value as Boolean);
     }
 
-    // A sensor's value as HA formatted it, or null when the payload carries no
-    // reading for the id — which the row renders as unavailable.
+    // A sensor's value as HA formatted it (its own precision and unit), or null
+    // when the payload carries no reading for the id — which the row renders as
+    // unavailable.
     function getReading(entityId as String) as String or Null {
-        return readings.get(entityId);
+        var reading = readings.get(entityId);
+        return (reading == null) ? null : (reading as Dictionary).get(:display) as String or Null;
+    }
+
+    // A sensor's raw numeric value, for comparison (ranges). Null when the
+    // payload carries no reading for the id.
+    function getReadingValue(entityId as String) as Float or Null {
+        var reading = readings.get(entityId);
+        return (reading == null) ? null : (reading as Dictionary).get(:value) as Float or Null;
+    }
+
+    // A sensor's unit, for composing a range that shows the unit once. Null when
+    // the payload carries no reading for the id.
+    function getReadingUnit(entityId as String) as String or Null {
+        var reading = readings.get(entityId);
+        return (reading == null) ? null : (reading as Dictionary).get(:unit) as String or Null;
     }
 
     // A sensor's device_class ("temperature"/"humidity"/"illuminance"), or null
@@ -368,7 +386,7 @@ class HomeState {
         return out;
     }
 
-    // The "names" and "readings" sections, both { entityId: text } -> an
+    // The "names" and "kinds" sections, both { entityId: text } -> an
     // entity_id -> String map, dropping non-String keys and non-String values.
     private static function parseStringMap(raw as Object or Null) as Dictionary<String, String> {
         var out = {} as Dictionary<String, String>;
@@ -383,6 +401,38 @@ class HomeState {
             if (entityId instanceof String && value instanceof String) {
                 out.put(entityId as String, value as String);
             }
+        }
+        return out;
+    }
+
+    // The "readings" section: { entityId: { value, display, unit } } -> an
+    // entity_id -> { :value => Float, :display => String, :unit => String } map.
+    // An entry is kept only when it carries a String display (the row's text);
+    // value defaults to 0.0 and unit to "" when absent or the wrong type.
+    private static function parseReadings(raw as Object or Null) as Dictionary<String, Dictionary> {
+        var out = {} as Dictionary<String, Dictionary>;
+        if (!(raw instanceof Dictionary)) {
+            return out;
+        }
+        var section = raw as Dictionary;
+        var entityIds = section.keys();
+        for (var index = 0; index < entityIds.size(); index++) {
+            var entityId = entityIds[index];
+            var entry = section.get(entityId);
+            if (!(entityId instanceof String) || !(entry instanceof Dictionary)) {
+                continue;
+            }
+            var display = (entry as Dictionary).get("display");
+            if (!(display instanceof String)) {
+                continue;
+            }
+            var value = (entry as Dictionary).get("value");
+            var unit = (entry as Dictionary).get("unit");
+            out.put(entityId as String, {
+                :value => (value instanceof Float || value instanceof Number) ? (value as Number).toFloat() : 0.0,
+                :display => display as String,
+                :unit => (unit instanceof String) ? unit as String : ""
+            });
         }
         return out;
     }

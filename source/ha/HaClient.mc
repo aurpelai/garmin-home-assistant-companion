@@ -22,7 +22,7 @@ class HaClient {
     //           "sensors":   { areaName: [sensorId, ...] },
     //           "states":    { lightId: bool },
     //           "groups":    { lightId: memberCount },
-    //           "readings":  { sensorId: "24.6 °C" },
+    //           "readings":  { sensorId: { value: 24.58, display: "24.6 °C", unit: "°C" } },
     //           "names":     { entityId: "Display Name" },
     //           "available": { entityId: bool },
     //           "floors":    [ { "name": "Upstairs", "areas": ["Kitchen", ...] }, ... ],
@@ -92,7 +92,9 @@ class HaClient {
         "{% for e in visible %}" +
         "{% if e.startswith('sensor.') and state_attr(e, 'device_class') == kind %}" +
         "{% set ns.sensors = ns.sensors + [e] %}" +
-        "{% set ns.readings = dict(ns.readings, **{e: states(e, true, true)}) %}" +
+        "{% set ns.readings = dict(ns.readings, **{e: dict(" +
+            "value=states(e) | float, display=states(e, true, true), " +
+            "unit=state_attr(e, 'unit_of_measurement'))}) %}" +
         "{% set ns.names = dict(ns.names, **{e: states[e].name}) %}" +
         "{% set ns.available = dict(ns.available, " +
             "**{e: not is_state(e, 'unavailable') and not is_state(e, 'unknown')}) %}" +
