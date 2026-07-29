@@ -45,15 +45,7 @@ class CardLoopView extends WatchUi.View {
         WatchUi.requestUpdate();
     }
 
-    function cardCount() as Number {
-        return _cards.size();
-    }
-
-    function currentIndex() as Number {
-        return _index;
-    }
-
-    function currentCard() as Dictionary or Null {
+    function getCurrentCard() as Dictionary or Null {
         if (_index < 0 || _index >= _cards.size()) {
             return null;
         }
@@ -64,12 +56,18 @@ class CardLoopView extends WatchUi.View {
         if (_index < _cards.size() - 1) {
             _index++;
             WatchUi.requestUpdate();
+        } else {
+            _index = 0;
+            WatchUi.requestUpdate();
         }
     }
 
     function showPrevious() as Void {
         if (_index > 0) {
             _index--;
+            WatchUi.requestUpdate();
+        } else {
+            _index = _cards.size() - 1;
             WatchUi.requestUpdate();
         }
     }
@@ -78,7 +76,7 @@ class CardLoopView extends WatchUi.View {
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
         dc.clear();
 
-        var card = currentCard();
+        var card = getCurrentCard();
         if (card == null) {
             CenteredMessage.draw(dc, WatchUi.loadResource(Rez.Strings.NoEntitiesInAnyArea) as String);
             return;
@@ -165,7 +163,7 @@ class CardLoopDelegate extends WatchUi.BehaviorDelegate {
     }
 
     function onSelect() as Boolean {
-        var card = _view.currentCard();
+        var card = _view.getCurrentCard();
         if (card == null || !(card.get(:selectable) as Boolean)) {
             return true;
         }

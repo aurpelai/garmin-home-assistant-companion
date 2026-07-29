@@ -18,26 +18,31 @@ module CardLoopViewTest {
 }
 
 (:test)
-function pagingMovesThroughTheSequenceAndStopsAtBothEnds(logger as Test.Logger) as Boolean {
+function pagingMovesThroughTheSequenceAndWrapsAtBothEnds(logger as Test.Logger) as Boolean {
     var session = CardLoopViewTest.sessionOf({
         "areas" => { "Kitchen" => ["light.kitchen"], "Hallway" => ["light.hallway"] },
         "states" => {},
         "floors" => [{ "name" => "Ground Floor", "areas" => ["Hallway", "Kitchen"] }]
     });
     var view = new CardLoopView(session);
-    view.redraw();
 
-    Test.assertEqual(view.cardCount(), 3);
-    Test.assertEqual(view.currentIndex(), 0);
+    view.redraw();
+    Test.assertEqual((view.getCurrentCard() as Dictionary).get(:name) as String, "Ground Floor");
 
     view.showPrevious();
-    Test.assertEqual(view.currentIndex(), 0);
+    Test.assertEqual((view.getCurrentCard() as Dictionary).get(:name) as String, "Kitchen");
 
     view.showNext();
-    view.showNext();
-    Test.assertEqual(view.currentIndex(), 2);
+    Test.assertEqual((view.getCurrentCard() as Dictionary).get(:name) as String, "Ground Floor");
 
     view.showNext();
-    Test.assertEqual(view.currentIndex(), 2);
+    Test.assertEqual((view.getCurrentCard() as Dictionary).get(:name) as String, "Hallway");
+
+    view.showNext();
+    Test.assertEqual((view.getCurrentCard() as Dictionary).get(:name) as String, "Kitchen");
+
+    view.showNext();
+    Test.assertEqual((view.getCurrentCard() as Dictionary).get(:name) as String, "Ground Floor");
+
     return true;
 }
