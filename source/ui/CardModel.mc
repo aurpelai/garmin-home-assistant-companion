@@ -5,6 +5,19 @@ import Toybox.WatchUi;
 // drawing; the view (CardLoopView) owns state, paging, and rendering.
 module CardModel {
 
+    class ReadingSorter {
+        function compare(a as Object, b as Object) as Number {
+            if (a instanceof Toybox.Lang.Dictionary && b instanceof Toybox.Lang.Dictionary) {
+                var aValue = a.get(:value) as Float;
+                var bValue = b.get(:value) as Float;
+
+                return aValue.compareTo(bValue);
+            }
+
+            return 0;
+        }
+    }
+
     // Walks the session's grouped floor structure into a flat card sequence:
     // for each floor group, a floor card (skipped when :name is null — the
     // trailing unfloored bucket has no header) followed by its area cards.
@@ -197,24 +210,12 @@ module CardModel {
             return null;
         }
 
-        // TODO we could just sort readings array and take first/last
+        var sortedReadings = readings;
+        sortedReadings.sort(new ReadingSorter());
 
-        var minReading = readings[0];
-        var maxReading = readings[0];
-
+        var minReading = sortedReadings[0];
+        var maxReading = sortedReadings[sortedReadings.size() - 1];
         var rangeString = maxReading.get(:display) as String;
-
-        for (var i = 0; i < readings.size(); i++) {
-            var value = readings[i].get(:value) as Float;
-
-            if (value < minReading.get(:value) as Float) {
-                minReading = readings[i];
-            }
-
-            if (value > maxReading.get(:value) as Float) {
-                maxReading = readings[i];
-            }
-        }
 
         if (minReading.get(:value) as Float != maxReading.get(:value) as Float) {
             var minValue = stripUnit(minReading.get(:display) as String, minReading.get(:unit) as String or Null);
