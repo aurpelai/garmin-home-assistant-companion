@@ -33,7 +33,7 @@ class LoadingView extends WatchUi.View {
         _started = true;
 
         if (!Settings.isConfigured()) {
-            showRetryScreen(Rez.Strings.ErrNoConfig);
+            showRetryScreen(Rez.Strings.ErrNoConfig, null);
             return;
         }
         setMessage(WatchUi.loadResource(Rez.Strings.LoadingAreas) as String);
@@ -45,13 +45,13 @@ class LoadingView extends WatchUi.View {
     // a null error.
     function onLoaded(state as HomeState or Null, error as Number or Null) as Void {
         if (error != null) {
-            showRetryScreen(resolveErrorMessage(error));
+            showRetryScreen(resolveErrorMessage(error), error);
             return;
         }
 
         var loaded = state as HomeState;
         if (loaded.isEmpty()) {
-            showRetryScreen(Rez.Strings.NoEntitiesInAnyArea);
+            showRetryScreen(Rez.Strings.NoEntitiesInAnyArea, null);
             return;
         }
 
@@ -76,8 +76,13 @@ class LoadingView extends WatchUi.View {
         CenteredMessage.draw(dc, _message);
     }
 
-    private function showRetryScreen(id as ResourceId) as Void {
+    private function showRetryScreen(id as ResourceId, code as Number or Null) as Void {
         var message = WatchUi.loadResource(id) as String;
+
+        if (code != null) {
+            message = WatchUi.loadResource(id) as String + "\n\n" + code;
+        }
+
         WatchUi.switchToView(new ErrorView(message), new ErrorDelegate(), WatchUi.SLIDE_IMMEDIATE);
     }
 
