@@ -11,7 +11,7 @@ import Toybox.WatchUi;
 // as plain area cards with no floor header.
 //
 // UP/DOWN page one card at a time (SWIPE_UP/SWIPE_DOWN do the same, for free,
-// via BehaviorDelegate's onNextPage/onPreviousPage); the loop does not wrap.
+// via BehaviorDelegate's onNextPage/onPreviousPage); the loop wraps at both ends.
 // START drills an area card into the existing EntityMenu; it is a no-op on a
 // floor card. BACK exits the loop.
 //
