@@ -46,6 +46,18 @@ class HomeSession {
         return _state.getReading(entityId);
     }
 
+    // A sensor's numeric value, null when the server sent none. Server truth
+    // only, like availability, so it reads straight from the HomeState.
+    function getReadingValue(entityId as String) as Float or Null {
+        return _state.getReadingValue(entityId);
+    }
+
+    // A sensor's unit of measurement, null when the server sent none. Server truth
+    // only, like availability, so it reads straight from the HomeState.
+    function getReadingUnit(entityId as String) as String or Null {
+        return _state.getReadingUnit(entityId);
+    }
+
     // A sensor's device_class, null when the payload carries no kind for the id.
     function getKind(entityId as String) as String or Null {
         return _state.getKind(entityId);
