@@ -77,6 +77,7 @@ class CardLoopView extends WatchUi.View {
         dc.clear();
 
         var card = getCurrentCard();
+
         if (card == null) {
             CenteredMessage.draw(dc, WatchUi.loadResource(Rez.Strings.NoEntitiesInAnyArea) as String);
             return;
@@ -132,20 +133,70 @@ class CardLoopView extends WatchUi.View {
     }
 
     private function drawPageDots(dc as Graphics.Dc) as Void {
+        var MAX_COUNT = 3;
+
         var count = _cards.size();
+
         if (count <= 1) {
             return;
         }
 
-        var radius = 3;
-        var spacing = radius * 3;
-        var x = radius * 2;
-        var top = (dc.getHeight() - (count - 1) * spacing) / 2;
+        var RADIUS = 4;
+        var SMALL_RADIUS = 2;
+        var RADIUS_DIFF = RADIUS - SMALL_RADIUS;
 
-        for (var index = 0; index < count; index++) {
-            dc.setColor(index == _index ? Graphics.COLOR_WHITE : Graphics.COLOR_DK_GRAY,
-                Graphics.COLOR_TRANSPARENT);
-            dc.fillCircle(x, top + index * spacing, radius);
+        var SPACING = 18;
+        var x = 8;
+        var DELTA_X = 3;
+
+        var TOP = (dc.getHeight() - ((MAX_COUNT - 1) * SPACING)) / 2;
+
+        var loopStart = 0;
+        var loopCount = count;
+        var showStartMore = false;
+        var showEndMore = false;
+
+        if (count <= MAX_COUNT) {
+            loopStart = 0;
+            loopCount = count;
+        } else if (_index <= MAX_COUNT - 1) {
+            loopStart = 0;
+            loopCount = MAX_COUNT;
+            showEndMore = true;
+        } else if (_index >= count - MAX_COUNT) {
+            loopStart = count - MAX_COUNT;
+            loopCount = MAX_COUNT;
+            showStartMore = true;
+        } else {
+            loopStart = _index - (MAX_COUNT / 2);
+            loopCount = MAX_COUNT;
+        }
+
+        var middleIndex = loopCount / 2;
+        var moreOffset = (middleIndex + 1) * DELTA_X;
+
+        if (showStartMore) {
+            dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
+            dc.fillCircle(x + moreOffset + RADIUS_DIFF, TOP - SPACING, SMALL_RADIUS);
+        }
+
+        for (var index = 0; index < loopCount; index++) {
+            var pageIndex = loopStart + index;
+            var distanceFromMiddle = (index - middleIndex).abs();
+            var currentX = x + (distanceFromMiddle * DELTA_X);
+
+            if (pageIndex == _index) {
+                dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+                dc.fillCircle(currentX, TOP + index * SPACING, RADIUS);
+            } else {
+                dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
+                dc.drawCircle(currentX, TOP + index * SPACING, RADIUS);
+            }
+        }
+
+        if (showEndMore) {
+            dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
+            dc.fillCircle(x + moreOffset + RADIUS_DIFF, TOP + MAX_COUNT * SPACING, SMALL_RADIUS);
         }
     }
 }
