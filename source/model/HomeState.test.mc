@@ -399,9 +399,12 @@ function readingsAreExposedAsSentByServer(logger as Test.Logger) as Boolean {
         "areas" => { "Hall" => [] as Array<String> },
         "sensors" => { "Hall" => ["sensor.temp"] },
         "states" => {},
-        "readings" => { "sensor.temp" => "24.6 C" }
+        "readings" => { "sensor.temp" => { "value" => 24.58, "display" => "24.6 C", "unit" => "C" } }
     };
-    Test.assertEqual(HomeState.fromTemplateData(data).getReading("sensor.temp") as String, "24.6 C");
+    var state = HomeState.fromTemplateData(data);
+    Test.assertEqual(state.getReading("sensor.temp") as String, "24.6 C");
+    Test.assertEqual(state.getReadingValue("sensor.temp") as Float, 24.58);
+    Test.assertEqual(state.getReadingUnit("sensor.temp") as String, "C");
     return true;
 }
 
@@ -504,14 +507,19 @@ function malformedReadingsSectionYieldsNoReadings(logger as Test.Logger) as Bool
     };
     Test.assert(HomeState.fromTemplateData(nonDictionary).getReading("sensor.temp") == null);
 
-    var nonStringValues = {
+    var malformedEntries = {
         "areas" => { "Hall" => [] as Array<String> },
-        "sensors" => { "Hall" => ["sensor.numeric", "sensor.temp"] },
+        "sensors" => { "Hall" => ["sensor.bare", "sensor.nodisplay", "sensor.temp"] },
         "states" => {},
-        "readings" => { "sensor.numeric" => 24, "sensor.temp" => "24.6 C" }
+        "readings" => {
+            "sensor.bare" => "24.6 C",
+            "sensor.nodisplay" => { "value" => 24.6, "unit" => "C" },
+            "sensor.temp" => { "value" => 24.58, "display" => "24.6 C", "unit" => "C" }
+        }
     };
-    var state = HomeState.fromTemplateData(nonStringValues);
-    Test.assert(state.getReading("sensor.numeric") == null);
+    var state = HomeState.fromTemplateData(malformedEntries);
+    Test.assert(state.getReading("sensor.bare") == null);
+    Test.assert(state.getReading("sensor.nodisplay") == null);
     Test.assertEqual(state.getReading("sensor.temp") as String, "24.6 C");
     return true;
 }
@@ -522,8 +530,150 @@ function sensorMissingFromReadingsHasNoReading(logger as Test.Logger) as Boolean
         "areas" => { "Hall" => [] as Array<String> },
         "sensors" => { "Hall" => ["sensor.temp", "sensor.unread"] },
         "states" => {},
-        "readings" => { "sensor.temp" => "24.6 C" }
+        "readings" => { "sensor.temp" => { "value" => 24.58, "display" => "24.6 C", "unit" => "C" } }
     };
     Test.assert(HomeState.fromTemplateData(data).getReading("sensor.unread") == null);
+    return true;
+}
+
+(:test)
+function getKindReturnsThePayloadKind(logger as Test.Logger) as Boolean {
+    var data = {
+        "areas" => { "Hall" => [] as Array<String> },
+        "sensors" => { "Hall" => ["sensor.temp"] },
+        "states" => {},
+        "kinds" => { "sensor.temp" => "temperature" }
+    };
+    Test.assertEqual(HomeState.fromTemplateData(data).getKind("sensor.temp") as String, "temperature");
+    return true;
+}
+
+(:test)
+function getKindIsNullWhenMissing(logger as Test.Logger) as Boolean {
+    var data = { "areas" => { "Hall" => [] as Array<String> }, "states" => {} };
+    Test.assert(HomeState.fromTemplateData(data).getKind("sensor.unknown") == null);
+    return true;
+}
+
+(:test)
+function malformedKindsSectionYieldsNoKinds(logger as Test.Logger) as Boolean {
+    var data = {
+        "areas" => { "Hall" => [] as Array<String> },
+        "sensors" => { "Hall" => ["sensor.temp"] },
+        "states" => {},
+        "kinds" => "nope"
+    };
+    Test.assert(HomeState.fromTemplateData(data).getKind("sensor.temp") == null);
+    return true;
+}
+
+(:test)
+function buildFloorGroupsPreservesFloorsKeyOrder(logger as Test.Logger) as Boolean {
+    // Floors must come out in input order, never re-sorted, even though "Zeta"
+    // sorts after "Attic" alphabetically.
+    var data = {
+        "areas" => { "Loft" => ["light.loft"], "Cellar" => ["light.cellar"] },
+        "states" => {},
+        "floors" => [
+            { "name" => "Zeta Floor", "areas" => ["Loft"] },
+            { "name" => "Attic", "areas" => ["Cellar"] }
+        ]
+    };
+    var grouped = HomeState.fromTemplateData(data).buildFloorGroups();
+    Test.assertEqual(grouped.size(), 2);
+    Test.assertEqual(grouped[0].get(:name) as String, "Zeta Floor");
+    Test.assertEqual(grouped[1].get(:name) as String, "Attic");
+    return true;
+}
+
+(:test)
+function buildFloorGroupsSortsAreasAlphabeticallyWithinAFloor(logger as Test.Logger) as Boolean {
+    var data = {
+        "areas" => { "Zebra Room" => ["light.z"], "Alpha Room" => ["light.a"] },
+        "states" => {},
+        "floors" => [
+            { "name" => "Upstairs", "areas" => ["Zebra Room", "Alpha Room"] }
+        ]
+    };
+    var grouped = HomeState.fromTemplateData(data).buildFloorGroups();
+    Test.assertEqual(grouped.size(), 1);
+    var floorAreas = grouped[0].get(:areas) as Array<String>;
+    Test.assertEqual(floorAreas[0], "Alpha Room");
+    Test.assertEqual(floorAreas[1], "Zebra Room");
+    return true;
+}
+
+(:test)
+function buildFloorGroupsSurfacesUnflooredAreasAsTrailingBucket(logger as Test.Logger) as Boolean {
+    var data = {
+        "areas" => { "Kitchen" => ["light.k"], "Garage" => ["light.g"], "Attic" => ["light.a"] },
+        "states" => {},
+        "floors" => [
+            { "name" => "Ground Floor", "areas" => ["Kitchen"] }
+        ]
+    };
+    var grouped = HomeState.fromTemplateData(data).buildFloorGroups();
+    Test.assertEqual(grouped.size(), 2);
+    Test.assertEqual(grouped[0].get(:name) as String, "Ground Floor");
+    Test.assertEqual((grouped[0].get(:areas) as Array<String>)[0], "Kitchen");
+
+    Test.assert(grouped[1].get(:name) == null);
+    var unfloored = grouped[1].get(:areas) as Array<String>;
+    Test.assertEqual(unfloored.size(), 2);
+    Test.assertEqual(unfloored[0], "Attic");
+    Test.assertEqual(unfloored[1], "Garage");
+    return true;
+}
+
+(:test)
+function buildFloorGroupsDropsAFloorWhoseAreasAllHaveNoEntities(logger as Test.Logger) as Boolean {
+    var data = {
+        "areas" => { "Kitchen" => ["light.k"] },
+        "states" => {},
+        "floors" => [
+            { "name" => "Ground Floor", "areas" => ["Kitchen"] },
+            { "name" => "Empty Floor", "areas" => ["Basement"] }
+        ]
+    };
+    var grouped = HomeState.fromTemplateData(data).buildFloorGroups();
+    Test.assertEqual(grouped.size(), 1);
+    Test.assertEqual(grouped[0].get(:name) as String, "Ground Floor");
+    return true;
+}
+
+(:test)
+function buildFloorGroupsIsFlatAlphabeticalWhenNoFloors(logger as Test.Logger) as Boolean {
+    var data = {
+        "areas" => { "Zebra Room" => ["light.z"], "Alpha Room" => ["light.a"] },
+        "states" => {}
+    };
+    var grouped = HomeState.fromTemplateData(data).buildFloorGroups();
+    Test.assertEqual(grouped.size(), 1);
+    Test.assert(grouped[0].get(:name) == null);
+    var areasOut = grouped[0].get(:areas) as Array<String>;
+    Test.assertEqual(areasOut.size(), 2);
+    Test.assertEqual(areasOut[0], "Alpha Room");
+    Test.assertEqual(areasOut[1], "Zebra Room");
+    return true;
+}
+
+(:test)
+function buildFloorGroupsIsEmptyWhenNoAreas(logger as Test.Logger) as Boolean {
+    var data = { "areas" => {} as Dictionary, "states" => {} };
+    Test.assertEqual(HomeState.fromTemplateData(data).buildFloorGroups().size(), 0);
+    return true;
+}
+
+(:test)
+function malformedFloorsSectionDegradesToUnflooredList(logger as Test.Logger) as Boolean {
+    var data = {
+        "areas" => { "Hall" => ["light.hall"] },
+        "states" => {},
+        "floors" => "nope"
+    };
+    var grouped = HomeState.fromTemplateData(data).buildFloorGroups();
+    Test.assertEqual(grouped.size(), 1);
+    Test.assert(grouped[0].get(:name) == null);
+    Test.assertEqual((grouped[0].get(:areas) as Array<String>)[0], "Hall");
     return true;
 }

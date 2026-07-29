@@ -46,6 +46,15 @@ class HomeSession {
         return _state.getReading(entityId);
     }
 
+    // A sensor's device_class, null when the payload carries no kind for the id.
+    function getKind(entityId as String) as String or Null {
+        return _state.getKind(entityId);
+    }
+
+    function buildFloorGroups() as Array<Dictionary> {
+        return _state.buildFloorGroups();
+    }
+
     function isGroup(entityId as String) as Boolean {
         return _state.isGroup(entityId);
     }
@@ -57,7 +66,9 @@ class HomeSession {
     // An entity absent from the live state map reads as off.
     function isOn(entityId as String) as Boolean {
         var state = _states.get(entityId);
-        return (state == null) ? false : (state as Boolean);
+        return state == null
+            ? false
+            : state as Boolean;
     }
 
     // Availability is server truth only, never optimistically mutated, so it

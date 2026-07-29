@@ -154,8 +154,11 @@ function sensorRowsFollowLightRowsInSensorOrder(logger as Test.Logger) as Boolea
         "areas" => { "Room" => ["light.x"] },
         "sensors" => { "Room" => ["sensor.temperature", "sensor.humidity", "sensor.illuminance"] },
         "states" => { "light.x" => true },
-        "readings" => { "sensor.temperature" => "21.5 C", "sensor.humidity" => "43 %",
-                        "sensor.illuminance" => "120 lx" }
+        "readings" => {
+            "sensor.temperature" => { "value" => 21.5, "display" => "21.5 C", "unit" => "C" },
+            "sensor.humidity" => { "value" => 43, "display" => "43 %", "unit" => "%" },
+            "sensor.illuminance" => { "value" => 120, "display" => "120 lx", "unit" => "lx" }
+        }
     });
     var menu = new EntityMenu(session, "Room", ["light.x"], session.listSensorsInArea("Room"));
 
@@ -186,7 +189,7 @@ function areaWithNoEntitiesShowsOneInertRow(logger as Test.Logger) as Boolean {
 (:test)
 function sensorRowShowsReadingAsSubLabel(logger as Test.Logger) as Boolean {
     var session = EntityMenuTest.sessionOf({
-        "readings" => { "sensor.temperature" => "21.5 C" }
+        "readings" => { "sensor.temperature" => { "value" => 21.5, "display" => "21.5 C", "unit" => "C" } }
     });
     var item = EntityMenu.buildSensorItem(session, "sensor.temperature");
 
@@ -197,7 +200,7 @@ function sensorRowShowsReadingAsSubLabel(logger as Test.Logger) as Boolean {
 (:test)
 function unavailableSensorRowShowsUnavailable(logger as Test.Logger) as Boolean {
     var session = EntityMenuTest.sessionOf({
-        "readings" => { "sensor.temperature" => "22 °C" },
+        "readings" => { "sensor.temperature" => { "value" => 22, "display" => "22 °C", "unit" => "°C" } },
         "available" => { "sensor.temperature" => false }
     });
 
@@ -213,7 +216,7 @@ function unavailableSensorRowShowsUnavailable(logger as Test.Logger) as Boolean 
 (:test)
 function sensorRowWithoutReadingShowsUnavailable(logger as Test.Logger) as Boolean {
     var session = EntityMenuTest.sessionOf({
-        "readings" => {} as Dictionary<String, String>
+        "readings" => {} as Dictionary<String, Dictionary>
     });
 
     Test.assertEqual(EntityMenu.buildReading(session, "sensor.temperature"), "Unavailable");
@@ -225,7 +228,7 @@ function selectingSensorRowLeavesEverythingAlone(logger as Test.Logger) as Boole
     var session = EntityMenuTest.sessionOf({
         "areas" => { "Room" => [] as Array<String> },
         "sensors" => { "Room" => ["sensor.temperature"] },
-        "readings" => { "sensor.temperature" => "21.5 C" }
+        "readings" => { "sensor.temperature" => { "value" => 21.5, "display" => "21.5 C", "unit" => "C" } }
     });
     var menu = new EntityMenu(session, "Room", [] as Array<String>,
                               session.listSensorsInArea("Room"));
@@ -245,7 +248,10 @@ function appliedStateRowsShowNewReadingsInPlace(logger as Test.Logger) as Boolea
         "areas" => { "Room" => ["light.x"] },
         "sensors" => { "Room" => ["sensor.temperature", "sensor.humidity"] },
         "states" => { "light.x" => true },
-        "readings" => { "sensor.temperature" => "21.5 C", "sensor.humidity" => "43 %" }
+        "readings" => {
+            "sensor.temperature" => { "value" => 21.5, "display" => "21.5 C", "unit" => "C" },
+            "sensor.humidity" => { "value" => 43, "display" => "43 %", "unit" => "%" }
+        }
     });
     var menu = new EntityMenu(session, "Room", ["light.x"], session.listSensorsInArea("Room"));
 
@@ -253,7 +259,10 @@ function appliedStateRowsShowNewReadingsInPlace(logger as Test.Logger) as Boolea
         "areas" => { "Room" => ["light.x"] },
         "sensors" => { "Room" => ["sensor.temperature", "sensor.humidity"] },
         "states" => { "light.x" => false },
-        "readings" => { "sensor.temperature" => "22.1 C", "sensor.humidity" => "44 %" }
+        "readings" => {
+            "sensor.temperature" => { "value" => 22.1, "display" => "22.1 C", "unit" => "C" },
+            "sensor.humidity" => { "value" => 44, "display" => "44 %", "unit" => "%" }
+        }
     }));
     menu.redraw();
 
