@@ -1,0 +1,243 @@
+import Toybox.Application;
+import Toybox.Graphics;
+import Toybox.Lang;
+import Toybox.System;
+import Toybox.WatchUi;
+
+// Top-level navigation: a single-focus, paged card loop replacing the old flat
+// area list. The sequence is built by walking the session's grouped floor
+// structure into a flat list of cards: a floor's (non-selectable) collection
+// card, then that floor's area cards, floor by floor; then any unfloored areas
+// as plain area cards with no floor header.
+//
+// UP/DOWN page one card at a time (SWIPE_UP/SWIPE_DOWN do the same, for free,
+// via BehaviorDelegate's onNextPage/onPreviousPage); the loop wraps at both ends.
+// START drills an area card into the existing EntityMenu; it is a no-op on a
+// floor card. BACK exits the loop.
+//
+// Card content is recomputed from the session on every show/redraw rather than
+// snapshotted at construction, so the loop always reflects live state.
+class CardLoopView extends WatchUi.View {
+    private var _session as HomeSession;
+    private var _cards as Array<Dictionary>;
+    private var _index as Number;
+
+    function initialize(session as HomeSession) {
+        View.initialize();
+        _session = session;
+        _cards = [] as Array<Dictionary>;
+        _index = 0;
+    }
+
+    function onShow() as Void {
+        (Application.getApp() as HaControllerApp).setCurrentView(self);
+        redraw();
+    }
+
+    // The named redraw seam onActive dispatches to (see EntityMenu.redraw).
+    // Rebuilds the card sequence from the session's live state and clamps the
+    // current index onto it, preserving position when the sequence shrinks.
+    function redraw() as Void {
+        _cards = CardModel.buildCards(_session);
+        if (_index >= _cards.size()) {
+            _index = _cards.size() == 0 ? 0 : _cards.size() - 1;
+        }
+        WatchUi.requestUpdate();
+    }
+
+    function getCurrentCard() as Dictionary or Null {
+        if (_index < 0 || _index >= _cards.size()) {
+            return null;
+        }
+        return _cards[_index];
+    }
+
+    function showNext() as Void {
+        if (_index < _cards.size() - 1) {
+            _index++;
+            WatchUi.requestUpdate();
+        } else {
+            _index = 0;
+            WatchUi.requestUpdate();
+        }
+    }
+
+    function showPrevious() as Void {
+        if (_index > 0) {
+            _index--;
+            WatchUi.requestUpdate();
+        } else {
+            _index = _cards.size() - 1;
+            WatchUi.requestUpdate();
+        }
+    }
+
+    function onUpdate(dc as Graphics.Dc) as Void {
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
+        dc.clear();
+
+        var card = getCurrentCard();
+
+        if (card == null) {
+            CenteredMessage.draw(dc, WatchUi.loadResource(Rez.Strings.NoEntitiesInAnyArea) as String);
+            return;
+        }
+
+        drawCard(dc, card as Dictionary);
+    }
+
+    private function drawCard(dc as Graphics.Dc, card as Dictionary) as Void {
+        var TITLE_FONT = Graphics.FONT_SYSTEM_MEDIUM;
+        var SUBTITLE_FONT = Graphics.FONT_SYSTEM_XTINY;
+        var LABEL_FONT = Graphics.FONT_GLANCE;
+
+        var MAIN_LABEL_GAP = 20;
+        var LABEL_GAP = 8;
+
+        var width = dc.getWidth();
+        var centerX = width / 2;
+        var y = dc.getHeight() / 3;
+
+        var floor = card.get(:floor);
+
+        if (floor != null) {
+            y -= dc.getFontHeight(SUBTITLE_FONT) + MAIN_LABEL_GAP;
+            dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_BLACK);
+            dc.drawText(centerX, y, SUBTITLE_FONT, floor as String, Graphics.TEXT_JUSTIFY_CENTER);
+            y += dc.getFontHeight(SUBTITLE_FONT) + MAIN_LABEL_GAP;
+        }
+
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
+        dc.drawText(centerX, y, TITLE_FONT, card.get(:name) as String, Graphics.TEXT_JUSTIFY_CENTER);
+        y += dc.getFontHeight(TITLE_FONT) + MAIN_LABEL_GAP;
+
+        dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_BLACK);
+
+        var lightSummary = card.get(:lightSummary);
+
+        if (lightSummary != null) {
+            dc.drawText(centerX, y, LABEL_FONT, lightSummary as String, Graphics.TEXT_JUSTIFY_CENTER);
+            y += dc.getFontHeight(LABEL_FONT) + LABEL_GAP;
+        }
+
+        var sensorSummary = card.get(:sensorSummary) as Array<Dictionary>;
+
+        for (var index = 0; index < sensorSummary.size(); index++) {
+            var entry = sensorSummary[index];
+            var value = entry.hasKey(:range) ? entry.get(:range) : entry.get(:reading);
+            dc.drawText(centerX, y, LABEL_FONT, value as String, Graphics.TEXT_JUSTIFY_CENTER);
+            y += dc.getFontHeight(LABEL_FONT) + LABEL_GAP;
+        }
+
+        drawPageDots(dc);
+    }
+
+    private function drawPageDots(dc as Graphics.Dc) as Void {
+        var MAX_COUNT = 3;
+
+        var count = _cards.size();
+
+        if (count <= 1) {
+            return;
+        }
+
+        var RADIUS = 4;
+        var SMALL_RADIUS = 2;
+        var RADIUS_DIFF = RADIUS - SMALL_RADIUS;
+
+        var SPACING = 18;
+        var x = 8;
+        var DELTA_X = 3;
+
+        var TOP = (dc.getHeight() - ((MAX_COUNT - 1) * SPACING)) / 2;
+
+        var loopStart = 0;
+        var loopCount = count;
+        var showStartMore = false;
+        var showEndMore = false;
+
+        if (count <= MAX_COUNT) {
+            loopStart = 0;
+            loopCount = count;
+        } else if (_index <= MAX_COUNT - 1) {
+            loopStart = 0;
+            loopCount = MAX_COUNT;
+            showEndMore = true;
+        } else if (_index >= count - MAX_COUNT) {
+            loopStart = count - MAX_COUNT;
+            loopCount = MAX_COUNT;
+            showStartMore = true;
+        } else {
+            loopStart = _index - (MAX_COUNT / 2);
+            loopCount = MAX_COUNT;
+        }
+
+        var middleIndex = loopCount / 2;
+        var moreOffset = (middleIndex + 1) * DELTA_X;
+
+        if (showStartMore) {
+            dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
+            dc.fillCircle(x + moreOffset + RADIUS_DIFF, TOP - SPACING, SMALL_RADIUS);
+        }
+
+        for (var index = 0; index < loopCount; index++) {
+            var pageIndex = loopStart + index;
+            var distanceFromMiddle = (index - middleIndex).abs();
+            var currentX = x + (distanceFromMiddle * DELTA_X);
+
+            if (pageIndex == _index) {
+                dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+                dc.fillCircle(currentX, TOP + index * SPACING, RADIUS);
+            } else {
+                dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
+                dc.drawCircle(currentX, TOP + index * SPACING, RADIUS);
+            }
+        }
+
+        if (showEndMore) {
+            dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
+            dc.fillCircle(x + moreOffset + RADIUS_DIFF, TOP + MAX_COUNT * SPACING, SMALL_RADIUS);
+        }
+    }
+}
+
+class CardLoopDelegate extends WatchUi.BehaviorDelegate {
+    private var _view as CardLoopView;
+    private var _session as HomeSession;
+
+    function initialize(view as CardLoopView, session as HomeSession) {
+        BehaviorDelegate.initialize();
+        _view = view;
+        _session = session;
+    }
+
+    function onNextPage() as Boolean {
+        _view.showNext();
+        return true;
+    }
+
+    function onPreviousPage() as Boolean {
+        _view.showPrevious();
+        return true;
+    }
+
+    function onSelect() as Boolean {
+        var card = _view.getCurrentCard();
+        if (card == null || !(card.get(:selectable) as Boolean)) {
+            return true;
+        }
+
+        var name = card.get(:name) as String;
+        var menu = new EntityMenu(_session, name, _session.listLightsInArea(name),
+                                  _session.listSensorsInArea(name));
+        WatchUi.pushView(menu, new EntityMenuDelegate(menu, _session), WatchUi.SLIDE_LEFT);
+        return true;
+    }
+
+    // Root of the navigation stack (reached via switchToView): back has nowhere
+    // to return to, so it exits the app — matching ErrorDelegate/LoadingDelegate,
+    // the other two root-view delegates.
+    function onBack() as Boolean {
+        System.exit();
+    }
+}

@@ -52,7 +52,7 @@ class HaControllerApp extends Application.AppBase {
         // new state-showing view must join the cast union below.
         var view = _currentView;
         if (view != null && view has :redraw) {
-            (view as EntityMenu or AreaMenu).redraw();
+            (view as EntityMenu or CardLoopView).redraw();
         }
     }
 }
