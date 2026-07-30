@@ -86,14 +86,13 @@ class HomeState {
                                      {} as Dictionary<String, Boolean>, {} as Dictionary<String, Dictionary>,
                                      [] as Array<Dictionary>, {} as Dictionary<String, String>);
         }
-        var body = data as Dictionary;
-        return new HomeState(parseAreas(body.get("areas"), body.get("sensors")),
-                                 parseBooleanMap(body.get("states")),
-                                 parseStringMap(body.get("names")), parseGroups(body.get("groups")),
-                                 parseBooleanMap(body.get("available")),
-                                 parseReadings(body.get("readings")),
-                                 parseFloors(body.get("floors")),
-                                 parseStringMap(body.get("kinds")));
+        return new HomeState(parseAreas(data.get("areas"), data.get("sensors")),
+                                 parseBooleanMap(data.get("states")),
+                                 parseStringMap(data.get("names")), parseGroups(data.get("groups")),
+                                 parseBooleanMap(data.get("available")),
+                                 parseReadings(data.get("readings")),
+                                 parseFloors(data.get("floors")),
+                                 parseStringMap(data.get("kinds")));
     }
 
     function isEmpty() as Boolean {
@@ -363,16 +362,17 @@ class HomeState {
     private static function parseAreas(rawLights as Object or Null,
                                        rawSensors as Object or Null) as Array<Dictionary> {
         var out = [] as Array<Dictionary>;
+
         if (!(rawLights instanceof Dictionary)) {
             return out;
         }
 
         var sensorSection = {} as Dictionary;
         if (rawSensors instanceof Dictionary) {
-            sensorSection = rawSensors as Dictionary;
+            sensorSection = rawSensors;
         }
 
-        var names = (rawLights as Dictionary).keys() as Array<String>;
+        var names = rawLights.keys() as Array<String>;
         names.sort(null);
 
         for (var index = 0; index < names.size(); index++) {
@@ -387,6 +387,7 @@ class HomeState {
                 });
             }
         }
+
         return out;
     }
 
@@ -394,18 +395,21 @@ class HomeState {
     // entity_id -> Boolean map, dropping non-String keys and non-Boolean values.
     private static function parseBooleanMap(raw as Object or Null) as Dictionary<String, Boolean> {
         var out = {} as Dictionary<String, Boolean>;
+
         if (!(raw instanceof Dictionary)) {
             return out;
         }
-        var section = raw as Dictionary;
-        var entityIds = section.keys();
+
+        var entityIds = raw.keys();
+
         for (var index = 0; index < entityIds.size(); index++) {
             var entityId = entityIds[index];
-            var value = section.get(entityId);
+            var value = raw.get(entityId);
             if (entityId instanceof String && value instanceof Boolean) {
-                out.put(entityId as String, value as Boolean);
+                out.put(entityId, value);
             }
         }
+
         return out;
     }
 
@@ -413,18 +417,21 @@ class HomeState {
     // entity_id -> String map, dropping non-String keys and non-String values.
     private static function parseStringMap(raw as Object or Null) as Dictionary<String, String> {
         var out = {} as Dictionary<String, String>;
+
         if (!(raw instanceof Dictionary)) {
             return out;
         }
-        var section = raw as Dictionary;
-        var entityIds = section.keys();
+
+        var entityIds = raw.keys();
+
         for (var index = 0; index < entityIds.size(); index++) {
             var entityId = entityIds[index];
-            var value = section.get(entityId);
+            var value = raw.get(entityId);
             if (entityId instanceof String && value instanceof String) {
-                out.put(entityId as String, value as String);
+                out.put(entityId, value);
             }
         }
+
         return out;
     }
 
@@ -434,14 +441,16 @@ class HomeState {
     // value defaults to 0.0 and unit to "" when absent or the wrong type.
     private static function parseReadings(raw as Object or Null) as Dictionary<String, Dictionary> {
         var out = {} as Dictionary<String, Dictionary>;
+
         if (!(raw instanceof Dictionary)) {
             return out;
         }
-        var section = raw as Dictionary;
-        var entityIds = section.keys();
+
+        var entityIds = raw.keys();
+
         for (var index = 0; index < entityIds.size(); index++) {
             var entityId = entityIds[index];
-            var entry = section.get(entityId);
+            var entry = raw.get(entityId);
             if (!(entityId instanceof String) || !(entry instanceof Dictionary)) {
                 continue;
             }
@@ -455,6 +464,7 @@ class HomeState {
                 :unit => toStringOrEmpty((entry as Dictionary).get("unit"))
             });
         }
+
         return out;
     }
 
@@ -469,7 +479,7 @@ class HomeState {
     // A reading's unit, defaulting to the empty string when absent or not a String.
     private static function toStringOrEmpty(raw as Object or Null) as String {
         if (raw instanceof String) {
-            return raw as String;
+            return raw;
         }
         return "";
     }
@@ -486,18 +496,21 @@ class HomeState {
     // (non-group) row.
     private static function parseGroups(raw as Object or Null) as Dictionary<String, Number> {
         var out = {} as Dictionary<String, Number>;
+
         if (!(raw instanceof Dictionary)) {
             return out;
         }
-        var section = raw as Dictionary;
-        var entityIds = section.keys();
+
+        var entityIds = raw.keys();
+
         for (var index = 0; index < entityIds.size(); index++) {
             var entityId = entityIds[index];
-            var count = section.get(entityId);
+            var count = raw.get(entityId);
             if (entityId instanceof String && count instanceof Number && (count as Number) >= 0) {
-                out.put(entityId as String, count as Number);
+                out.put(entityId, count);
             }
         }
+
         return out;
     }
 
@@ -508,12 +521,13 @@ class HomeState {
     // malformed areas list keeps only its String elements.
     private static function parseFloors(raw as Object or Null) as Array<Dictionary> {
         var out = [] as Array<Dictionary>;
+
         if (!(raw instanceof Array)) {
             return out;
         }
-        var entries = raw as Array;
-        for (var index = 0; index < entries.size(); index++) {
-            var entry = entries[index];
+
+        for (var index = 0; index < raw.size(); index++) {
+            var entry = raw[index];
             if (!(entry instanceof Dictionary)) {
                 continue;
             }
@@ -526,6 +540,7 @@ class HomeState {
                 :areas => onlyStrings((entry as Dictionary).get("areas"))
             });
         }
+
         return out;
     }
 
@@ -534,13 +549,14 @@ class HomeState {
     // Keep only String elements of a value that should be an Array<String>.
     private static function onlyStrings(raw as Object or Null) as Array<String> {
         var out = [] as Array<String>;
+
         if (!(raw instanceof Array)) {
             return out;
         }
-        var items = raw as Array;
-        for (var index = 0; index < items.size(); index++) {
-            if (items[index] instanceof String) {
-                out.add(items[index] as String);
+
+        for (var index = 0; index < raw.size(); index++) {
+            if (raw[index] instanceof String) {
+                out.add(raw[index] as String);
             }
         }
         return out;
