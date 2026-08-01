@@ -45,6 +45,18 @@ class HaControllerApp extends Application.AppBase {
         _session.refreshState(method(:onRefreshed));
     }
 
+    // Garmin Connect Mobile settings-save hook. A fresh HaClient is used
+    // rather than _session's — settings can change before the first
+    // successful load, when no session exists yet. Registration is fire-and-
+    // forget: there is no UI feedback loop for it, and the next fetch surfaces
+    // any lingering problem on its own.
+    function onSettingsChanged() as Void {
+        Settings.registerIfNeeded(new HaClient(), method(:onSettingsRegistered));
+    }
+
+    function onSettingsRegistered(webhookId as String or Null, error as Number or Null) as Void {
+    }
+
     function onRefreshed() as Void {
         // Duck-typed redraw: Monkey C has no interfaces and Menu2 owns the
         // single base-class slot, so state-showing views expose a named redraw

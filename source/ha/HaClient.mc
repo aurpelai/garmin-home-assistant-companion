@@ -4,19 +4,47 @@ import Toybox.System;
 
 // Networking core. Wraps Communications.makeWebRequest with Bearer auth and
 // JSON, and exposes the operations the UI needs:
-//   - fetchHomeState: one POST /api/template call rendering each area's entities
-//     AND their states, names and sensor readings (a plain GET /api/states
-//     returns every entity in the instance and blows past Connect IQ's HTTP
-//     response-size limit, so everything rides along in the template instead).
-//   - toggleLight:  POST /api/services/light/toggle
+//   - register:       POST /api/mobile_app/registrations, once per HA instance,
+//     to obtain the webhook_id fetchHomeState rides over.
+//   - fetchHomeState: POST /api/webhook/{webhook_id} rendering each area's
+//     entities AND their states, names and sensor readings (a plain GET
+//     /api/states returns every entity in the instance and blows past Connect
+//     IQ's HTTP response-size limit, so everything rides along in the
+//     template instead). Recovers once from an invalidated webhook_id by
+//     re-registering and retrying.
+//   - toggleLight:    POST /api/services/light/toggle
 //
 // Connect IQ is single-threaded and callback-based: every method takes a
 // Lang.Method callback invoked with the parsed result. Callers sequence
 // dependent requests by chaining in their callbacks.
 class HaClient {
 
-    // Jinja rendered by HA. Must end in `| tojson` — /api/template returns plain
-    // text, so without it the body would be a Python-repr dict, not valid JSON.
+    // Fixed device identity for the mobile_app registration. This app cannot
+    // introspect real device info (model, OS) in scope for this spec, so
+    // every install registers under the same constants.
+    private const DEVICE_ID = "garmin_ha_companion";
+    private const APP_ID = "garmin_home_assistant";
+    private const APP_NAME = "HA Companion";
+    private const APP_VERSION = "1";
+    private const DEVICE_NAME = "Garmin Watch";
+    private const MANUFACTURER = "Garmin";
+    private const MODEL = "Connect IQ";
+    private const OS_NAME = "Connect IQ";
+    private const OS_VERSION = "1";
+
+    // HTTP/comm codes HA/Connect IQ produce for an invalid or unknown
+    // webhook_id: -400 is Connect IQ's own "invalid http body" comm code (HA
+    // sends no body back for a dead webhook), 404 is HA's when the id is
+    // simply gone (instance rebuilt, app uninstalled and reinstalled, etc).
+    private const INVALID_WEBHOOK_CODES = [
+        Communications.INVALID_HTTP_BODY_IN_NETWORK_RESPONSE,
+        404
+    ];
+
+    // Jinja rendered by HA. Deliberately not piped through `| tojson`: the
+    // webhook returns application/json and parses the body itself, so an
+    // unwrapped dict arrives as an object; `| tojson` would instead deliver an
+    // escaped JSON string.
     //
     // Renders { "areas":     { areaName: [lightId, ...] },
     //           "sensors":   { areaName: [sensorId, ...] },
@@ -59,8 +87,8 @@ class HaClient {
         // `states[e].name` is Home Assistant's own display name: the user-set
         // friendly name if any, else its built-in fallback. It is not guaranteed
         // — an area-assigned entity carrying no state object yields no name and
-        // takes the whole `| tojson` down with it, failing the request rather
-        // than one row. The model's bare-id fallback does not rescue that.
+        // fails the whole render, not just its own row. The model's bare-id
+        // fallback does not rescue that.
         "{% for e in visible %}" +
         "{% if e.startswith('light.') %}" +
         "{% set isGroup = state_attr(e, 'entity_id') is not none %}" +
@@ -125,20 +153,69 @@ class HaClient {
 
         "{{ dict(areas=ns.lightsByArea, sensors=ns.sensorsByArea, states=ns.states, " +
             "groups=ns.groups, readings=ns.readings, names=ns.names, " +
-            "available=ns.available, floors=ns.floors, kinds=ns.kinds) | tojson }}";
+            "available=ns.available, floors=ns.floors, kinds=ns.kinds) }}";
 
     function initialize() {}
 
     // --- public API ---
 
+    // Fetches the rendered home state over the registered webhook, recovering
+    // once from an invalidated webhook_id (see FetchRecoveryHandler) before
+    // surfacing failure normally.
     function fetchHomeState(callback as Method) as Void {
-        var body = { "template" => HOME_STATE_TEMPLATE };
-        post("/api/template", body, new ResponseHandler(callback, :onTemplate));
+        new FetchRecoveryHandler(self, callback).attempt();
+    }
+
+    // Registers the app with HA and, on success, caches the returned
+    // webhook_id and the URL it was registered against — every caller
+    // benefits from the cache without repeating the bookkeeping.
+    function register(callback as Method) as Void {
+        var body = {
+            "device_id" => DEVICE_ID,
+            "app_id" => APP_ID,
+            "app_name" => APP_NAME,
+            "app_version" => APP_VERSION,
+            "device_name" => DEVICE_NAME,
+            "manufacturer" => MANUFACTURER,
+            "model" => MODEL,
+            "os_name" => OS_NAME,
+            "os_version" => OS_VERSION,
+            "supports_encryption" => false,
+            "app_data" => {}
+        };
+        post("/api/mobile_app/registrations", body,
+             new ResponseHandler(new RegisterCacheHandler(callback).method(:onRegistered), :onRegister));
     }
 
     function toggleLight(entityId as String, callback as Method) as Void {
         post("/api/services/light/toggle", { "entity_id" => entityId },
              new ResponseHandler(callback, :onService));
+    }
+
+    // Single-attempt webhook POST, with no recovery of its own — called
+    // directly by fetchHomeState's first try and by FetchRecoveryHandler's
+    // one retry. Kept separate from fetchHomeState so FakeHaClient can
+    // override the public entry point without inheriting real transport.
+    function fetchOnce(callback as Method) as Void {
+        var webhookId = Settings.getWebhookId();
+        if (webhookId == null) {
+            callback.invoke(null, 404);
+            return;
+        }
+        var body = { "type" => "render_template", "data" => { "home" => { "template" => HOME_STATE_TEMPLATE } } };
+        post("/api/webhook/" + webhookId, body, new ResponseHandler(callback, :onTemplate));
+    }
+
+    // Whether a fetch failure code signals an invalid or unknown webhook_id
+    // (as opposed to e.g. a network drop) — the case FetchRecoveryHandler
+    // recovers from by re-registering.
+    function isInvalidWebhookCode(code as Number) as Boolean {
+        for (var index = 0; index < INVALID_WEBHOOK_CODES.size(); index++) {
+            if (INVALID_WEBHOOK_CODES[index] == code) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // --- transport ---
@@ -167,6 +244,65 @@ class HaClient {
     }
 }
 
+// Caches a successful registration's webhook_id (and the URL it was
+// registered against) before forwarding the normalized result to the
+// caller's own callback.
+class RegisterCacheHandler {
+    private var _callback as Method;
+
+    function initialize(callback as Method) {
+        _callback = callback;
+    }
+
+    function onRegistered(webhookId as String or Null, error as Number or Null) as Void {
+        if (error == null) {
+            Settings.setWebhookId(webhookId as String);
+            Settings.setRegisteredUrl(Settings.getBaseUrl());
+        }
+        _callback.invoke(webhookId, error);
+    }
+}
+
+// Orchestrates fetchHomeState's one-shot recovery: try the webhook once, and
+// on a code signalling an invalidated webhook_id, clear it, register a fresh
+// one, and retry exactly once more. Any other failure (or a second failure
+// after the retry) surfaces to the caller unchanged — there is no recursion,
+// so this can never loop.
+class FetchRecoveryHandler {
+    private var _client as HaClient;
+    private var _callback as Method;
+
+    function initialize(client as HaClient, callback as Method) {
+        _client = client;
+        _callback = callback;
+    }
+
+    function attempt() as Void {
+        _client.fetchOnce(method(:onFirstAttempt));
+    }
+
+    function onFirstAttempt(state as HomeState or Null, error as Number or Null) as Void {
+        if (error == null || !_client.isInvalidWebhookCode(error as Number)) {
+            _callback.invoke(state, error);
+            return;
+        }
+        Settings.clearWebhookId();
+        _client.register(method(:onRegistered));
+    }
+
+    function onRegistered(webhookId as String or Null, error as Number or Null) as Void {
+        if (error != null) {
+            _callback.invoke(null, error);
+            return;
+        }
+        _client.fetchOnce(method(:onRetryAttempt));
+    }
+
+    function onRetryAttempt(state as HomeState or Null, error as Number or Null) as Void {
+        _callback.invoke(state, error);
+    }
+}
+
 // Adapts a raw makeWebRequest callback (code, data) into a typed result handed
 // to the caller's callback. `kind` selects how the body is interpreted.
 class ResponseHandler {
@@ -188,13 +324,21 @@ class ResponseHandler {
         }
         switch (_kind) {
             case :onTemplate:
-                // /api/template returns text/plain containing JSON. If Connect IQ
-                // handed us an unparsed String instead of a Dictionary, log it so
-                // the empty case is diagnosable.
-                if (data instanceof Lang.String) {
-                    System.println("Template returned unparsed String: " + data);
+                // The webhook response is {"home": {...}} — the nested value is
+                // the actual home-state dictionary fromTemplateData expects.
+                var home = (data instanceof Dictionary) ? data.get("home") : null;
+                _callback.invoke(HomeState.fromTemplateData(home as Dictionary or String or Null), null);
+                break;
+            case :onRegister:
+                var webhookId = (data instanceof Dictionary) ? data.get("webhook_id") : null;
+                if (webhookId instanceof Lang.String) {
+                    _callback.invoke(webhookId, null);
+                } else {
+                    // A 2xx with no usable webhook_id is a bad body, not success:
+                    // report the invalid-body code so the error channel never
+                    // carries a success code.
+                    _callback.invoke(null, Communications.INVALID_HTTP_BODY_IN_NETWORK_RESPONSE);
                 }
-                _callback.invoke(HomeState.fromTemplateData(data), null);
                 break;
             case :onService:
                 _callback.invoke(true, null);

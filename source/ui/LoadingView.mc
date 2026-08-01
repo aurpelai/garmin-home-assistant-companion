@@ -7,7 +7,7 @@ import Toybox.WatchUi;
 // framework invokes) drives the initial load:
 //   1. checks settings are present (else -> ErrorView with ErrNoConfig)
 //   2. fetches the home state — each area's lights and sensors, with their
-//      states and readings, in a single POST /api/template
+//      states and readings, in a single POST to the registered webhook
 //   3. replaces itself with the card loop, or with a message when no area holds
 //      anything the app can show
 // Any request error routes to an ErrorView keyed on the HTTP/comm code.

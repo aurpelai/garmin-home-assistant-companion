@@ -1,3 +1,5 @@
+import Toybox.Application;
+import Toybox.Communications;
 import Toybox.Lang;
 import Toybox.Test;
 
@@ -12,14 +14,19 @@ import Toybox.Test;
 class FakeHaClient extends HaClient {
     private var _fetchCallback as Method?;
     private var _serviceCallback as Method?;
+    private var _registerCallback as Method?;
 
     // Only the latest callback is kept, so a test asserting that a row fired
     // nothing needs this counter to tell no call from one call.
     public var toggleCount as Number;
+    public var registerCount as Number;
+    public var fetchOnceCount as Number;
 
     function initialize() {
         HaClient.initialize();
         toggleCount = 0;
+        registerCount = 0;
+        fetchOnceCount = 0;
     }
 
     function fetchHomeState(callback as Method) as Void {
@@ -31,6 +38,16 @@ class FakeHaClient extends HaClient {
         toggleCount++;
     }
 
+    function register(callback as Method) as Void {
+        _registerCallback = callback;
+        registerCount++;
+    }
+
+    function fetchOnce(callback as Method) as Void {
+        _fetchCallback = callback;
+        fetchOnceCount++;
+    }
+
     function fireFetchSuccess(state as HomeState) as Void {
         (_fetchCallback as Method).invoke(state, null);
     }
@@ -39,12 +56,24 @@ class FakeHaClient extends HaClient {
         (_fetchCallback as Method).invoke(null, -1);
     }
 
+    function fireFetchFailureWithCode(code as Number) as Void {
+        (_fetchCallback as Method).invoke(null, code);
+    }
+
     function fireServiceSuccess() as Void {
         (_serviceCallback as Method).invoke(true, null);
     }
 
     function fireServiceFailure() as Void {
         (_serviceCallback as Method).invoke(null, -1);
+    }
+
+    function fireRegisterSuccess(webhookId as String) as Void {
+        (_registerCallback as Method).invoke(webhookId, null);
+    }
+
+    function fireRegisterFailure() as Void {
+        (_registerCallback as Method).invoke(null, -1);
     }
 }
 
@@ -98,9 +127,14 @@ function onResponseNormalizesTemplateSuccessToHomeState(logger as Test.Logger) a
     var capture = new ResultCapture();
     var handler = new ResponseHandler(capture.method(:onResult), :onTemplate);
 
+    // The webhook always wraps the rendered payload in a "home" key (see
+    // onResponseExtractsHomeKeyFromWebhookResponse) — there is no unwrapped
+    // shape to normalize any more.
     handler.onResponse(200, {
-        "areas" => { "Room" => ["light.a"] },
-        "states" => { "light.a" => true }
+        "home" => {
+            "areas" => { "Room" => ["light.a"] },
+            "states" => { "light.a" => true }
+        }
     });
 
     Test.assert(capture.result instanceof HomeState);
@@ -119,4 +153,128 @@ function onResponseNormalizesServiceSuccessToTrue(logger as Test.Logger) as Bool
     Test.assertEqual(capture.result as Boolean, true);
     Test.assert(capture.error == null);
     return true;
+}
+
+(:test)
+function onResponseNormalizesRegisterSuccessToWebhookId(logger as Test.Logger) as Boolean {
+    var capture = new ResultCapture();
+    var handler = new ResponseHandler(capture.method(:onResult), :onRegister);
+
+    handler.onResponse(200, { "webhook_id" => "abc123" });
+
+    Test.assertEqual(capture.result as String, "abc123");
+    Test.assert(capture.error == null);
+    return true;
+}
+
+(:test)
+function onResponseNormalizesRegisterFailureToError(logger as Test.Logger) as Boolean {
+    var capture = new ResultCapture();
+    var handler = new ResponseHandler(capture.method(:onResult), :onRegister);
+
+    handler.onResponse(400, null);
+
+    Test.assert(capture.result == null);
+    Test.assertEqual(capture.error as Number, 400);
+    return true;
+}
+
+(:test)
+function registerIfNeededRegistersWhenNoCachedWebhookId(logger as Test.Logger) as Boolean {
+    Application.Storage.clearValues();
+    var client = new FakeHaClient();
+
+    Settings.registerIfNeeded(client, new NoopRegisterCompletion().method(:onRegistered));
+
+    Test.assertEqual(client.registerCount, 1);
+    return true;
+}
+
+(:test)
+function registerIfNeededNoOpsWhenUrlUnchangedWithCachedId(logger as Test.Logger) as Boolean {
+    Application.Storage.clearValues();
+    Settings.setWebhookId("existing-id");
+    Settings.setRegisteredUrl(Settings.getBaseUrl());
+    var client = new FakeHaClient();
+
+    Settings.registerIfNeeded(client, new NoopRegisterCompletion().method(:onRegistered));
+
+    Test.assertEqual(client.registerCount, 0);
+    return true;
+}
+
+(:test)
+function registerIfNeededReRegistersAfterUrlChange(logger as Test.Logger) as Boolean {
+    Application.Storage.clearValues();
+    Settings.setWebhookId("stale-id");
+    Settings.setRegisteredUrl("https://old.example.com");
+    var client = new FakeHaClient();
+
+    Settings.registerIfNeeded(client, new NoopRegisterCompletion().method(:onRegistered));
+
+    Test.assertEqual(client.registerCount, 1);
+    Test.assert(Settings.getWebhookId() == null);
+    return true;
+}
+
+(:test)
+function registerIfNeededNoOpsOnTokenOnlyChange(logger as Test.Logger) as Boolean {
+    Application.Storage.clearValues();
+    Settings.setWebhookId("existing-id");
+    Settings.setRegisteredUrl(Settings.getBaseUrl());
+    var client = new FakeHaClient();
+
+    // A token-only change never touches Storage's registeredUrl, so the gate
+    // sees the same URL it cached and must not re-register.
+    Settings.registerIfNeeded(client, new NoopRegisterCompletion().method(:onRegistered));
+
+    Test.assertEqual(client.registerCount, 0);
+    return true;
+}
+
+(:test)
+function fetchHomeStateRecoversOnceFromInvalidWebhook(logger as Test.Logger) as Boolean {
+    Application.Storage.clearValues();
+    Settings.setWebhookId("stale-id");
+    var client = new FakeHaClient();
+    var capture = new ResultCapture();
+
+    new FetchRecoveryHandler(client, capture.method(:onResult)).attempt();
+    client.fireFetchFailureWithCode(Communications.INVALID_HTTP_BODY_IN_NETWORK_RESPONSE);
+    client.fireRegisterSuccess("fresh-id");
+    client.fireFetchFailureWithCode(Communications.INVALID_HTTP_BODY_IN_NETWORK_RESPONSE);
+
+    Test.assertEqual(client.fetchOnceCount, 2);
+    Test.assertEqual(client.registerCount, 1);
+    Test.assert(capture.result == null);
+    Test.assertEqual(capture.error as Number, Communications.INVALID_HTTP_BODY_IN_NETWORK_RESPONSE);
+    return true;
+}
+
+(:test)
+function fetchHomeStateRecoversFrom404TooAndSucceeds(logger as Test.Logger) as Boolean {
+    Application.Storage.clearValues();
+    Settings.setWebhookId("stale-id");
+    var client = new FakeHaClient();
+    var capture = new ResultCapture();
+
+    new FetchRecoveryHandler(client, capture.method(:onResult)).attempt();
+    client.fireFetchFailureWithCode(404);
+    client.fireRegisterSuccess("fresh-id");
+    client.fireFetchSuccess(HomeState.fromTemplateData({
+        "areas" => { "Room" => ["light.a"] },
+        "states" => { "light.a" => true }
+    }));
+
+    Test.assertEqual(client.fetchOnceCount, 2);
+    Test.assertEqual(client.registerCount, 1);
+    Test.assert(capture.result instanceof HomeState);
+    Test.assert(capture.error == null);
+    return true;
+}
+
+(:test)
+class NoopRegisterCompletion {
+    function onRegistered(webhookId as String or Null, error as Number or Null) as Void {
+    }
 }

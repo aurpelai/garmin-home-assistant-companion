@@ -2,7 +2,7 @@ import Toybox.Lang;
 
 // Pure data + parsing layer. No networking, no UI — this is the unit-tested core.
 //
-// The combined HA /api/template call returns a JSON object with the following keys:
+// The combined HA webhook call returns a JSON object with the following keys:
 //   { "areas":     { areaName: [entityId, ...], ... },
 //     "sensors":   { areaName: [entityId, ...], ... },
 //     "states":    { entityId: true|false, ... },
@@ -73,9 +73,8 @@ class HomeState {
         self.kinds = kinds;
     }
 
-    // Build from the already-JSON-parsed body of the combined /api/template
-    // response. `data` is what Communications hands the callback for a JSON
-    // response: the { "areas" => ..., "sensors" => ..., "states" => ...,
+    // Build from the already-JSON-parsed "home" value of the webhook
+    // response. `data` is the { "areas" => ..., "sensors" => ..., "states" => ...,
     // "names" => ..., "groups" => ..., "readings" => ..., "available" => ...,
     // "floors" => ..., "kinds" => ... } Dictionary. Each section parses
     // defensively; a missing or malformed body yields an empty HomeState.
