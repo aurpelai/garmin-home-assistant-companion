@@ -41,28 +41,14 @@ class HaClient {
         404
     ];
 
-    // Jinja rendered by HA. Deliberately not piped through `| tojson`: the
-    // webhook returns application/json and parses the body itself, so an
-    // unwrapped dict arrives as an object; `| tojson` would instead deliver an
-    // escaped JSON string.
-    //
-    // Renders { "areas":     { areaName: [lightId, ...] },
-    //           "sensors":   { areaName: [sensorId, ...] },
-    //           "states":    { lightId: bool },
-    //           "groups":    { lightId: memberCount },
-    //           "readings":  { sensorId: { value: 24.58, display: "24.6 °C", unit: "°C" } },
-    //           "names":     { entityId: "Display Name" },
-    //           "available": { entityId: bool },
-    //           "floors":    [ { "name": "Upstairs", "areas": ["Kitchen", ...] }, ... ],
-    //           "kinds":     { sensorId: "temperature" } }.
+    // Deliberately not piped through `| tojson`: the webhook returns
+    // application/json and parses the body itself, so an unwrapped dict arrives
+    // as an object; `| tojson` would instead deliver an escaped JSON string.
     //
     // Deliberately backslash-free: we filter entities with `.startswith(...)`
     // instead of a regex like select('match','^light\.'). A backslash in this
     // string would be sent unescaped by the Connect IQ JSON serializer, producing
     // an invalid JSON escape and a 400 "Invalid JSON specified" from HA.
-    //
-    // Entities belonging to no area are never visited by areas()/area_entities()
-    // and are thus excluded without a rule of their own.
     private const HOME_STATE_TEMPLATE =
         "{% set ns = namespace(lightsByArea={}, sensorsByArea={}, states={}, names={}, " +
             "groups={}, available={}, readings={}, kinds={}, lights=[], sensors=[], floors=[]) %}" +
@@ -140,12 +126,9 @@ class HaClient {
         "{% endif %}" +
         "{% endfor %}" +
 
-        // Floors are independent of the area loop above: HA exposes them via
-        // their own floors()/floor_areas() functions, in floors()'s own order
-        // (never re-sorted here — HomeState groups on-device).
-        // floorList lives on the namespace: a plain `{% set %}` inside the for
-        // loop would be scoped to the iteration and never escape, leaving floors
-        // empty (Jinja's loop-scoping trap).
+        // Accumulated on `ns` (not a plain `{% set %}`): a variable assigned
+        // inside a Jinja for-loop is scoped to the iteration and never escapes,
+        // so a plain accumulator would come out empty.
         "{% for f in floors() %}" +
         "{% set floorAreas = floor_areas(f) | map('area_name') | list %}" +
         "{% set ns.floors = ns.floors + [dict(name=floor_name(f), areas=floorAreas)] %}" +
