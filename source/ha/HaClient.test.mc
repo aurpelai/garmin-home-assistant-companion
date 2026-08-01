@@ -150,7 +150,8 @@ function onResponseNormalizesRegisterSuccessToWebhookId(logger as Test.Logger) a
     var capture = new ResultCapture();
     var handler = new ResponseHandler(capture.method(:onResult), :onRegister);
 
-    handler.onResponse(200, { "webhook_id" => "abc123" });
+    // HA returns 201 Created for /api/mobile_app/registrations.
+    handler.onResponse(201, { "webhook_id" => "abc123" });
 
     Test.assertEqual(capture.result as String, "abc123");
     Test.assert(capture.error == null);

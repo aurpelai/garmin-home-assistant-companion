@@ -233,7 +233,7 @@ class ResponseHandler {
     }
 
     function onResponse(code as Number, data as Dictionary or String or Null) as Void {
-        if (code != 200) {
+        if (code < 200 || code >= 300) {
             System.println("HA request failed: kind=" + _kind + " code=" + code + " body=" + data);
             _callback.invoke(null, code);
             return;
