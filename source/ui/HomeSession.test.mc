@@ -1,10 +1,8 @@
 import Toybox.Lang;
 import Toybox.Test;
 
-// Exercises the session through its interface: applyState convergence and the
-// synchronous optimistic state, plus the async toggle/refresh branches driven
-// through FakeHaClient by firing its captured callback (revert-on-failure,
-// swallow-but-complete). No live network is involved.
+// Async branches are driven by firing FakeHaClient's captured callback, so no
+// live network is involved.
 
 (:test)
 module HomeSessionTest {
@@ -43,8 +41,7 @@ module HomeSessionTest {
     }
 }
 
-// toggleState takes a completion callback; tests that only need the optimistic
-// flip pass this no-op.
+// A no-op completion for tests that only care about the optimistic flip.
 (:test)
 class NoopCompletion {
     function onComplete() as Void {
@@ -158,7 +155,6 @@ function toggleStateKeepsFlipOnSuccess(logger as Test.Logger) as Boolean {
 (:test)
 function refreshStateHealsOptimisticDisagreementOnSuccess(logger as Test.Logger) as Boolean {
     var session = HomeSessionTest.fakeSessionWith({ "light.a" => false });
-    // Optimistic flip the server never applied.
     session.toggleState("light.a", new NoopCompletion().method(:onComplete));
     var spy = new CompletionSpy();
 
