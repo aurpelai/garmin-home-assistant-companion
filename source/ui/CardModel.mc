@@ -7,14 +7,9 @@ module CardModel {
 
     class ReadingSorter {
         function compare(a as Object, b as Object) as Number {
-            if (a instanceof Toybox.Lang.Dictionary && b instanceof Toybox.Lang.Dictionary) {
-                var aValue = a.get(:value) as Float;
-                var bValue = b.get(:value) as Float;
-
-                return aValue.compareTo(bValue);
-            }
-
-            return 0;
+            var aValue = (a as Dictionary).get(:value) as Float;
+            var bValue = (b as Dictionary).get(:value) as Float;
+            return aValue.compareTo(bValue);
         }
     }
 
@@ -190,19 +185,12 @@ module CardModel {
             return display;
         }
 
-        // Skip trailing space if present
-        if (unitPosition > 0) {
-            var char = display.substring(unitPosition - 1, unitPosition);
-            if (char != null && char.equals(" ")) {
-                unitPosition = unitPosition - 1;
-            }
+        var char = display.substring(unitPosition - 1, unitPosition);
+        if (char != null && char.equals(" ")) {
+            unitPosition = unitPosition - 1;
         }
 
-        if (unitPosition > 0) {
-            return (display.substring(0, unitPosition) as String);
-        }
-
-        return display;
+        return display.substring(0, unitPosition) as String;
     }
 
     function buildRange(readings as Array<Dictionary>) as String or Null {
@@ -210,7 +198,8 @@ module CardModel {
             return null;
         }
 
-        var sortedReadings = readings;
+        var sortedReadings = [] as Array<Dictionary>;
+        sortedReadings.addAll(readings);
         sortedReadings.sort(new ReadingSorter());
 
         var minReading = sortedReadings[0];
