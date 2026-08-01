@@ -9,9 +9,9 @@ class HaClient {
 
     // The device can't introspect its real model/OS, so every install registers
     // under these same constants.
-    private const DEVICE_ID = "garmin_ha_companion";
-    private const APP_ID = "garmin_home_assistant";
-    private const APP_NAME = "HA Companion";
+    private const DEVICE_ID = "companion_for_home_assistant";
+    private const APP_ID = "companion_for_home_assistant";
+    private const APP_NAME = "Companion For Home Assistant";
     private const APP_VERSION = "1";
     private const DEVICE_NAME = "Garmin Watch";
     private const MANUFACTURER = "Garmin";
