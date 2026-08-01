@@ -3,21 +3,16 @@ import Toybox.Communications;
 import Toybox.Lang;
 import Toybox.Test;
 
-// FakeHaClient and CompletionSpy are the transport test double and its
-// completion-observation helper: reused by HomeSession's async-branch tests.
-// ResponseHandler's normalization is pure and synchronous, so it is exercised
-// directly below with no fake needed.
-
-// Captures the callback each entry point is handed instead of making a web
-// request, and exposes methods to fire it with a chosen success or failure.
+// Captures each entry point's callback instead of making a web request, so a
+// test can fire success or failure synchronously.
 (:test)
 class FakeHaClient extends HaClient {
     private var _fetchCallback as Method?;
     private var _serviceCallback as Method?;
     private var _registerCallback as Method?;
 
-    // Only the latest callback is kept, so a test asserting that a row fired
-    // nothing needs this counter to tell no call from one call.
+    // Only the latest callback is kept, so this counter is how a test tells zero
+    // calls from one.
     public var toggleCount as Number;
     public var registerCount as Number;
     public var fetchOnceCount as Number;
@@ -77,9 +72,8 @@ class FakeHaClient extends HaClient {
     }
 }
 
-// Observes a nullary completion callback firing. Monkey C closures can't
-// capture mutable locals, so this is the only way a test can tell whether
-// refreshState's onDone or toggleState's onComplete actually ran.
+// Monkey C closures can't capture mutable locals, so a test needs this object
+// to observe whether a nullary completion callback fired.
 (:test)
 class CompletionSpy {
     public var fired as Boolean;
@@ -97,8 +91,6 @@ class CompletionSpy {
     }
 }
 
-// Captures a ResponseHandler's normalized (result, error) pair for direct
-// assertion.
 (:test)
 class ResultCapture {
     public var result as Object?;
@@ -127,9 +119,7 @@ function onResponseNormalizesTemplateSuccessToHomeState(logger as Test.Logger) a
     var capture = new ResultCapture();
     var handler = new ResponseHandler(capture.method(:onResult), :onTemplate);
 
-    // The webhook always wraps the rendered payload in a "home" key (see
-    // onResponseExtractsHomeKeyFromWebhookResponse) — there is no unwrapped
-    // shape to normalize any more.
+    // The webhook wraps the rendered payload under a "home" key.
     handler.onResponse(200, {
         "home" => {
             "areas" => { "Room" => ["light.a"] },

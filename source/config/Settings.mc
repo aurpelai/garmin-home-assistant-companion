@@ -1,11 +1,8 @@
 import Toybox.Application;
 import Toybox.Lang;
 
-// Thin accessor over Application.Properties for the two user-configured values
-// (HA base URL + long-lived token, both entered via Garmin Connect Mobile) and
-// over Application.Storage for the webhook_id registration derives from them
-// (and the URL it was registered against) — derived values, not user config,
-// so they never belong in Properties.
+// User config (URL, token) lives in Properties; the webhook_id and the URL it
+// was registered against are derived, so they live in Storage, not Properties.
 module Settings {
 
     function getBaseUrl() as String {
@@ -18,15 +15,13 @@ module Settings {
         return (value == null) ? "" : value;
     }
 
-    // True only when both URL and token are non-empty. UI routes to ErrorView
-    // with ErrNoConfig otherwise.
     function isConfigured() as Boolean {
         return !getBaseUrl().equals("") && !getToken().equals("");
     }
 
     function trimTrailingSlash(url as String) as String {
-        // substring is typed String? but returns null only for an out-of-range
-        // index; the length guard keeps the range valid, so the cast is safe.
+        // substring is null only for an out-of-range index; the length guard
+        // keeps the range valid, so the cast can't hit null.
         while (url.length() > 0 && (url.substring(url.length() - 1, url.length()) as String).equals("/")) {
             url = url.substring(0, url.length() - 1) as String;
         }
@@ -53,14 +48,12 @@ module Settings {
         Application.Storage.setValue("registeredUrl", url);
     }
 
-    // Settings-save gate (spec: registration trigger). Ordered: a base-URL
-    // change retires the id cached for the old URL and re-registers against
-    // the new one; else no cached id registers once; else no-op. A
-    // token-only change (URL unchanged) never re-registers.
     function registerIfNeeded(client as HaClient, callback as Method) as Void {
         var baseUrl = getBaseUrl();
         var registeredUrl = getRegisteredUrl();
 
+        // A URL change clears the stale id and falls through to register; only a
+        // still-valid id short-circuits, so a token-only change never re-registers.
         if (registeredUrl != null && !(registeredUrl as String).equals(baseUrl)) {
             clearWebhookId();
         } else if (getWebhookId() != null) {
