@@ -26,9 +26,10 @@ class HaClient {
         404
     ];
 
-    // Deliberately not piped through `| tojson`: the webhook returns
-    // application/json and parses the body itself, so an unwrapped dict arrives
-    // as an object; `| tojson` would instead deliver an escaped JSON string.
+    // Piped through `| tojson`: the render_template webhook returns the rendered
+    // value as a string, so without it the payload is a Python repr (single
+    // quotes, True/False, enum units) that no JSON reader accepts. tojson makes
+    // it well-formed JSON, which JsonParser then decodes on-device.
     //
     // Deliberately backslash-free: we filter entities with `.startswith(...)`
     // instead of a regex like select('match','^light\.'). A backslash in this
@@ -97,7 +98,7 @@ class HaClient {
 
         "{{ dict(areas=ns.lightsByArea, sensors=ns.sensorsByArea, states=ns.states, " +
             "groups=ns.groups, readings=ns.readings, names=ns.names, " +
-            "available=ns.available, floors=ns.floors, kinds=ns.kinds) }}";
+            "available=ns.available, floors=ns.floors, kinds=ns.kinds) | tojson }}";
 
     function initialize() {}
 
@@ -241,6 +242,11 @@ class ResponseHandler {
         switch (_kind) {
             case :onTemplate:
                 var home = (data instanceof Dictionary) ? data.get("home") : null;
+                // The render_template webhook returns the rendered value as a
+                // string, so the payload arrives JSON-encoded a second time.
+                if (home instanceof Lang.String) {
+                    home = JsonParser.parse(home);
+                }
                 _callback.invoke(HomeState.fromTemplateData(home as Dictionary or String or Null), null);
                 break;
             case :onRegister:
