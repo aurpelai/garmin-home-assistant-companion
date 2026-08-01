@@ -43,6 +43,11 @@ class FakeHaClient extends HaClient {
         fetchOnceCount++;
     }
 
+    function serviceOnce(entityId as String, callback as Method) as Void {
+        _serviceCallback = callback;
+        toggleCount++;
+    }
+
     function fireFetchSuccess(state as HomeState) as Void {
         (_fetchCallback as Method).invoke(state, null);
     }
@@ -61,6 +66,10 @@ class FakeHaClient extends HaClient {
 
     function fireServiceFailure() as Void {
         (_serviceCallback as Method).invoke(null, -1);
+    }
+
+    function fireServiceFailureWithCode(code as Number) as Void {
+        (_serviceCallback as Method).invoke(null, code);
     }
 
     function fireRegisterSuccess(webhookId as String) as Void {
@@ -230,7 +239,7 @@ function fetchHomeStateRecoversOnceFromInvalidWebhook(logger as Test.Logger) as 
     var client = new FakeHaClient();
     var capture = new ResultCapture();
 
-    new FetchRecoveryHandler(client, capture.method(:onResult)).attempt();
+    new RecoveryHandler(client, client.method(:fetchOnce), capture.method(:onResult)).attempt();
     client.fireFetchFailureWithCode(Communications.INVALID_HTTP_BODY_IN_NETWORK_RESPONSE);
     client.fireRegisterSuccess("fresh-id");
     client.fireFetchFailureWithCode(Communications.INVALID_HTTP_BODY_IN_NETWORK_RESPONSE);
@@ -249,7 +258,7 @@ function fetchHomeStateRecoversFrom404TooAndSucceeds(logger as Test.Logger) as B
     var client = new FakeHaClient();
     var capture = new ResultCapture();
 
-    new FetchRecoveryHandler(client, capture.method(:onResult)).attempt();
+    new RecoveryHandler(client, client.method(:fetchOnce), capture.method(:onResult)).attempt();
     client.fireFetchFailureWithCode(404);
     client.fireRegisterSuccess("fresh-id");
     client.fireFetchSuccess(HomeState.fromTemplateData({
@@ -260,6 +269,26 @@ function fetchHomeStateRecoversFrom404TooAndSucceeds(logger as Test.Logger) as B
     Test.assertEqual(client.fetchOnceCount, 2);
     Test.assertEqual(client.registerCount, 1);
     Test.assert(capture.result instanceof HomeState);
+    Test.assert(capture.error == null);
+    return true;
+}
+
+(:test)
+function toggleLightRecoversOnceFromInvalidWebhook(logger as Test.Logger) as Boolean {
+    Application.Storage.clearValues();
+    Settings.setWebhookId("stale-id");
+    var client = new FakeHaClient();
+    var capture = new ResultCapture();
+
+    new RecoveryHandler(client, new ServiceOnceHandler(client, "light.a").method(:serviceOnce),
+        capture.method(:onResult)).attempt();
+    client.fireServiceFailureWithCode(Communications.INVALID_HTTP_BODY_IN_NETWORK_RESPONSE);
+    client.fireRegisterSuccess("fresh-id");
+    client.fireServiceSuccess();
+
+    Test.assertEqual(client.toggleCount, 2);
+    Test.assertEqual(client.registerCount, 1);
+    Test.assertEqual(capture.result as Boolean, true);
     Test.assert(capture.error == null);
     return true;
 }

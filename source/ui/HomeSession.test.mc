@@ -132,6 +132,17 @@ function toggleStateRevertsOptimisticFlipOnFailure(logger as Test.Logger) as Boo
 }
 
 (:test)
+function toggleStateFiresExactlyOneServiceCall(logger as Test.Logger) as Boolean {
+    var session = HomeSessionTest.fakeSessionWith({ "light.a" => false });
+
+    session.toggleState("light.a", new NoopCompletion().method(:onComplete));
+
+    Test.assertEqual((session.client as FakeHaClient).toggleCount, 1);
+    Test.assert(session.isOn("light.a"));
+    return true;
+}
+
+(:test)
 function toggleStateKeepsFlipOnSuccess(logger as Test.Logger) as Boolean {
     var session = HomeSessionTest.fakeSessionWith({ "light.a" => false });
     var spy = new CompletionSpy();
@@ -151,6 +162,24 @@ function refreshStateHealsOptimisticDisagreementOnSuccess(logger as Test.Logger)
     session.toggleState("light.a", new NoopCompletion().method(:onComplete));
     var spy = new CompletionSpy();
 
+    session.refreshState(spy.method(:onDone));
+    (session.client as FakeHaClient).fireFetchSuccess(HomeSessionTest.stateOf({ "light.a" => false }));
+
+    Test.assert(!session.isOn("light.a"));
+    Test.assert(spy.fired);
+    return true;
+}
+
+(:test)
+function refreshStateCorrectsActionThatDidNotTakeEffect(logger as Test.Logger) as Boolean {
+    var session = HomeSessionTest.fakeSessionWith({ "light.a" => false });
+    session.toggleState("light.a", new NoopCompletion().method(:onComplete));
+    // The service call reports success, but HA's actual state never moved —
+    // only the later reconciling re-fetch can catch that, not this response.
+    (session.client as FakeHaClient).fireServiceSuccess();
+    Test.assert(session.isOn("light.a"));
+
+    var spy = new CompletionSpy();
     session.refreshState(spy.method(:onDone));
     (session.client as FakeHaClient).fireFetchSuccess(HomeSessionTest.stateOf({ "light.a" => false }));
 
