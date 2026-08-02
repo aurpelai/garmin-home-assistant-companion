@@ -106,9 +106,8 @@ class HomeSession {
         return _state.isAvailable(entityId);
     }
 
-    // Tallies lights, skipping group entities — HA marks a group on when any
-    // member is on, so counting groups would double-count. Availability is
-    // server truth; on is counted only among available lights.
+    // Tallies physical lights. Availability is server truth; on is counted
+    // only among available lights.
     function getLightStates(lights as Array<String>) as LightStates {
         var onCount = 0;
         var availableCount = 0;
@@ -213,10 +212,8 @@ class HomeSession {
         _states.put(entityId, !attemptedOn);
     }
 
-    // Any available, non-group light in the floor being on drives both the
-    // any-on -> off toggle decision and the floor card's status. Groups are
-    // excluded because HA reports a group on when any member is, which would
-    // double-count the members it aggregates.
+    // Any available, physical light in the floor being on drives both the
+    // any-on -> off toggle decision and the floor card's status.
     function areFloorLightsOn(floorName as String) as Boolean {
         var lights = toggleableFloorLights(floorName);
 
@@ -229,7 +226,7 @@ class HomeSession {
         return false;
     }
 
-    // On-count and total across the floor's available, non-group lights, for the
+    // On-count and total across the floor's available, physical lights, for the
     // card status. Total 0 means the floor has nothing to toggle.
     function countFloorLights(floorName as String) as Dictionary {
         var lights = toggleableFloorLights(floorName);
