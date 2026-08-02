@@ -219,31 +219,29 @@ class HomeState {
         return out;
     }
 
-    // The parsed floors sorted ascending by their :order field. The key is the
-    // order left-padded to a fixed width so a plain string sort orders it
-    // numerically, with the hash index appended as a stable tiebreaker.
+    // The parsed floors ordered ascending by their numeric :order field. The
+    // insertion keeps equal-order floors in parse order, so no explicit tiebreak
+    // is needed.
     private function floorsByOrder() as Array<Dictionary> {
-        var floorForKey = {} as Dictionary<String, Dictionary>;
-        var keys = [] as Array<String>;
+        var ordered = [] as Array<Dictionary>;
 
         for (var index = 0; index < _floors.size(); index++) {
-            var order = _floors[index].get(:order) as Number;
-            var key = padOrder(order) + "\n" + padOrder(index);
-            floorForKey.put(key, _floors[index]);
-            keys.add(key);
+            var floor = _floors[index];
+            var order = floor.get(:order) as Number;
+
+            var position = ordered.size();
+            while (position > 0 && (ordered[position - 1].get(:order) as Number).compareTo(order) > 0) {
+                position--;
+            }
+
+            ordered.add(floor);
+            for (var shift = ordered.size() - 1; shift > position; shift--) {
+                ordered[shift] = ordered[shift - 1];
+            }
+            ordered[position] = floor;
         }
 
-        keys.sort(null);
-
-        var ordered = [] as Array<Dictionary>;
-        for (var index = 0; index < keys.size(); index++) {
-            ordered.add(floorForKey.get(keys[index]) as Dictionary);
-        }
         return ordered;
-    }
-
-    private function padOrder(value as Number) as String {
-        return (1000000 + value).toString();
     }
 
     function getAreaName(areaId as String) as String {

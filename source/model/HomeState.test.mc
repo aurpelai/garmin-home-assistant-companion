@@ -661,6 +661,27 @@ function buildFloorsOrderFieldOverridesHashOrder(logger as Test.Logger) as Boole
 }
 
 (:test)
+function buildFloorsSortsNegativeOrderFirst(logger as Test.Logger) as Boolean {
+    // A negative :order sorts ahead of a non-negative one — a numeric compare,
+    // not a lexical one that would misplace a "-1" string.
+    var data = {
+        "areas" => {
+            "area.loft" => { "name" => "Loft", "lights" => ["light.loft"] },
+            "area.cellar" => { "name" => "Cellar", "lights" => ["light.cellar"] }
+        },
+        "floors" => {
+            "floor.ground" => { "name" => "Ground", "order" => 0, "areas" => ["area.loft"] },
+            "floor.basement" => { "name" => "Basement", "order" => -1, "areas" => ["area.cellar"] }
+        }
+    };
+    var grouped = HomeState.fromTemplateData(data).buildFloors();
+    Test.assertEqual(grouped.size(), 2);
+    Test.assertEqual(grouped[0].get(:name) as String, "Basement");
+    Test.assertEqual(grouped[1].get(:name) as String, "Ground");
+    return true;
+}
+
+(:test)
 function buildFloorsCarriesFloorId(logger as Test.Logger) as Boolean {
     var data = {
         "areas" => {
