@@ -5,12 +5,12 @@ import Toybox.Lang;
 // empty list and all-off defaults instead of crashing the watch.
 
 class HomeState {
-    public var areas as Array<Dictionary>;
+    public var areas as Dictionary<String, Dictionary>;
     private var _lights as Dictionary<String, Dictionary>;
     private var _sensors as Dictionary<String, Dictionary>;
     private var _floors as Array<Dictionary>;
 
-    function initialize(areas as Array<Dictionary>, lights as Dictionary<String, Dictionary>,
+    function initialize(areas as Dictionary<String, Dictionary>, lights as Dictionary<String, Dictionary>,
                         sensors as Dictionary<String, Dictionary>, floors as Array<Dictionary>) {
         self.areas = areas;
         self._lights = lights;
@@ -25,11 +25,11 @@ class HomeState {
     // malformed body yields an empty HomeState.
     static function fromTemplateData(data as Dictionary or String or Null) as HomeState {
         if (!(data instanceof Dictionary)) {
-            return new HomeState([] as Array<Dictionary>, {} as Dictionary<String, Dictionary>,
+            return new HomeState({} as Dictionary<String, Dictionary>, {} as Dictionary<String, Dictionary>,
                                      {} as Dictionary<String, Dictionary>, [] as Array<Dictionary>);
         }
-        var lights = parseLights(data.get("lights"));
-        var sensors = parseSensors(data.get("sensors"));
+        var lights = parseEntityMap(data.get("lights"), false);
+        var sensors = parseEntityMap(data.get("sensors"), true);
         return new HomeState(parseAreas(data.get("areas")), lights, sensors,
                                  parseFloors(data.get("floors")));
     }
@@ -106,16 +106,6 @@ class HomeState {
         return (sensor as Dictionary).get(:device_class) as String or Null;
     }
 
-    // The entity's domain, derived from its id prefix rather than carried over
-    // the wire. An id with no '.' has no domain.
-    function getDomain(entityId as String) as String or Null {
-        var dot = entityId.find(".");
-        if (dot == null) {
-            return null;
-        }
-        return entityId.substring(0, dot);
-    }
-
     // Falls back to the bare id (empty counts as missing) so a row always has a
     // non-blank label; only reachable on a contract breach.
     function getName(entityId as String) as String {
@@ -176,17 +166,16 @@ class HomeState {
         return area.get(:sensors) as Array<String>;
     }
 
-    // Floors come out in HA's own floors() order (basement-up), carried as each
-    // floor's :order field, since Dictionary.keys() is hash order. Areas within
-    // a floor are re-sorted rather than trusting input order. Areas on no floor
+    // Floors come out in HA's own floors() order (basement-up); parseFloors
+    // already ordered `_floors` by each floor's numeric order. Areas within a
+    // floor are re-sorted rather than trusting input order. Areas on no floor
     // go in a trailing entry whose :id and :name are null.
     function buildFloors() as Array<Dictionary> {
         var floored = {} as Dictionary<String, Boolean>;
         var out = [] as Array<Dictionary>;
-        var orderedFloors = floorsByOrder();
 
-        for (var floorIndex = 0; floorIndex < orderedFloors.size(); floorIndex++) {
-            var floor = orderedFloors[floorIndex];
+        for (var floorIndex = 0; floorIndex < _floors.size(); floorIndex++) {
+            var floor = _floors[floorIndex];
             var floorAreas = sortAreaIds(floor.get(:areas) as Array<String>);
             if (floorAreas.size() == 0) {
                 continue;
@@ -202,8 +191,9 @@ class HomeState {
         }
 
         var unfloored = [] as Array<String>;
-        for (var areaIndex = 0; areaIndex < areas.size(); areaIndex++) {
-            var id = areas[areaIndex].get(:id) as String;
+        var areaIds = areas.keys();
+        for (var areaIndex = 0; areaIndex < areaIds.size(); areaIndex++) {
+            var id = areaIds[areaIndex] as String;
             if (!floored.hasKey(id)) {
                 unfloored.add(id);
             }
@@ -217,31 +207,6 @@ class HomeState {
         }
 
         return out;
-    }
-
-    // The parsed floors ordered ascending by their numeric :order field. The
-    // insertion keeps equal-order floors in parse order, so no explicit tiebreak
-    // is needed.
-    private function floorsByOrder() as Array<Dictionary> {
-        var ordered = [] as Array<Dictionary>;
-
-        for (var index = 0; index < _floors.size(); index++) {
-            var floor = _floors[index];
-            var order = floor.get(:order) as Number;
-
-            var position = ordered.size();
-            while (position > 0 && (ordered[position - 1].get(:order) as Number).compareTo(order) > 0) {
-                position--;
-            }
-
-            ordered.add(floor);
-            for (var shift = ordered.size() - 1; shift > position; shift--) {
-                ordered[shift] = ordered[shift - 1];
-            }
-            ordered[position] = floor;
-        }
-
-        return ordered;
     }
 
     function getAreaName(areaId as String) as String {
@@ -261,12 +226,7 @@ class HomeState {
     }
 
     private function areaFor(areaId as String) as Dictionary or Null {
-        for (var areaIndex = 0; areaIndex < areas.size(); areaIndex++) {
-            if ((areas[areaIndex].get(:id) as String).equals(areaId)) {
-                return areas[areaIndex];
-            }
-        }
-        return null;
+        return areas.get(areaId) as Dictionary or Null;
     }
 
     // Order area ids by their display name alphabetically, case-insensitively.
@@ -281,25 +241,11 @@ class HomeState {
             }
         }
 
-        var keyed = {} as Dictionary<String, String>;
-        var keys = [] as Array<String>;
-        for (var index = 0; index < kept.size(); index++) {
-            var id = kept[index];
-            var key = getAreaName(id).toLower() + "\n" + id;
-            keyed.put(key, id);
-            keys.add(key);
-        }
-        keys.sort(null);
-
-        var ordered = [] as Array<String>;
-        for (var index = 0; index < keys.size(); index++) {
-            ordered.add(keyed.get(keys[index]) as String);
-        }
-        return ordered;
+        return sortByLabel(kept, method(:getAreaName));
     }
 
     private function hasArea(areaId as String) as Boolean {
-        return areaFor(areaId) != null;
+        return areas.hasKey(areaId);
     }
 
     // Available lights before unavailable, each partition then group-ordered.
@@ -339,16 +285,20 @@ class HomeState {
         return ordered;
     }
 
-    // Sort key is `lowercased-name \n id`: the newline sorts below any printable
-    // char, so equal names fall back to the unique id. toLower is ASCII-only, so
-    // non-Latin names order by code point, not locale collation.
     private function sortByName(ids as Array<String>) as Array<String> {
+        return sortByLabel(ids, method(:getName));
+    }
+
+    // Sort key is `lowercased-label \n id`: the newline sorts below any printable
+    // char, so equal labels fall back to the unique id. toLower is ASCII-only, so
+    // non-Latin labels order by code point, not locale collation.
+    private function sortByLabel(ids as Array<String>, labelFn as Lang.Method) as Array<String> {
         var idForKey = {} as Dictionary<String, String>;
         var keys = [] as Array<String>;
         for (var index = 0; index < ids.size(); index++) {
-            var entityId = ids[index];
-            var key = getName(entityId).toLower() + "\n" + entityId;
-            idForKey.put(key, entityId);
+            var id = ids[index];
+            var key = (labelFn.invoke(id) as String).toLower() + "\n" + id;
+            idForKey.put(key, id);
             keys.add(key);
         }
 
@@ -363,20 +313,19 @@ class HomeState {
 
     // Areas keyed by area id -> { name, lights: [entity ids], sensors: [entity
     // ids] }. An area survives only if it has at least one light or sensor.
-    private static function parseAreas(raw as Object or Null) as Array<Dictionary> {
-        var out = [] as Array<Dictionary>;
+    private static function parseAreas(raw as Object or Null) as Dictionary<String, Dictionary> {
+        var out = {} as Dictionary<String, Dictionary>;
 
         if (!(raw instanceof Dictionary)) {
             return out;
         }
 
-        var ids = raw.keys() as Array<String>;
-        ids.sort(null);
+        var ids = raw.keys();
 
         for (var index = 0; index < ids.size(); index++) {
-            var id = ids[index] as String;
+            var id = ids[index];
             var entry = (raw as Dictionary).get(id);
-            if (!(entry instanceof Dictionary)) {
+            if (!(id instanceof String) || !(entry instanceof Dictionary)) {
                 continue;
             }
             var name = (entry as Dictionary).get("name");
@@ -386,8 +335,7 @@ class HomeState {
             var lights = onlyStrings((entry as Dictionary).get("lights"));
             var sensors = onlyStrings((entry as Dictionary).get("sensors"));
             if (lights.size() + sensors.size() > 0) {
-                out.add({
-                    :id => id,
+                out.put(id as String, {
                     :name => name as String,
                     :lights => lights,
                     :sensors => sensors
@@ -398,10 +346,14 @@ class HomeState {
         return out;
     }
 
-    // The "lights" section: entity id -> its attribute object. Drops any entry
-    // whose id is not a String or whose value is not a Dictionary; per-field
-    // validation happens at the accessor.
-    private static function parseLights(raw as Object or Null) as Dictionary<String, Dictionary> {
+    // An entity section (lights or sensors): entity id -> its attribute object.
+    // Drops any entry whose id is not a String or whose value is not a
+    // Dictionary; per-field validation happens at the accessor. When
+    // requireDisplayState is set (sensors), an entry with no String
+    // display_state is dropped: display_state is the row's text and a missing
+    // one can't be rendered.
+    private static function parseEntityMap(raw as Object or Null,
+                                           requireDisplayState as Boolean) as Dictionary<String, Dictionary> {
         var out = {} as Dictionary<String, Dictionary>;
 
         if (!(raw instanceof Dictionary)) {
@@ -416,31 +368,7 @@ class HomeState {
             if (!(entityId instanceof String) || !(entry instanceof Dictionary)) {
                 continue;
             }
-            out.put(entityId as String, parseEntity(entry as Dictionary));
-        }
-
-        return out;
-    }
-
-    // The "sensors" section, same shape as parseLights, but a sensor with no
-    // display_state is dropped entirely: display_state is the row's text, and a
-    // missing one can't be rendered.
-    private static function parseSensors(raw as Object or Null) as Dictionary<String, Dictionary> {
-        var out = {} as Dictionary<String, Dictionary>;
-
-        if (!(raw instanceof Dictionary)) {
-            return out;
-        }
-
-        var entityIds = raw.keys();
-
-        for (var index = 0; index < entityIds.size(); index++) {
-            var entityId = entityIds[index];
-            var entry = raw.get(entityId);
-            if (!(entityId instanceof String) || !(entry instanceof Dictionary)) {
-                continue;
-            }
-            if (!((entry as Dictionary).get("display_state") instanceof String)) {
+            if (requireDisplayState && !((entry as Dictionary).get("display_state") instanceof String)) {
                 continue;
             }
             out.put(entityId as String, parseEntity(entry as Dictionary));
@@ -497,6 +425,11 @@ class HomeState {
         return null;
     }
 
+    // Floors ordered ascending by their numeric `order` field (HA's floors()
+    // order, basement-up), since Dictionary.keys() is hash order. A missing or
+    // non-numeric order falls back to a large sentinel so the floor trails
+    // rather than being dropped. The insertion is stable, so equal orders keep
+    // parse order; :order is not carried onward, only the resulting sequence.
     private static function parseFloors(raw as Object or Null) as Array<Dictionary> {
         var out = [] as Array<Dictionary>;
 
@@ -504,6 +437,7 @@ class HomeState {
             return out;
         }
 
+        var orders = [] as Array<Number>;
         var ids = raw.keys();
 
         for (var index = 0; index < ids.size(); index++) {
@@ -516,28 +450,32 @@ class HomeState {
             if (!(name instanceof String)) {
                 continue;
             }
-            out.add({
+
+            var rawOrder = (entry as Dictionary).get("order");
+            var order = rawOrder instanceof Number ? rawOrder as Number
+                : rawOrder instanceof Float ? (rawOrder as Float).toNumber()
+                : 0x7FFFFFFF;
+            var floor = {
                 :id => id as String,
                 :name => name as String,
-                :order => floorOrderOf((entry as Dictionary).get("order"), index),
                 :areas => onlyStrings((entry as Dictionary).get("areas"))
-            });
+            };
+
+            var position = out.size();
+            while (position > 0 && orders[position - 1].compareTo(order) > 0) {
+                position--;
+            }
+            out.add(floor);
+            orders.add(order);
+            for (var shift = out.size() - 1; shift > position; shift--) {
+                out[shift] = out[shift - 1];
+                orders[shift] = orders[shift - 1];
+            }
+            out[position] = floor;
+            orders[position] = order;
         }
 
         return out;
-    }
-
-    // The floor's position in HA's own floors() order. A missing or non-numeric
-    // order falls back to hash-iteration index, keeping the floor present rather
-    // than dropping it.
-    private static function floorOrderOf(raw as Object or Null, fallback as Number) as Number {
-        if (raw instanceof Number) {
-            return raw as Number;
-        }
-        if (raw instanceof Float) {
-            return (raw as Float).toNumber();
-        }
-        return fallback;
     }
 
     private static function onlyStrings(raw as Object or Null) as Array<String> {

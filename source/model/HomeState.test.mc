@@ -20,9 +20,8 @@ function parsesTemplateData(logger as Test.Logger) as Boolean {
     };
     var state = HomeState.fromTemplateData(data);
     Test.assertEqual(state.areas.size(), 2);
-    // Areas are sorted by id: area.bedroom before area.kitchen.
-    Test.assertEqual(state.areas[0].get(:name) as String, "Bedroom");
-    Test.assertEqual(state.areas[1].get(:name) as String, "Kitchen");
+    Test.assertEqual((state.areas.get("area.bedroom") as Dictionary).get(:name) as String, "Bedroom");
+    Test.assertEqual((state.areas.get("area.kitchen") as Dictionary).get(:name) as String, "Kitchen");
     Test.assertEqual((state.listLightsInArea("area.kitchen")).size(), 2);
     return true;
 }
@@ -480,7 +479,7 @@ function keepsAreaWithSensorsButNoLights(logger as Test.Logger) as Boolean {
     };
     var state = HomeState.fromTemplateData(data);
     Test.assertEqual(state.areas.size(), 1);
-    Test.assertEqual(state.areas[0].get(:name) as String, "Hall");
+    Test.assertEqual((state.areas.get("area.hall") as Dictionary).get(:name) as String, "Hall");
     Test.assertEqual(state.listLightsInArea("area.hall").size(), 0);
     Test.assertEqual(state.listSensorsInArea("area.hall").size(), 1);
     return true;
@@ -496,7 +495,7 @@ function dropsAreaWithNeitherLightsNorSensors(logger as Test.Logger) as Boolean 
     };
     var state = HomeState.fromTemplateData(data);
     Test.assertEqual(state.areas.size(), 1);
-    Test.assertEqual(state.areas[0].get(:name) as String, "Hall");
+    Test.assertEqual((state.areas.get("area.hall") as Dictionary).get(:name) as String, "Hall");
     return true;
 }
 
@@ -599,21 +598,6 @@ function malformedSensorsSectionYieldsNoDeviceClass(logger as Test.Logger) as Bo
         "sensors" => "nope"
     };
     Test.assert(HomeState.fromTemplateData(data).getDeviceClass("sensor.temp") == null);
-    return true;
-}
-
-(:test)
-function getDomainDerivesFromIdPrefix(logger as Test.Logger) as Boolean {
-    var state = HomeState.fromTemplateData({} as Dictionary);
-    Test.assertEqual(state.getDomain("light.kitchen") as String, "light");
-    Test.assertEqual(state.getDomain("sensor.temp") as String, "sensor");
-    return true;
-}
-
-(:test)
-function getDomainIsNullWithNoDot(logger as Test.Logger) as Boolean {
-    var state = HomeState.fromTemplateData({} as Dictionary);
-    Test.assert(state.getDomain("noDomain") == null);
     return true;
 }
 
