@@ -15,15 +15,16 @@ class CardRenderer {
     private const SECTION_GAP = 16;
     private const SUMMARY_LINE_GAP = 8;
 
-    private const DOT_RADIUS = 6;
-    private const DOT_SPACING = DOT_RADIUS * 3;
+    private const LIGHT_INDICATOR_RADIUS = 6;
+    private const LIGHT_INDICATOR_SPACING = LIGHT_INDICATOR_RADIUS * 3;
     private const UNAVAILABLE_PEN = 2;
 
-    private const PAGE_DOT_RADIUS = 4;
+    private const PAGE_INDICATOR_RADIUS = 4;
     private const PAGE_OVERFLOW_RADIUS = 2;
-    private const PAGE_DOT_SPACING = 18;
-    private const PAGE_DOT_INSET = 8;
-    private const MAX_PAGE_DOTS = 5;
+    private const PAGE_INDICATOR_INSET = 8;
+    private const PAGE_INDICATOR_SPACING = 16;
+    private const MAX_PAGE_INDICATORS = 5;
+    private const LEFT_ANGLE = Math.PI;
 
     function drawCard(dc as Graphics.Dc, card as Dictionary, pageCount as Number,
                       pageIndex as Number) as Void {
@@ -73,8 +74,8 @@ class CardRenderer {
         var lightSummary = card.get(:lightSummary) as Dictionary<Symbol, Number> or Null;
 
         if (lightSummary != null) {
-            var dotsY = titleY + dc.getFontHeight(TITLE_FONT) + SECTION_GAP;
-            drawLightDots(dc, centerX, dotsY, lightSummary);
+            var indicatorsY = titleY + dc.getFontHeight(TITLE_FONT) + SECTION_GAP;
+            drawLightIndicators(dc, centerX, indicatorsY, lightSummary);
         }
 
         drawSensorSummary(dc, card, centerX);
@@ -92,40 +93,41 @@ class CardRenderer {
         dc.drawText(centerX, y, TITLE_FONT, text, Graphics.TEXT_JUSTIFY_CENTER);
     }
 
-    // A dot per light: filled yellow when on, filled gray when available-but-off,
-    // an outline when unavailable. The row is centered on centerX.
-    private function drawLightDots(dc as Graphics.Dc, centerX as Number, y as Number,
-                                   lightSummary as Dictionary<Symbol, Number>) as Void {
+    // An indicator per light: filled yellow when on, filled gray when
+    // available-but-off, an outline when unavailable. The row is centered on centerX.
+    private function drawLightIndicators(dc as Graphics.Dc, centerX as Number, y as Number,
+                                         lightSummary as Dictionary<Symbol, Number>) as Void {
         var onCount = lightSummary.get(:on) as Number;
         var availableCount = lightSummary.get(:available) as Number;
         var totalCount = availableCount + (lightSummary.get(:unavailable) as Number);
 
-        var rowWidth = (totalCount - 1) * DOT_SPACING;
+        var rowWidth = (totalCount - 1) * LIGHT_INDICATOR_SPACING;
         var startX = centerX - rowWidth / 2;
-        var centerY = y + DOT_RADIUS;
+        var centerY = y + LIGHT_INDICATOR_RADIUS;
 
         for (var i = 0; i < totalCount; i++) {
-            var dotX = startX + i * DOT_SPACING;
+            var x = startX + i * LIGHT_INDICATOR_SPACING;
 
             if (i < onCount) {
-                fillDot(dc, dotX, centerY, Graphics.COLOR_YELLOW);
+                drawFilledLightIndicator(dc, x, centerY, Graphics.COLOR_YELLOW);
             } else if (i < availableCount) {
-                fillDot(dc, dotX, centerY, Graphics.COLOR_DK_GRAY);
+                drawFilledLightIndicator(dc, x, centerY, Graphics.COLOR_DK_GRAY);
             } else {
-                outlineDot(dc, dotX, centerY);
+                drawOutlinedLightIndicator(dc, x, centerY);
             }
         }
     }
 
-    private function fillDot(dc as Graphics.Dc, x as Number, y as Number, color as Number) as Void {
+    private function drawFilledLightIndicator(dc as Graphics.Dc, x as Number, y as Number,
+                                              color as Number) as Void {
         dc.setColor(color, system_color_dark__background.background);
-        dc.fillCircle(x, y, DOT_RADIUS);
+        dc.fillCircle(x, y, LIGHT_INDICATOR_RADIUS);
     }
 
-    private function outlineDot(dc as Graphics.Dc, x as Number, y as Number) as Void {
+    private function drawOutlinedLightIndicator(dc as Graphics.Dc, x as Number, y as Number) as Void {
         dc.setColor(Graphics.COLOR_DK_GRAY, system_color_dark__background.background);
         dc.setPenWidth(UNAVAILABLE_PEN);
-        dc.drawCircle(x, y, DOT_RADIUS);
+        dc.drawCircle(x, y, LIGHT_INDICATOR_RADIUS);
         dc.setPenWidth(1);
     }
 
@@ -164,9 +166,10 @@ class CardRenderer {
         }
     }
 
-    // Page dots ride a vertical arc down the left bezel. When the pages outrun
-    // MAX_PAGE_DOTS, the window slides and a small overflow dot marks the
-    // clipped end(s).
+    // Page indicators sit on the display's circle, fanned around 9 o'clock by a
+    // fixed angular step so they stay on the perimeter. The fan is centered on
+    // LEFT_ANGLE for any count. When the pages outrun MAX_PAGE_INDICATORS, the
+    // window slides and a small overflow indicator marks the clipped end(s).
     private function drawPagination(dc as Graphics.Dc, pageCount as Number,
                                     currentIndex as Number) as Void {
         if (pageCount <= 1) {
@@ -175,77 +178,109 @@ class CardRenderer {
 
         var window = pageWindow(pageCount, currentIndex);
         var visibleCount = window.get(:count) as Number;
-        var arcRadius = (dc.getWidth() / 2 - PAGE_DOT_INSET - PAGE_DOT_RADIUS).toFloat();
+        var radius = (dc.getWidth() / 2 - PAGE_INDICATOR_INSET - PAGE_INDICATOR_RADIUS).toFloat();
+        var centerX = dc.getWidth() / 2;
         var centerY = dc.getHeight() / 2;
-        var top = (dc.getHeight() - ((visibleCount - 1) * PAGE_DOT_SPACING)) / 2;
+
+        // Derive the angular step from a target pixel gap so indicators keep the
+        // same on-screen spacing whatever the display's radius.
+        var angleStep = PAGE_INDICATOR_SPACING / radius;
 
         if (window.get(:moreBefore) as Boolean) {
-            drawOverflowDot(dc, top - PAGE_DOT_SPACING, centerY, arcRadius);
+            drawOverflowIndicator(dc, fanAngle(-1, visibleCount, angleStep), centerX, centerY, radius);
         }
 
         var start = window.get(:start) as Number;
 
         for (var i = 0; i < visibleCount; i++) {
-            var y = top + i * PAGE_DOT_SPACING;
-            var x = arcX(y, centerY, arcRadius);
-            drawPageDot(dc, x, y, start + i == currentIndex);
+            drawPageIndicator(dc, fanAngle(i, visibleCount, angleStep), centerX, centerY, radius,
+                              start + i == currentIndex);
         }
 
         if (window.get(:moreAfter) as Boolean) {
-            drawOverflowDot(dc, top + MAX_PAGE_DOTS * PAGE_DOT_SPACING, centerY, arcRadius);
+            drawOverflowIndicator(dc, fanAngle(visibleCount, visibleCount, angleStep),
+                                  centerX, centerY, radius);
         }
+    }
+
+    // The angle of the indicator at fan position i (of visibleCount), stepped
+    // from LEFT_ANGLE and centered on it. The step is subtracted so a rising i
+    // runs top-to-bottom (sin grows downward in screen space). Positions -1 and
+    // visibleCount fall one step past each end, where the overflow indicators sit.
+    private function fanAngle(i as Number, visibleCount as Number, angleStep as Float) as Float {
+        return LEFT_ANGLE - (i - (visibleCount - 1) / 2.0) * angleStep;
     }
 
     // The slice of pages to show and which ends are clipped, keeping the current
     // page inside the window.
     private function pageWindow(pageCount as Number, currentIndex as Number) as Dictionary {
-        if (pageCount <= MAX_PAGE_DOTS) {
+        if (pageCount <= MAX_PAGE_INDICATORS) {
             return { :start => 0, :count => pageCount, :moreBefore => false, :moreAfter => false };
         }
 
-        if (currentIndex <= MAX_PAGE_DOTS - 1) {
+        if (currentIndex <= MAX_PAGE_INDICATORS - 1) {
             return {
                 :start => 0,
-                :count => MAX_PAGE_DOTS,
+                :count => MAX_PAGE_INDICATORS,
                 :moreBefore => false,
                 :moreAfter => true
             };
         }
 
-        if (currentIndex >= pageCount - MAX_PAGE_DOTS) {
+        if (currentIndex >= pageCount - MAX_PAGE_INDICATORS) {
             return {
-                :start => pageCount - MAX_PAGE_DOTS,
-                :count => MAX_PAGE_DOTS,
+                :start => pageCount - MAX_PAGE_INDICATORS,
+                :count => MAX_PAGE_INDICATORS,
                 :moreBefore => true,
                 :moreAfter => false
             };
         }
 
         return {
-            :start => currentIndex - MAX_PAGE_DOTS / 2,
-            :count => MAX_PAGE_DOTS,
+            :start => currentIndex - MAX_PAGE_INDICATORS / 2,
+            :count => MAX_PAGE_INDICATORS,
             :moreBefore => true,
             :moreAfter => true
         };
     }
 
-    private function drawPageDot(dc as Graphics.Dc, x as Number, y as Number,
-                                 isCurrent as Boolean) as Void {
+    // The [x, y] pixel of a point at the given angle on the circle. Rounds to
+    // the nearest pixel rather than truncating, so placement stays symmetric
+    // about the center instead of biasing toward it.
+    private function computePointOnCircle(angle as Float, centerX as Number, centerY as Number,
+                                          radius as Float) as Array<Number> {
+        return [
+            centerX + Math.round(radius * Math.cos(angle)).toNumber(),
+            centerY + Math.round(radius * Math.sin(angle)).toNumber()
+        ];
+    }
+
+    private function drawPageIndicator(dc as Graphics.Dc, angle as Float, centerX as Number,
+                                       centerY as Number, radius as Float,
+                                       isCurrent as Boolean) as Void {
+        var point = computePointOnCircle(angle, centerX, centerY, radius);
+        var x = point[0];
+        var y = point[1];
+
         if (isCurrent) {
             dc.setColor(system_color_dark__text.color, system_color_dark__background.background);
-            dc.fillCircle(x, y, PAGE_DOT_RADIUS);
+            dc.fillCircle(x, y, PAGE_INDICATOR_RADIUS);
             return;
         }
 
+        // Outlined (non-filled) circles alias badly on real hardware, so
+        // anti-alias is switched off around them and restored after.
         useAntiAlias(dc, false);
         dc.setColor(Graphics.COLOR_DK_GRAY, system_color_dark__background.background);
-        dc.drawCircle(x, y, PAGE_DOT_RADIUS);
+        dc.drawCircle(x, y, PAGE_INDICATOR_RADIUS);
         useAntiAlias(dc, true);
     }
 
-    private function drawOverflowDot(dc as Graphics.Dc, y as Number, centerY as Number,
-                                     arcRadius as Float) as Void {
-        var x = arcX(y, centerY, arcRadius) + (PAGE_DOT_RADIUS - PAGE_OVERFLOW_RADIUS) / 2;
+    private function drawOverflowIndicator(dc as Graphics.Dc, angle as Float, centerX as Number,
+                                           centerY as Number, radius as Float) as Void {
+        var point = computePointOnCircle(angle, centerX, centerY, radius);
+        var x = point[0];
+        var y = point[1];
 
         useAntiAlias(dc, false);
         dc.setColor(Graphics.COLOR_DK_GRAY, system_color_dark__background.background);
@@ -253,28 +288,18 @@ class CardRenderer {
         useAntiAlias(dc, true);
     }
 
-    // x on a circle of the given radius (centered on the left edge) for a given y,
-    // so the dots trace the bezel's curve.
-    private function arcX(y as Number, centerY as Number, radius as Float) as Number {
-        var dy = (y - centerY).toFloat();
-        var dx = Math.sqrt(radius * radius - dy * dy);
-
-        return (PAGE_DOT_INSET + radius - dx).toNumber();
-    }
-
+    // drawBitmap, not drawBitmap2: some devices ship this hint as a palette
+    // bitmap, which drawBitmap2 rejects ("Source must not use a color palette").
     private function drawSelectHint(dc as Graphics.Dc) as Void {
         var hint = WatchUi.loadResource(Rez.Drawables.SelectHint) as BitmapResource;
 
-        dc.drawBitmap2(
+        dc.drawBitmap(
             system_loc__hint_button_right_top.x,
             system_loc__hint_button_right_top.y,
-            hint,
-            null
+            hint
         );
     }
 
-    // Outline (non-filled) circles alias badly on real hardware, so anti-alias
-    // is switched off around them and restored after — not incidental, keep it.
     private function useAntiAlias(dc as Graphics.Dc, enabled as Boolean) as Void {
         if (dc has :setAntiAlias) {
             dc.setAntiAlias(enabled);
