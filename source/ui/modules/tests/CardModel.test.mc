@@ -302,25 +302,40 @@ function buildFloorSensorSummaryAveragesAcrossAreas(logger as Test.Logger) as Bo
 }
 
 (:test)
-function buildFloorSensorSummaryMeanRoundsToOneDecimal(logger as Test.Logger) as Boolean {
+function buildFloorSensorSummaryMeanTakesFewestDecimalsOfItsInputs(logger as Test.Logger) as Boolean {
     var session = CardModelTest.sessionOf({
-        "areas" => { "Kitchen" => [] as Array<String>, "Bedroom" => [] as Array<String>, "Study" => [] as Array<String> },
-        "sensors" => {
-            "Kitchen" => ["sensor.k_temp"], "Bedroom" => ["sensor.b_temp"], "Study" => ["sensor.s_temp"]
-        },
+        "areas" => { "Kitchen" => [] as Array<String>, "Bedroom" => [] as Array<String> },
+        "sensors" => { "Kitchen" => ["sensor.k_temp"], "Bedroom" => ["sensor.b_temp"] },
         "states" => {},
-        "kinds" => {
-            "sensor.k_temp" => "temperature", "sensor.b_temp" => "temperature", "sensor.s_temp" => "temperature"
-        },
+        "kinds" => { "sensor.k_temp" => "temperature", "sensor.b_temp" => "temperature" },
         "readings" => {
-            "sensor.k_temp" => { "value" => 20.0, "display" => "20.0 °C", "unit" => "°C" },
-            "sensor.b_temp" => { "value" => 21.0, "display" => "21.0 °C", "unit" => "°C" },
-            "sensor.s_temp" => { "value" => 22.0, "display" => "22.0 °C", "unit" => "°C" }
+            // 21.5 carries one decimal, 22 carries none — the mean 21.75 rounds
+            // to the coarser input's zero decimals.
+            "sensor.k_temp" => { "value" => 21.5, "display" => "21.5 °C", "unit" => "°C" },
+            "sensor.b_temp" => { "value" => 22.0, "display" => "22 °C", "unit" => "°C" }
         }
     });
-    var summary = CardModel.buildFloorSensorSummary(session, ["Kitchen", "Bedroom", "Study"]);
+    var summary = CardModel.buildFloorSensorSummary(session, ["Kitchen", "Bedroom"]);
 
     Test.assertEqual(summary.size(), 1);
-    Test.assertEqual(summary[0].get(:reading) as String, "21.0 °C");
+    Test.assertEqual(summary[0].get(:reading) as String, "22 °C");
+    return true;
+}
+
+(:test)
+function buildFloorSensorSummarySingleSensorShowsHaDisplayVerbatim(logger as Test.Logger) as Boolean {
+    var session = CardModelTest.sessionOf({
+        "areas" => { "Attic" => [] as Array<String> },
+        "sensors" => { "Attic" => ["sensor.lux"] },
+        "states" => {},
+        "kinds" => { "sensor.lux" => "illuminance" },
+        // A lone reading is echoed as HA sent it — no averaging, no reformatting
+        // that would fabricate a decimal HA never showed.
+        "readings" => { "sensor.lux" => { "value" => 0.0, "display" => "0 lx", "unit" => "lx" } }
+    });
+    var summary = CardModel.buildFloorSensorSummary(session, ["Attic"]);
+
+    Test.assertEqual(summary.size(), 1);
+    Test.assertEqual(summary[0].get(:reading) as String, "0 lx");
     return true;
 }

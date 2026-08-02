@@ -141,21 +141,47 @@ module CardModel {
         return groups;
     }
 
+    // A single reading is shown as HA sent it. Averaging several rounds to the
+    // fewest decimals any of them carried: a mean is no more precise than its
+    // coarsest input, so "21.5 °C" combined with "22 °C" reads "22 °C".
     function calculateMeanReading(readings as Array<HomeSession.SensorReading>) as String {
+        if (readings.size() == 1) {
+            return readings[0].get(:display) as String;
+        }
+
         var sum = 0.0;
+        var decimals = decimalsOf(readings[0].get(:display) as String);
 
         for (var index = 0; index < readings.size(); index++) {
             sum += readings[index].get(:value) as Float;
+            decimals = min(decimals, decimalsOf(readings[index].get(:display) as String));
         }
 
-        var mean = sum / readings.size();
+        var mean = (sum / readings.size()).format("%." + decimals.toString() + "f");
         var unit = readings[0].get(:unit) as String or Null;
-        var formatted = mean.format("%.1f");
 
         if (unit == null || unit.length() == 0) {
-            return formatted;
+            return mean;
         }
 
-        return formatted + " " + unit;
+        return mean + " " + unit;
+    }
+
+    // Decimal places in a reading's display value, e.g. 1 for "21.5 °C", 0 for
+    // "120 lx". Reads the number ahead of the unit.
+    function decimalsOf(display as String) as Number {
+        var space = display.find(" ");
+        var number = space == null ? display : display.substring(0, space) as String;
+        var dot = number.find(".");
+
+        if (dot == null) {
+            return 0;
+        }
+
+        return number.length() - dot - 1;
+    }
+
+    function min(a as Number, b as Number) as Number {
+        return a < b ? a : b;
     }
 }
