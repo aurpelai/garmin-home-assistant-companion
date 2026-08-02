@@ -683,6 +683,40 @@ function buildFloorGroupsIsEmptyWhenNoAreas(logger as Test.Logger) as Boolean {
 }
 
 (:test)
+function listLightsInFloorUnionsItsAreasLights(logger as Test.Logger) as Boolean {
+    var data = {
+        "areas" => {
+            "Kitchen" => ["light.kitchen"],
+            "Bedroom" => ["light.bed_a", "light.bed_b"],
+            "Garage" => ["light.garage"]
+        },
+        "states" => {},
+        "floors" => [
+            { "id" => "floor_up", "name" => "Upstairs", "areas" => ["Kitchen", "Bedroom"] }
+        ]
+    };
+    var lights = HomeState.fromTemplateData(data).listLightsInFloor("Upstairs");
+
+    // Areas in stored order (Kitchen, Bedroom), lights sorted by name within each.
+    Test.assertEqual(lights.size(), 3);
+    Test.assertEqual(lights[0], "light.kitchen");
+    Test.assertEqual(lights[1], "light.bed_a");
+    Test.assertEqual(lights[2], "light.bed_b");
+    return true;
+}
+
+(:test)
+function listLightsInFloorIsEmptyForUnknownFloor(logger as Test.Logger) as Boolean {
+    var data = {
+        "areas" => { "Kitchen" => ["light.kitchen"] },
+        "states" => {},
+        "floors" => [{ "name" => "Upstairs", "areas" => ["Kitchen"] }]
+    };
+    Test.assertEqual(HomeState.fromTemplateData(data).listLightsInFloor("Nowhere").size(), 0);
+    return true;
+}
+
+(:test)
 function malformedFloorsSectionDegradesToUnflooredList(logger as Test.Logger) as Boolean {
     var data = {
         "areas" => { "Hall" => ["light.hall"] },

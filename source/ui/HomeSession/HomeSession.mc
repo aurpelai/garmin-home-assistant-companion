@@ -44,6 +44,10 @@ class HomeSession {
         return _state.listLightsInArea(name);
     }
 
+    function listLightsInFloor(name as String) as Array<String> {
+        return _state.listLightsInFloor(name);
+    }
+
     function listSensorsInArea(name as String) as Array<String> {
         return _state.listSensorsInArea(name);
     }
@@ -207,6 +211,79 @@ class HomeSession {
 
     function revertState(entityId as String, attemptedOn as Boolean) as Void {
         _states.put(entityId, !attemptedOn);
+    }
+
+    // Any available, non-group light in the floor being on drives both the
+    // any-on -> off toggle decision and the floor card's status. Groups are
+    // excluded because HA reports a group on when any member is, which would
+    // double-count the members it aggregates.
+    function areFloorLightsOn(floorName as String) as Boolean {
+        var lights = toggleableFloorLights(floorName);
+
+        for (var index = 0; index < lights.size(); index++) {
+            if (isOn(lights[index])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // On-count and total across the floor's available, non-group lights, for the
+    // card status. Total 0 means the floor has nothing to toggle.
+    function countFloorLights(floorName as String) as Dictionary {
+        var lights = toggleableFloorLights(floorName);
+        var onCount = 0;
+
+        for (var index = 0; index < lights.size(); index++) {
+            if (isOn(lights[index])) {
+                onCount++;
+            }
+        }
+
+        return { :on => onCount, :total => lights.size() };
+    }
+
+    // Direction is decided once from any-on so the whole floor lands in one
+    // state. Each affected light's prior value is captured before the optimistic
+    // flip, so a failed call restores exactly those, not a blanket flip.
+    function toggleFloorLights(floorId as String, floorName as String, onComplete as Method) as Void {
+        var newOn = !areFloorLightsOn(floorName);
+        var lights = toggleableFloorLights(floorName);
+        var priorOn = {} as Dictionary<String, Boolean>;
+
+        for (var index = 0; index < lights.size(); index++) {
+            var entityId = lights[index];
+            priorOn.put(entityId, isOn(entityId));
+            _states.put(entityId, newOn);
+        }
+
+        var service = newOn ? "turn_on" : "turn_off";
+        client.toggleFloorLights(floorId, service,
+            new FloorToggleResultHandler(self, priorOn, onComplete).method(:onResult));
+    }
+
+    function revertStates(priorOn as Dictionary<String, Boolean>) as Void {
+        var entityIds = priorOn.keys();
+
+        for (var index = 0; index < entityIds.size(); index++) {
+            var entityId = entityIds[index];
+            _states.put(entityId, priorOn.get(entityId) as Boolean);
+        }
+    }
+
+    private function toggleableFloorLights(floorName as String) as Array<String> {
+        var lights = listLightsInFloor(floorName);
+        var toggleable = [] as Array<String>;
+
+        for (var index = 0; index < lights.size(); index++) {
+            var entityId = lights[index];
+            if (!isGroup(entityId) && isAvailable(entityId)) {
+                toggleable.add(entityId);
+            }
+        }
+
+        return toggleable;
     }
 
     // Re-sync from a freshly fetched HomeState (most-recent-fetch wins). The

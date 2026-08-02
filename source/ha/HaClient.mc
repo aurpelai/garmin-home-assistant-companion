@@ -128,6 +128,14 @@ class HaClient {
         new RecoveryHandler(self, new ServiceOnceHandler(self, entityId).method(:serviceOnce), callback).attempt();
     }
 
+    // Directional, not a toggle: the caller decides turn_on vs turn_off so a
+    // whole-floor "any on -> all off" resolves deterministically instead of
+    // flipping each light independently.
+    function toggleFloorLights(floorId as String, service as String, callback as Method) as Void {
+        new RecoveryHandler(self,
+            new FloorServiceOnceHandler(self, floorId, service).method(:serviceOnce), callback).attempt();
+    }
+
     function fetchOnce(callback as Method) as Void {
         var webhookId = Settings.getWebhookId();
         if (webhookId == null) {
@@ -150,6 +158,25 @@ class HaClient {
                 "domain" => "light",
                 "service" => "toggle",
                 "service_data" => { "entity_id" => entityId }
+            }
+        };
+        post("/api/webhook/" + webhookId, body, new ResponseHandler(callback, :onService));
+    }
+
+    // HA's `target` (floor_id/area_id/device_id) is a distinct field from a
+    // per-entity service_data.entity_id, so a floor service call targets `target`.
+    function floorServiceOnce(floorId as String, service as String, callback as Method) as Void {
+        var webhookId = Settings.getWebhookId();
+        if (webhookId == null) {
+            callback.invoke(null, 404);
+            return;
+        }
+        var body = {
+            "type" => "call_service",
+            "data" => {
+                "domain" => "light",
+                "service" => service,
+                "target" => { "floor_id" => floorId }
             }
         };
         post("/api/webhook/" + webhookId, body, new ResponseHandler(callback, :onService));

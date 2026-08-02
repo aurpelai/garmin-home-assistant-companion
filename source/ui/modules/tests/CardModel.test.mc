@@ -90,6 +90,50 @@ function areaCardsAreSelectableFloorCardsAreNot(logger as Test.Logger) as Boolea
 }
 
 (:test)
+function floorCardIsSelectableWithIdAndLights(logger as Test.Logger) as Boolean {
+    var session = CardModelTest.sessionOf({
+        "areas" => { "Kitchen" => ["light.kitchen"] },
+        "states" => {},
+        "floors" => [{ "id" => "floor_ground", "name" => "Ground Floor", "areas" => ["Kitchen"] }]
+    });
+    var cards = CardModel.buildCards(session);
+
+    Test.assertEqual(cards[0].get(:type) as Symbol, :floor);
+    Test.assert(cards[0].get(:selectable) as Boolean);
+    return true;
+}
+
+(:test)
+function floorCardIsInertWithoutAnId(logger as Test.Logger) as Boolean {
+    var session = CardModelTest.sessionOf({
+        "areas" => { "Kitchen" => ["light.kitchen"] },
+        "states" => {},
+        "floors" => [{ "name" => "Ground Floor", "areas" => ["Kitchen"] }]
+    });
+    var cards = CardModel.buildCards(session);
+
+    Test.assert(!(cards[0].get(:selectable) as Boolean));
+    return true;
+}
+
+(:test)
+function floorCardIsInertWhenItHasNoLights(logger as Test.Logger) as Boolean {
+    var session = CardModelTest.sessionOf({
+        "areas" => { "Attic" => [] as Array<String> },
+        "sensors" => { "Attic" => ["sensor.attic_temp"] },
+        "kinds" => { "sensor.attic_temp" => "temperature" },
+        "readings" => { "sensor.attic_temp" => { "value" => 18.0, "display" => "18.0 °C", "unit" => "°C" } },
+        "states" => {},
+        "floors" => [{ "id" => "floor_top", "name" => "Top Floor", "areas" => ["Attic"] }]
+    });
+    var cards = CardModel.buildCards(session);
+
+    Test.assertEqual(cards[0].get(:type) as Symbol, :floor);
+    Test.assert(!(cards[0].get(:selectable) as Boolean));
+    return true;
+}
+
+(:test)
 function buildAreaLightSummaryCountsOnAndAvailableLights(logger as Test.Logger) as Boolean {
     var session = CardModelTest.sessionOf({
         "areas" => { "Room" => ["light.a", "light.b", "light.c"] },

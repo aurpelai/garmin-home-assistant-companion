@@ -131,6 +131,25 @@ class HomeState {
         return [] as Array<String>;
     }
 
+    // Every light across the floor's areas, in area order. A floor whose name
+    // matches nothing yields an empty list.
+    function listLightsInFloor(floorName as String) as Array<String> {
+        var out = [] as Array<String>;
+
+        for (var floorIndex = 0; floorIndex < floors.size(); floorIndex++) {
+            if (!(floors[floorIndex].get(:name) as String).equals(floorName)) {
+                continue;
+            }
+
+            var floorAreas = floors[floorIndex].get(:areas) as Array<String>;
+            for (var areaIndex = 0; areaIndex < floorAreas.size(); areaIndex++) {
+                out.addAll(listLightsInArea(floorAreas[areaIndex]));
+            }
+        }
+
+        return out;
+    }
+
     // Not sorted: the template already emits an area's sensors grouped by kind.
     function listSensorsInArea(name as String) as Array<String> {
         for (var areaIndex = 0; areaIndex < areas.size(); areaIndex++) {
