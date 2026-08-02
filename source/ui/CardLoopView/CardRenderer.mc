@@ -285,8 +285,6 @@ class CardRenderer {
         dc.fillCircle(x, y, PAGE_OVERFLOW_RADIUS);
     }
 
-    // drawBitmap, not drawBitmap2: some devices ship this hint as a palette
-    // bitmap, which drawBitmap2 rejects ("Source must not use a color palette").
     private function drawSelectHint(dc as Graphics.Dc) as Void {
         var hint = WatchUi.loadResource(Rez.Drawables.SelectHint) as BitmapResource;
 
