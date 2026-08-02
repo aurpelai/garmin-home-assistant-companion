@@ -1,17 +1,8 @@
 import Toybox.Lang;
-import Toybox.WatchUi;
 
 // Pure session -> card-dictionary functions behind the card loop's view. No
 // drawing; the view (CardLoopView) owns state, paging, and rendering.
 module CardModel {
-
-    class ReadingSorter {
-        function compare(a as Object, b as Object) as Number {
-            var aValue = (a as Dictionary).get(:value) as Float;
-            var bValue = (b as Dictionary).get(:value) as Float;
-            return aValue.compareTo(bValue);
-        }
-    }
 
     // Walks the session's grouped floor structure into a flat card sequence:
     // for each floor group, a floor card (skipped when :name is null — the
@@ -59,21 +50,34 @@ module CardModel {
         };
     }
 
-    // Counts individual lights that are on, skipping group entities — HA marks
+    // Per-light dot counts for the area card, skipping group entities — HA marks
     // a group on when any member is on, so counting groups would double-count.
-    function buildAreaLightSummary(session as HomeSession, name as String) as String or Null {
+    // A light is available or unavailable per server truth; on is counted only
+    // among available lights. Null when the area has no non-group lights.
+    function buildAreaLightSummary(session as HomeSession, name as String) as Dictionary or Null {
         var lights = session.listLightsInArea(name);
         var lightCount = 0;
+        var availableCount = 0;
+        var unavailableCount = 0;
         var onCount = 0;
 
         for (var index = 0; index < lights.size(); index++) {
             var light = lights[index];
+
             if (session.isGroup(light)) {
                 continue;
             }
+
             lightCount++;
-            if (session.isOn(light)) {
-                onCount++;
+
+            if (session.isAvailable(light)) {
+                availableCount++;
+
+                if (session.isOn(light)) {
+                    onCount++;
+                }
+            } else {
+                unavailableCount++;
             }
         }
 
@@ -81,11 +85,11 @@ module CardModel {
             return null;
         }
 
-        if (onCount == 1) {
-            return WatchUi.loadResource(Rez.Strings.OneLightOn) as String;
-        }
-
-        return Lang.format(WatchUi.loadResource(Rez.Strings.LightsOn) as String, [onCount]);
+        return {
+            :on => onCount,
+            :available => availableCount,
+            :unavailable => unavailableCount
+        };
     }
 
     // The first readable sensor of each kind present in the area, in the order
@@ -121,24 +125,24 @@ module CardModel {
         return summary;
     }
 
-    // A min-max range per kind across every sensor of that kind in the floor's
-    // areas, collapsing to a single value when the ends are equal. Readings with
-    // no numeric value are skipped; a kind with nothing left to range over is
-    // omitted entirely. One entry per kind: { :kind => String, :range => String }.
+    // The mean reading per kind across every sensor of that kind in the floor's
+    // areas, formatted to one decimal place and suffixed with the kind's unit.
+    // Readings with no numeric value are skipped; a kind with nothing left to
+    // average is omitted. One entry per kind: { :kind => String, :reading => String }.
     function buildFloorSensorSummary(session as HomeSession, areaNames as Array<String>) as Array<Dictionary> {
         var kindOrder = [] as Array<String>;
         var readingsByKind = {} as Dictionary<String, Array<Dictionary> >;
 
         for (var areaIndex = 0; areaIndex < areaNames.size(); areaIndex++) {
             var sensors = session.listSensorsInArea(areaNames[areaIndex]);
+
             for (var sensorIndex = 0; sensorIndex < sensors.size(); sensorIndex++) {
                 var entityId = sensors[sensorIndex];
                 var kind = session.getKind(entityId);
-                var reading = session.getReading(entityId);
                 var value = session.getReadingValue(entityId);
                 var unit = session.getReadingUnit(entityId);
 
-                if (kind == null || reading == null || value == null) {
+                if (kind == null || value == null) {
                     continue;
                 }
 
@@ -149,7 +153,6 @@ module CardModel {
 
                 (readingsByKind.get(kind) as Array<Dictionary>).add({
                     :value => value,
-                    :display => reading,
                     :unit => unit
                 });
             }
@@ -159,58 +162,40 @@ module CardModel {
 
         for (var index = 0; index < kindOrder.size(); index++) {
             var kind = kindOrder[index];
-            var range = buildRange(readingsByKind.get(kind) as Array<Dictionary>);
+            var reading = buildMean(readingsByKind.get(kind) as Array<Dictionary>);
 
-            if (range == null) {
+            if (reading == null) {
                 continue;
             }
 
             summary.add({
                 :kind => kind,
-                :range => range
+                :reading => reading
             });
         }
 
         return summary;
     }
 
-    function stripUnit(display as String, unit as String or Null) as String {
-        if (unit == null || unit.length() == 0) {
-            return display;
-        }
-
-        var unitPosition = display.find(unit);
-
-        if (unitPosition == null || unitPosition <= 0) {
-            return display;
-        }
-
-        var char = display.substring(unitPosition - 1, unitPosition);
-        if (char != null && char.equals(" ")) {
-            unitPosition = unitPosition - 1;
-        }
-
-        return display.substring(0, unitPosition) as String;
-    }
-
-    function buildRange(readings as Array<Dictionary>) as String or Null {
+    function buildMean(readings as Array<Dictionary>) as String or Null {
         if (readings.size() == 0) {
             return null;
         }
 
-        var sortedReadings = [] as Array<Dictionary>;
-        sortedReadings.addAll(readings);
-        sortedReadings.sort(new ReadingSorter());
+        var sum = 0.0;
 
-        var minReading = sortedReadings[0];
-        var maxReading = sortedReadings[sortedReadings.size() - 1];
-        var rangeString = maxReading.get(:display) as String;
-
-        if (minReading.get(:value) as Float != maxReading.get(:value) as Float) {
-            var minValue = stripUnit(minReading.get(:display) as String, minReading.get(:unit) as String or Null);
-            rangeString = minValue + "–" + rangeString;
+        for (var index = 0; index < readings.size(); index++) {
+            sum += readings[index].get(:value) as Float;
         }
 
-        return rangeString;
+        var mean = sum / readings.size();
+        var unit = readings[0].get(:unit) as String or Null;
+        var formatted = mean.format("%.1f");
+
+        if (unit == null || unit.length() == 0) {
+            return formatted;
+        }
+
+        return formatted + " " + unit;
     }
 }

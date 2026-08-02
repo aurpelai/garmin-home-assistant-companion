@@ -17,8 +17,6 @@
     <string id="GroupUnavailable">Group unavailable</string>
     <string id="GroupLightCount">Group • $1$ Lights</string>
     <string id="GroupLightCountOne">Group • 1 Light</string>
-    <string id="LightsOn">$1$ lights on</string>
-    <string id="OneLightOn">1 light on</string>
 
     <!-- Errors -->
     <string id="ErrNoConfig">Set URL and token in the app settings</string>

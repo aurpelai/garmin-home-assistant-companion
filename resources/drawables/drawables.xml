@@ -3,4 +3,5 @@
     <!-- LauncherIcon is declared per-size in resources-launcher-<N>/drawables.xml
          (generated from icons/launcher_master.svg) and wired per device in
          monkey.jungle. Only shared, size-independent drawables live here. -->
+    <bitmap id="ActionMenuHint" personality="system_icon_dark__hint_action_menu system_loc__hint_action_menu" />
 </drawables>
