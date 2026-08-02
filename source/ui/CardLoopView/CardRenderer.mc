@@ -8,8 +8,8 @@ import Toybox.WatchUi;
 // come from the device's SDK personality (System 6 / API 5.0.0), so they track
 // the watch theme instead of being hand-picked.
 class CardRenderer {
-    private const TITLE_FONT = prompt_font__title.font;
-    private const FLOOR_LABEL_FONT = prompt_font__body_no_title.font;
+    private const TITLE_FONT = prompt_font__body_no_title.font;
+    private const FLOOR_LABEL_FONT = prompt_font__title.font;
     private const SUMMARY_FONT = prompt_font__body_with_title.font;
 
     private const SECTION_GAP = 16;
