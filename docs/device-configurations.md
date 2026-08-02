@@ -11,10 +11,11 @@ watch the buttons always map the same way:
 
 | Position     | Role                                    |
 | ------------ | --------------------------------------- |
-| top-right    | start / select — the primary action     |
-| bottom-right | back / lap                              |
-| top-left     | up / previous                           |
-| middle-left  | down / next (hold: menu)                |
+| top-right    | start / select                          |
+| bottom-right | back                                    |
+| top-left     | backlight                               |
+| middle-left  | up                                      |
+| bottom-left  | down                                    |
 
 Watches with fewer buttons drop the left column and keep the right: three-button
 watches have start/select (top-right) and back (bottom-right) plus a menu key;
