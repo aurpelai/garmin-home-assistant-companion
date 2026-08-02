@@ -46,10 +46,13 @@ class HaClient {
         "{% set ns.lights = [] %}" +
         "{% set ns.sensors = [] %}" +
 
-        // An area-assigned entity with no state object yields no name from
-        // `states[e].name` and fails the whole render, not just its own row.
+        // Skip any area-assigned entity with no state object: `states[e].name`
+        // on it renders Undefined, and the closing `| tojson` would then fail the
+        // whole render rather than omit one row. Not known to occur via any
+        // user-reachable path (disabled entities are already absent here), but the
+        // blast radius is the entire payload, so the id is dropped defensively.
         "{% for e in visible %}" +
-        "{% if e.startswith('light.') %}" +
+        "{% if e.startswith('light.') and states[e] is not none %}" +
         "{% set isGroup = state_attr(e, 'entity_id') is not none %}" +
         "{% set visibleMembers = expand(e) | rejectattr('entity_id', 'is_hidden_entity') " +
             "| list | count if isGroup else 0 %}" +
