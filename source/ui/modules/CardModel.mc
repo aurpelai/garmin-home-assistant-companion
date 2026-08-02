@@ -150,11 +150,11 @@ module CardModel {
         }
 
         var sum = 0.0;
-        var decimals = decimalsOf(readings[0].get(:display) as String);
+        var decimals = decimalsOf(readings[0]);
 
         for (var index = 0; index < readings.size(); index++) {
             sum += readings[index].get(:value) as Float;
-            decimals = min(decimals, decimalsOf(readings[index].get(:display) as String));
+            decimals = min(decimals, decimalsOf(readings[index]));
         }
 
         var mean = (sum / readings.size()).format("%." + decimals.toString() + "f");
@@ -167,18 +167,51 @@ module CardModel {
         return mean + " " + unit;
     }
 
-    // Decimal places in a reading's display value, e.g. 1 for "21.5 °C", 0 for
-    // "120 lx". Reads the number ahead of the unit.
-    function decimalsOf(display as String) as Number {
-        var space = display.find(" ");
-        var number = space == null ? display : display.substring(0, space) as String;
+    // Decimal places HA showed for a reading, e.g. 1 for "21.5 °C", 0 for
+    // "120 lx". The unit is stripped off the display by value rather than guessed
+    // at a separator, leaving the numeric part to measure.
+    function decimalsOf(reading as HomeSession.SensorReading) as Number {
+        var display = reading.get(:display) as String;
+        var unit = reading.get(:unit) as String or Null;
+        var number = stripSuffix(display, unit);
         var dot = number.find(".");
 
         if (dot == null) {
             return 0;
         }
 
-        return number.length() - dot - 1;
+        var fraction = number.substring(dot + 1, number.length());
+
+        return fraction == null ? 0 : countDigits(fraction);
+    }
+
+    function stripSuffix(text as String, suffix as String or Null) as String {
+        if (suffix == null || suffix.length() == 0 || suffix.length() > text.length()) {
+            return text;
+        }
+
+        var tail = text.substring(text.length() - suffix.length(), text.length());
+
+        if (tail == null || !tail.equals(suffix)) {
+            return text;
+        }
+
+        var head = text.substring(0, text.length() - suffix.length());
+
+        return head == null ? text : head;
+    }
+
+    function countDigits(text as String) as Number {
+        var chars = text.toCharArray();
+        var count = 0;
+
+        for (var index = 0; index < chars.size(); index++) {
+            if (chars[index] >= '0' && chars[index] <= '9') {
+                count++;
+            }
+        }
+
+        return count;
     }
 
     function min(a as Number, b as Number) as Number {
