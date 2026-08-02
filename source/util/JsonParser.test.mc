@@ -103,15 +103,14 @@ function jsonRejectsTrailingContent(logger as Test.Logger) as Boolean {
 // real wire shape end to end into HomeState.
 (:test)
 function jsonFeedsHomeStateEndToEnd(logger as Test.Logger) as Boolean {
-    var payload = "{\"areas\": {\"Bedroom\": [\"light.bedroom_lights\"]}, " +
-        "\"sensors\": {\"Bedroom\": [\"sensor.bedroom_temperature\"]}, " +
-        "\"states\": {\"light.bedroom_lights\": false}, " +
-        "\"available\": {\"light.bedroom_lights\": true, \"sensor.bedroom_temperature\": true}, " +
-        "\"names\": {\"light.bedroom_lights\": \"Bedroom Lights\", \"sensor.bedroom_temperature\": \"Temperature\"}, " +
-        "\"groups\": {\"light.bedroom_lights\": 3}, " +
-        "\"readings\": {\"sensor.bedroom_temperature\": {\"value\": 24.2, \"display\": \"24.2 \\u00b0C\", \"unit\": \"\\u00b0C\"}}, " +
-        "\"kinds\": {\"sensor.bedroom_temperature\": \"temperature\"}, " +
-        "\"floors\": [{\"name\": \"Apartment\", \"areas\": [\"Bedroom\"]}]}";
+    var payload = "{\"areas\": {\"area.bedroom\": {\"name\": \"Bedroom\", " +
+            "\"lights\": [\"light.bedroom_lights\"], \"sensors\": [\"sensor.bedroom_temperature\"]}}, " +
+        "\"lights\": {\"light.bedroom_lights\": {\"state\": false, \"name\": \"Bedroom Lights\", " +
+            "\"available\": true, \"memberCount\": 3}}, " +
+        "\"sensors\": {\"sensor.bedroom_temperature\": {\"state\": 24.2, " +
+            "\"display_state\": \"24.2 \\u00b0C\", \"unit\": \"\\u00b0C\", " +
+            "\"device_class\": \"temperature\", \"name\": \"Temperature\", \"available\": true}}, " +
+        "\"floors\": {\"floor.apartment\": {\"name\": \"Apartment\", \"areas\": [\"area.bedroom\"]}}}";
 
     var parsed = JsonParser.parse(payload);
     var home = HomeState.fromTemplateData(parsed as Dictionary or String or Null);
@@ -122,6 +121,41 @@ function jsonFeedsHomeStateEndToEnd(logger as Test.Logger) as Boolean {
     Test.assertEqual(home.isGroup("light.bedroom_lights"), true);
     Test.assertEqual(home.getMemberCount("light.bedroom_lights"), 3);
     Test.assertEqual(home.getReading("sensor.bedroom_temperature") as String, "24.2 °C");
-    Test.assertEqual(home.getKind("sensor.bedroom_temperature") as String, "temperature");
+    Test.assertEqual(home.getDeviceClass("sensor.bedroom_temperature") as String, "temperature");
+    return true;
+}
+
+// A raw (unescaped) multi-byte character surviving a full parse-into-model
+// round trip, not just the bare JsonParser call above.
+(:test)
+function jsonFeedsHomeStateEndToEndWithRawNonAscii(logger as Test.Logger) as Boolean {
+    var payload = "{\"areas\": {\"area.kitchen\": {\"name\": \"Küche\", \"sensors\": [\"sensor.temp\"]}}, " +
+        "\"sensors\": {\"sensor.temp\": {\"state\": 21.5, \"display_state\": \"21.5 °C\", " +
+            "\"unit\": \"°C\", \"device_class\": \"temperature\", \"name\": \"Café Sensor\"}}}";
+
+    var parsed = JsonParser.parse(payload);
+    var home = HomeState.fromTemplateData(parsed as Dictionary or String or Null);
+
+    Test.assertEqual(home.getAreaName("area.kitchen"), "Küche");
+    Test.assertEqual(home.getName("sensor.temp"), "Café Sensor");
+    Test.assertEqual(home.getReading("sensor.temp") as String, "21.5 °C");
+    return true;
+}
+
+// The parse must not fail the whole payload just because one entity id present
+// in an area's list has no corresponding lights-section entry.
+(:test)
+function jsonFeedsHomeStateEndToEndWithAStateLessEntityDropped(logger as Test.Logger) as Boolean {
+    var payload = "{\"areas\": {\"area.hall\": {\"name\": \"Hall\", " +
+            "\"lights\": [\"light.ok\", \"light.stateless\"]}}, " +
+        "\"lights\": {\"light.ok\": {\"state\": true, \"name\": \"Ok\", \"available\": true}}}";
+
+    var parsed = JsonParser.parse(payload);
+    var home = HomeState.fromTemplateData(parsed as Dictionary or String or Null);
+
+    Test.assert(!home.isEmpty());
+    Test.assert(home.isOn("light.ok"));
+    // Absent from "lights": isOn degrades to false, never throws.
+    Test.assert(!home.isOn("light.stateless"));
     return true;
 }

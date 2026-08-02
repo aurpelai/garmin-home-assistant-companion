@@ -24,7 +24,7 @@ module EntityMenuTest {
 (:test)
 function rowSwitchReflectsIsOnWhenBuilt(logger as Test.Logger) as Boolean {
     var session = EntityMenuTest.sessionOf({
-        "states" => { "light.on" => true, "light.off" => false }
+        "lights" => { "light.on" => { "state" => true }, "light.off" => { "state" => false } }
     });
 
     Test.assert(EntityMenu.buildItem(session, "light.on").isEnabled());
@@ -34,10 +34,10 @@ function rowSwitchReflectsIsOnWhenBuilt(logger as Test.Logger) as Boolean {
 
 (:test)
 function appliedStateRowReflectsConvergedTruth(logger as Test.Logger) as Boolean {
-    var session = EntityMenuTest.sessionOf({ "states" => { "light.x" => true } });
+    var session = EntityMenuTest.sessionOf({ "lights" => { "light.x" => { "state" => true } } });
     var menu = new EntityMenu(session, "Room", ["light.x"], [] as Array<String>);
 
-    session.applyState(EntityMenuTest.stateOf({ "states" => { "light.x" => false } }));
+    session.applyState(EntityMenuTest.stateOf({ "lights" => { "light.x" => { "state" => false } } }));
     menu.redraw();
 
     Test.assert(!(menu.getItem(menu.findItemById("light.x")) as WatchUi.ToggleMenuItem).isEnabled());
@@ -47,8 +47,7 @@ function appliedStateRowReflectsConvergedTruth(logger as Test.Logger) as Boolean
 (:test)
 function toggleShowsNoTransientSubLabel(logger as Test.Logger) as Boolean {
     var session = EntityMenuTest.sessionOf({
-        "states" => { "light.grp" => true },
-        "groups" => { "light.grp" => 3 }
+        "lights" => { "light.grp" => { "state" => true, "memberCount" => 3 } }
     });
     var menu = new EntityMenu(session, "Room", ["light.grp"], [] as Array<String>);
     var item = menu.getItem(menu.findItemById("light.grp")) as WatchUi.ToggleMenuItem;
@@ -62,8 +61,7 @@ function toggleShowsNoTransientSubLabel(logger as Test.Logger) as Boolean {
 (:test)
 function groupRowShowsMemberCount(logger as Test.Logger) as Boolean {
     var session = EntityMenuTest.sessionOf({
-        "states" => { "light.grp" => true },
-        "groups" => { "light.grp" => 4 }
+        "lights" => { "light.grp" => { "state" => true, "memberCount" => 4 } }
     });
 
     Test.assertEqual(EntityMenu.buildSubLabel(session, "light.grp") as String, "Group • 4 Lights");
@@ -73,8 +71,7 @@ function groupRowShowsMemberCount(logger as Test.Logger) as Boolean {
 (:test)
 function singleMemberGroupIsSingular(logger as Test.Logger) as Boolean {
     var session = EntityMenuTest.sessionOf({
-        "states" => { "light.grp" => true },
-        "groups" => { "light.grp" => 1 }
+        "lights" => { "light.grp" => { "state" => true, "memberCount" => 1 } }
     });
 
     Test.assertEqual(EntityMenu.buildSubLabel(session, "light.grp") as String, "Group • 1 Light");
@@ -84,8 +81,7 @@ function singleMemberGroupIsSingular(logger as Test.Logger) as Boolean {
 (:test)
 function plainLightHasNoSubLabel(logger as Test.Logger) as Boolean {
     var session = EntityMenuTest.sessionOf({
-        "states" => { "light.plain" => true },
-        "groups" => {} as Dictionary<String, Number>
+        "lights" => { "light.plain" => { "state" => true } }
     });
 
     Test.assert(EntityMenu.buildSubLabel(session, "light.plain") == null);
@@ -95,8 +91,7 @@ function plainLightHasNoSubLabel(logger as Test.Logger) as Boolean {
 (:test)
 function unavailablePlainRowShowsUnavailable(logger as Test.Logger) as Boolean {
     var session = EntityMenuTest.sessionOf({
-        "states" => { "light.plain" => false },
-        "available" => { "light.plain" => false }
+        "lights" => { "light.plain" => { "state" => false, "available" => false } }
     });
 
     Test.assertEqual(EntityMenu.buildSubLabel(session, "light.plain") as String, "Unavailable");
@@ -106,9 +101,7 @@ function unavailablePlainRowShowsUnavailable(logger as Test.Logger) as Boolean {
 (:test)
 function unavailableGroupRowShowsGroupUnavailable(logger as Test.Logger) as Boolean {
     var session = EntityMenuTest.sessionOf({
-        "states" => { "light.grp" => false },
-        "groups" => { "light.grp" => 3 },
-        "available" => { "light.grp" => false }
+        "lights" => { "light.grp" => { "state" => false, "memberCount" => 3, "available" => false } }
     });
 
     Test.assertEqual(EntityMenu.buildSubLabel(session, "light.grp") as String, "Group unavailable");
@@ -118,8 +111,7 @@ function unavailableGroupRowShowsGroupUnavailable(logger as Test.Logger) as Bool
 (:test)
 function rowLabelUsesHaName(logger as Test.Logger) as Boolean {
     var session = EntityMenuTest.sessionOf({
-        "states" => { "light.kitchen" => true },
-        "names" => { "light.kitchen" => "Kitchen Island" }
+        "lights" => { "light.kitchen" => { "state" => true, "name" => "Kitchen Island" } }
     });
 
     Test.assertEqual(EntityMenu.buildItem(session, "light.kitchen").getLabel() as String, "Kitchen Island");
@@ -129,8 +121,7 @@ function rowLabelUsesHaName(logger as Test.Logger) as Boolean {
 (:test)
 function rowLabelFallsBackToIdWhenNameMissing(logger as Test.Logger) as Boolean {
     var session = EntityMenuTest.sessionOf({
-        "states" => { "light.kitchen" => true },
-        "names" => {} as Dictionary<String, String>
+        "lights" => { "light.kitchen" => { "state" => true } }
     });
 
     Test.assertEqual(EntityMenu.buildItem(session, "light.kitchen").getLabel() as String, "light.kitchen");
@@ -140,8 +131,7 @@ function rowLabelFallsBackToIdWhenNameMissing(logger as Test.Logger) as Boolean 
 (:test)
 function rowLabelFallsBackToIdWhenNameEmpty(logger as Test.Logger) as Boolean {
     var session = EntityMenuTest.sessionOf({
-        "states" => { "light.kitchen" => true },
-        "names" => { "light.kitchen" => "" }
+        "lights" => { "light.kitchen" => { "state" => true, "name" => "" } }
     });
 
     Test.assertEqual(EntityMenu.buildItem(session, "light.kitchen").getLabel() as String, "light.kitchen");
@@ -151,16 +141,16 @@ function rowLabelFallsBackToIdWhenNameEmpty(logger as Test.Logger) as Boolean {
 (:test)
 function sensorRowsFollowLightRowsInSensorOrder(logger as Test.Logger) as Boolean {
     var session = EntityMenuTest.sessionOf({
-        "areas" => { "Room" => ["light.x"] },
-        "sensors" => { "Room" => ["sensor.temperature", "sensor.humidity", "sensor.illuminance"] },
-        "states" => { "light.x" => true },
-        "readings" => {
-            "sensor.temperature" => { "value" => 21.5, "display" => "21.5 C", "unit" => "C" },
-            "sensor.humidity" => { "value" => 43, "display" => "43 %", "unit" => "%" },
-            "sensor.illuminance" => { "value" => 120, "display" => "120 lx", "unit" => "lx" }
+        "areas" => { "area.room" => { "name" => "Room", "lights" => ["light.x"],
+            "sensors" => ["sensor.temperature", "sensor.humidity", "sensor.illuminance"] } },
+        "lights" => { "light.x" => { "state" => true } },
+        "sensors" => {
+            "sensor.temperature" => { "state" => 21.5, "display_state" => "21.5 C", "unit" => "C" },
+            "sensor.humidity" => { "state" => 43, "display_state" => "43 %", "unit" => "%" },
+            "sensor.illuminance" => { "state" => 120, "display_state" => "120 lx", "unit" => "lx" }
         }
     });
-    var menu = new EntityMenu(session, "Room", ["light.x"], session.listSensorsInArea("Room"));
+    var menu = new EntityMenu(session, "Room", ["light.x"], session.listSensorsInArea("area.room"));
 
     Test.assertEqual((menu.getItem(0) as WatchUi.MenuItem).getId() as String, "light.x");
     Test.assertEqual((menu.getItem(1) as WatchUi.MenuItem).getId() as String, "sensor.temperature");
@@ -189,7 +179,7 @@ function areaWithNoEntitiesShowsOneInertRow(logger as Test.Logger) as Boolean {
 (:test)
 function sensorRowShowsReadingAsSubLabel(logger as Test.Logger) as Boolean {
     var session = EntityMenuTest.sessionOf({
-        "readings" => { "sensor.temperature" => { "value" => 21.5, "display" => "21.5 C", "unit" => "C" } }
+        "sensors" => { "sensor.temperature" => { "state" => 21.5, "display_state" => "21.5 C", "unit" => "C" } }
     });
     var item = EntityMenu.buildSensorItem(session, "sensor.temperature");
 
@@ -200,8 +190,8 @@ function sensorRowShowsReadingAsSubLabel(logger as Test.Logger) as Boolean {
 (:test)
 function unavailableSensorRowShowsUnavailable(logger as Test.Logger) as Boolean {
     var session = EntityMenuTest.sessionOf({
-        "readings" => { "sensor.temperature" => { "value" => 22, "display" => "22 °C", "unit" => "°C" } },
-        "available" => { "sensor.temperature" => false }
+        "sensors" => { "sensor.temperature" => { "state" => 22, "display_state" => "22 °C", "unit" => "°C",
+            "available" => false } }
     });
 
     Test.assertEqual(EntityMenu.buildReading(session, "sensor.temperature"), "Unavailable");
@@ -216,7 +206,7 @@ function unavailableSensorRowShowsUnavailable(logger as Test.Logger) as Boolean 
 (:test)
 function sensorRowWithoutReadingShowsUnavailable(logger as Test.Logger) as Boolean {
     var session = EntityMenuTest.sessionOf({
-        "readings" => {} as Dictionary<String, Dictionary>
+        "sensors" => {} as Dictionary
     });
 
     Test.assertEqual(EntityMenu.buildReading(session, "sensor.temperature"), "Unavailable");
@@ -226,12 +216,11 @@ function sensorRowWithoutReadingShowsUnavailable(logger as Test.Logger) as Boole
 (:test)
 function selectingSensorRowLeavesEverythingAlone(logger as Test.Logger) as Boolean {
     var session = EntityMenuTest.sessionOf({
-        "areas" => { "Room" => [] as Array<String> },
-        "sensors" => { "Room" => ["sensor.temperature"] },
-        "readings" => { "sensor.temperature" => { "value" => 21.5, "display" => "21.5 C", "unit" => "C" } }
+        "areas" => { "area.room" => { "name" => "Room", "sensors" => ["sensor.temperature"] } },
+        "sensors" => { "sensor.temperature" => { "state" => 21.5, "display_state" => "21.5 C", "unit" => "C" } }
     });
     var menu = new EntityMenu(session, "Room", [] as Array<String>,
-                              session.listSensorsInArea("Room"));
+                              session.listSensorsInArea("area.room"));
     var item = menu.getItem(menu.findItemById("sensor.temperature")) as WatchUi.MenuItem;
 
     new EntityMenuDelegate(menu, session).onSelect(item);
@@ -245,23 +234,23 @@ function selectingSensorRowLeavesEverythingAlone(logger as Test.Logger) as Boole
 (:test)
 function appliedStateRowsShowNewReadingsInPlace(logger as Test.Logger) as Boolean {
     var session = EntityMenuTest.sessionOf({
-        "areas" => { "Room" => ["light.x"] },
-        "sensors" => { "Room" => ["sensor.temperature", "sensor.humidity"] },
-        "states" => { "light.x" => true },
-        "readings" => {
-            "sensor.temperature" => { "value" => 21.5, "display" => "21.5 C", "unit" => "C" },
-            "sensor.humidity" => { "value" => 43, "display" => "43 %", "unit" => "%" }
+        "areas" => { "area.room" => { "name" => "Room", "lights" => ["light.x"],
+            "sensors" => ["sensor.temperature", "sensor.humidity"] } },
+        "lights" => { "light.x" => { "state" => true } },
+        "sensors" => {
+            "sensor.temperature" => { "state" => 21.5, "display_state" => "21.5 C", "unit" => "C" },
+            "sensor.humidity" => { "state" => 43, "display_state" => "43 %", "unit" => "%" }
         }
     });
-    var menu = new EntityMenu(session, "Room", ["light.x"], session.listSensorsInArea("Room"));
+    var menu = new EntityMenu(session, "Room", ["light.x"], session.listSensorsInArea("area.room"));
 
     session.applyState(EntityMenuTest.stateOf({
-        "areas" => { "Room" => ["light.x"] },
-        "sensors" => { "Room" => ["sensor.temperature", "sensor.humidity"] },
-        "states" => { "light.x" => false },
-        "readings" => {
-            "sensor.temperature" => { "value" => 22.1, "display" => "22.1 C", "unit" => "C" },
-            "sensor.humidity" => { "value" => 44, "display" => "44 %", "unit" => "%" }
+        "areas" => { "area.room" => { "name" => "Room", "lights" => ["light.x"],
+            "sensors" => ["sensor.temperature", "sensor.humidity"] } },
+        "lights" => { "light.x" => { "state" => false } },
+        "sensors" => {
+            "sensor.temperature" => { "state" => 22.1, "display_state" => "22.1 C", "unit" => "C" },
+            "sensor.humidity" => { "state" => 44, "display_state" => "44 %", "unit" => "%" }
         }
     }));
     menu.redraw();

@@ -1,61 +1,60 @@
 import Toybox.Lang;
 import Toybox.WatchUi;
 
-// Pure session -> card-dictionary functions behind the card loop's view. No
-// drawing; the view (CardLoopView) owns state, paging, and rendering.
+// No drawing; the view (CardLoopView) owns state, paging, and rendering.
 module CardModel {
 
-    // Walks the session's grouped floor structure into a flat card sequence:
-    // for each floor group, a floor card (skipped when :name is null — the
-    // trailing unfloored bucket has no header) followed by its area cards.
+    // Floor card skipped when :name is null — the trailing unfloored bucket has
+    // no header.
     function buildCards(session as HomeSession) as Array<Dictionary> {
         var cards = [] as Array<Dictionary>;
-        var groups = session.buildFloorGroups();
+        var groups = session.buildFloors();
 
         for (var groupIndex = 0; groupIndex < groups.size(); groupIndex++) {
             var group = groups[groupIndex];
             var floorId = group.get(:id) as String or Null;
             var floorName = group.get(:name) as String or Null;
-            var areaNames = group.get(:areas) as Array<String>;
+            var areaIds = group.get(:areas) as Array<String>;
 
             if (floorName != null) {
-                cards.add(buildFloorCard(session, floorId, floorName, areaNames));
+                cards.add(buildFloorCard(session, floorId, floorName, areaIds));
             }
 
-            for (var areaIndex = 0; areaIndex < areaNames.size(); areaIndex++) {
-                cards.add(buildAreaCard(session, areaNames[areaIndex], floorName));
+            for (var areaIndex = 0; areaIndex < areaIds.size(); areaIndex++) {
+                cards.add(buildAreaCard(session, areaIds[areaIndex], floorName));
             }
         }
 
         return cards;
     }
 
-    function buildAreaCard(session as HomeSession, name as String,
+    function buildAreaCard(session as HomeSession, areaId as String,
                            floorName as String or Null) as Dictionary {
         return {
             :type => :area,
-            :name => name,
+            :id => areaId,
+            :name => session.getAreaName(areaId),
             :floor => floorName,
             :selectable => true,
-            :lightSummary => buildAreaLightSummary(session, name),
-            :sensorSummary => buildAreaSensorSummary(session, name)
+            :lightSummary => buildAreaLightSummary(session, areaId),
+            :sensorSummary => buildAreaSensorSummary(session, areaId)
         };
     }
 
     function buildFloorCard(session as HomeSession, id as String or Null, name as String,
-                            areaNames as Array<String>) as Dictionary {
+                            areaIds as Array<String>) as Dictionary {
         return {
             :type => :floor,
             :id => id,
             :name => name,
             :selectable => true,
-            :lightSummary => buildFloorLightSummary(session, areaNames),
-            :sensorSummary => buildFloorSensorSummary(session, areaNames)
+            :lightSummary => buildFloorLightSummary(session, areaIds),
+            :sensorSummary => buildFloorSensorSummary(session, areaIds)
         };
     }
 
-    function buildAreaLightSummary(session as HomeSession, name as String) as HomeSession.LightStates or Null {
-        var states = session.getLightStates(session.listLightsInArea(name));
+    function buildAreaLightSummary(session as HomeSession, areaId as String) as HomeSession.LightStates or Null {
+        var states = session.getLightStates(session.listLightsInArea(areaId));
 
         if ((states.get(:available) as Number) + (states.get(:unavailable) as Number) == 0) {
             return null;
@@ -64,11 +63,10 @@ module CardModel {
         return states;
     }
 
-    // A glanceable line summarizing a whole floor's lights, judged among its
-    // available lights only. "No lights available" covers both a floor with no
-    // lights and one whose lights are all unavailable.
-    function buildFloorLightSummary(session as HomeSession, areaNames as Array<String>) as String {
-        var states = session.getFloorLightStates(areaNames);
+    // "No lights available" covers both a floor with no lights and one whose
+    // lights are all unavailable.
+    function buildFloorLightSummary(session as HomeSession, areaIds as Array<String>) as String {
+        var states = session.getFloorLightStates(areaIds);
         var onCount = states.get(:on) as Number;
         var availableCount = states.get(:available) as Number;
 
@@ -87,11 +85,8 @@ module CardModel {
         return WatchUi.loadResource(Rez.Strings.FloorLightsAllOff) as String;
     }
 
-    // For now each kind shows its first sensor's reading as-is; moving to a
-    // mean/range/list later is a change here, not in the session, which hands
-    // over every sensor untouched.
-    function buildAreaSensorSummary(session as HomeSession, name as String) as Array<Dictionary> {
-        var groups = groupReadingsByKind(session.getAreaReadings(name));
+    function buildAreaSensorSummary(session as HomeSession, areaId as String) as Array<Dictionary> {
+        var groups = groupReadingsByKind(session.getAreaReadings(areaId));
         var summary = [] as Array<Dictionary>;
 
         for (var index = 0; index < groups.size(); index++) {
@@ -106,8 +101,8 @@ module CardModel {
         return summary;
     }
 
-    function buildFloorSensorSummary(session as HomeSession, areaNames as Array<String>) as Array<Dictionary> {
-        var groups = groupReadingsByKind(session.getFloorReadings(areaNames));
+    function buildFloorSensorSummary(session as HomeSession, areaIds as Array<String>) as Array<Dictionary> {
+        var groups = groupReadingsByKind(session.getFloorReadings(areaIds));
         var summary = [] as Array<Dictionary>;
 
         for (var index = 0; index < groups.size(); index++) {
@@ -122,15 +117,14 @@ module CardModel {
         return summary;
     }
 
-    // Readings grouped by kind, in first-seen kind order, as an ordered list of
-    // { :kind => String, :readings => Array<SensorReading> }.
+    // Readings grouped by kind, in first-seen kind order.
     function groupReadingsByKind(readings as Array<HomeSession.SensorReading>) as Array<Dictionary> {
         var groups = [] as Array<Dictionary>;
         var indexByKind = {} as Dictionary<String, Number>;
 
         for (var index = 0; index < readings.size(); index++) {
             var reading = readings[index];
-            var kind = reading.get(:kind) as String;
+            var kind = reading.get(:device_class) as String;
 
             if (!indexByKind.hasKey(kind)) {
                 indexByKind.put(kind, groups.size());
@@ -169,9 +163,8 @@ module CardModel {
         return mean + " " + unit;
     }
 
-    // Decimal places HA showed for a reading, e.g. 1 for "21.5 °C", 0 for
-    // "120 lx". The unit is stripped off the display by value rather than guessed
-    // at a separator, leaving the numeric part to measure.
+    // The unit is stripped off the display by value rather than guessed at a
+    // separator, leaving the numeric part to measure.
     function decimalsOf(reading as HomeSession.SensorReading) as Number {
         var display = reading.get(:display) as String;
         var unit = reading.get(:unit) as String or Null;

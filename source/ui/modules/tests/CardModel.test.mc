@@ -2,8 +2,7 @@ import Toybox.Lang;
 import Toybox.Test;
 
 // Exercises the card model's pure session -> card-dictionary functions:
-// sequence construction, light/sensor summaries. Mirrors EntityMenuTest's
-// stateOf/sessionOf helper style.
+// sequence construction, light/sensor summaries.
 
 (:test)
 module CardModelTest {
@@ -19,13 +18,17 @@ module CardModelTest {
 
 (:test)
 function sequenceIsFloorCardThenItsAreaCardsThenNextFloor(logger as Test.Logger) as Boolean {
+    // Upstairs is listed first but carries the higher :order, so a correct
+    // sequence puts Ground first — insertion order alone would not.
     var session = CardModelTest.sessionOf({
-        "areas" => { "Kitchen" => ["light.kitchen"], "Bedroom" => ["light.bedroom"] },
-        "states" => {},
-        "floors" => [
-            { "name" => "Ground Floor", "areas" => ["Kitchen"] },
-            { "name" => "Upstairs", "areas" => ["Bedroom"] }
-        ]
+        "areas" => {
+            "area.kitchen" => { "name" => "Kitchen", "lights" => ["light.kitchen"] },
+            "area.bedroom" => { "name" => "Bedroom", "lights" => ["light.bedroom"] }
+        },
+        "floors" => {
+            "floor.upstairs" => { "name" => "Upstairs", "order" => 1, "areas" => ["area.bedroom"] },
+            "floor.ground" => { "name" => "Ground Floor", "order" => 0, "areas" => ["area.kitchen"] }
+        }
     });
     var cards = CardModel.buildCards(session);
 
@@ -44,11 +47,13 @@ function sequenceIsFloorCardThenItsAreaCardsThenNextFloor(logger as Test.Logger)
 (:test)
 function trailingUnflooredAreasFollowAllFloors(logger as Test.Logger) as Boolean {
     var session = CardModelTest.sessionOf({
-        "areas" => { "Kitchen" => ["light.kitchen"], "Garage" => ["light.garage"] },
-        "states" => {},
-        "floors" => [
-            { "name" => "Ground Floor", "areas" => ["Kitchen"] }
-        ]
+        "areas" => {
+            "area.kitchen" => { "name" => "Kitchen", "lights" => ["light.kitchen"] },
+            "area.garage" => { "name" => "Garage", "lights" => ["light.garage"] }
+        },
+        "floors" => {
+            "floor.ground" => { "name" => "Ground Floor", "areas" => ["area.kitchen"] }
+        }
     });
     var cards = CardModel.buildCards(session);
 
@@ -64,8 +69,10 @@ function trailingUnflooredAreasFollowAllFloors(logger as Test.Logger) as Boolean
 (:test)
 function noFloorsYieldsOnlyAreaCards(logger as Test.Logger) as Boolean {
     var session = CardModelTest.sessionOf({
-        "areas" => { "Kitchen" => ["light.kitchen"], "Garage" => ["light.garage"] },
-        "states" => {}
+        "areas" => {
+            "area.kitchen" => { "name" => "Kitchen", "lights" => ["light.kitchen"] },
+            "area.garage" => { "name" => "Garage", "lights" => ["light.garage"] }
+        }
     });
     var cards = CardModel.buildCards(session);
 
@@ -78,9 +85,8 @@ function noFloorsYieldsOnlyAreaCards(logger as Test.Logger) as Boolean {
 (:test)
 function areaCardsandFloorCardsAreSelectable(logger as Test.Logger) as Boolean {
     var session = CardModelTest.sessionOf({
-        "areas" => { "Kitchen" => ["light.kitchen"] },
-        "states" => {},
-        "floors" => [{ "name" => "Ground Floor", "areas" => ["Kitchen"] }]
+        "areas" => { "area.kitchen" => { "name" => "Kitchen", "lights" => ["light.kitchen"] } },
+        "floors" => { "floor.ground" => { "name" => "Ground Floor", "areas" => ["area.kitchen"] } }
     });
     var cards = CardModel.buildCards(session);
 
@@ -92,9 +98,8 @@ function areaCardsandFloorCardsAreSelectable(logger as Test.Logger) as Boolean {
 (:test)
 function floorCardIsSelectableWithIdAndLights(logger as Test.Logger) as Boolean {
     var session = CardModelTest.sessionOf({
-        "areas" => { "Kitchen" => ["light.kitchen"] },
-        "states" => {},
-        "floors" => [{ "id" => "floor_ground", "name" => "Ground Floor", "areas" => ["Kitchen"] }]
+        "areas" => { "area.kitchen" => { "name" => "Kitchen", "lights" => ["light.kitchen"] } },
+        "floors" => { "floor_ground" => { "name" => "Ground Floor", "areas" => ["area.kitchen"] } }
     });
     var cards = CardModel.buildCards(session);
 
@@ -106,10 +111,14 @@ function floorCardIsSelectableWithIdAndLights(logger as Test.Logger) as Boolean 
 (:test)
 function buildAreaLightSummaryCountsOnAndAvailableLights(logger as Test.Logger) as Boolean {
     var session = CardModelTest.sessionOf({
-        "areas" => { "Room" => ["light.a", "light.b", "light.c"] },
-        "states" => { "light.a" => true, "light.b" => false, "light.c" => true }
+        "areas" => { "area.room" => { "name" => "Room",
+            "lights" => ["light.a", "light.b", "light.c"] } },
+        "lights" => {
+            "light.a" => { "state" => true }, "light.b" => { "state" => false },
+            "light.c" => { "state" => true }
+        }
     });
-    var summary = CardModel.buildAreaLightSummary(session, "Room") as Dictionary;
+    var summary = CardModel.buildAreaLightSummary(session, "area.room") as Dictionary;
 
     Test.assertEqual(summary.get(:on) as Number, 2);
     Test.assertEqual(summary.get(:available) as Number, 3);
@@ -120,11 +129,14 @@ function buildAreaLightSummaryCountsOnAndAvailableLights(logger as Test.Logger) 
 (:test)
 function buildAreaLightSummaryCountsUnavailableSeparatelyAndNotAsOn(logger as Test.Logger) as Boolean {
     var session = CardModelTest.sessionOf({
-        "areas" => { "Room" => ["light.a", "light.b", "light.c"] },
-        "states" => { "light.a" => true, "light.b" => false, "light.c" => true },
-        "available" => { "light.c" => false }
+        "areas" => { "area.room" => { "name" => "Room",
+            "lights" => ["light.a", "light.b", "light.c"] } },
+        "lights" => {
+            "light.a" => { "state" => true }, "light.b" => { "state" => false },
+            "light.c" => { "state" => true, "available" => false }
+        }
     });
-    var summary = CardModel.buildAreaLightSummary(session, "Room") as Dictionary;
+    var summary = CardModel.buildAreaLightSummary(session, "area.room") as Dictionary;
 
     Test.assertEqual(summary.get(:on) as Number, 1);
     Test.assertEqual(summary.get(:available) as Number, 2);
@@ -135,11 +147,14 @@ function buildAreaLightSummaryCountsUnavailableSeparatelyAndNotAsOn(logger as Te
 (:test)
 function buildAreaLightSummaryExcludesTheGroupEntity(logger as Test.Logger) as Boolean {
     var session = CardModelTest.sessionOf({
-        "areas" => { "Room" => ["light.room_lights", "light.a", "light.b"] },
-        "states" => { "light.room_lights" => true, "light.a" => true, "light.b" => false },
-        "groups" => { "light.room_lights" => 2 }
+        "areas" => { "area.room" => { "name" => "Room",
+            "lights" => ["light.room_lights", "light.a", "light.b"] } },
+        "lights" => {
+            "light.room_lights" => { "state" => true, "memberCount" => 2 },
+            "light.a" => { "state" => true }, "light.b" => { "state" => false }
+        }
     });
-    var summary = CardModel.buildAreaLightSummary(session, "Room") as Dictionary;
+    var summary = CardModel.buildAreaLightSummary(session, "area.room") as Dictionary;
 
     Test.assertEqual(summary.get(:on) as Number, 1);
     Test.assertEqual(summary.get(:available) as Number, 2);
@@ -150,25 +165,26 @@ function buildAreaLightSummaryExcludesTheGroupEntity(logger as Test.Logger) as B
 (:test)
 function buildAreaLightSummaryIsNullForASensorOnlyArea(logger as Test.Logger) as Boolean {
     var session = CardModelTest.sessionOf({
-        "areas" => { "Attic" => [] as Array<String> },
-        "sensors" => { "Attic" => ["sensor.attic_temp"] },
-        "kinds" => { "sensor.attic_temp" => "temperature" },
-        "readings" => { "sensor.attic_temp" => "18.0 °C" },
-        "states" => {}
+        "areas" => { "area.attic" => { "name" => "Attic", "sensors" => ["sensor.attic_temp"] } },
+        "sensors" => { "sensor.attic_temp" => { "state" => 18.0, "display_state" => "18.0 °C",
+            "device_class" => "temperature" } }
     });
 
-    Test.assert(CardModel.buildAreaLightSummary(session, "Attic") == null);
+    Test.assert(CardModel.buildAreaLightSummary(session, "area.attic") == null);
     return true;
 }
 
 (:test)
 function floorLightSummaryReadsAllOnWhenEveryAvailableLightIsOn(logger as Test.Logger) as Boolean {
     var session = CardModelTest.sessionOf({
-        "areas" => { "Kitchen" => ["light.a"], "Bedroom" => ["light.b"] },
-        "states" => { "light.a" => true, "light.b" => true }
+        "areas" => {
+            "area.kitchen" => { "name" => "Kitchen", "lights" => ["light.a"] },
+            "area.bedroom" => { "name" => "Bedroom", "lights" => ["light.b"] }
+        },
+        "lights" => { "light.a" => { "state" => true }, "light.b" => { "state" => true } }
     });
 
-    Test.assertEqual(CardModel.buildFloorLightSummary(session, ["Kitchen", "Bedroom"]),
+    Test.assertEqual(CardModel.buildFloorLightSummary(session, ["area.kitchen", "area.bedroom"]),
                      "All lights on");
     return true;
 }
@@ -176,11 +192,14 @@ function floorLightSummaryReadsAllOnWhenEveryAvailableLightIsOn(logger as Test.L
 (:test)
 function floorLightSummaryReadsSomeOnWhenOnlyPartAreOn(logger as Test.Logger) as Boolean {
     var session = CardModelTest.sessionOf({
-        "areas" => { "Kitchen" => ["light.a"], "Bedroom" => ["light.b"] },
-        "states" => { "light.a" => true, "light.b" => false }
+        "areas" => {
+            "area.kitchen" => { "name" => "Kitchen", "lights" => ["light.a"] },
+            "area.bedroom" => { "name" => "Bedroom", "lights" => ["light.b"] }
+        },
+        "lights" => { "light.a" => { "state" => true }, "light.b" => { "state" => false } }
     });
 
-    Test.assertEqual(CardModel.buildFloorLightSummary(session, ["Kitchen", "Bedroom"]),
+    Test.assertEqual(CardModel.buildFloorLightSummary(session, ["area.kitchen", "area.bedroom"]),
                      "Some lights on");
     return true;
 }
@@ -188,11 +207,14 @@ function floorLightSummaryReadsSomeOnWhenOnlyPartAreOn(logger as Test.Logger) as
 (:test)
 function floorLightSummaryReadsAllOffWhenNoneAreOn(logger as Test.Logger) as Boolean {
     var session = CardModelTest.sessionOf({
-        "areas" => { "Kitchen" => ["light.a"], "Bedroom" => ["light.b"] },
-        "states" => { "light.a" => false, "light.b" => false }
+        "areas" => {
+            "area.kitchen" => { "name" => "Kitchen", "lights" => ["light.a"] },
+            "area.bedroom" => { "name" => "Bedroom", "lights" => ["light.b"] }
+        },
+        "lights" => { "light.a" => { "state" => false }, "light.b" => { "state" => false } }
     });
 
-    Test.assertEqual(CardModel.buildFloorLightSummary(session, ["Kitchen", "Bedroom"]),
+    Test.assertEqual(CardModel.buildFloorLightSummary(session, ["area.kitchen", "area.bedroom"]),
                      "All lights off");
     return true;
 }
@@ -200,11 +222,10 @@ function floorLightSummaryReadsAllOffWhenNoneAreOn(logger as Test.Logger) as Boo
 (:test)
 function floorLightSummaryReadsNoneWhenFloorHasNoLights(logger as Test.Logger) as Boolean {
     var session = CardModelTest.sessionOf({
-        "areas" => { "Attic" => [] as Array<String> },
-        "states" => {}
+        "areas" => { "area.attic" => { "name" => "Attic" } }
     });
 
-    Test.assertEqual(CardModel.buildFloorLightSummary(session, ["Attic"]),
+    Test.assertEqual(CardModel.buildFloorLightSummary(session, ["area.attic"]),
                      "No lights available");
     return true;
 }
@@ -212,12 +233,17 @@ function floorLightSummaryReadsNoneWhenFloorHasNoLights(logger as Test.Logger) a
 (:test)
 function floorLightSummaryReadsNoneWhenEveryLightIsUnavailable(logger as Test.Logger) as Boolean {
     var session = CardModelTest.sessionOf({
-        "areas" => { "Kitchen" => ["light.a"], "Bedroom" => ["light.b"] },
-        "states" => { "light.a" => true, "light.b" => false },
-        "available" => { "light.a" => false, "light.b" => false }
+        "areas" => {
+            "area.kitchen" => { "name" => "Kitchen", "lights" => ["light.a"] },
+            "area.bedroom" => { "name" => "Bedroom", "lights" => ["light.b"] }
+        },
+        "lights" => {
+            "light.a" => { "state" => true, "available" => false },
+            "light.b" => { "state" => false, "available" => false }
+        }
     });
 
-    Test.assertEqual(CardModel.buildFloorLightSummary(session, ["Kitchen", "Bedroom"]),
+    Test.assertEqual(CardModel.buildFloorLightSummary(session, ["area.kitchen", "area.bedroom"]),
                      "No lights available");
     return true;
 }
@@ -225,13 +251,15 @@ function floorLightSummaryReadsNoneWhenEveryLightIsUnavailable(logger as Test.Lo
 (:test)
 function floorLightSummaryJudgesAmongAvailableLightsOnly(logger as Test.Logger) as Boolean {
     var session = CardModelTest.sessionOf({
-        "areas" => { "Room" => ["light.a", "light.b"] },
-        "states" => { "light.a" => true, "light.b" => false },
-        "available" => { "light.b" => false }
+        "areas" => { "area.room" => { "name" => "Room", "lights" => ["light.a", "light.b"] } },
+        "lights" => {
+            "light.a" => { "state" => true },
+            "light.b" => { "state" => false, "available" => false }
+        }
     });
 
     // light.b is unavailable, so the only available light (a) is on -> all on.
-    Test.assertEqual(CardModel.buildFloorLightSummary(session, ["Room"]),
+    Test.assertEqual(CardModel.buildFloorLightSummary(session, ["area.room"]),
                      "All lights on");
     return true;
 }
@@ -239,34 +267,35 @@ function floorLightSummaryJudgesAmongAvailableLightsOnly(logger as Test.Logger) 
 (:test)
 function floorLightSummaryExcludesGroupEntities(logger as Test.Logger) as Boolean {
     var session = CardModelTest.sessionOf({
-        "areas" => { "Room" => ["light.room_lights", "light.a", "light.b"] },
-        "states" => { "light.room_lights" => true, "light.a" => false, "light.b" => false },
-        "groups" => { "light.room_lights" => 2 }
+        "areas" => { "area.room" => { "name" => "Room",
+            "lights" => ["light.room_lights", "light.a", "light.b"] } },
+        "lights" => {
+            "light.room_lights" => { "state" => true, "memberCount" => 2 },
+            "light.a" => { "state" => false }, "light.b" => { "state" => false }
+        }
     });
 
     // The group reads on, but only its members count -> both members off.
-    Test.assertEqual(CardModel.buildFloorLightSummary(session, ["Room"]),
+    Test.assertEqual(CardModel.buildFloorLightSummary(session, ["area.room"]),
                      "All lights off");
     return true;
 }
 
 (:test)
-function buildAreaSensorSummaryShowsFirstOfEachKind(logger as Test.Logger) as Boolean {
+function buildAreaSensorSummaryShowsFirstOfEachDeviceClass(logger as Test.Logger) as Boolean {
     var session = CardModelTest.sessionOf({
-        "areas" => { "Room" => [] as Array<String> },
-        "sensors" => { "Room" => ["sensor.temp1", "sensor.temp2", "sensor.hum1"] },
-        "states" => {},
-        "kinds" => {
-            "sensor.temp1" => "temperature", "sensor.temp2" => "temperature",
-            "sensor.hum1" => "humidity"
-        },
-        "readings" => {
-            "sensor.temp1" => { "value" => 21.5, "display" => "21.5 °C", "unit" => "°C" },
-            "sensor.temp2" => { "value" => 23.0, "display" => "23.0 °C", "unit" => "°C" },
-            "sensor.hum1" => { "value" => 40.0, "display" => "40 %", "unit" => "%" }
+        "areas" => { "area.room" => { "name" => "Room",
+            "sensors" => ["sensor.temp1", "sensor.temp2", "sensor.hum1"] } },
+        "sensors" => {
+            "sensor.temp1" => { "state" => 21.5, "display_state" => "21.5 °C", "unit" => "°C",
+                "device_class" => "temperature" },
+            "sensor.temp2" => { "state" => 23.0, "display_state" => "23.0 °C", "unit" => "°C",
+                "device_class" => "temperature" },
+            "sensor.hum1" => { "state" => 40.0, "display_state" => "40 %", "unit" => "%",
+                "device_class" => "humidity" }
         }
     });
-    var summary = CardModel.buildAreaSensorSummary(session, "Room");
+    var summary = CardModel.buildAreaSensorSummary(session, "area.room");
 
     Test.assertEqual(summary.size(), 2);
     Test.assertEqual(summary[0].get(:kind) as String, "temperature");
@@ -277,17 +306,15 @@ function buildAreaSensorSummaryShowsFirstOfEachKind(logger as Test.Logger) as Bo
 }
 
 (:test)
-function buildAreaSensorSummaryFallsBackWhenFirstOfKindHasNoReading(logger as Test.Logger) as Boolean {
+function buildAreaSensorSummarySkipsASensorAbsentFromThePayload(logger as Test.Logger) as Boolean {
     var session = CardModelTest.sessionOf({
-        "areas" => { "Room" => [] as Array<String> },
-        "sensors" => { "Room" => ["sensor.temp1", "sensor.temp2"] },
-        "states" => {},
-        "kinds" => { "sensor.temp1" => "temperature", "sensor.temp2" => "temperature" },
-        "readings" => {
-            "sensor.temp2" => { "value" => 23.0, "display" => "23.0 °C", "unit" => "°C" }
+        "areas" => { "area.room" => { "name" => "Room", "sensors" => ["sensor.temp1", "sensor.temp2"] } },
+        "sensors" => {
+            "sensor.temp2" => { "state" => 23.0, "display_state" => "23.0 °C", "unit" => "°C",
+                "device_class" => "temperature" }
         }
     });
-    var summary = CardModel.buildAreaSensorSummary(session, "Room");
+    var summary = CardModel.buildAreaSensorSummary(session, "area.room");
 
     Test.assertEqual(summary.size(), 1);
     Test.assertEqual(summary[0].get(:kind) as String, "temperature");
@@ -298,16 +325,18 @@ function buildAreaSensorSummaryFallsBackWhenFirstOfKindHasNoReading(logger as Te
 (:test)
 function buildFloorSensorSummaryAveragesAcrossAreas(logger as Test.Logger) as Boolean {
     var session = CardModelTest.sessionOf({
-        "areas" => { "Kitchen" => [] as Array<String>, "Bedroom" => [] as Array<String> },
-        "sensors" => { "Kitchen" => ["sensor.k_temp"], "Bedroom" => ["sensor.b_temp"] },
-        "states" => {},
-        "kinds" => { "sensor.k_temp" => "temperature", "sensor.b_temp" => "temperature" },
-        "readings" => {
-            "sensor.k_temp" => { "value" => 19.0, "display" => "19.0 °C", "unit" => "°C" },
-            "sensor.b_temp" => { "value" => 23.0, "display" => "23.0 °C", "unit" => "°C" },
+        "areas" => {
+            "area.kitchen" => { "name" => "Kitchen", "sensors" => ["sensor.k_temp"] },
+            "area.bedroom" => { "name" => "Bedroom", "sensors" => ["sensor.b_temp"] }
+        },
+        "sensors" => {
+            "sensor.k_temp" => { "state" => 19.0, "display_state" => "19.0 °C", "unit" => "°C",
+                "device_class" => "temperature" },
+            "sensor.b_temp" => { "state" => 23.0, "display_state" => "23.0 °C", "unit" => "°C",
+                "device_class" => "temperature" }
         }
     });
-    var summary = CardModel.buildFloorSensorSummary(session, ["Bedroom", "Kitchen"]);
+    var summary = CardModel.buildFloorSensorSummary(session, ["area.bedroom", "area.kitchen"]);
 
     Test.assertEqual(summary.size(), 1);
     Test.assertEqual(summary[0].get(:kind) as String, "temperature");
@@ -318,18 +347,20 @@ function buildFloorSensorSummaryAveragesAcrossAreas(logger as Test.Logger) as Bo
 (:test)
 function buildFloorSensorSummaryMeanTakesFewestDecimalsOfItsInputs(logger as Test.Logger) as Boolean {
     var session = CardModelTest.sessionOf({
-        "areas" => { "Kitchen" => [] as Array<String>, "Bedroom" => [] as Array<String> },
-        "sensors" => { "Kitchen" => ["sensor.k_temp"], "Bedroom" => ["sensor.b_temp"] },
-        "states" => {},
-        "kinds" => { "sensor.k_temp" => "temperature", "sensor.b_temp" => "temperature" },
-        "readings" => {
+        "areas" => {
+            "area.kitchen" => { "name" => "Kitchen", "sensors" => ["sensor.k_temp"] },
+            "area.bedroom" => { "name" => "Bedroom", "sensors" => ["sensor.b_temp"] }
+        },
+        "sensors" => {
             // 21.5 carries one decimal, 22 carries none — the mean 21.75 rounds
             // to the coarser input's zero decimals.
-            "sensor.k_temp" => { "value" => 21.5, "display" => "21.5 °C", "unit" => "°C" },
-            "sensor.b_temp" => { "value" => 22.0, "display" => "22 °C", "unit" => "°C" }
+            "sensor.k_temp" => { "state" => 21.5, "display_state" => "21.5 °C", "unit" => "°C",
+                "device_class" => "temperature" },
+            "sensor.b_temp" => { "state" => 22.0, "display_state" => "22 °C", "unit" => "°C",
+                "device_class" => "temperature" }
         }
     });
-    var summary = CardModel.buildFloorSensorSummary(session, ["Kitchen", "Bedroom"]);
+    var summary = CardModel.buildFloorSensorSummary(session, ["area.kitchen", "area.bedroom"]);
 
     Test.assertEqual(summary.size(), 1);
     Test.assertEqual(summary[0].get(:reading) as String, "22 °C");
@@ -339,15 +370,15 @@ function buildFloorSensorSummaryMeanTakesFewestDecimalsOfItsInputs(logger as Tes
 (:test)
 function buildFloorSensorSummarySingleSensorShowsHaDisplayVerbatim(logger as Test.Logger) as Boolean {
     var session = CardModelTest.sessionOf({
-        "areas" => { "Attic" => [] as Array<String> },
-        "sensors" => { "Attic" => ["sensor.lux"] },
-        "states" => {},
-        "kinds" => { "sensor.lux" => "illuminance" },
-        // A lone reading is echoed as HA sent it — no averaging, no reformatting
-        // that would fabricate a decimal HA never showed.
-        "readings" => { "sensor.lux" => { "value" => 0.0, "display" => "0 lx", "unit" => "lx" } }
+        "areas" => { "area.attic" => { "name" => "Attic", "sensors" => ["sensor.lux"] } },
+        "sensors" => {
+            // A lone reading is echoed as HA sent it — no averaging, no
+            // reformatting that would fabricate a decimal HA never showed.
+            "sensor.lux" => { "state" => 0.0, "display_state" => "0 lx", "unit" => "lx",
+                "device_class" => "illuminance" }
+        }
     });
-    var summary = CardModel.buildFloorSensorSummary(session, ["Attic"]);
+    var summary = CardModel.buildFloorSensorSummary(session, ["area.attic"]);
 
     Test.assertEqual(summary.size(), 1);
     Test.assertEqual(summary[0].get(:reading) as String, "0 lx");

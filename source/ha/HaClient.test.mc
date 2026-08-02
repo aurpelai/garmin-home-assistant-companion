@@ -140,8 +140,8 @@ function onResponseNormalizesTemplateSuccessToHomeState(logger as Test.Logger) a
     // The webhook wraps the rendered payload under a "home" key.
     handler.onResponse(200, {
         "home" => {
-            "areas" => { "Room" => ["light.a"] },
-            "states" => { "light.a" => true }
+            "areas" => { "area.room" => { "name" => "Room", "lights" => ["light.a"] } },
+            "lights" => { "light.a" => { "state" => true } }
         }
     });
 
@@ -271,8 +271,8 @@ function fetchHomeStateRecoversFrom404TooAndSucceeds(logger as Test.Logger) as B
     client.fireFetchFailureWithCode(404);
     client.fireRegisterSuccess("fresh-id");
     client.fireFetchSuccess(HomeState.fromTemplateData({
-        "areas" => { "Room" => ["light.a"] },
-        "states" => { "light.a" => true }
+        "areas" => { "area.room" => { "name" => "Room", "lights" => ["light.a"] } },
+        "lights" => { "light.a" => { "state" => true } }
     }));
 
     Test.assertEqual(client.fetchOnceCount, 2);

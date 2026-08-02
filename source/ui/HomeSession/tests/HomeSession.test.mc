@@ -7,52 +7,65 @@ import Toybox.Test;
 (:test)
 module HomeSessionTest {
 
+    function lightsSection(states as Dictionary<String, Boolean>) as Dictionary {
+        var out = {} as Dictionary;
+        var ids = states.keys();
+        for (var i = 0; i < ids.size(); i++) {
+            out.put(ids[i], { "state" => states.get(ids[i]) });
+        }
+        return out;
+    }
+
     function sessionWith(states as Dictionary<String, Boolean>) as HomeSession {
         var state = HomeState.fromTemplateData({
-            "areas" => { "Room" => states.keys() },
-            "states" => states
+            "areas" => { "area.room" => { "name" => "Room", "lights" => states.keys() } },
+            "lights" => lightsSection(states)
         });
         return new HomeSession(new HaClient(), state);
     }
 
     function stateOf(states as Dictionary<String, Boolean>) as HomeState {
         return HomeState.fromTemplateData({
-            "areas" => { "Room" => states.keys() },
-            "states" => states
+            "areas" => { "area.room" => { "name" => "Room", "lights" => states.keys() } },
+            "lights" => lightsSection(states)
         });
     }
 
     function fakeSessionWith(states as Dictionary<String, Boolean>) as HomeSession {
         var state = HomeState.fromTemplateData({
-            "areas" => { "Room" => states.keys() },
-            "states" => states
+            "areas" => { "area.room" => { "name" => "Room", "lights" => states.keys() } },
+            "lights" => lightsSection(states)
         });
         return new HomeSession(new FakeHaClient(), state);
     }
 
     function sessionWithAvailable(states as Dictionary<String, Boolean>,
                                  available as Dictionary<String, Boolean>) as HomeSession {
+        var lights = lightsSection(states);
+        var ids = available.keys();
+        for (var i = 0; i < ids.size(); i++) {
+            var entityId = ids[i];
+            (lights.get(entityId) as Dictionary).put("available", available.get(entityId));
+        }
         var state = HomeState.fromTemplateData({
-            "areas" => { "Room" => states.keys() },
-            "states" => states,
-            "available" => available
+            "areas" => { "area.room" => { "name" => "Room", "lights" => states.keys() } },
+            "lights" => lights
         });
         return new HomeSession(new HaClient(), state);
     }
 
-    // A one-area floor "Upstairs" carrying the given light states, backed by the
-    // FakeHaClient so the floor service callback can be fired synchronously.
+    // Backed by the FakeHaClient so the floor service callback can be fired
+    // synchronously.
     function fakeFloorSessionWith(states as Dictionary<String, Boolean>) as HomeSession {
         var state = HomeState.fromTemplateData({
-            "areas" => { "Room" => states.keys() },
-            "states" => states,
-            "floors" => [{ "id" => "floor_up", "name" => "Upstairs", "areas" => ["Room"] }]
+            "areas" => { "area.room" => { "name" => "Room", "lights" => states.keys() } },
+            "lights" => lightsSection(states),
+            "floors" => { "floor_up" => { "name" => "Upstairs", "areas" => ["area.room"] } }
         });
         return new HomeSession(new FakeHaClient(), state);
     }
 }
 
-// A no-op completion for tests that only care about the optimistic flip.
 (:test)
 class NoopCompletion {
     function onComplete() as Void {
@@ -130,11 +143,11 @@ function toggleStateRevertsOptimisticFlipOnFailure(logger as Test.Logger) as Boo
     var spy = new CompletionSpy();
 
     session.toggleState("light.a", spy.method(:onComplete));
-    Test.assert(session.isOn("light.a"));   // flipped optimistically
+    Test.assert(session.isOn("light.a"));
 
     (session.client as FakeHaClient).fireServiceFailure();
 
-    Test.assert(!session.isOn("light.a"));   // reverted
+    Test.assert(!session.isOn("light.a"));
     Test.assert(spy.fired);
     return true;
 }
@@ -203,7 +216,7 @@ function refreshStateSwallowsFailureButStillCompletes(logger as Test.Logger) as 
     session.refreshState(spy.method(:onDone));
     (session.client as FakeHaClient).fireFetchFailure();
 
-    Test.assert(session.isOn("light.a"));   // last-known state survives
+    Test.assert(session.isOn("light.a"));
     Test.assert(spy.fired);
     return true;
 }
@@ -227,10 +240,10 @@ function isAvailableMirrorsServerTruthUnaffectedByToggle(logger as Test.Logger) 
 (:test)
 function areFloorLightsOnIsTrueWhenAnyLightOn(logger as Test.Logger) as Boolean {
     var allOff = HomeSessionTest.fakeFloorSessionWith({ "light.a" => false, "light.b" => false });
-    Test.assert(!allOff.areFloorLightsOn("Upstairs"));
+    Test.assert(!allOff.areFloorLightsOn("floor_up"));
 
     var oneOn = HomeSessionTest.fakeFloorSessionWith({ "light.a" => true, "light.b" => false });
-    Test.assert(oneOn.areFloorLightsOn("Upstairs"));
+    Test.assert(oneOn.areFloorLightsOn("floor_up"));
     return true;
 }
 
@@ -238,7 +251,7 @@ function areFloorLightsOnIsTrueWhenAnyLightOn(logger as Test.Logger) as Boolean 
 function toggleFloorLightsTurnsAllOnWhenAllOff(logger as Test.Logger) as Boolean {
     var session = HomeSessionTest.fakeFloorSessionWith({ "light.a" => false, "light.b" => false });
 
-    session.toggleFloorLights("floor_up", "Upstairs", new NoopCompletion().method(:onComplete));
+    session.toggleFloorLights("floor_up", new NoopCompletion().method(:onComplete));
 
     Test.assert(session.isOn("light.a"));
     Test.assert(session.isOn("light.b"));
@@ -250,7 +263,7 @@ function toggleFloorLightsTurnsAllOnWhenAllOff(logger as Test.Logger) as Boolean
 function toggleFloorLightsTurnsAllOffWhenAnyOn(logger as Test.Logger) as Boolean {
     var session = HomeSessionTest.fakeFloorSessionWith({ "light.a" => true, "light.b" => false });
 
-    session.toggleFloorLights("floor_up", "Upstairs", new NoopCompletion().method(:onComplete));
+    session.toggleFloorLights("floor_up", new NoopCompletion().method(:onComplete));
 
     Test.assert(!session.isOn("light.a"));
     Test.assert(!session.isOn("light.b"));
@@ -262,7 +275,7 @@ function toggleFloorLightsTurnsAllOffWhenAnyOn(logger as Test.Logger) as Boolean
 function toggleFloorLightsFiresExactlyOneFloorCall(logger as Test.Logger) as Boolean {
     var session = HomeSessionTest.fakeFloorSessionWith({ "light.a" => false, "light.b" => false });
 
-    session.toggleFloorLights("floor_up", "Upstairs", new NoopCompletion().method(:onComplete));
+    session.toggleFloorLights("floor_up", new NoopCompletion().method(:onComplete));
 
     Test.assertEqual((session.client as FakeHaClient).floorToggleCount, 1);
     return true;
@@ -275,15 +288,15 @@ function toggleFloorLightsRestoresEachLightToItsOwnPriorStateOnFailure(logger as
     // a floorId-as-entity revert that leaves the members wrong.
     var session = HomeSessionTest.fakeFloorSessionWith({ "light.on" => true, "light.off" => false });
 
-    session.toggleFloorLights("floor_up", "Upstairs", new NoopCompletion().method(:onComplete));
+    session.toggleFloorLights("floor_up", new NoopCompletion().method(:onComplete));
     // Any-on -> turn all off: both flip to off optimistically.
     Test.assert(!session.isOn("light.on"));
     Test.assert(!session.isOn("light.off"));
 
     (session.client as FakeHaClient).fireServiceFailure();
 
-    Test.assert(session.isOn("light.on"));    // restored to its original ON
-    Test.assert(!session.isOn("light.off"));  // restored to its original OFF
+    Test.assert(session.isOn("light.on"));
+    Test.assert(!session.isOn("light.off"));
     return true;
 }
 
@@ -292,7 +305,7 @@ function toggleFloorLightsKeepsFlipsOnSuccess(logger as Test.Logger) as Boolean 
     var session = HomeSessionTest.fakeFloorSessionWith({ "light.a" => false, "light.b" => false });
     var spy = new CompletionSpy();
 
-    session.toggleFloorLights("floor_up", "Upstairs", spy.method(:onComplete));
+    session.toggleFloorLights("floor_up", spy.method(:onComplete));
     (session.client as FakeHaClient).fireServiceSuccess();
 
     Test.assert(session.isOn("light.a"));

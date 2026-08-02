@@ -1,9 +1,7 @@
 import Toybox.Lang;
 import Toybox.Test;
 
-// Exercises the card loop view's paging, over a session built from a grouped
-// payload. Mirrors EntityMenuTest's stateOf/sessionOf helper style; card
-// content and sequencing are covered by CardModelTest.
+// Card content and sequencing are covered by CardModelTest.
 
 (:test)
 module CardLoopViewTest {
@@ -20,9 +18,13 @@ module CardLoopViewTest {
 (:test)
 function pagingMovesThroughTheSequenceAndWrapsAtBothEnds(logger as Test.Logger) as Boolean {
     var session = CardLoopViewTest.sessionOf({
-        "areas" => { "Kitchen" => ["light.kitchen"], "Hallway" => ["light.hallway"] },
-        "states" => {},
-        "floors" => [{ "name" => "Ground Floor", "areas" => ["Hallway", "Kitchen"] }]
+        "areas" => {
+            "area.kitchen" => { "name" => "Kitchen", "lights" => ["light.kitchen"] },
+            "area.hallway" => { "name" => "Hallway", "lights" => ["light.hallway"] }
+        },
+        "floors" => {
+            "floor.ground" => { "name" => "Ground Floor", "areas" => ["area.hallway", "area.kitchen"] }
+        }
     });
     var view = new CardLoopView(session);
 

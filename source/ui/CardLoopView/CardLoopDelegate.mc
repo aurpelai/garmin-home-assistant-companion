@@ -43,9 +43,10 @@ class CardLoopDelegate extends WatchUi.BehaviorDelegate {
     }
 
     private function openAreaMenu(card as Dictionary) as Void {
+        var areaId = card.get(:id) as String;
         var name = card.get(:name) as String;
-        var menu = new EntityMenu(_session, name, _session.listLightsInArea(name),
-                                  _session.listSensorsInArea(name));
+        var menu = new EntityMenu(_session, name, _session.listLightsInArea(areaId),
+                                  _session.listSensorsInArea(areaId));
         WatchUi.pushView(menu, new EntityMenuDelegate(menu, _session), WatchUi.SLIDE_LEFT);
     }
 
