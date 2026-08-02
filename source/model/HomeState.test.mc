@@ -666,6 +666,46 @@ function buildFloorsSortsNegativeOrderFirst(logger as Test.Logger) as Boolean {
 }
 
 (:test)
+function buildFloorsKeepsEqualOrderInParseOrder(logger as Test.Logger) as Boolean {
+    var data = {
+        "areas" => {
+            "area.loft" => { "name" => "Loft", "lights" => ["light.loft"] },
+            "area.cellar" => { "name" => "Cellar", "lights" => ["light.cellar"] }
+        },
+        "floors" => {
+            "floor.first" => { "name" => "First", "order" => 1, "areas" => ["area.loft"] },
+            "floor.second" => { "name" => "Second", "order" => 1, "areas" => ["area.cellar"] }
+        }
+    };
+    var grouped = HomeState.fromTemplateData(data).buildFloors();
+    Test.assertEqual(grouped.size(), 2);
+    Test.assertEqual(grouped[0].get(:name) as String, "First");
+    Test.assertEqual(grouped[1].get(:name) as String, "Second");
+    return true;
+}
+
+(:test)
+function buildFloorsDefaultsMissingOrderToZero(logger as Test.Logger) as Boolean {
+    // A floor with no order defaults to 0, so it sorts ahead of a positive
+    // order rather than being dropped.
+    var data = {
+        "areas" => {
+            "area.loft" => { "name" => "Loft", "lights" => ["light.loft"] },
+            "area.cellar" => { "name" => "Cellar", "lights" => ["light.cellar"] }
+        },
+        "floors" => {
+            "floor.upper" => { "name" => "Upper", "order" => 3, "areas" => ["area.loft"] },
+            "floor.unordered" => { "name" => "Unordered", "areas" => ["area.cellar"] }
+        }
+    };
+    var grouped = HomeState.fromTemplateData(data).buildFloors();
+    Test.assertEqual(grouped.size(), 2);
+    Test.assertEqual(grouped[0].get(:name) as String, "Unordered");
+    Test.assertEqual(grouped[1].get(:name) as String, "Upper");
+    return true;
+}
+
+(:test)
 function buildFloorsCarriesFloorId(logger as Test.Logger) as Boolean {
     var data = {
         "areas" => {

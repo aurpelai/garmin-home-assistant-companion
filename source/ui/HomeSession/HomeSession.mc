@@ -35,11 +35,6 @@ class HomeSession {
         self._states = copy;
     }
 
-    // Area-structure reads delegate to the HomeState so menus don't reach into it.
-    function areas() as Dictionary<String, Dictionary> {
-        return _state.areas;
-    }
-
     function listLightsInArea(areaId as String) as Array<String> {
         return _state.listLightsInArea(areaId);
     }

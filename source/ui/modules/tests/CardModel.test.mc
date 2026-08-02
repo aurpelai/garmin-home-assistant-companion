@@ -19,15 +19,16 @@ module CardModelTest {
 
 (:test)
 function sequenceIsFloorCardThenItsAreaCardsThenNextFloor(logger as Test.Logger) as Boolean {
-    // Floors sequence by their :order field: Ground (0) leads Upstairs (1).
+    // Upstairs is listed first but carries the higher :order, so a correct
+    // sequence puts Ground first — insertion order alone would not.
     var session = CardModelTest.sessionOf({
         "areas" => {
             "area.kitchen" => { "name" => "Kitchen", "lights" => ["light.kitchen"] },
             "area.bedroom" => { "name" => "Bedroom", "lights" => ["light.bedroom"] }
         },
         "floors" => {
-            "floor.ground" => { "name" => "Ground Floor", "order" => 0, "areas" => ["area.kitchen"] },
-            "floor.upstairs" => { "name" => "Upstairs", "order" => 1, "areas" => ["area.bedroom"] }
+            "floor.upstairs" => { "name" => "Upstairs", "order" => 1, "areas" => ["area.bedroom"] },
+            "floor.ground" => { "name" => "Ground Floor", "order" => 0, "areas" => ["area.kitchen"] }
         }
     });
     var cards = CardModel.buildCards(session);
@@ -306,7 +307,7 @@ function buildAreaSensorSummaryShowsFirstOfEachDeviceClass(logger as Test.Logger
 }
 
 (:test)
-function buildAreaSensorSummaryFallsBackWhenFirstOfDeviceClassHasNoReading(logger as Test.Logger) as Boolean {
+function buildAreaSensorSummarySkipsASensorAbsentFromThePayload(logger as Test.Logger) as Boolean {
     var session = CardModelTest.sessionOf({
         "areas" => { "area.room" => { "name" => "Room", "sensors" => ["sensor.temp1", "sensor.temp2"] } },
         "sensors" => {

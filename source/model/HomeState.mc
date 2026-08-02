@@ -425,11 +425,9 @@ class HomeState {
         return null;
     }
 
-    // Floors ordered ascending by their numeric `order` field (HA's floors()
-    // order, basement-up), since Dictionary.keys() is hash order. A missing or
-    // non-numeric order falls back to a large sentinel so the floor trails
-    // rather than being dropped. The insertion is stable, so equal orders keep
-    // parse order; :order is not carried onward, only the resulting sequence.
+    // Ordered ascending by each floor's numeric `order` (HA's floors() order,
+    // basement-up), since Dictionary.keys() is hash order. The insertion is
+    // stable, so equal orders keep parse order.
     private static function parseFloors(raw as Object or Null) as Array<Dictionary> {
         var out = [] as Array<Dictionary>;
 
@@ -451,31 +449,36 @@ class HomeState {
                 continue;
             }
 
-            var rawOrder = (entry as Dictionary).get("order");
-            var order = rawOrder instanceof Number ? rawOrder as Number
-                : rawOrder instanceof Float ? (rawOrder as Float).toNumber()
-                : 0x7FFFFFFF;
+            var order = floorOrder((entry as Dictionary).get("order"));
             var floor = {
                 :id => id as String,
                 :name => name as String,
                 :areas => onlyStrings((entry as Dictionary).get("areas"))
             };
 
-            var position = out.size();
-            while (position > 0 && orders[position - 1].compareTo(order) > 0) {
-                position--;
-            }
             out.add(floor);
             orders.add(order);
-            for (var shift = out.size() - 1; shift > position; shift--) {
-                out[shift] = out[shift - 1];
-                orders[shift] = orders[shift - 1];
+            var position = out.size() - 1;
+            while (position > 0 && orders[position - 1] > order) {
+                out[position] = out[position - 1];
+                orders[position] = orders[position - 1];
+                position--;
             }
             out[position] = floor;
             orders[position] = order;
         }
 
         return out;
+    }
+
+    private static function floorOrder(raw as Object or Null) as Number {
+        if (raw instanceof Number) {
+            return raw;
+        }
+        if (raw instanceof Float) {
+            return raw.toNumber();
+        }
+        return 0;
     }
 
     private static function onlyStrings(raw as Object or Null) as Array<String> {

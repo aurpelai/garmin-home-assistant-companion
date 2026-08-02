@@ -6,12 +6,10 @@ import Toybox.WatchUi;
 // the whole floor on or off at once (see AllLightsMenuDelegate).
 class AllLightsMenu extends WatchUi.Menu2 {
     public var floorId as String;
-    public var floorName as String;
 
     function initialize(session as HomeSession, floorId as String, floorName as String) {
         Menu2.initialize({ :title => floorName });
         self.floorId = floorId;
-        self.floorName = floorName;
 
         addItem(new WatchUi.ToggleMenuItem(
             WatchUi.loadResource(Rez.Strings.AllLights) as String, null,
