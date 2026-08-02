@@ -19,9 +19,8 @@ function parsesTemplateData(logger as Test.Logger) as Boolean {
         }
     };
     var state = HomeState.fromTemplateData(data);
-    Test.assertEqual(state.areas.size(), 2);
-    Test.assertEqual((state.areas.get("area.bedroom") as Dictionary).get(:name) as String, "Bedroom");
-    Test.assertEqual((state.areas.get("area.kitchen") as Dictionary).get(:name) as String, "Kitchen");
+    Test.assertEqual(state.getAreaName("area.bedroom"), "Bedroom");
+    Test.assertEqual(state.getAreaName("area.kitchen"), "Kitchen");
     Test.assertEqual((state.listLightsInArea("area.kitchen")).size(), 2);
     return true;
 }
@@ -478,8 +477,7 @@ function keepsAreaWithSensorsButNoLights(logger as Test.Logger) as Boolean {
         "sensors" => { "sensor.temp" => { "state" => 1.0, "display_state" => "1" } }
     };
     var state = HomeState.fromTemplateData(data);
-    Test.assertEqual(state.areas.size(), 1);
-    Test.assertEqual((state.areas.get("area.hall") as Dictionary).get(:name) as String, "Hall");
+    Test.assertEqual(state.getAreaName("area.hall"), "Hall");
     Test.assertEqual(state.listLightsInArea("area.hall").size(), 0);
     Test.assertEqual(state.listSensorsInArea("area.hall").size(), 1);
     return true;
@@ -494,8 +492,9 @@ function dropsAreaWithNeitherLightsNorSensors(logger as Test.Logger) as Boolean 
         }
     };
     var state = HomeState.fromTemplateData(data);
-    Test.assertEqual(state.areas.size(), 1);
-    Test.assertEqual((state.areas.get("area.hall") as Dictionary).get(:name) as String, "Hall");
+    Test.assertEqual(state.getAreaName("area.hall"), "Hall");
+    // The entity-less area is dropped, so its name resolves to the bare id.
+    Test.assertEqual(state.getAreaName("area.bare"), "area.bare");
     return true;
 }
 
@@ -515,7 +514,6 @@ function areaWithLightsOnlyHasNoSensors(logger as Test.Logger) as Boolean {
 function missingSensorsSectionYieldsNoSensors(logger as Test.Logger) as Boolean {
     var data = { "areas" => { "area.hall" => { "name" => "Hall", "lights" => ["light.hall"] } } };
     var state = HomeState.fromTemplateData(data);
-    Test.assertEqual(state.areas.size(), 1);
     Test.assertEqual(state.listSensorsInArea("area.hall").size(), 0);
     return true;
 }

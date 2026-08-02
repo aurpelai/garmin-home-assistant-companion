@@ -5,14 +5,14 @@ import Toybox.Lang;
 // empty list and all-off defaults instead of crashing the watch.
 
 class HomeState {
-    public var areas as Dictionary<String, Dictionary>;
+    private var _areas as Dictionary<String, Dictionary>;
     private var _lights as Dictionary<String, Dictionary>;
     private var _sensors as Dictionary<String, Dictionary>;
     private var _floors as Array<Dictionary>;
 
     function initialize(areas as Dictionary<String, Dictionary>, lights as Dictionary<String, Dictionary>,
                         sensors as Dictionary<String, Dictionary>, floors as Array<Dictionary>) {
-        self.areas = areas;
+        self._areas = areas;
         self._lights = lights;
         self._sensors = sensors;
         self._floors = floors;
@@ -35,7 +35,7 @@ class HomeState {
     }
 
     function isEmpty() as Boolean {
-        return areas.size() == 0;
+        return _areas.size() == 0;
     }
 
     function isOn(entityId as String) as Boolean {
@@ -191,7 +191,7 @@ class HomeState {
         }
 
         var unfloored = [] as Array<String>;
-        var areaIds = areas.keys();
+        var areaIds = _areas.keys();
         for (var areaIndex = 0; areaIndex < areaIds.size(); areaIndex++) {
             var id = areaIds[areaIndex] as String;
             if (!floored.hasKey(id)) {
@@ -226,7 +226,7 @@ class HomeState {
     }
 
     private function areaFor(areaId as String) as Dictionary or Null {
-        return areas.get(areaId) as Dictionary or Null;
+        return _areas.get(areaId) as Dictionary or Null;
     }
 
     // Order area ids by their display name alphabetically, case-insensitively.
@@ -245,7 +245,7 @@ class HomeState {
     }
 
     private function hasArea(areaId as String) as Boolean {
-        return areas.hasKey(areaId);
+        return _areas.hasKey(areaId);
     }
 
     // Available lights before unavailable, each partition then group-ordered.
