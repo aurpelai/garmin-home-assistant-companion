@@ -36,7 +36,10 @@ class CardRenderer {
         }
 
         drawPagination(dc, pageCount, pageIndex);
-        drawSelectHint(dc);
+
+        if (card.get(:selectable) as Boolean) {
+            drawSelectHint(dc);
+        }
     }
 
     private function drawFloorCard(dc as Graphics.Dc, card as Dictionary) as Void {

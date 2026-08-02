@@ -226,21 +226,6 @@ class HomeSession {
         return false;
     }
 
-    // On-count and total across the floor's available, physical lights, for the
-    // card status. Total 0 means the floor has nothing to toggle.
-    function countFloorLights(floorName as String) as Dictionary {
-        var lights = toggleableFloorLights(floorName);
-        var onCount = 0;
-
-        for (var i = 0; i < lights.size(); i++) {
-            if (isOn(lights[i])) {
-                onCount++;
-            }
-        }
-
-        return { :on => onCount, :total => lights.size() };
-    }
-
     // Direction is decided once from any-on so the whole floor lands in one
     // state. Each affected light's prior value is captured before the optimistic
     // flip, so a failed call restores exactly those, not a blanket flip.

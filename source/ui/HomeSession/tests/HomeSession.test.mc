@@ -300,14 +300,3 @@ function toggleFloorLightsKeepsFlipsOnSuccess(logger as Test.Logger) as Boolean 
     Test.assert(spy.fired);
     return true;
 }
-
-(:test)
-function countFloorLightsReportsOnAndTotal(logger as Test.Logger) as Boolean {
-    var session = HomeSessionTest.fakeFloorSessionWith(
-        { "light.a" => true, "light.b" => false, "light.c" => true });
-    var counts = session.countFloorLights("Upstairs");
-
-    Test.assertEqual(counts.get(:on) as Number, 2);
-    Test.assertEqual(counts.get(:total) as Number, 3);
-    return true;
-}

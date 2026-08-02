@@ -44,14 +44,11 @@ module CardModel {
 
     function buildFloorCard(session as HomeSession, id as String or Null, name as String,
                             areaNames as Array<String>) as Dictionary {
-        var counts = session.countFloorLights(name);
-        var total = counts.get(:total) as Number;
-
         return {
             :type => :floor,
             :id => id,
             :name => name,
-            :selectable => id != null && total > 0,
+            :selectable => true,
             :lightSummary => buildFloorLightSummary(session, areaNames),
             :sensorSummary => buildFloorSensorSummary(session, areaNames)
         };
