@@ -11,17 +11,20 @@ class FakeHaClient extends HaClient {
     private var _serviceCallback as Method?;
     private var _registerCallback as Method?;
 
-    // Only the latest callback is kept, so this counter is how a test tells zero
-    // calls from one.
+    // Each call keeps only its latest callback, so a test cannot tell "never
+    // called" from "called once" by the callback alone — these count the calls.
     public var toggleCount as Number;
     public var registerCount as Number;
     public var fetchOnceCount as Number;
+    public var floorToggleCount as Number;
+    public var lastFloorService as String?;
 
     function initialize() {
         HaClient.initialize();
         toggleCount = 0;
         registerCount = 0;
         fetchOnceCount = 0;
+        floorToggleCount = 0;
     }
 
     function fetchHomeState(callback as Method) as Void {
@@ -46,6 +49,12 @@ class FakeHaClient extends HaClient {
     function serviceOnce(entityId as String, callback as Method) as Void {
         _serviceCallback = callback;
         toggleCount++;
+    }
+
+    function toggleFloorLights(floorId as String, service as String, callback as Method) as Void {
+        _serviceCallback = callback;
+        lastFloorService = service;
+        floorToggleCount++;
     }
 
     function fireFetchSuccess(state as HomeState) as Void {

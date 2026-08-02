@@ -29,8 +29,8 @@ class HomeSession {
         // HomeState (which stays immutable server-truth).
         var copy = {} as Dictionary<String, Boolean>;
         var entityIds = state.states.keys();
-        for (var index = 0; index < entityIds.size(); index++) {
-            copy.put(entityIds[index], state.isOn(entityIds[index]));
+        for (var i = 0; i < entityIds.size(); i++) {
+            copy.put(entityIds[i], state.isOn(entityIds[i]));
         }
         self._states = copy;
     }
@@ -42,6 +42,10 @@ class HomeSession {
 
     function listLightsInArea(name as String) as Array<String> {
         return _state.listLightsInArea(name);
+    }
+
+    function listLightsInFloor(name as String) as Array<String> {
+        return _state.listLightsInFloor(name);
     }
 
     function listSensorsInArea(name as String) as Array<String> {
@@ -102,16 +106,15 @@ class HomeSession {
         return _state.isAvailable(entityId);
     }
 
-    // Tallies lights, skipping group entities — HA marks a group on when any
-    // member is on, so counting groups would double-count. Availability is
-    // server truth; on is counted only among available lights.
+    // Tallies physical lights. Availability is server truth; on is counted
+    // only among available lights.
     function getLightStates(lights as Array<String>) as LightStates {
         var onCount = 0;
         var availableCount = 0;
         var unavailableCount = 0;
 
-        for (var index = 0; index < lights.size(); index++) {
-            var light = lights[index];
+        for (var i = 0; i < lights.size(); i++) {
+            var light = lights[i];
 
             if (isGroup(light)) {
                 continue;
@@ -139,8 +142,8 @@ class HomeSession {
         var sensors = listSensorsInArea(name);
         var readings = [] as Array<SensorReading>;
 
-        for (var index = 0; index < sensors.size(); index++) {
-            var entityId = sensors[index];
+        for (var i = 0; i < sensors.size(); i++) {
+            var entityId = sensors[i];
             var kind = getKind(entityId);
             var value = getReadingValue(entityId);
             var display = getReading(entityId);
@@ -163,8 +166,8 @@ class HomeSession {
     function getFloorReadings(areaNames as Array<String>) as Array<SensorReading> {
         var readings = [] as Array<SensorReading>;
 
-        for (var areaIndex = 0; areaIndex < areaNames.size(); areaIndex++) {
-            readings.addAll(getAreaReadings(areaNames[areaIndex]));
+        for (var i = 0; i < areaNames.size(); i++) {
+            readings.addAll(getAreaReadings(areaNames[i]));
         }
 
         return readings;
@@ -175,8 +178,8 @@ class HomeSession {
         var availableCount = 0;
         var unavailableCount = 0;
 
-        for (var areaIndex = 0; areaIndex < areaNames.size(); areaIndex++) {
-            var states = getLightStates(listLightsInArea(areaNames[areaIndex]));
+        for (var i = 0; i < areaNames.size(); i++) {
+            var states = getLightStates(listLightsInArea(areaNames[i]));
             onCount += states.get(:on) as Number;
             availableCount += states.get(:available) as Number;
             unavailableCount += states.get(:unavailable) as Number;
@@ -209,6 +212,62 @@ class HomeSession {
         _states.put(entityId, !attemptedOn);
     }
 
+    // Any available, physical light in the floor being on drives both the
+    // any-on -> off toggle decision and the floor card's status.
+    function areFloorLightsOn(floorName as String) as Boolean {
+        var lights = toggleableFloorLights(floorName);
+
+        for (var i = 0; i < lights.size(); i++) {
+            if (isOn(lights[i])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // Direction is decided once from any-on so the whole floor lands in one
+    // state. Each affected light's prior value is captured before the optimistic
+    // flip, so a failed call restores exactly those, not a blanket flip.
+    function toggleFloorLights(floorId as String, floorName as String, onComplete as Method) as Void {
+        var newOn = !areFloorLightsOn(floorName);
+        var lights = toggleableFloorLights(floorName);
+        var priorOn = {} as Dictionary<String, Boolean>;
+
+        for (var i = 0; i < lights.size(); i++) {
+            var entityId = lights[i];
+            priorOn.put(entityId, isOn(entityId));
+            _states.put(entityId, newOn);
+        }
+
+        var service = newOn ? "turn_on" : "turn_off";
+        client.toggleFloorLights(floorId, service,
+            new FloorToggleResultHandler(self, priorOn, onComplete).method(:onResult));
+    }
+
+    function revertStates(priorOn as Dictionary<String, Boolean>) as Void {
+        var entityIds = priorOn.keys();
+
+        for (var i = 0; i < entityIds.size(); i++) {
+            var entityId = entityIds[i];
+            _states.put(entityId, priorOn.get(entityId) as Boolean);
+        }
+    }
+
+    private function toggleableFloorLights(floorName as String) as Array<String> {
+        var lights = listLightsInFloor(floorName);
+        var toggleable = [] as Array<String>;
+
+        for (var i = 0; i < lights.size(); i++) {
+            var entityId = lights[i];
+            if (!isGroup(entityId) && isAvailable(entityId)) {
+                toggleable.add(entityId);
+            }
+        }
+
+        return toggleable;
+    }
+
     // Re-sync from a freshly fetched HomeState (most-recent-fetch wins). The
     // new state becomes the server truth backing structural reads on the next
     // menu construction; the live on/off map converges to it now.
@@ -222,8 +281,8 @@ class HomeSession {
         _state = state;
 
         var entityIds = _states.keys();
-        for (var index = 0; index < entityIds.size(); index++) {
-            var entityId = entityIds[index];
+        for (var i = 0; i < entityIds.size(); i++) {
+            var entityId = entityIds[i];
             if (state.states.hasKey(entityId)) {
                 _states.put(entityId, state.isOn(entityId));
             }

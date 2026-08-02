@@ -48,7 +48,7 @@ module CardModel {
             :type => :floor,
             :id => id,
             :name => name,
-            :selectable => false,
+            :selectable => true,
             :lightSummary => buildFloorLightSummary(session, areaNames),
             :sensorSummary => buildFloorSensorSummary(session, areaNames)
         };

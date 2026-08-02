@@ -36,7 +36,10 @@ class CardRenderer {
         }
 
         drawPagination(dc, pageCount, pageIndex);
-        drawSelectHint(dc);
+
+        if (card.get(:selectable) as Boolean) {
+            drawSelectHint(dc);
+        }
     }
 
     private function drawFloorCard(dc as Graphics.Dc, card as Dictionary) as Void {
@@ -71,7 +74,7 @@ class CardRenderer {
 
         drawTitle(dc, centerX, titleY, card.get(:name) as String);
 
-        var lightSummary = card.get(:lightSummary) as Dictionary<Symbol, Number> or Null;
+        var lightSummary = card.get(:lightSummary) as HomeSession.LightStates or Null;
 
         if (lightSummary != null) {
             var indicatorsY = titleY + dc.getFontHeight(TITLE_FONT) + SECTION_GAP;
@@ -96,7 +99,7 @@ class CardRenderer {
     // An indicator per light: filled yellow when on, filled gray when
     // available-but-off, an outline when unavailable. The row is centered on centerX.
     private function drawLightIndicators(dc as Graphics.Dc, centerX as Number, y as Number,
-                                         lightSummary as Dictionary<Symbol, Number>) as Void {
+                                         lightSummary as HomeSession.LightStates) as Void {
         var onCount = lightSummary.get(:on) as Number;
         var availableCount = lightSummary.get(:available) as Number;
         var totalCount = availableCount + (lightSummary.get(:unavailable) as Number);

@@ -39,6 +39,17 @@ module HomeSessionTest {
         });
         return new HomeSession(new HaClient(), state);
     }
+
+    // A one-area floor "Upstairs" carrying the given light states, backed by the
+    // FakeHaClient so the floor service callback can be fired synchronously.
+    function fakeFloorSessionWith(states as Dictionary<String, Boolean>) as HomeSession {
+        var state = HomeState.fromTemplateData({
+            "areas" => { "Room" => states.keys() },
+            "states" => states,
+            "floors" => [{ "id" => "floor_up", "name" => "Upstairs", "areas" => ["Room"] }]
+        });
+        return new HomeSession(new FakeHaClient(), state);
+    }
 }
 
 // A no-op completion for tests that only care about the optimistic flip.
@@ -210,5 +221,82 @@ function isAvailableMirrorsServerTruthUnaffectedByToggle(logger as Test.Logger) 
 
     Test.assert(session.isAvailable("light.a"));
     Test.assert(!session.isAvailable("light.down"));
+    return true;
+}
+
+(:test)
+function areFloorLightsOnIsTrueWhenAnyLightOn(logger as Test.Logger) as Boolean {
+    var allOff = HomeSessionTest.fakeFloorSessionWith({ "light.a" => false, "light.b" => false });
+    Test.assert(!allOff.areFloorLightsOn("Upstairs"));
+
+    var oneOn = HomeSessionTest.fakeFloorSessionWith({ "light.a" => true, "light.b" => false });
+    Test.assert(oneOn.areFloorLightsOn("Upstairs"));
+    return true;
+}
+
+(:test)
+function toggleFloorLightsTurnsAllOnWhenAllOff(logger as Test.Logger) as Boolean {
+    var session = HomeSessionTest.fakeFloorSessionWith({ "light.a" => false, "light.b" => false });
+
+    session.toggleFloorLights("floor_up", "Upstairs", new NoopCompletion().method(:onComplete));
+
+    Test.assert(session.isOn("light.a"));
+    Test.assert(session.isOn("light.b"));
+    Test.assertEqual((session.client as FakeHaClient).lastFloorService as String, "turn_on");
+    return true;
+}
+
+(:test)
+function toggleFloorLightsTurnsAllOffWhenAnyOn(logger as Test.Logger) as Boolean {
+    var session = HomeSessionTest.fakeFloorSessionWith({ "light.a" => true, "light.b" => false });
+
+    session.toggleFloorLights("floor_up", "Upstairs", new NoopCompletion().method(:onComplete));
+
+    Test.assert(!session.isOn("light.a"));
+    Test.assert(!session.isOn("light.b"));
+    Test.assertEqual((session.client as FakeHaClient).lastFloorService as String, "turn_off");
+    return true;
+}
+
+(:test)
+function toggleFloorLightsFiresExactlyOneFloorCall(logger as Test.Logger) as Boolean {
+    var session = HomeSessionTest.fakeFloorSessionWith({ "light.a" => false, "light.b" => false });
+
+    session.toggleFloorLights("floor_up", "Upstairs", new NoopCompletion().method(:onComplete));
+
+    Test.assertEqual((session.client as FakeHaClient).floorToggleCount, 1);
+    return true;
+}
+
+(:test)
+function toggleFloorLightsRestoresEachLightToItsOwnPriorStateOnFailure(logger as Test.Logger) as Boolean {
+    // The bug-fix guard: a mixed floor (one on, one off) toggled then failed
+    // must return EACH light to its ORIGINAL value — not a blanket flip, and not
+    // a floorId-as-entity revert that leaves the members wrong.
+    var session = HomeSessionTest.fakeFloorSessionWith({ "light.on" => true, "light.off" => false });
+
+    session.toggleFloorLights("floor_up", "Upstairs", new NoopCompletion().method(:onComplete));
+    // Any-on -> turn all off: both flip to off optimistically.
+    Test.assert(!session.isOn("light.on"));
+    Test.assert(!session.isOn("light.off"));
+
+    (session.client as FakeHaClient).fireServiceFailure();
+
+    Test.assert(session.isOn("light.on"));    // restored to its original ON
+    Test.assert(!session.isOn("light.off"));  // restored to its original OFF
+    return true;
+}
+
+(:test)
+function toggleFloorLightsKeepsFlipsOnSuccess(logger as Test.Logger) as Boolean {
+    var session = HomeSessionTest.fakeFloorSessionWith({ "light.a" => false, "light.b" => false });
+    var spy = new CompletionSpy();
+
+    session.toggleFloorLights("floor_up", "Upstairs", spy.method(:onComplete));
+    (session.client as FakeHaClient).fireServiceSuccess();
+
+    Test.assert(session.isOn("light.a"));
+    Test.assert(session.isOn("light.b"));
+    Test.assert(spy.fired);
     return true;
 }

@@ -76,7 +76,7 @@ function noFloorsYieldsOnlyAreaCards(logger as Test.Logger) as Boolean {
 }
 
 (:test)
-function areaCardsAreSelectableFloorCardsAreNot(logger as Test.Logger) as Boolean {
+function areaCardsandFloorCardsAreSelectable(logger as Test.Logger) as Boolean {
     var session = CardModelTest.sessionOf({
         "areas" => { "Kitchen" => ["light.kitchen"] },
         "states" => {},
@@ -84,8 +84,22 @@ function areaCardsAreSelectableFloorCardsAreNot(logger as Test.Logger) as Boolea
     });
     var cards = CardModel.buildCards(session);
 
-    Test.assert(!(cards[0].get(:selectable) as Boolean));
+    Test.assert((cards[0].get(:selectable) as Boolean));
     Test.assert(cards[1].get(:selectable) as Boolean);
+    return true;
+}
+
+(:test)
+function floorCardIsSelectableWithIdAndLights(logger as Test.Logger) as Boolean {
+    var session = CardModelTest.sessionOf({
+        "areas" => { "Kitchen" => ["light.kitchen"] },
+        "states" => {},
+        "floors" => [{ "id" => "floor_ground", "name" => "Ground Floor", "areas" => ["Kitchen"] }]
+    });
+    var cards = CardModel.buildCards(session);
+
+    Test.assertEqual(cards[0].get(:type) as Symbol, :floor);
+    Test.assert(cards[0].get(:selectable) as Boolean);
     return true;
 }
 
