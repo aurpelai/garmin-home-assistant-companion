@@ -173,7 +173,7 @@ class HaClient {
             "data" => {
                 "domain" => "light",
                 "service" => service,
-                "target" => { "floor_id" => floorId }
+                "service_data" => { "floor_id" => floorId }
             }
         };
         post("/api/webhook/" + webhookId, body, new ResponseHandler(callback, :onService));
