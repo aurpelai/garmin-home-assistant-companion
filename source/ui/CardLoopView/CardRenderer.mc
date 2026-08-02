@@ -8,9 +8,9 @@ import Toybox.WatchUi;
 // come from the device's SDK personality (System 6 / API 5.0.0), so they track
 // the watch theme instead of being hand-picked.
 class CardRenderer {
-    private const TITLE_FONT = prompt_font__body_no_title.font;
-    private const FLOOR_LABEL_FONT = prompt_font__title.font;
-    private const SUMMARY_FONT = prompt_font__body_with_title.font;
+    private const TITLE_FONT = Graphics.FONT_SMALL;
+    private const SUBTITLE_FONT = Graphics.FONT_XTINY;
+    private const SUMMARY_FONT = Graphics.FONT_GLANCE;
 
     private const SECTION_GAP = 16;
     private const SUMMARY_LINE_GAP = 8;
@@ -65,7 +65,7 @@ class CardRenderer {
         var floor = card.get(:floor) as String or Null;
 
         if (floor != null) {
-            var floorY = titleY - SECTION_GAP - dc.getFontHeight(FLOOR_LABEL_FONT);
+            var floorY = titleY - SECTION_GAP - dc.getFontHeight(SUBTITLE_FONT);
             drawFloorLabel(dc, centerX, floorY, floor);
         }
 
@@ -84,7 +84,7 @@ class CardRenderer {
     private function drawFloorLabel(dc as Graphics.Dc, centerX as Number, y as Number,
                                     text as String) as Void {
         dc.setColor(Graphics.COLOR_DK_GRAY, system_color_dark__text.background);
-        dc.drawText(centerX, y, FLOOR_LABEL_FONT, text, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(centerX, y, SUBTITLE_FONT, text, Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     private function drawTitle(dc as Graphics.Dc, centerX as Number, y as Number,
