@@ -157,6 +157,7 @@ class HomeState {
                 floored.put(floorAreas[areaIndex], true);
             }
             out.add({
+                :id => floor.get(:id) as String,
                 :name => floor.get(:name) as String,
                 :areas => floorAreas
             });
@@ -171,6 +172,7 @@ class HomeState {
         }
         if (unfloored.size() > 0) {
             out.add({
+                :id => null,
                 :name => null,
                 :areas => sortAreaNames(unfloored)
             });
@@ -436,7 +438,9 @@ class HomeState {
             if (!(name instanceof String)) {
                 continue;
             }
+            var id = (entry as Dictionary).get("id");
             out.add({
+                :id => (id instanceof String) ? id as String : null,
                 :name => name as String,
                 :areas => onlyStrings((entry as Dictionary).get("areas"))
             });

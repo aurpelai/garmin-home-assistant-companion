@@ -93,7 +93,7 @@ class HaClient {
         // to the iteration and wouldn't escape.
         "{% for f in floors() %}" +
         "{% set floorAreas = floor_areas(f) | map('area_name') | list %}" +
-        "{% set ns.floors = ns.floors + [dict(name=floor_name(f), areas=floorAreas)] %}" +
+        "{% set ns.floors = ns.floors + [dict(id=f, name=floor_name(f), areas=floorAreas)] %}" +
         "{% endfor %}" +
 
         "{{ dict(areas=ns.lightsByArea, sensors=ns.sensorsByArea, states=ns.states, " +
