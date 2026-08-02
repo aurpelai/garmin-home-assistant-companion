@@ -53,6 +53,17 @@ function jsonDecodesUnicodeEscape(logger as Test.Logger) as Boolean {
     return true;
 }
 
+// A raw (unescaped) multi-byte character in a string value, and one before a
+// later string, to catch any index-unit mismatch between the scan and substring.
+(:test)
+function jsonParsesRawNonAscii(logger as Test.Logger) as Boolean {
+    var result = JsonParser.parse("{\"a\": \"Café\", \"b\": \"x\"}") as Dictionary;
+
+    Test.assertEqual(result.get("a") as String, "Café");
+    Test.assertEqual(result.get("b") as String, "x");
+    return true;
+}
+
 (:test)
 function jsonDecodesCommonEscapes(logger as Test.Logger) as Boolean {
     var result = JsonParser.parse("{\"q\": \"a\\\"b\", \"slash\": \"a\\\\b\", \"nl\": \"a\\nb\"}") as Dictionary;
@@ -70,6 +81,15 @@ function jsonRejectsMalformedInput(logger as Test.Logger) as Boolean {
     Test.assert(JsonParser.parse("[1, 2") == null);
     Test.assert(JsonParser.parse("{\"a\" 1}") == null);
     Test.assert(JsonParser.parse("garbage") == null);
+    return true;
+}
+
+(:test)
+function jsonRejectsMalformedNumbers(logger as Test.Logger) as Boolean {
+    Test.assert(JsonParser.parse("[1.2.3]") == null);
+    Test.assert(JsonParser.parse("[1e2e3]") == null);
+    Test.assert(JsonParser.parse("[--5]") == null);
+    Test.assert(JsonParser.parse("[1e+-2]") == null);
     return true;
 }
 

@@ -14,13 +14,16 @@ import Toybox.StringUtil;
 // throws), so a bad payload degrades to an empty HomeState.
 class JsonParser {
     private var _str as String;
-    private var _chars as Array<Number>;
+    // Char units, not bytes: _pos indexes both this and _str.substring, which is
+    // character-indexed — a byte array (toUtf8Array) would desync the two on any
+    // multi-byte character and corrupt the extracted substring.
+    private var _chars as Array<Char>;
     private var _pos as Number;
     private var _len as Number;
 
     function initialize(str as String) {
         _str = str;
-        _chars = str.toUtf8Array();
+        _chars = str.toCharArray();
         _pos = 0;
         _len = _chars.size();
     }
@@ -206,7 +209,7 @@ class JsonParser {
                 }
                 result += decoded;
             } else {
-                result += unescapeSimple(esc);
+                result += unescapeSimple(esc.toNumber());
                 _pos++;
             }
         }
@@ -239,7 +242,7 @@ class JsonParser {
         }
         var code = 0;
         for (var i = 1; i <= 4; i++) {
-            var digit = hexValue(_chars[_pos + i]);
+            var digit = hexValue(_chars[_pos + i].toNumber());
             if (digit < 0) {
                 return null;
             }
@@ -277,24 +280,35 @@ class JsonParser {
         return StringUtil.utf8ArrayToString(bytes);
     }
 
+    // Each structural char is allowed at most once and only where JSON permits:
+    // a dot before any exponent, one exponent marker, and a sign only right after
+    // it. A char that breaks the grammar ends the number, leaving the caller to
+    // reject the trailing garbage rather than accepting e.g. `1.2.3`.
     private function parseNumber() as Object or Null {
         var start = _pos;
-        var isFloat = false;
+        var hasDot = false;
+        var hasExp = false;
+        var prevWasExp = false;
         if (_pos < _len && _chars[_pos] == 0x2D) { // -
             _pos++;
         }
         while (_pos < _len) {
             var c = _chars[_pos];
+            var isExp = false;
             if (c >= 0x30 && c <= 0x39) {
-                _pos++;
-            } else if (c == 0x2E || c == 0x65 || c == 0x45) { // . e E
-                isFloat = true;
-                _pos++;
-            } else if (c == 0x2B || c == 0x2D) { // + - (exponent sign)
-                _pos++;
+                // digit always allowed
+            } else if (c == 0x2E && !hasDot && !hasExp) { // .
+                hasDot = true;
+            } else if ((c == 0x65 || c == 0x45) && !hasExp) { // e E
+                hasExp = true;
+                isExp = true;
+            } else if ((c == 0x2B || c == 0x2D) && prevWasExp) { // + -
+                // sign only immediately after the exponent marker
             } else {
                 break;
             }
+            prevWasExp = isExp;
+            _pos++;
         }
         if (_pos == start) {
             return null;
@@ -303,7 +317,7 @@ class JsonParser {
         if (text == null) {
             return null;
         }
-        if (!isFloat) {
+        if (!hasDot && !hasExp) {
             var asNumber = text.toNumber();
             if (asNumber != null) {
                 return asNumber;
