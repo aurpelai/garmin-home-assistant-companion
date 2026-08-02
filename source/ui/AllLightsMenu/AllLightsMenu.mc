@@ -15,6 +15,6 @@ class AllLightsMenu extends WatchUi.Menu2 {
 
         addItem(new WatchUi.ToggleMenuItem(
             WatchUi.loadResource(Rez.Strings.AllLights) as String, null,
-            :allLights, session.areFloorLightsOn(floorName), null));
+            :allLights, session.areFloorLightsOn(floorId), null));
     }
 }

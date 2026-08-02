@@ -36,15 +36,15 @@ class HaClient {
     // string would be sent unescaped by the Connect IQ JSON serializer, producing
     // an invalid JSON escape and a 400 "Invalid JSON specified" from HA.
     private const HOME_STATE_TEMPLATE =
-        "{% set ns = namespace(lightsByArea={}, sensorsByArea={}, states={}, names={}, " +
-            "groups={}, available={}, readings={}, kinds={}, lights=[], sensors=[], floors=[]) %}" +
+        "{% set ns = namespace(lights={}, sensors={}, areaLights={}, areaSensors={}, " +
+            "areasOut={}, floorsOut={}) %}" +
         "{% for a in areas() %}" +
 
         // `| list` is load-bearing: reject() yields a generator that the second
-        // (per-kind) walk below would find already exhausted. Needs HA 2023.4.
+        // (per-device_class) walk below would find already exhausted. Needs HA 2023.4.
         "{% set visible = area_entities(a) | reject('is_hidden_entity') | list %}" +
-        "{% set ns.lights = [] %}" +
-        "{% set ns.sensors = [] %}" +
+        "{% set ns.areaLights = [] %}" +
+        "{% set ns.areaSensors = [] %}" +
 
         // Skip any area-assigned entity with no state object: `states[e].name`
         // on it renders Undefined, and the closing `| tojson` would then fail the
@@ -57,13 +57,13 @@ class HaClient {
         "{% set visibleMembers = expand(e) | rejectattr('entity_id', 'is_hidden_entity') " +
             "| list | count if isGroup else 0 %}" +
         "{% if not isGroup or visibleMembers > 0 %}" +
-        "{% set ns.lights = ns.lights + [e] %}" +
-        "{% set ns.states = dict(ns.states, **{e: is_state(e, 'on')}) %}" +
-        "{% set ns.names = dict(ns.names, **{e: states[e].name}) %}" +
-        "{% set ns.available = dict(ns.available, **{e: not is_state(e, 'unavailable')}) %}" +
+        "{% set ns.areaLights = ns.areaLights + [e] %}" +
+        "{% set light = dict(state=is_state(e, 'on'), name=states[e].name, " +
+            "available=not is_state(e, 'unavailable')) %}" +
         "{% if isGroup %}" +
-        "{% set ns.groups = dict(ns.groups, **{e: visibleMembers}) %}" +
+        "{% set light = dict(light, memberCount=visibleMembers) %}" +
         "{% endif %}" +
+        "{% set ns.lights = dict(ns.lights, **{e: light}) %}" +
         "{% endif %}" +
         "{% endif %}" +
         "{% endfor %}" +
@@ -71,37 +71,34 @@ class HaClient {
         // `states(e, true, true)` keeps HA's own display precision and unit as a
         // string, so the watch never reparses or rounds and can't disagree with
         // the user's dashboard. Needs HA 2023.3.
-        "{% for kind in ['temperature', 'humidity', 'illuminance'] %}" +
+        "{% for device_class in ['temperature', 'humidity', 'illuminance'] %}" +
         "{% for e in visible %}" +
-        "{% if e.startswith('sensor.') and state_attr(e, 'device_class') == kind %}" +
-        "{% set ns.sensors = ns.sensors + [e] %}" +
-        "{% set ns.readings = dict(ns.readings, **{e: dict(" +
-            "value=states(e) | float, display=states(e, true, true), " +
-            "unit=state_attr(e, 'unit_of_measurement'))}) %}" +
-        "{% set ns.names = dict(ns.names, **{e: entity_name(e)}) %}" +
-        "{% set ns.available = dict(ns.available, " +
-            "**{e: not is_state(e, 'unavailable') and not is_state(e, 'unknown')}) %}" +
-        "{% set ns.kinds = dict(ns.kinds, **{e: kind}) %}" +
+        "{% if e.startswith('sensor.') and state_attr(e, 'device_class') == device_class %}" +
+        "{% set ns.areaSensors = ns.areaSensors + [e] %}" +
+        "{% set ns.sensors = dict(ns.sensors, **{e: dict(" +
+            "state=states(e) | float, display_state=states(e, true, true), " +
+            "unit=state_attr(e, 'unit_of_measurement'), device_class=device_class, " +
+            "name=entity_name(e), " +
+            "available=not is_state(e, 'unavailable') and not is_state(e, 'unknown'))}) %}" +
         "{% endif %}" +
         "{% endfor %}" +
         "{% endfor %}" +
 
-        "{% if ns.lights or ns.sensors %}" +
-        "{% set ns.lightsByArea = dict(ns.lightsByArea, **{area_name(a): ns.lights}) %}" +
-        "{% set ns.sensorsByArea = dict(ns.sensorsByArea, **{area_name(a): ns.sensors}) %}" +
+        "{% if ns.areaLights or ns.areaSensors %}" +
+        "{% set ns.areasOut = dict(ns.areasOut, **{a: dict(" +
+            "name=area_name(a), lights=ns.areaLights, sensors=ns.areaSensors)}) %}" +
         "{% endif %}" +
         "{% endfor %}" +
 
         // On `ns` because a plain `{% set %}` inside a Jinja for-loop is scoped
         // to the iteration and wouldn't escape.
         "{% for f in floors() %}" +
-        "{% set floorAreas = floor_areas(f) | map('area_name') | list %}" +
-        "{% set ns.floors = ns.floors + [dict(id=f, name=floor_name(f), areas=floorAreas)] %}" +
+        "{% set ns.floorsOut = dict(ns.floorsOut, **{f: dict(" +
+            "name=floor_name(f), order=loop.index0, areas=floor_areas(f) | list)}) %}" +
         "{% endfor %}" +
 
-        "{{ dict(areas=ns.lightsByArea, sensors=ns.sensorsByArea, states=ns.states, " +
-            "groups=ns.groups, readings=ns.readings, names=ns.names, " +
-            "available=ns.available, floors=ns.floors, kinds=ns.kinds) | tojson }}";
+        "{{ dict(lights=ns.lights, sensors=ns.sensors, areas=ns.areasOut, " +
+            "floors=ns.floorsOut) | tojson }}";
 
     function initialize() {}
 

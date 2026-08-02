@@ -20,9 +20,13 @@ module CardLoopViewTest {
 (:test)
 function pagingMovesThroughTheSequenceAndWrapsAtBothEnds(logger as Test.Logger) as Boolean {
     var session = CardLoopViewTest.sessionOf({
-        "areas" => { "Kitchen" => ["light.kitchen"], "Hallway" => ["light.hallway"] },
-        "states" => {},
-        "floors" => [{ "name" => "Ground Floor", "areas" => ["Hallway", "Kitchen"] }]
+        "areas" => {
+            "area.kitchen" => { "name" => "Kitchen", "lights" => ["light.kitchen"] },
+            "area.hallway" => { "name" => "Hallway", "lights" => ["light.hallway"] }
+        },
+        "floors" => {
+            "floor.ground" => { "name" => "Ground Floor", "areas" => ["area.hallway", "area.kitchen"] }
+        }
     });
     var view = new CardLoopView(session);
 

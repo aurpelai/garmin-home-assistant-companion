@@ -16,14 +16,14 @@ class FloorToggleHandler {
     }
 
     function onComplete() as Void {
-        _item.setEnabled(_session.areFloorLightsOn(_menu.floorName));
+        _item.setEnabled(_session.areFloorLightsOn(_menu.floorId));
         WatchUi.requestUpdate();
 
         _session.refreshState(method(:onRefreshed));
     }
 
     function onRefreshed() as Void {
-        _item.setEnabled(_session.areFloorLightsOn(_menu.floorName));
+        _item.setEnabled(_session.areFloorLightsOn(_menu.floorId));
         WatchUi.requestUpdate();
     }
 }

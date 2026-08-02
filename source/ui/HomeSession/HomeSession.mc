@@ -12,7 +12,7 @@ class HomeSession {
     };
 
     typedef SensorReading as {
-        :kind as String,
+        :device_class as String,
         :value as Float,
         :unit as String or Null,
         :display as String
@@ -28,7 +28,7 @@ class HomeSession {
         // Copy the loaded states so optimistic toggles never mutate the
         // HomeState (which stays immutable server-truth).
         var copy = {} as Dictionary<String, Boolean>;
-        var entityIds = state.states.keys();
+        var entityIds = state.lightIds();
         for (var i = 0; i < entityIds.size(); i++) {
             copy.put(entityIds[i], state.isOn(entityIds[i]));
         }
@@ -40,16 +40,20 @@ class HomeSession {
         return _state.areas;
     }
 
-    function listLightsInArea(name as String) as Array<String> {
-        return _state.listLightsInArea(name);
+    function listLightsInArea(areaId as String) as Array<String> {
+        return _state.listLightsInArea(areaId);
     }
 
-    function listLightsInFloor(name as String) as Array<String> {
-        return _state.listLightsInFloor(name);
+    function listLightsInFloor(floorId as String) as Array<String> {
+        return _state.listLightsInFloor(floorId);
     }
 
-    function listSensorsInArea(name as String) as Array<String> {
-        return _state.listSensorsInArea(name);
+    function listSensorsInArea(areaId as String) as Array<String> {
+        return _state.listSensorsInArea(areaId);
+    }
+
+    function getAreaName(areaId as String) as String {
+        return _state.getAreaName(areaId);
     }
 
     // HA's display name for an entity (bare id as last-resort fallback).
@@ -75,13 +79,13 @@ class HomeSession {
         return _state.getReadingUnit(entityId);
     }
 
-    // A sensor's device_class, null when the payload carries no kind for the id.
-    function getKind(entityId as String) as String or Null {
-        return _state.getKind(entityId);
+    // A sensor's device_class, null when the payload carries none for the id.
+    function getDeviceClass(entityId as String) as String or Null {
+        return _state.getDeviceClass(entityId);
     }
 
-    function buildFloorGroups() as Array<Dictionary> {
-        return _state.buildFloorGroups();
+    function buildFloors() as Array<Dictionary> {
+        return _state.buildFloors();
     }
 
     function isGroup(entityId as String) as Boolean {
@@ -138,22 +142,22 @@ class HomeSession {
         };
     }
 
-    function getAreaReadings(name as String) as Array<SensorReading> {
-        var sensors = listSensorsInArea(name);
+    function getAreaReadings(areaId as String) as Array<SensorReading> {
+        var sensors = listSensorsInArea(areaId);
         var readings = [] as Array<SensorReading>;
 
         for (var i = 0; i < sensors.size(); i++) {
             var entityId = sensors[i];
-            var kind = getKind(entityId);
+            var deviceClass = getDeviceClass(entityId);
             var value = getReadingValue(entityId);
             var display = getReading(entityId);
 
-            if (kind == null || value == null || display == null) {
+            if (deviceClass == null || value == null || display == null) {
                 continue;
             }
 
             readings.add({
-                :kind => kind,
+                :device_class => deviceClass,
                 :value => value,
                 :unit => getReadingUnit(entityId),
                 :display => display
@@ -163,23 +167,23 @@ class HomeSession {
         return readings;
     }
 
-    function getFloorReadings(areaNames as Array<String>) as Array<SensorReading> {
+    function getFloorReadings(areaIds as Array<String>) as Array<SensorReading> {
         var readings = [] as Array<SensorReading>;
 
-        for (var i = 0; i < areaNames.size(); i++) {
-            readings.addAll(getAreaReadings(areaNames[i]));
+        for (var i = 0; i < areaIds.size(); i++) {
+            readings.addAll(getAreaReadings(areaIds[i]));
         }
 
         return readings;
     }
 
-    function getFloorLightStates(areaNames as Array<String>) as LightStates {
+    function getFloorLightStates(areaIds as Array<String>) as LightStates {
         var onCount = 0;
         var availableCount = 0;
         var unavailableCount = 0;
 
-        for (var i = 0; i < areaNames.size(); i++) {
-            var states = getLightStates(listLightsInArea(areaNames[i]));
+        for (var i = 0; i < areaIds.size(); i++) {
+            var states = getLightStates(listLightsInArea(areaIds[i]));
             onCount += states.get(:on) as Number;
             availableCount += states.get(:available) as Number;
             unavailableCount += states.get(:unavailable) as Number;
@@ -214,8 +218,8 @@ class HomeSession {
 
     // Any available, physical light in the floor being on drives both the
     // any-on -> off toggle decision and the floor card's status.
-    function areFloorLightsOn(floorName as String) as Boolean {
-        var lights = toggleableFloorLights(floorName);
+    function areFloorLightsOn(floorId as String) as Boolean {
+        var lights = toggleableFloorLights(floorId);
 
         for (var i = 0; i < lights.size(); i++) {
             if (isOn(lights[i])) {
@@ -229,9 +233,9 @@ class HomeSession {
     // Direction is decided once from any-on so the whole floor lands in one
     // state. Each affected light's prior value is captured before the optimistic
     // flip, so a failed call restores exactly those, not a blanket flip.
-    function toggleFloorLights(floorId as String, floorName as String, onComplete as Method) as Void {
-        var newOn = !areFloorLightsOn(floorName);
-        var lights = toggleableFloorLights(floorName);
+    function toggleFloorLights(floorId as String, onComplete as Method) as Void {
+        var newOn = !areFloorLightsOn(floorId);
+        var lights = toggleableFloorLights(floorId);
         var priorOn = {} as Dictionary<String, Boolean>;
 
         for (var i = 0; i < lights.size(); i++) {
@@ -254,8 +258,8 @@ class HomeSession {
         }
     }
 
-    private function toggleableFloorLights(floorName as String) as Array<String> {
-        var lights = listLightsInFloor(floorName);
+    private function toggleableFloorLights(floorId as String) as Array<String> {
+        var lights = listLightsInFloor(floorId);
         var toggleable = [] as Array<String>;
 
         for (var i = 0; i < lights.size(); i++) {
@@ -283,7 +287,7 @@ class HomeSession {
         var entityIds = _states.keys();
         for (var i = 0; i < entityIds.size(); i++) {
             var entityId = entityIds[i];
-            if (state.states.hasKey(entityId)) {
+            if (state.hasLight(entityId)) {
                 _states.put(entityId, state.isOn(entityId));
             }
         }

@@ -6,52 +6,32 @@ import Toybox.Lang;
 
 class HomeState {
     public var areas as Array<Dictionary>;
-    public var states as Dictionary<String, Boolean>;
-    private var names as Dictionary<String, String>;
-    // A key's presence is the is-a-group signal; its value is the member count.
-    private var groups as Dictionary<String, Number>;
-    // Separate from states on purpose: on/off and availability are independent.
-    private var available as Dictionary<String, Boolean>;
-    private var readings as Dictionary<String, Dictionary>;
-    private var floors as Array<Dictionary>;
-    private var kinds as Dictionary<String, String>;
+    private var _lights as Dictionary<String, Dictionary>;
+    private var _sensors as Dictionary<String, Dictionary>;
+    private var _floors as Array<Dictionary>;
 
-    function initialize(areas as Array<Dictionary>, states as Dictionary<String, Boolean>,
-                        names as Dictionary<String, String>,
-                        groups as Dictionary<String, Number>,
-                        available as Dictionary<String, Boolean>,
-                        readings as Dictionary<String, Dictionary>,
-                        floors as Array<Dictionary>,
-                        kinds as Dictionary<String, String>) {
+    function initialize(areas as Array<Dictionary>, lights as Dictionary<String, Dictionary>,
+                        sensors as Dictionary<String, Dictionary>, floors as Array<Dictionary>) {
         self.areas = areas;
-        self.states = states;
-        self.names = names;
-        self.groups = groups;
-        self.available = available;
-        self.readings = readings;
-        self.floors = floors;
-        self.kinds = kinds;
+        self._lights = lights;
+        self._sensors = sensors;
+        self._floors = floors;
     }
 
-    // Build from the already-JSON-parsed "home" value of the webhook
-    // response. `data` is the { "areas" => ..., "sensors" => ..., "states" => ...,
-    // "names" => ..., "groups" => ..., "readings" => ..., "available" => ...,
-    // "floors" => ..., "kinds" => ... } Dictionary. Each section parses
-    // defensively; a missing or malformed body yields an empty HomeState.
+    // Build from the already-JSON-parsed "home" value of the webhook response.
+    // `data` is the { "lights" => ..., "sensors" => ..., "areas" => ...,
+    // "floors" => ... } Dictionary, each section self-contained and keyed by
+    // entity/area/floor id. Each section parses defensively; a missing or
+    // malformed body yields an empty HomeState.
     static function fromTemplateData(data as Dictionary or String or Null) as HomeState {
         if (!(data instanceof Dictionary)) {
-            return new HomeState([] as Array<Dictionary>, {} as Dictionary<String, Boolean>,
-                                     {} as Dictionary<String, String>, {} as Dictionary<String, Number>,
-                                     {} as Dictionary<String, Boolean>, {} as Dictionary<String, Dictionary>,
-                                     [] as Array<Dictionary>, {} as Dictionary<String, String>);
+            return new HomeState([] as Array<Dictionary>, {} as Dictionary<String, Dictionary>,
+                                     {} as Dictionary<String, Dictionary>, [] as Array<Dictionary>);
         }
-        return new HomeState(parseAreas(data.get("areas"), data.get("sensors")),
-                                 parseBooleanMap(data.get("states")),
-                                 parseStringMap(data.get("names")), parseGroups(data.get("groups")),
-                                 parseBooleanMap(data.get("available")),
-                                 parseReadings(data.get("readings")),
-                                 parseFloors(data.get("floors")),
-                                 parseStringMap(data.get("kinds")));
+        var lights = parseLights(data.get("lights"));
+        var sensors = parseSensors(data.get("sensors"));
+        return new HomeState(parseAreas(data.get("areas")), lights, sensors,
+                                 parseFloors(data.get("floors")));
     }
 
     function isEmpty() as Boolean {
@@ -59,53 +39,88 @@ class HomeState {
     }
 
     function isOn(entityId as String) as Boolean {
-        var state = states.get(entityId);
-        return state == null
-            ? false
-            : state as Boolean;
+        var light = _lights.get(entityId);
+        if (light == null) {
+            return false;
+        }
+        return (light as Dictionary).get(:state) as Boolean;
+    }
+
+    function lightIds() as Array<String> {
+        return _lights.keys();
+    }
+
+    function hasLight(entityId as String) as Boolean {
+        return _lights.hasKey(entityId);
     }
 
     // Defaults to available, not off: a missing entry is a contract breach and
     // must not mark a working light down.
     function isAvailable(entityId as String) as Boolean {
-        var value = available.get(entityId);
+        var entity = entityFor(entityId);
+        if (entity == null) {
+            return true;
+        }
+        var value = (entity as Dictionary).get(:available);
         return value == null
             ? true
             : value as Boolean;
     }
 
     function getReading(entityId as String) as String or Null {
-        var reading = readings.get(entityId);
-        if (reading == null) {
+        var sensor = _sensors.get(entityId);
+        if (sensor == null) {
             return null;
         }
-        return (reading as Dictionary).get(:display) as String or Null;
+        return (sensor as Dictionary).get(:display_state) as String or Null;
     }
 
+    // A sensor's `state` slot is polymorphic (parseEntity stores a Boolean for a
+    // non-numeric state, as lights need). Only a genuine number is a reading
+    // value, so a Boolean returns null rather than poisoning the numeric mean.
     function getReadingValue(entityId as String) as Float or Null {
-        var reading = readings.get(entityId);
-        if (reading == null) {
+        var sensor = _sensors.get(entityId);
+        if (sensor == null) {
             return null;
         }
-        return (reading as Dictionary).get(:value) as Float or Null;
+        var state = (sensor as Dictionary).get(:state);
+        if (state instanceof Float || state instanceof Number) {
+            return state as Float;
+        }
+        return null;
     }
 
     function getReadingUnit(entityId as String) as String or Null {
-        var reading = readings.get(entityId);
-        if (reading == null) {
+        var sensor = _sensors.get(entityId);
+        if (sensor == null) {
             return null;
         }
-        return (reading as Dictionary).get(:unit) as String or Null;
+        return (sensor as Dictionary).get(:unit) as String or Null;
     }
 
-    function getKind(entityId as String) as String or Null {
-        return kinds.get(entityId);
+    function getDeviceClass(entityId as String) as String or Null {
+        var sensor = _sensors.get(entityId);
+        if (sensor == null) {
+            return null;
+        }
+        return (sensor as Dictionary).get(:device_class) as String or Null;
+    }
+
+    // The entity's domain, derived from its id prefix rather than carried over
+    // the wire. An id with no '.' has no domain.
+    function getDomain(entityId as String) as String or Null {
+        var dot = entityId.find(".");
+        if (dot == null) {
+            return null;
+        }
+        return entityId.substring(0, dot);
     }
 
     // Falls back to the bare id (empty counts as missing) so a row always has a
     // non-blank label; only reachable on a contract breach.
     function getName(entityId as String) as String {
-        var name = names.get(entityId);
+        var entity = entityFor(entityId);
+        var name = entity == null ? null : (entity as Dictionary).get(:name);
         if (name == null || (name as String).equals("")) {
             return entityId;
         }
@@ -113,35 +128,36 @@ class HomeState {
     }
 
     function isGroup(entityId as String) as Boolean {
-        return groups.hasKey(entityId);
+        var light = _lights.get(entityId);
+        return light != null && (light as Dictionary).hasKey(:memberCount);
     }
 
-    // parseGroups guarantees a present key maps to a non-negative integer, so
-    // the bare cast never hits null for a group.
+    // parseLights/parseSensors guarantee a present memberCount maps to a
+    // non-negative integer, so the bare cast never hits null for a group.
     function getMemberCount(entityId as String) as Number {
-        return groups.get(entityId) as Number;
+        return (_lights.get(entityId) as Dictionary).get(:memberCount) as Number;
     }
 
-    function listLightsInArea(name as String) as Array<String> {
-        for (var areaIndex = 0; areaIndex < areas.size(); areaIndex++) {
-            if ((areas[areaIndex].get(:name) as String).equals(name)) {
-                return orderAvailableFirst(areas[areaIndex].get(:lights) as Array<String>);
-            }
+    function listLightsInArea(areaId as String) as Array<String> {
+        var area = areaFor(areaId);
+        if (area == null) {
+            return [] as Array<String>;
         }
-        return [] as Array<String>;
+        return orderAvailableFirst(area.get(:lights) as Array<String>);
     }
 
-    // Every light across the floor's areas, in area order. A floor whose name
+    // Every light across the floor's areas, in area order. A floor whose id
     // matches nothing yields an empty list.
-    function listLightsInFloor(floorName as String) as Array<String> {
+    function listLightsInFloor(floorId as String) as Array<String> {
         var out = [] as Array<String>;
 
-        for (var floorIndex = 0; floorIndex < floors.size(); floorIndex++) {
-            if (!(floors[floorIndex].get(:name) as String).equals(floorName)) {
+        for (var floorIndex = 0; floorIndex < _floors.size(); floorIndex++) {
+            var floorIdValue = _floors[floorIndex].get(:id);
+            if (floorIdValue == null || !(floorIdValue as String).equals(floorId)) {
                 continue;
             }
 
-            var floorAreas = floors[floorIndex].get(:areas) as Array<String>;
+            var floorAreas = _floors[floorIndex].get(:areas) as Array<String>;
             for (var areaIndex = 0; areaIndex < floorAreas.size(); areaIndex++) {
                 out.addAll(listLightsInArea(floorAreas[areaIndex]));
             }
@@ -150,25 +166,28 @@ class HomeState {
         return out;
     }
 
-    // Not sorted: the template already emits an area's sensors grouped by kind.
-    function listSensorsInArea(name as String) as Array<String> {
-        for (var areaIndex = 0; areaIndex < areas.size(); areaIndex++) {
-            if ((areas[areaIndex].get(:name) as String).equals(name)) {
-                return areas[areaIndex].get(:sensors) as Array<String>;
-            }
+    // Not sorted: the template already emits an area's sensors grouped by
+    // device_class.
+    function listSensorsInArea(areaId as String) as Array<String> {
+        var area = areaFor(areaId);
+        if (area == null) {
+            return [] as Array<String>;
         }
-        return [] as Array<String>;
+        return area.get(:sensors) as Array<String>;
     }
 
-    // Areas are re-sorted here rather than trusting input order. Areas on no
-    // floor go in a trailing entry whose :name is null.
-    function buildFloorGroups() as Array<Dictionary> {
+    // Floors come out in HA's own floors() order (basement-up), carried as each
+    // floor's :order field, since Dictionary.keys() is hash order. Areas within
+    // a floor are re-sorted rather than trusting input order. Areas on no floor
+    // go in a trailing entry whose :id and :name are null.
+    function buildFloors() as Array<Dictionary> {
         var floored = {} as Dictionary<String, Boolean>;
         var out = [] as Array<Dictionary>;
+        var orderedFloors = floorsByOrder();
 
-        for (var floorIndex = 0; floorIndex < floors.size(); floorIndex++) {
-            var floor = floors[floorIndex];
-            var floorAreas = sortAreaNames(floor.get(:areas) as Array<String>);
+        for (var floorIndex = 0; floorIndex < orderedFloors.size(); floorIndex++) {
+            var floor = orderedFloors[floorIndex];
+            var floorAreas = sortAreaIds(floor.get(:areas) as Array<String>);
             if (floorAreas.size() == 0) {
                 continue;
             }
@@ -184,40 +203,92 @@ class HomeState {
 
         var unfloored = [] as Array<String>;
         for (var areaIndex = 0; areaIndex < areas.size(); areaIndex++) {
-            var name = areas[areaIndex].get(:name) as String;
-            if (!floored.hasKey(name)) {
-                unfloored.add(name);
+            var id = areas[areaIndex].get(:id) as String;
+            if (!floored.hasKey(id)) {
+                unfloored.add(id);
             }
         }
         if (unfloored.size() > 0) {
             out.add({
                 :id => null,
                 :name => null,
-                :areas => sortAreaNames(unfloored)
+                :areas => sortAreaIds(unfloored)
             });
         }
 
         return out;
     }
 
-    // Order area names alphabetically, case-insensitively. Only areas that
-    // actually hold entities (present in `areas`) are kept — a floor's areas
-    // list may name an area the areas/sensors sections dropped for holding
-    // neither.
-    private function sortAreaNames(names as Array<String>) as Array<String> {
+    // The parsed floors sorted ascending by their :order field. The key is the
+    // order left-padded to a fixed width so a plain string sort orders it
+    // numerically, with the hash index appended as a stable tiebreaker.
+    private function floorsByOrder() as Array<Dictionary> {
+        var floorForKey = {} as Dictionary<String, Dictionary>;
+        var keys = [] as Array<String>;
+
+        for (var index = 0; index < _floors.size(); index++) {
+            var order = _floors[index].get(:order) as Number;
+            var key = padOrder(order) + "\n" + padOrder(index);
+            floorForKey.put(key, _floors[index]);
+            keys.add(key);
+        }
+
+        keys.sort(null);
+
+        var ordered = [] as Array<Dictionary>;
+        for (var index = 0; index < keys.size(); index++) {
+            ordered.add(floorForKey.get(keys[index]) as Dictionary);
+        }
+        return ordered;
+    }
+
+    private function padOrder(value as Number) as String {
+        return (1000000 + value).toString();
+    }
+
+    function getAreaName(areaId as String) as String {
+        var area = areaFor(areaId);
+        if (area == null) {
+            return areaId;
+        }
+        return area.get(:name) as String;
+    }
+
+    private function entityFor(entityId as String) as Dictionary or Null {
+        var light = _lights.get(entityId);
+        if (light != null) {
+            return light as Dictionary;
+        }
+        return _sensors.get(entityId) as Dictionary or Null;
+    }
+
+    private function areaFor(areaId as String) as Dictionary or Null {
+        for (var areaIndex = 0; areaIndex < areas.size(); areaIndex++) {
+            if ((areas[areaIndex].get(:id) as String).equals(areaId)) {
+                return areas[areaIndex];
+            }
+        }
+        return null;
+    }
+
+    // Order area ids by their display name alphabetically, case-insensitively.
+    // Only areas that actually hold entities (present in `areas`) are kept — a
+    // floor's areas list may name an area the areas section dropped for
+    // holding neither.
+    private function sortAreaIds(ids as Array<String>) as Array<String> {
         var kept = [] as Array<String>;
-        for (var index = 0; index < names.size(); index++) {
-            if (hasArea(names[index])) {
-                kept.add(names[index]);
+        for (var index = 0; index < ids.size(); index++) {
+            if (hasArea(ids[index])) {
+                kept.add(ids[index]);
             }
         }
 
         var keyed = {} as Dictionary<String, String>;
         var keys = [] as Array<String>;
         for (var index = 0; index < kept.size(); index++) {
-            var name = kept[index];
-            var key = name.toLower() + "\n" + name;
-            keyed.put(key, name);
+            var id = kept[index];
+            var key = getAreaName(id).toLower() + "\n" + id;
+            keyed.put(key, id);
             keys.add(key);
         }
         keys.sort(null);
@@ -229,13 +300,8 @@ class HomeState {
         return ordered;
     }
 
-    private function hasArea(name as String) as Boolean {
-        for (var index = 0; index < areas.size(); index++) {
-            if ((areas[index].get(:name) as String).equals(name)) {
-                return true;
-            }
-        }
-        return false;
+    private function hasArea(areaId as String) as Boolean {
+        return areaFor(areaId) != null;
     }
 
     // Available lights before unavailable, each partition then group-ordered.
@@ -297,31 +363,34 @@ class HomeState {
         return ordered;
     }
 
-    // Merges the lights and sensors sections into one area-keyed structure; an
-    // area survives only if it has at least one light or sensor.
-    private static function parseAreas(rawLights as Object or Null,
-                                       rawSensors as Object or Null) as Array<Dictionary> {
+    // Areas keyed by area id -> { name, lights: [entity ids], sensors: [entity
+    // ids] }. An area survives only if it has at least one light or sensor.
+    private static function parseAreas(raw as Object or Null) as Array<Dictionary> {
         var out = [] as Array<Dictionary>;
 
-        if (!(rawLights instanceof Dictionary)) {
+        if (!(raw instanceof Dictionary)) {
             return out;
         }
 
-        var sensorSection = {} as Dictionary;
-        if (rawSensors instanceof Dictionary) {
-            sensorSection = rawSensors;
-        }
+        var ids = raw.keys() as Array<String>;
+        ids.sort(null);
 
-        var names = rawLights.keys() as Array<String>;
-        names.sort(null);
-
-        for (var index = 0; index < names.size(); index++) {
-            var name = names[index] as String;
-            var lights = onlyStrings((rawLights as Dictionary).get(name));
-            var sensors = onlyStrings(sensorSection.get(name));
+        for (var index = 0; index < ids.size(); index++) {
+            var id = ids[index] as String;
+            var entry = (raw as Dictionary).get(id);
+            if (!(entry instanceof Dictionary)) {
+                continue;
+            }
+            var name = (entry as Dictionary).get("name");
+            if (!(name instanceof String)) {
+                continue;
+            }
+            var lights = onlyStrings((entry as Dictionary).get("lights"));
+            var sensors = onlyStrings((entry as Dictionary).get("sensors"));
             if (lights.size() + sensors.size() > 0) {
                 out.add({
-                    :name => name,
+                    :id => id,
+                    :name => name as String,
                     :lights => lights,
                     :sensors => sensors
                 });
@@ -331,51 +400,10 @@ class HomeState {
         return out;
     }
 
-    // The "states" and "available" sections, both { entityId: bool } -> an
-    // entity_id -> Boolean map, dropping non-String keys and non-Boolean values.
-    private static function parseBooleanMap(raw as Object or Null) as Dictionary<String, Boolean> {
-        var out = {} as Dictionary<String, Boolean>;
-
-        if (!(raw instanceof Dictionary)) {
-            return out;
-        }
-
-        var entityIds = raw.keys();
-
-        for (var index = 0; index < entityIds.size(); index++) {
-            var entityId = entityIds[index];
-            var value = raw.get(entityId);
-            if (entityId instanceof String && value instanceof Boolean) {
-                out.put(entityId, value);
-            }
-        }
-
-        return out;
-    }
-
-    private static function parseStringMap(raw as Object or Null) as Dictionary<String, String> {
-        var out = {} as Dictionary<String, String>;
-
-        if (!(raw instanceof Dictionary)) {
-            return out;
-        }
-
-        var entityIds = raw.keys();
-
-        for (var index = 0; index < entityIds.size(); index++) {
-            var entityId = entityIds[index];
-            var value = raw.get(entityId);
-            if (entityId instanceof String && value instanceof String) {
-                out.put(entityId, value);
-            }
-        }
-
-        return out;
-    }
-
-    // A reading with no String display is dropped: display is the row's text,
-    // and a missing one can't be rendered.
-    private static function parseReadings(raw as Object or Null) as Dictionary<String, Dictionary> {
+    // The "lights" section: entity id -> its attribute object. Drops any entry
+    // whose id is not a String or whose value is not a Dictionary; per-field
+    // validation happens at the accessor.
+    private static function parseLights(raw as Object or Null) as Dictionary<String, Dictionary> {
         var out = {} as Dictionary<String, Dictionary>;
 
         if (!(raw instanceof Dictionary)) {
@@ -390,39 +418,17 @@ class HomeState {
             if (!(entityId instanceof String) || !(entry instanceof Dictionary)) {
                 continue;
             }
-            var display = (entry as Dictionary).get("display");
-            if (!(display instanceof String)) {
-                continue;
-            }
-            out.put(entityId as String, {
-                :value => toFloatOrZero((entry as Dictionary).get("value")),
-                :display => display as String,
-                :unit => toStringOrEmpty((entry as Dictionary).get("unit"))
-            });
+            out.put(entityId as String, parseEntity(entry as Dictionary));
         }
 
         return out;
     }
 
-    private static function toFloatOrZero(raw as Object or Null) as Float {
-        if (raw instanceof Float || raw instanceof Number) {
-            return (raw as Number).toFloat();
-        }
-        return 0.0;
-    }
-
-    private static function toStringOrEmpty(raw as Object or Null) as String {
-        if (raw instanceof String) {
-            return raw;
-        }
-        return "";
-    }
-
-    // Drops any entry without a valid non-negative count: a present key with a
-    // null/bad count would later flow into a row sublabel's string concat and
-    // throw, so a bad one is degraded to a plain (non-group) row here.
-    private static function parseGroups(raw as Object or Null) as Dictionary<String, Number> {
-        var out = {} as Dictionary<String, Number>;
+    // The "sensors" section, same shape as parseLights, but a sensor with no
+    // display_state is dropped entirely: display_state is the row's text, and a
+    // missing one can't be rendered.
+    private static function parseSensors(raw as Object or Null) as Dictionary<String, Dictionary> {
+        var out = {} as Dictionary<String, Dictionary>;
 
         if (!(raw instanceof Dictionary)) {
             return out;
@@ -432,40 +438,108 @@ class HomeState {
 
         for (var index = 0; index < entityIds.size(); index++) {
             var entityId = entityIds[index];
-            var count = raw.get(entityId);
-            if (entityId instanceof String && count instanceof Number && (count as Number) >= 0) {
-                out.put(entityId, count);
+            var entry = raw.get(entityId);
+            if (!(entityId instanceof String) || !(entry instanceof Dictionary)) {
+                continue;
             }
+            if (!((entry as Dictionary).get("display_state") instanceof String)) {
+                continue;
+            }
+            out.put(entityId as String, parseEntity(entry as Dictionary));
         }
 
         return out;
     }
 
+    // `state` is polymorphic across sections (boolean for lights, float for
+    // sensors); a value of neither type degrades to `false` rather than being
+    // dropped, since isOn's off default already treats absent as off.
+    private static function parseEntity(entry as Dictionary) as Dictionary {
+        var state = entry.get("state");
+        var out = {
+            :name => toStringOrNull(entry.get("name")),
+            :available => entry.get("available") instanceof Boolean ? entry.get("available") as Boolean : true
+        } as Dictionary;
+
+        if (state instanceof Boolean) {
+            out.put(:state, state as Boolean);
+        } else if (state instanceof Float || state instanceof Number) {
+            out.put(:state, (state as Number).toFloat());
+        } else {
+            out.put(:state, false);
+        }
+
+        var displayState = entry.get("display_state");
+        if (displayState instanceof String) {
+            out.put(:display_state, displayState as String);
+        }
+
+        var unit = entry.get("unit");
+        if (unit instanceof String) {
+            out.put(:unit, unit as String);
+        }
+
+        var deviceClass = entry.get("device_class");
+        if (deviceClass instanceof String) {
+            out.put(:device_class, deviceClass as String);
+        }
+
+        var memberCount = entry.get("memberCount");
+        if (memberCount instanceof Number && (memberCount as Number) >= 0) {
+            out.put(:memberCount, memberCount as Number);
+        }
+
+        return out;
+    }
+
+    private static function toStringOrNull(raw as Object or Null) as String or Null {
+        if (raw instanceof String) {
+            return raw;
+        }
+        return null;
+    }
+
     private static function parseFloors(raw as Object or Null) as Array<Dictionary> {
         var out = [] as Array<Dictionary>;
 
-        if (!(raw instanceof Array)) {
+        if (!(raw instanceof Dictionary)) {
             return out;
         }
 
-        for (var index = 0; index < raw.size(); index++) {
-            var entry = raw[index];
-            if (!(entry instanceof Dictionary)) {
+        var ids = raw.keys();
+
+        for (var index = 0; index < ids.size(); index++) {
+            var id = ids[index];
+            var entry = (raw as Dictionary).get(id);
+            if (!(id instanceof String) || !(entry instanceof Dictionary)) {
                 continue;
             }
             var name = (entry as Dictionary).get("name");
             if (!(name instanceof String)) {
                 continue;
             }
-            var id = (entry as Dictionary).get("id");
             out.add({
-                :id => (id instanceof String) ? id as String : null,
+                :id => id as String,
                 :name => name as String,
+                :order => floorOrderOf((entry as Dictionary).get("order"), index),
                 :areas => onlyStrings((entry as Dictionary).get("areas"))
             });
         }
 
         return out;
+    }
+
+    // The floor's position in HA's own floors() order. A missing or non-numeric
+    // order falls back to hash-iteration index, keeping the floor present rather
+    // than dropping it.
+    private static function floorOrderOf(raw as Object or Null, fallback as Number) as Number {
+        if (raw instanceof Number) {
+            return raw as Number;
+        }
+        if (raw instanceof Float) {
+            return (raw as Float).toNumber();
+        }
+        return fallback;
     }
 
     private static function onlyStrings(raw as Object or Null) as Array<String> {

@@ -14,7 +14,7 @@ class AllLightsMenuDelegate extends WatchUi.Menu2InputDelegate {
     function onSelect(item as WatchUi.MenuItem) as Void {
         var toggle = item as WatchUi.ToggleMenuItem;
 
-        _session.toggleFloorLights(_menu.floorId, _menu.floorName,
+        _session.toggleFloorLights(_menu.floorId,
             new FloorToggleHandler(_menu, toggle, _session).method(:onComplete));
     }
 }
