@@ -103,7 +103,7 @@ class HaClient {
     function initialize() {}
 
     function fetchHomeState(callback as Method) as Void {
-        new FetchRecoveryHandler(self, callback).attempt();
+        new RecoveryHandler(self, method(:fetchOnce), callback).attempt();
     }
 
     function register(callback as Method) as Void {
@@ -125,8 +125,7 @@ class HaClient {
     }
 
     function toggleLight(entityId as String, callback as Method) as Void {
-        post("/api/services/light/toggle", { "entity_id" => entityId },
-             new ResponseHandler(callback, :onService));
+        new RecoveryHandler(self, new ServiceOnceHandler(self, entityId).method(:serviceOnce), callback).attempt();
     }
 
     function fetchOnce(callback as Method) as Void {
@@ -137,6 +136,23 @@ class HaClient {
         }
         var body = { "type" => "render_template", "data" => { "home" => { "template" => HOME_STATE_TEMPLATE } } };
         post("/api/webhook/" + webhookId, body, new ResponseHandler(callback, :onTemplate));
+    }
+
+    function serviceOnce(entityId as String, callback as Method) as Void {
+        var webhookId = Settings.getWebhookId();
+        if (webhookId == null) {
+            callback.invoke(null, 404);
+            return;
+        }
+        var body = {
+            "type" => "call_service",
+            "data" => {
+                "domain" => "light",
+                "service" => "toggle",
+                "service_data" => { "entity_id" => entityId }
+            }
+        };
+        post("/api/webhook/" + webhookId, body, new ResponseHandler(callback, :onService));
     }
 
     function isInvalidWebhookCode(code as Number) as Boolean {
@@ -187,24 +203,26 @@ class RegisterCacheHandler {
     }
 }
 
-// One-shot recovery: no path re-enters attempt(), so a persistently invalid
-// webhook_id can never loop.
-class FetchRecoveryHandler {
+// One-shot recovery around any single webhook attempt: no path re-enters
+// attempt(), so a persistently invalid webhook_id can never loop.
+class RecoveryHandler {
     private var _client as HaClient;
+    private var _attemptOnce as Method;
     private var _callback as Method;
 
-    function initialize(client as HaClient, callback as Method) {
+    function initialize(client as HaClient, attemptOnce as Method, callback as Method) {
         _client = client;
+        _attemptOnce = attemptOnce;
         _callback = callback;
     }
 
     function attempt() as Void {
-        _client.fetchOnce(method(:onFirstAttempt));
+        _attemptOnce.invoke(method(:onFirstAttempt));
     }
 
-    function onFirstAttempt(state as HomeState or Null, error as Number or Null) as Void {
+    function onFirstAttempt(result as Object or Null, error as Number or Null) as Void {
         if (error == null || !_client.isInvalidWebhookCode(error as Number)) {
-            _callback.invoke(state, error);
+            _callback.invoke(result, error);
             return;
         }
         Settings.clearWebhookId();
@@ -216,11 +234,27 @@ class FetchRecoveryHandler {
             _callback.invoke(null, error);
             return;
         }
-        _client.fetchOnce(method(:onRetryAttempt));
+        _attemptOnce.invoke(method(:onRetryAttempt));
     }
 
-    function onRetryAttempt(state as HomeState or Null, error as Number or Null) as Void {
-        _callback.invoke(state, error);
+    function onRetryAttempt(result as Object or Null, error as Number or Null) as Void {
+        _callback.invoke(result, error);
+    }
+}
+
+// Binds an entityId to HaClient.serviceOnce, so a per-toggle instance exposes
+// the single-callback-argument shape RecoveryHandler's attemptOnce requires.
+class ServiceOnceHandler {
+    private var _client as HaClient;
+    private var _entityId as String;
+
+    function initialize(client as HaClient, entityId as String) {
+        _client = client;
+        _entityId = entityId;
+    }
+
+    function serviceOnce(callback as Method) as Void {
+        _client.serviceOnce(_entityId, callback);
     }
 }
 
