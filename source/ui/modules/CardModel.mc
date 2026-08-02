@@ -1,4 +1,5 @@
 import Toybox.Lang;
+import Toybox.WatchUi;
 
 // Pure session -> card-dictionary functions behind the card loop's view. No
 // drawing; the view (CardLoopView) owns state, paging, and rendering.
@@ -46,17 +47,55 @@ module CardModel {
             :type => :floor,
             :name => name,
             :selectable => false,
+            :lightSummary => buildFloorLightSummary(session, areaNames),
             :sensorSummary => buildFloorSensorSummary(session, areaNames)
         };
     }
 
-    // Per-light dot counts for the area card, skipping group entities — HA marks
-    // a group on when any member is on, so counting groups would double-count.
-    // A light is available or unavailable per server truth; on is counted only
-    // among available lights. Null when the area has no non-group lights.
+    // Per-light dot counts for the area card. Null when the area has no
+    // non-group lights, so the card omits the dot row.
     function buildAreaLightSummary(session as HomeSession, name as String) as Dictionary or Null {
-        var lights = session.listLightsInArea(name);
-        var lightCount = 0;
+        var counts = countLights(session, session.listLightsInArea(name));
+
+        if ((counts.get(:available) as Number) + (counts.get(:unavailable) as Number) == 0) {
+            return null;
+        }
+
+        return counts;
+    }
+
+    // A glanceable line summarizing a whole floor's lights, judged among its
+    // available lights only. "No lights available" covers both a floor with no
+    // lights and one whose lights are all unavailable.
+    function buildFloorLightSummary(session as HomeSession, areaNames as Array<String>) as String {
+        var onCount = 0;
+        var availableCount = 0;
+
+        for (var areaIndex = 0; areaIndex < areaNames.size(); areaIndex++) {
+            var counts = countLights(session, session.listLightsInArea(areaNames[areaIndex]));
+            onCount += counts.get(:on) as Number;
+            availableCount += counts.get(:available) as Number;
+        }
+
+        if (availableCount == 0) {
+            return WatchUi.loadResource(Rez.Strings.FloorLightsNone) as String;
+        }
+
+        if (onCount == availableCount) {
+            return WatchUi.loadResource(Rez.Strings.FloorLightsAllOn) as String;
+        }
+
+        if (onCount > 0) {
+            return WatchUi.loadResource(Rez.Strings.FloorLightsSomeOn) as String;
+        }
+
+        return WatchUi.loadResource(Rez.Strings.FloorLightsAllOff) as String;
+    }
+
+    // Tallies lights, skipping group entities — HA marks a group on when any
+    // member is on, so counting groups would double-count. Availability is
+    // server truth; on is counted only among available lights.
+    function countLights(session as HomeSession, lights as Array<String>) as Dictionary {
         var availableCount = 0;
         var unavailableCount = 0;
         var onCount = 0;
@@ -68,8 +107,6 @@ module CardModel {
                 continue;
             }
 
-            lightCount++;
-
             if (session.isAvailable(light)) {
                 availableCount++;
 
@@ -79,10 +116,6 @@ module CardModel {
             } else {
                 unavailableCount++;
             }
-        }
-
-        if (lightCount == 0) {
-            return null;
         }
 
         return {

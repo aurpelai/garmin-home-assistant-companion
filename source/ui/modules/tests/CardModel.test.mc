@@ -148,6 +148,95 @@ function buildAreaLightSummaryIsNullForASensorOnlyArea(logger as Test.Logger) as
 }
 
 (:test)
+function floorLightSummaryReadsAllOnWhenEveryAvailableLightIsOn(logger as Test.Logger) as Boolean {
+    var session = CardModelTest.sessionOf({
+        "areas" => { "Kitchen" => ["light.a"], "Bedroom" => ["light.b"] },
+        "states" => { "light.a" => true, "light.b" => true }
+    });
+
+    Test.assertEqual(CardModel.buildFloorLightSummary(session, ["Kitchen", "Bedroom"]),
+                     "All lights on");
+    return true;
+}
+
+(:test)
+function floorLightSummaryReadsSomeOnWhenOnlyPartAreOn(logger as Test.Logger) as Boolean {
+    var session = CardModelTest.sessionOf({
+        "areas" => { "Kitchen" => ["light.a"], "Bedroom" => ["light.b"] },
+        "states" => { "light.a" => true, "light.b" => false }
+    });
+
+    Test.assertEqual(CardModel.buildFloorLightSummary(session, ["Kitchen", "Bedroom"]),
+                     "Some lights on");
+    return true;
+}
+
+(:test)
+function floorLightSummaryReadsAllOffWhenNoneAreOn(logger as Test.Logger) as Boolean {
+    var session = CardModelTest.sessionOf({
+        "areas" => { "Kitchen" => ["light.a"], "Bedroom" => ["light.b"] },
+        "states" => { "light.a" => false, "light.b" => false }
+    });
+
+    Test.assertEqual(CardModel.buildFloorLightSummary(session, ["Kitchen", "Bedroom"]),
+                     "All lights off");
+    return true;
+}
+
+(:test)
+function floorLightSummaryReadsNoneWhenFloorHasNoLights(logger as Test.Logger) as Boolean {
+    var session = CardModelTest.sessionOf({
+        "areas" => { "Attic" => [] as Array<String> },
+        "states" => {}
+    });
+
+    Test.assertEqual(CardModel.buildFloorLightSummary(session, ["Attic"]),
+                     "No lights available");
+    return true;
+}
+
+(:test)
+function floorLightSummaryReadsNoneWhenEveryLightIsUnavailable(logger as Test.Logger) as Boolean {
+    var session = CardModelTest.sessionOf({
+        "areas" => { "Kitchen" => ["light.a"], "Bedroom" => ["light.b"] },
+        "states" => { "light.a" => true, "light.b" => false },
+        "available" => { "light.a" => false, "light.b" => false }
+    });
+
+    Test.assertEqual(CardModel.buildFloorLightSummary(session, ["Kitchen", "Bedroom"]),
+                     "No lights available");
+    return true;
+}
+
+(:test)
+function floorLightSummaryJudgesAmongAvailableLightsOnly(logger as Test.Logger) as Boolean {
+    var session = CardModelTest.sessionOf({
+        "areas" => { "Room" => ["light.a", "light.b"] },
+        "states" => { "light.a" => true, "light.b" => false },
+        "available" => { "light.b" => false }
+    });
+
+    // light.b is unavailable, so the only available light (a) is on -> all on.
+    Test.assertEqual(CardModel.buildFloorLightSummary(session, ["Room"]),
+                     "All lights on");
+    return true;
+}
+
+(:test)
+function floorLightSummaryExcludesGroupEntities(logger as Test.Logger) as Boolean {
+    var session = CardModelTest.sessionOf({
+        "areas" => { "Room" => ["light.room_lights", "light.a", "light.b"] },
+        "states" => { "light.room_lights" => true, "light.a" => false, "light.b" => false },
+        "groups" => { "light.room_lights" => 2 }
+    });
+
+    // The group reads on, but only its members count -> both members off.
+    Test.assertEqual(CardModel.buildFloorLightSummary(session, ["Room"]),
+                     "All lights off");
+    return true;
+}
+
+(:test)
 function buildAreaSensorSummaryShowsFirstOfEachKind(logger as Test.Logger) as Boolean {
     var session = CardModelTest.sessionOf({
         "areas" => { "Room" => [] as Array<String> },
