@@ -29,8 +29,8 @@ class HomeSession {
         // HomeState (which stays immutable server-truth).
         var copy = {} as Dictionary<String, Boolean>;
         var entityIds = state.states.keys();
-        for (var index = 0; index < entityIds.size(); index++) {
-            copy.put(entityIds[index], state.isOn(entityIds[index]));
+        for (var i = 0; i < entityIds.size(); i++) {
+            copy.put(entityIds[i], state.isOn(entityIds[i]));
         }
         self._states = copy;
     }
@@ -114,8 +114,8 @@ class HomeSession {
         var availableCount = 0;
         var unavailableCount = 0;
 
-        for (var index = 0; index < lights.size(); index++) {
-            var light = lights[index];
+        for (var i = 0; i < lights.size(); i++) {
+            var light = lights[i];
 
             if (isGroup(light)) {
                 continue;
@@ -143,8 +143,8 @@ class HomeSession {
         var sensors = listSensorsInArea(name);
         var readings = [] as Array<SensorReading>;
 
-        for (var index = 0; index < sensors.size(); index++) {
-            var entityId = sensors[index];
+        for (var i = 0; i < sensors.size(); i++) {
+            var entityId = sensors[i];
             var kind = getKind(entityId);
             var value = getReadingValue(entityId);
             var display = getReading(entityId);
@@ -167,8 +167,8 @@ class HomeSession {
     function getFloorReadings(areaNames as Array<String>) as Array<SensorReading> {
         var readings = [] as Array<SensorReading>;
 
-        for (var areaIndex = 0; areaIndex < areaNames.size(); areaIndex++) {
-            readings.addAll(getAreaReadings(areaNames[areaIndex]));
+        for (var i = 0; i < areaNames.size(); i++) {
+            readings.addAll(getAreaReadings(areaNames[i]));
         }
 
         return readings;
@@ -179,8 +179,8 @@ class HomeSession {
         var availableCount = 0;
         var unavailableCount = 0;
 
-        for (var areaIndex = 0; areaIndex < areaNames.size(); areaIndex++) {
-            var states = getLightStates(listLightsInArea(areaNames[areaIndex]));
+        for (var i = 0; i < areaNames.size(); i++) {
+            var states = getLightStates(listLightsInArea(areaNames[i]));
             onCount += states.get(:on) as Number;
             availableCount += states.get(:available) as Number;
             unavailableCount += states.get(:unavailable) as Number;
@@ -220,8 +220,8 @@ class HomeSession {
     function areFloorLightsOn(floorName as String) as Boolean {
         var lights = toggleableFloorLights(floorName);
 
-        for (var index = 0; index < lights.size(); index++) {
-            if (isOn(lights[index])) {
+        for (var i = 0; i < lights.size(); i++) {
+            if (isOn(lights[i])) {
                 return true;
             }
         }
@@ -235,8 +235,8 @@ class HomeSession {
         var lights = toggleableFloorLights(floorName);
         var onCount = 0;
 
-        for (var index = 0; index < lights.size(); index++) {
-            if (isOn(lights[index])) {
+        for (var i = 0; i < lights.size(); i++) {
+            if (isOn(lights[i])) {
                 onCount++;
             }
         }
@@ -252,8 +252,8 @@ class HomeSession {
         var lights = toggleableFloorLights(floorName);
         var priorOn = {} as Dictionary<String, Boolean>;
 
-        for (var index = 0; index < lights.size(); index++) {
-            var entityId = lights[index];
+        for (var i = 0; i < lights.size(); i++) {
+            var entityId = lights[i];
             priorOn.put(entityId, isOn(entityId));
             _states.put(entityId, newOn);
         }
@@ -266,8 +266,8 @@ class HomeSession {
     function revertStates(priorOn as Dictionary<String, Boolean>) as Void {
         var entityIds = priorOn.keys();
 
-        for (var index = 0; index < entityIds.size(); index++) {
-            var entityId = entityIds[index];
+        for (var i = 0; i < entityIds.size(); i++) {
+            var entityId = entityIds[i];
             _states.put(entityId, priorOn.get(entityId) as Boolean);
         }
     }
@@ -276,8 +276,8 @@ class HomeSession {
         var lights = listLightsInFloor(floorName);
         var toggleable = [] as Array<String>;
 
-        for (var index = 0; index < lights.size(); index++) {
-            var entityId = lights[index];
+        for (var i = 0; i < lights.size(); i++) {
+            var entityId = lights[i];
             if (!isGroup(entityId) && isAvailable(entityId)) {
                 toggleable.add(entityId);
             }
@@ -299,8 +299,8 @@ class HomeSession {
         _state = state;
 
         var entityIds = _states.keys();
-        for (var index = 0; index < entityIds.size(); index++) {
-            var entityId = entityIds[index];
+        for (var i = 0; i < entityIds.size(); i++) {
+            var entityId = entityIds[i];
             if (state.states.hasKey(entityId)) {
                 _states.put(entityId, state.isOn(entityId));
             }

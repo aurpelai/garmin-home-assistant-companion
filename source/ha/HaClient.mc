@@ -128,9 +128,6 @@ class HaClient {
         new RecoveryHandler(self, new ServiceOnceHandler(self, entityId).method(:serviceOnce), callback).attempt();
     }
 
-    // Directional, not a toggle: the caller decides turn_on vs turn_off so a
-    // whole-floor "any on -> all off" resolves deterministically instead of
-    // flipping each light independently.
     function toggleFloorLights(floorId as String, service as String, callback as Method) as Void {
         new RecoveryHandler(self,
             new FloorServiceOnceHandler(self, floorId, service).method(:serviceOnce), callback).attempt();

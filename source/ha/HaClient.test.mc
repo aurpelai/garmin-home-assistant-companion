@@ -11,8 +11,8 @@ class FakeHaClient extends HaClient {
     private var _serviceCallback as Method?;
     private var _registerCallback as Method?;
 
-    // Only the latest callback is kept, so this counter is how a test tells zero
-    // calls from one.
+    // Each call keeps only its latest callback, so a test cannot tell "never
+    // called" from "called once" by the callback alone — these count the calls.
     public var toggleCount as Number;
     public var registerCount as Number;
     public var fetchOnceCount as Number;
