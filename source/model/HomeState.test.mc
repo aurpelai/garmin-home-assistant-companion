@@ -587,6 +587,24 @@ function buildFloorGroupsPreservesFloorsKeyOrder(logger as Test.Logger) as Boole
 }
 
 (:test)
+function buildFloorGroupsCarriesFloorId(logger as Test.Logger) as Boolean {
+    var data = {
+        "areas" => { "Loft" => ["light.loft"], "Cellar" => ["light.cellar"] },
+        "states" => {},
+        "floors" => [
+            { "id" => "floor_upstairs", "name" => "Upstairs", "areas" => ["Loft"] },
+            { "name" => "No Id Floor", "areas" => ["Cellar"] }
+        ]
+    };
+
+    var grouped = HomeState.fromTemplateData(data).buildFloorGroups();
+
+    Test.assertEqual(grouped[0].get(:id) as String, "floor_upstairs");
+    Test.assert(grouped[1].get(:id) == null);
+    return true;
+}
+
+(:test)
 function buildFloorGroupsSortsAreasAlphabeticallyWithinAFloor(logger as Test.Logger) as Boolean {
     var data = {
         "areas" => { "Zebra Room" => ["light.z"], "Alpha Room" => ["light.a"] },
