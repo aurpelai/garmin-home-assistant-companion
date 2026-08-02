@@ -4,7 +4,7 @@ import Toybox.Lang;
 import Toybox.Math;
 import Toybox.WatchUi;
 
-// Draws one card of the top-level loop. Fonts, colors, and the action-menu hint
+// Draws one card of the top-level loop. Fonts, colors, and the select-key hint
 // come from the device's SDK personality (System 6 / API 5.0.0), so they track
 // the watch theme instead of being hand-picked.
 class CardRenderer {
@@ -36,7 +36,7 @@ class CardRenderer {
         }
 
         drawPagination(dc, pageCount, pageIndex);
-        drawActionMenuHint(dc);
+        drawSelectHint(dc);
     }
 
     private function drawFloorCard(dc as Graphics.Dc, card as Dictionary) as Void {
@@ -252,12 +252,12 @@ class CardRenderer {
         return (PAGE_DOT_INSET + radius - dx).toNumber();
     }
 
-    private function drawActionMenuHint(dc as Graphics.Dc) as Void {
-        var hint = WatchUi.loadResource(Rez.Drawables.ActionMenuHint) as BitmapResource;
+    private function drawSelectHint(dc as Graphics.Dc) as Void {
+        var hint = WatchUi.loadResource(Rez.Drawables.SelectHint) as BitmapResource;
 
         dc.drawBitmap2(
-            system_loc__hint_action_menu.x,
-            system_loc__hint_action_menu.y,
+            system_loc__hint_button_right_top.x,
+            system_loc__hint_button_right_top.y,
             hint,
             null
         );
