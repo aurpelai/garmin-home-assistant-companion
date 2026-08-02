@@ -2,65 +2,52 @@ import Toybox.Communications;
 import Toybox.Lang;
 import Toybox.System;
 
-// Networking core. Wraps Communications.makeWebRequest with Bearer auth and
-// JSON, and exposes the operations the UI needs:
-//   - fetchHomeState: one POST /api/template call rendering each area's entities
-//     AND their states, names and sensor readings (a plain GET /api/states
-//     returns every entity in the instance and blows past Connect IQ's HTTP
-//     response-size limit, so everything rides along in the template instead).
-//   - toggleLight:  POST /api/services/light/toggle
-//
-// Connect IQ is single-threaded and callback-based: every method takes a
-// Lang.Method callback invoked with the parsed result. Callers sequence
-// dependent requests by chaining in their callbacks.
+// Everything rides one webhook template render because a plain GET /api/states
+// returns every entity in the instance and blows past Connect IQ's HTTP
+// response-size limit.
 class HaClient {
 
-    // Jinja rendered by HA. Must end in `| tojson` — /api/template returns plain
-    // text, so without it the body would be a Python-repr dict, not valid JSON.
-    //
-    // Renders { "areas":     { areaName: [lightId, ...] },
-    //           "sensors":   { areaName: [sensorId, ...] },
-    //           "states":    { lightId: bool },
-    //           "groups":    { lightId: memberCount },
-    //           "readings":  { sensorId: { value: 24.58, display: "24.6 °C", unit: "°C" } },
-    //           "names":     { entityId: "Display Name" },
-    //           "available": { entityId: bool },
-    //           "floors":    [ { "name": "Upstairs", "areas": ["Kitchen", ...] }, ... ],
-    //           "kinds":     { sensorId: "temperature" } }.
+    // The device can't introspect its real model/OS, so every install registers
+    // under these same constants.
+    private const DEVICE_ID = "companion_for_home_assistant";
+    private const APP_ID = "companion_for_home_assistant";
+    private const APP_NAME = "Companion For Home Assistant";
+    private const APP_VERSION = "1";
+    private const DEVICE_NAME = "Garmin Watch";
+    private const MANUFACTURER = "Garmin";
+    private const MODEL = "Connect IQ";
+    private const OS_NAME = "Connect IQ";
+    private const OS_VERSION = "1";
+
+    // A dead webhook_id shows up as one of these: -400 because HA sends no body
+    // (Connect IQ reports that as invalid-http-body), or 404 when the id is gone.
+    private const INVALID_WEBHOOK_CODES = [
+        Communications.INVALID_HTTP_BODY_IN_NETWORK_RESPONSE,
+        404
+    ];
+
+    // Piped through `| tojson`: the render_template webhook returns the rendered
+    // value as a string, so without it the payload is a Python repr (single
+    // quotes, True/False, enum units) that no JSON reader accepts. tojson makes
+    // it well-formed JSON, which JsonParser then decodes on-device.
     //
     // Deliberately backslash-free: we filter entities with `.startswith(...)`
     // instead of a regex like select('match','^light\.'). A backslash in this
     // string would be sent unescaped by the Connect IQ JSON serializer, producing
     // an invalid JSON escape and a 400 "Invalid JSON specified" from HA.
-    //
-    // Entities belonging to no area are never visited by areas()/area_entities()
-    // and are thus excluded without a rule of their own.
     private const HOME_STATE_TEMPLATE =
         "{% set ns = namespace(lightsByArea={}, sensorsByArea={}, states={}, names={}, " +
             "groups={}, available={}, readings={}, kinds={}, lights=[], sensors=[], floors=[]) %}" +
         "{% for a in areas() %}" +
 
-        // Hidden entities are rejected once, here, so every walk below inherits
-        // the exclusion and so does every entity kind added later. Requires Home
-        // Assistant 2023.4. Materialized with `| list` because reject() yields a
-        // generator, which the per-kind walks would find exhausted.
+        // `| list` is load-bearing: reject() yields a generator that the second
+        // (per-kind) walk below would find already exhausted. Needs HA 2023.4.
         "{% set visible = area_entities(a) | reject('is_hidden_entity') | list %}" +
         "{% set ns.lights = [] %}" +
         "{% set ns.sensors = [] %}" +
 
-        // A light group is a light.* entity whose `entity_id` attribute holds its
-        // member ids; a plain light has no such attribute. A group's count is the
-        // members surviving the same hidden-entity test, so the number a row
-        // shows cannot contradict the entities the app will list, and a group
-        // left with none drops out alongside them. `expand` recurses to leaf
-        // entities, so hiding an intermediate group hides that group's own row
-        // without hiding the lights beneath it.
-        //
-        // `states[e].name` is Home Assistant's own display name: the user-set
-        // friendly name if any, else its built-in fallback. It is not guaranteed
-        // — an area-assigned entity carrying no state object yields no name and
-        // takes the whole `| tojson` down with it, failing the request rather
-        // than one row. The model's bare-id fallback does not rescue that.
+        // An area-assigned entity with no state object yields no name from
+        // `states[e].name` and fails the whole render, not just its own row.
         "{% for e in visible %}" +
         "{% if e.startswith('light.') %}" +
         "{% set isGroup = state_attr(e, 'entity_id') is not none %}" +
@@ -78,16 +65,9 @@ class HaClient {
         "{% endif %}" +
         "{% endfor %}" +
 
-        // Looping the kinds outside the entity loop is what makes each area's
-        // sensor list arrive already grouped by kind, so the watch never sorts;
-        // within a kind the order is Home Assistant's own.
-        //
-        // A reading is `states(e, true, true)`: HA's own display precision and
-        // unit, as a string, so the watch never parses, rounds or appends a unit
-        // and cannot disagree with the user's dashboard. Needs HA 2023.3.
-        //
-        // `unknown` folds into unavailable, because never-reported and
-        // currently-dead read the same to someone glancing at a watch.
+        // `states(e, true, true)` keeps HA's own display precision and unit as a
+        // string, so the watch never reparses or rounds and can't disagree with
+        // the user's dashboard. Needs HA 2023.3.
         "{% for kind in ['temperature', 'humidity', 'illuminance'] %}" +
         "{% for e in visible %}" +
         "{% if e.startswith('sensor.') and state_attr(e, 'device_class') == kind %}" +
@@ -103,21 +83,14 @@ class HaClient {
         "{% endfor %}" +
         "{% endfor %}" +
 
-        // Emit the area only if it holds at least one entity we support (a
-        // light or a sensor). An area whose only entities are kinds this version
-        // doesn't render (e.g. a garage of car entities) is left out entirely.
         "{% if ns.lights or ns.sensors %}" +
         "{% set ns.lightsByArea = dict(ns.lightsByArea, **{area_name(a): ns.lights}) %}" +
         "{% set ns.sensorsByArea = dict(ns.sensorsByArea, **{area_name(a): ns.sensors}) %}" +
         "{% endif %}" +
         "{% endfor %}" +
 
-        // Floors are independent of the area loop above: HA exposes them via
-        // their own floors()/floor_areas() functions, in floors()'s own order
-        // (never re-sorted here — HomeState groups on-device).
-        // floorList lives on the namespace: a plain `{% set %}` inside the for
-        // loop would be scoped to the iteration and never escape, leaving floors
-        // empty (Jinja's loop-scoping trap).
+        // On `ns` because a plain `{% set %}` inside a Jinja for-loop is scoped
+        // to the iteration and wouldn't escape.
         "{% for f in floors() %}" +
         "{% set floorAreas = floor_areas(f) | map('area_name') | list %}" +
         "{% set ns.floors = ns.floors + [dict(name=floor_name(f), areas=floorAreas)] %}" +
@@ -129,11 +102,26 @@ class HaClient {
 
     function initialize() {}
 
-    // --- public API ---
-
     function fetchHomeState(callback as Method) as Void {
-        var body = { "template" => HOME_STATE_TEMPLATE };
-        post("/api/template", body, new ResponseHandler(callback, :onTemplate));
+        new FetchRecoveryHandler(self, callback).attempt();
+    }
+
+    function register(callback as Method) as Void {
+        var body = {
+            "device_id" => DEVICE_ID,
+            "app_id" => APP_ID,
+            "app_name" => APP_NAME,
+            "app_version" => APP_VERSION,
+            "device_name" => DEVICE_NAME,
+            "manufacturer" => MANUFACTURER,
+            "model" => MODEL,
+            "os_name" => OS_NAME,
+            "os_version" => OS_VERSION,
+            "supports_encryption" => false,
+            "app_data" => {}
+        };
+        post("/api/mobile_app/registrations", body,
+             new ResponseHandler(new RegisterCacheHandler(callback).method(:onRegistered), :onRegister));
     }
 
     function toggleLight(entityId as String, callback as Method) as Void {
@@ -141,7 +129,24 @@ class HaClient {
              new ResponseHandler(callback, :onService));
     }
 
-    // --- transport ---
+    function fetchOnce(callback as Method) as Void {
+        var webhookId = Settings.getWebhookId();
+        if (webhookId == null) {
+            callback.invoke(null, 404);
+            return;
+        }
+        var body = { "type" => "render_template", "data" => { "home" => { "template" => HOME_STATE_TEMPLATE } } };
+        post("/api/webhook/" + webhookId, body, new ResponseHandler(callback, :onTemplate));
+    }
+
+    function isInvalidWebhookCode(code as Number) as Boolean {
+        for (var index = 0; index < INVALID_WEBHOOK_CODES.size(); index++) {
+            if (INVALID_WEBHOOK_CODES[index] == code) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     private function post(path as String, body as Dictionary, handler as ResponseHandler) as Void {
         Communications.makeWebRequest(
@@ -150,8 +155,7 @@ class HaClient {
             handler.method(:onResponse));
     }
 
-    // Typed to the shape makeWebRequest expects for its options argument, so it
-    // matches under strict type checking (-l 3).
+    // The verbose return type is spelled out to satisfy strict type checking (-l 3).
     private function buildOptions(httpMethod as Communications.HttpRequestMethod) as {
             :method as Communications.HttpRequestMethod,
             :headers as Dictionary,
@@ -167,8 +171,59 @@ class HaClient {
     }
 }
 
-// Adapts a raw makeWebRequest callback (code, data) into a typed result handed
-// to the caller's callback. `kind` selects how the body is interpreted.
+class RegisterCacheHandler {
+    private var _callback as Method;
+
+    function initialize(callback as Method) {
+        _callback = callback;
+    }
+
+    function onRegistered(webhookId as String or Null, error as Number or Null) as Void {
+        if (error == null) {
+            Settings.setWebhookId(webhookId as String);
+            Settings.setRegisteredUrl(Settings.getBaseUrl());
+        }
+        _callback.invoke(webhookId, error);
+    }
+}
+
+// One-shot recovery: no path re-enters attempt(), so a persistently invalid
+// webhook_id can never loop.
+class FetchRecoveryHandler {
+    private var _client as HaClient;
+    private var _callback as Method;
+
+    function initialize(client as HaClient, callback as Method) {
+        _client = client;
+        _callback = callback;
+    }
+
+    function attempt() as Void {
+        _client.fetchOnce(method(:onFirstAttempt));
+    }
+
+    function onFirstAttempt(state as HomeState or Null, error as Number or Null) as Void {
+        if (error == null || !_client.isInvalidWebhookCode(error as Number)) {
+            _callback.invoke(state, error);
+            return;
+        }
+        Settings.clearWebhookId();
+        _client.register(method(:onRegistered));
+    }
+
+    function onRegistered(webhookId as String or Null, error as Number or Null) as Void {
+        if (error != null) {
+            _callback.invoke(null, error);
+            return;
+        }
+        _client.fetchOnce(method(:onRetryAttempt));
+    }
+
+    function onRetryAttempt(state as HomeState or Null, error as Number or Null) as Void {
+        _callback.invoke(state, error);
+    }
+}
+
 class ResponseHandler {
     private var _callback as Method;
     private var _kind as Symbol;
@@ -179,22 +234,30 @@ class ResponseHandler {
     }
 
     function onResponse(code as Number, data as Dictionary or String or Null) as Void {
-        if (code != 200) {
-            // Surface the HTTP/comm code and any HA error body in the console to
-            // aid debugging (e.g. 400 "Invalid JSON specified", 401 auth).
+        if (code < 200 || code >= 300) {
             System.println("HA request failed: kind=" + _kind + " code=" + code + " body=" + data);
             _callback.invoke(null, code);
             return;
         }
         switch (_kind) {
             case :onTemplate:
-                // /api/template returns text/plain containing JSON. If Connect IQ
-                // handed us an unparsed String instead of a Dictionary, log it so
-                // the empty case is diagnosable.
-                if (data instanceof Lang.String) {
-                    System.println("Template returned unparsed String: " + data);
+                var home = (data instanceof Dictionary) ? data.get("home") : null;
+                // The render_template webhook returns the rendered value as a
+                // string, so the payload arrives JSON-encoded a second time.
+                if (home instanceof Lang.String) {
+                    home = JsonParser.parse(home);
                 }
-                _callback.invoke(HomeState.fromTemplateData(data), null);
+                _callback.invoke(HomeState.fromTemplateData(home as Dictionary or String or Null), null);
+                break;
+            case :onRegister:
+                var webhookId = (data instanceof Dictionary) ? data.get("webhook_id") : null;
+                if (webhookId instanceof Lang.String) {
+                    _callback.invoke(webhookId, null);
+                } else {
+                    // Report an error code, not the 200: a body without a usable
+                    // webhook_id is a failure the error channel must carry.
+                    _callback.invoke(null, Communications.INVALID_HTTP_BODY_IN_NETWORK_RESPONSE);
+                }
                 break;
             case :onService:
                 _callback.invoke(true, null);
