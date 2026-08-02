@@ -43,11 +43,12 @@ class CardRenderer {
     private function drawFloorCard(dc as Graphics.Dc, card as Dictionary) as Void {
         var centerX = dc.getWidth() / 2;
         var titleY = dc.getHeight() / 3;
+        var statusYOffset = -6;
 
         drawTitle(dc, centerX, titleY, card.get(:name) as String);
 
         var statusY = titleY + dc.getFontHeight(TITLE_FONT) + SECTION_GAP;
-        drawFloorLightStatus(dc, centerX, statusY, card.get(:lightSummary) as String);
+        drawFloorLightStatus(dc, centerX, statusY + statusYOffset, card.get(:lightSummary) as String);
 
         drawSensorSummary(dc, card, centerX);
     }
