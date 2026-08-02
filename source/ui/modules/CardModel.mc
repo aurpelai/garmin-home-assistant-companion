@@ -5,14 +5,6 @@ import Toybox.WatchUi;
 // drawing; the view (CardLoopView) owns state, paging, and rendering.
 module CardModel {
 
-    class ReadingSorter {
-        function compare(a as Object, b as Object) as Number {
-            var aValue = (a as Dictionary).get(:value) as Float;
-            var bValue = (b as Dictionary).get(:value) as Float;
-            return aValue.compareTo(bValue);
-        }
-    }
-
     // Walks the session's grouped floor structure into a flat card sequence:
     // for each floor group, a floor card (skipped when :name is null — the
     // trailing unfloored bucket has no header) followed by its area cards.
@@ -55,162 +47,174 @@ module CardModel {
             :type => :floor,
             :name => name,
             :selectable => false,
+            :lightSummary => buildFloorLightSummary(session, areaNames),
             :sensorSummary => buildFloorSensorSummary(session, areaNames)
         };
     }
 
-    // Counts individual lights that are on, skipping group entities — HA marks
-    // a group on when any member is on, so counting groups would double-count.
-    function buildAreaLightSummary(session as HomeSession, name as String) as String or Null {
-        var lights = session.listLightsInArea(name);
-        var lightCount = 0;
-        var onCount = 0;
+    function buildAreaLightSummary(session as HomeSession, name as String) as HomeSession.LightStates or Null {
+        var states = session.getLightStates(session.listLightsInArea(name));
 
-        for (var index = 0; index < lights.size(); index++) {
-            var light = lights[index];
-            if (session.isGroup(light)) {
-                continue;
-            }
-            lightCount++;
-            if (session.isOn(light)) {
-                onCount++;
-            }
-        }
-
-        if (lightCount == 0) {
+        if ((states.get(:available) as Number) + (states.get(:unavailable) as Number) == 0) {
             return null;
         }
 
-        if (onCount == 1) {
-            return WatchUi.loadResource(Rez.Strings.OneLightOn) as String;
-        }
-
-        return Lang.format(WatchUi.loadResource(Rez.Strings.LightsOn) as String, [onCount]);
+        return states;
     }
 
-    // The first readable sensor of each kind present in the area, in the order
-    // its kind is first encountered (the template already groups sensors by
-    // kind). A sensor with no reading is skipped so a later same-kind sensor can
-    // fill the kind. One entry per kind: { :kind => String, :reading => String }.
+    // A glanceable line summarizing a whole floor's lights, judged among its
+    // available lights only. "No lights available" covers both a floor with no
+    // lights and one whose lights are all unavailable.
+    function buildFloorLightSummary(session as HomeSession, areaNames as Array<String>) as String {
+        var states = session.getFloorLightStates(areaNames);
+        var onCount = states.get(:on) as Number;
+        var availableCount = states.get(:available) as Number;
+
+        if (availableCount == 0) {
+            return WatchUi.loadResource(Rez.Strings.FloorLightsNone) as String;
+        }
+
+        if (onCount == availableCount) {
+            return WatchUi.loadResource(Rez.Strings.FloorLightsAllOn) as String;
+        }
+
+        if (onCount > 0) {
+            return WatchUi.loadResource(Rez.Strings.FloorLightsSomeOn) as String;
+        }
+
+        return WatchUi.loadResource(Rez.Strings.FloorLightsAllOff) as String;
+    }
+
+    // For now each kind shows its first sensor's reading as-is; moving to a
+    // mean/range/list later is a change here, not in the session, which hands
+    // over every sensor untouched.
     function buildAreaSensorSummary(session as HomeSession, name as String) as Array<Dictionary> {
-        var sensors = session.listSensorsInArea(name);
-        var seenKinds = {} as Dictionary<String, Boolean>;
+        var groups = groupReadingsByKind(session.getAreaReadings(name));
         var summary = [] as Array<Dictionary>;
 
-        for (var index = 0; index < sensors.size(); index++) {
-            var entityId = sensors[index];
-            var kind = session.getKind(entityId);
+        for (var index = 0; index < groups.size(); index++) {
+            var group = groups[index];
 
-            if (kind == null || seenKinds.hasKey(kind)) {
-                continue;
-            }
-
-            var reading = session.getReading(entityId);
-
-            if (reading == null) {
-                continue;
-            }
-
-            seenKinds.put(kind, true);
             summary.add({
-                :kind => kind,
-                :reading => reading
+                :kind => group.get(:kind) as String,
+                :reading => (group.get(:readings) as Array<HomeSession.SensorReading>)[0].get(:display) as String
             });
         }
 
         return summary;
     }
 
-    // A min-max range per kind across every sensor of that kind in the floor's
-    // areas, collapsing to a single value when the ends are equal. Readings with
-    // no numeric value are skipped; a kind with nothing left to range over is
-    // omitted entirely. One entry per kind: { :kind => String, :range => String }.
     function buildFloorSensorSummary(session as HomeSession, areaNames as Array<String>) as Array<Dictionary> {
-        var kindOrder = [] as Array<String>;
-        var readingsByKind = {} as Dictionary<String, Array<Dictionary> >;
-
-        for (var areaIndex = 0; areaIndex < areaNames.size(); areaIndex++) {
-            var sensors = session.listSensorsInArea(areaNames[areaIndex]);
-            for (var sensorIndex = 0; sensorIndex < sensors.size(); sensorIndex++) {
-                var entityId = sensors[sensorIndex];
-                var kind = session.getKind(entityId);
-                var reading = session.getReading(entityId);
-                var value = session.getReadingValue(entityId);
-                var unit = session.getReadingUnit(entityId);
-
-                if (kind == null || reading == null || value == null) {
-                    continue;
-                }
-
-                if (!readingsByKind.hasKey(kind)) {
-                    readingsByKind.put(kind, [] as Array<Dictionary>);
-                    kindOrder.add(kind);
-                }
-
-                (readingsByKind.get(kind) as Array<Dictionary>).add({
-                    :value => value,
-                    :display => reading,
-                    :unit => unit
-                });
-            }
-        }
-
+        var groups = groupReadingsByKind(session.getFloorReadings(areaNames));
         var summary = [] as Array<Dictionary>;
 
-        for (var index = 0; index < kindOrder.size(); index++) {
-            var kind = kindOrder[index];
-            var range = buildRange(readingsByKind.get(kind) as Array<Dictionary>);
-
-            if (range == null) {
-                continue;
-            }
+        for (var index = 0; index < groups.size(); index++) {
+            var group = groups[index];
 
             summary.add({
-                :kind => kind,
-                :range => range
+                :kind => group.get(:kind) as String,
+                :reading => calculateMeanReading(group.get(:readings) as Array<HomeSession.SensorReading>)
             });
         }
 
         return summary;
     }
 
-    function stripUnit(display as String, unit as String or Null) as String {
-        if (unit == null || unit.length() == 0) {
-            return display;
+    // Readings grouped by kind, in first-seen kind order, as an ordered list of
+    // { :kind => String, :readings => Array<SensorReading> }.
+    function groupReadingsByKind(readings as Array<HomeSession.SensorReading>) as Array<Dictionary> {
+        var groups = [] as Array<Dictionary>;
+        var indexByKind = {} as Dictionary<String, Number>;
+
+        for (var index = 0; index < readings.size(); index++) {
+            var reading = readings[index];
+            var kind = reading.get(:kind) as String;
+
+            if (!indexByKind.hasKey(kind)) {
+                indexByKind.put(kind, groups.size());
+                groups.add({ :kind => kind, :readings => [] as Array<HomeSession.SensorReading> });
+            }
+
+            (groups[indexByKind.get(kind) as Number].get(:readings) as Array<HomeSession.SensorReading>).add(reading);
         }
 
-        var unitPosition = display.find(unit);
-
-        if (unitPosition == null || unitPosition <= 0) {
-            return display;
-        }
-
-        var char = display.substring(unitPosition - 1, unitPosition);
-        if (char != null && char.equals(" ")) {
-            unitPosition = unitPosition - 1;
-        }
-
-        return display.substring(0, unitPosition) as String;
+        return groups;
     }
 
-    function buildRange(readings as Array<Dictionary>) as String or Null {
-        if (readings.size() == 0) {
-            return null;
+    // A single reading is shown as HA sent it. Averaging several rounds to the
+    // fewest decimals any of them carried: a mean is no more precise than its
+    // coarsest input, so "21.5 °C" combined with "22 °C" reads "22 °C".
+    function calculateMeanReading(readings as Array<HomeSession.SensorReading>) as String {
+        if (readings.size() == 1) {
+            return readings[0].get(:display) as String;
         }
 
-        var sortedReadings = [] as Array<Dictionary>;
-        sortedReadings.addAll(readings);
-        sortedReadings.sort(new ReadingSorter());
+        var sum = 0.0;
+        var decimals = decimalsOf(readings[0]);
 
-        var minReading = sortedReadings[0];
-        var maxReading = sortedReadings[sortedReadings.size() - 1];
-        var rangeString = maxReading.get(:display) as String;
-
-        if (minReading.get(:value) as Float != maxReading.get(:value) as Float) {
-            var minValue = stripUnit(minReading.get(:display) as String, minReading.get(:unit) as String or Null);
-            rangeString = minValue + "–" + rangeString;
+        for (var index = 0; index < readings.size(); index++) {
+            sum += readings[index].get(:value) as Float;
+            decimals = min(decimals, decimalsOf(readings[index]));
         }
 
-        return rangeString;
+        var mean = (sum / readings.size()).format("%." + decimals.toString() + "f");
+        var unit = readings[0].get(:unit) as String or Null;
+
+        if (unit == null || unit.length() == 0) {
+            return mean;
+        }
+
+        return mean + " " + unit;
+    }
+
+    // Decimal places HA showed for a reading, e.g. 1 for "21.5 °C", 0 for
+    // "120 lx". The unit is stripped off the display by value rather than guessed
+    // at a separator, leaving the numeric part to measure.
+    function decimalsOf(reading as HomeSession.SensorReading) as Number {
+        var display = reading.get(:display) as String;
+        var unit = reading.get(:unit) as String or Null;
+        var number = stripSuffix(display, unit);
+        var dot = number.find(".");
+
+        if (dot == null) {
+            return 0;
+        }
+
+        var fraction = number.substring(dot + 1, number.length());
+
+        return fraction == null ? 0 : countDigits(fraction);
+    }
+
+    function stripSuffix(text as String, suffix as String or Null) as String {
+        if (suffix == null || suffix.length() == 0 || suffix.length() > text.length()) {
+            return text;
+        }
+
+        var tail = text.substring(text.length() - suffix.length(), text.length());
+
+        if (tail == null || !tail.equals(suffix)) {
+            return text;
+        }
+
+        var head = text.substring(0, text.length() - suffix.length());
+
+        return head == null ? text : head;
+    }
+
+    function countDigits(text as String) as Number {
+        var chars = text.toCharArray();
+        var count = 0;
+
+        for (var index = 0; index < chars.size(); index++) {
+            if (chars[index] >= '0' && chars[index] <= '9') {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    function min(a as Number, b as Number) as Number {
+        return a < b ? a : b;
     }
 }

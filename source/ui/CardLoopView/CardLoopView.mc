@@ -20,12 +20,14 @@ class CardLoopView extends WatchUi.View {
     private var _session as HomeSession;
     private var _cards as Array<Dictionary>;
     private var _index as Number;
+    private var _renderer as CardRenderer;
 
     function initialize(session as HomeSession) {
         View.initialize();
         _session = session;
         _cards = [] as Array<Dictionary>;
         _index = 0;
+        _renderer = new CardRenderer();
     }
 
     function onShow() as Void {
@@ -72,7 +74,6 @@ class CardLoopView extends WatchUi.View {
     }
 
     function onUpdate(dc as Graphics.Dc) as Void {
-        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
         dc.clear();
 
         var card = getCurrentCard();
@@ -82,120 +83,6 @@ class CardLoopView extends WatchUi.View {
             return;
         }
 
-        drawCard(dc, card as Dictionary);
-    }
-
-    private function drawCard(dc as Graphics.Dc, card as Dictionary) as Void {
-        var TITLE_FONT = Graphics.FONT_SYSTEM_MEDIUM;
-        var SUBTITLE_FONT = Graphics.FONT_SYSTEM_XTINY;
-        var LABEL_FONT = Graphics.FONT_GLANCE;
-
-        var MAIN_LABEL_GAP = 20;
-        var LABEL_GAP = 8;
-
-        var width = dc.getWidth();
-        var centerX = width / 2;
-        var y = dc.getHeight() / 3;
-
-        var floor = card.get(:floor);
-
-        if (floor != null) {
-            y -= dc.getFontHeight(SUBTITLE_FONT) + MAIN_LABEL_GAP;
-            dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_BLACK);
-            dc.drawText(centerX, y, SUBTITLE_FONT, floor as String, Graphics.TEXT_JUSTIFY_CENTER);
-            y += dc.getFontHeight(SUBTITLE_FONT) + MAIN_LABEL_GAP;
-        }
-
-        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
-        dc.drawText(centerX, y, TITLE_FONT, card.get(:name) as String, Graphics.TEXT_JUSTIFY_CENTER);
-        y += dc.getFontHeight(TITLE_FONT) + MAIN_LABEL_GAP;
-
-        dc.setColor(Graphics.COLOR_LT_GRAY, Graphics.COLOR_BLACK);
-
-        var lightSummary = card.get(:lightSummary);
-
-        if (lightSummary != null) {
-            dc.drawText(centerX, y, LABEL_FONT, lightSummary as String, Graphics.TEXT_JUSTIFY_CENTER);
-            y += dc.getFontHeight(LABEL_FONT) + LABEL_GAP;
-        }
-
-        var sensorSummary = card.get(:sensorSummary) as Array<Dictionary>;
-
-        for (var index = 0; index < sensorSummary.size(); index++) {
-            var entry = sensorSummary[index];
-            var value = entry.hasKey(:range) ? entry.get(:range) : entry.get(:reading);
-            dc.drawText(centerX, y, LABEL_FONT, value as String, Graphics.TEXT_JUSTIFY_CENTER);
-            y += dc.getFontHeight(LABEL_FONT) + LABEL_GAP;
-        }
-
-        drawPageDots(dc);
-    }
-
-    private function drawPageDots(dc as Graphics.Dc) as Void {
-        var MAX_COUNT = 3;
-
-        var count = _cards.size();
-
-        if (count <= 1) {
-            return;
-        }
-
-        var RADIUS = 4;
-        var SMALL_RADIUS = 2;
-        var RADIUS_DIFF = RADIUS - SMALL_RADIUS;
-
-        var SPACING = 18;
-        var x = 8;
-        var DELTA_X = 3;
-
-        var TOP = (dc.getHeight() - ((MAX_COUNT - 1) * SPACING)) / 2;
-
-        var loopStart = 0;
-        var loopCount = count;
-        var showStartMore = false;
-        var showEndMore = false;
-
-        if (count <= MAX_COUNT) {
-            loopStart = 0;
-            loopCount = count;
-        } else if (_index <= MAX_COUNT - 1) {
-            loopStart = 0;
-            loopCount = MAX_COUNT;
-            showEndMore = true;
-        } else if (_index >= count - MAX_COUNT) {
-            loopStart = count - MAX_COUNT;
-            loopCount = MAX_COUNT;
-            showStartMore = true;
-        } else {
-            loopStart = _index - (MAX_COUNT / 2);
-            loopCount = MAX_COUNT;
-        }
-
-        var middleIndex = loopCount / 2;
-        var moreOffset = (middleIndex + 1) * DELTA_X;
-
-        if (showStartMore) {
-            dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
-            dc.fillCircle(x + moreOffset + RADIUS_DIFF, TOP - SPACING, SMALL_RADIUS);
-        }
-
-        for (var index = 0; index < loopCount; index++) {
-            var pageIndex = loopStart + index;
-            var distanceFromMiddle = (index - middleIndex).abs();
-            var currentX = x + (distanceFromMiddle * DELTA_X);
-
-            if (pageIndex == _index) {
-                dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-                dc.fillCircle(currentX, TOP + index * SPACING, RADIUS);
-            } else {
-                dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
-                dc.drawCircle(currentX, TOP + index * SPACING, RADIUS);
-            }
-        }
-
-        if (showEndMore) {
-            dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
-            dc.fillCircle(x + moreOffset + RADIUS_DIFF, TOP + MAX_COUNT * SPACING, SMALL_RADIUS);
-        }
+        _renderer.drawCard(dc, card as Dictionary, _cards.size(), _index);
     }
 }

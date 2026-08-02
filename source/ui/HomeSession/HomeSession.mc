@@ -5,6 +5,19 @@ import Toybox.Lang;
 // copy of the states map. Toggles update the mutable copy optimistically so the
 // switch flips immediately, leaving the HomeState as the untouched server truth.
 class HomeSession {
+    typedef LightStates as {
+        :on as Number,
+        :available as Number,
+        :unavailable as Number
+    };
+
+    typedef SensorReading as {
+        :kind as String,
+        :value as Float,
+        :unit as String or Null,
+        :display as String
+    };
+
     public var client as HaClient;
     private var _state as HomeState;
     private var _states as Dictionary<String, Boolean>;   // entity_id -> isOn, mutable
@@ -87,6 +100,93 @@ class HomeSession {
     // reads straight from the HomeState rather than the mutable copy.
     function isAvailable(entityId as String) as Boolean {
         return _state.isAvailable(entityId);
+    }
+
+    // Tallies lights, skipping group entities — HA marks a group on when any
+    // member is on, so counting groups would double-count. Availability is
+    // server truth; on is counted only among available lights.
+    function getLightStates(lights as Array<String>) as LightStates {
+        var onCount = 0;
+        var availableCount = 0;
+        var unavailableCount = 0;
+
+        for (var index = 0; index < lights.size(); index++) {
+            var light = lights[index];
+
+            if (isGroup(light)) {
+                continue;
+            }
+
+            if (isAvailable(light)) {
+                availableCount++;
+
+                if (isOn(light)) {
+                    onCount++;
+                }
+            } else {
+                unavailableCount++;
+            }
+        }
+
+        return {
+            :on => onCount,
+            :available => availableCount,
+            :unavailable => unavailableCount
+        };
+    }
+
+    function getAreaReadings(name as String) as Array<SensorReading> {
+        var sensors = listSensorsInArea(name);
+        var readings = [] as Array<SensorReading>;
+
+        for (var index = 0; index < sensors.size(); index++) {
+            var entityId = sensors[index];
+            var kind = getKind(entityId);
+            var value = getReadingValue(entityId);
+            var display = getReading(entityId);
+
+            if (kind == null || value == null || display == null) {
+                continue;
+            }
+
+            readings.add({
+                :kind => kind,
+                :value => value,
+                :unit => getReadingUnit(entityId),
+                :display => display
+            });
+        }
+
+        return readings;
+    }
+
+    function getFloorReadings(areaNames as Array<String>) as Array<SensorReading> {
+        var readings = [] as Array<SensorReading>;
+
+        for (var areaIndex = 0; areaIndex < areaNames.size(); areaIndex++) {
+            readings.addAll(getAreaReadings(areaNames[areaIndex]));
+        }
+
+        return readings;
+    }
+
+    function getFloorLightStates(areaNames as Array<String>) as LightStates {
+        var onCount = 0;
+        var availableCount = 0;
+        var unavailableCount = 0;
+
+        for (var areaIndex = 0; areaIndex < areaNames.size(); areaIndex++) {
+            var states = getLightStates(listLightsInArea(areaNames[areaIndex]));
+            onCount += states.get(:on) as Number;
+            availableCount += states.get(:available) as Number;
+            unavailableCount += states.get(:unavailable) as Number;
+        }
+
+        return {
+            :on => onCount,
+            :available => availableCount,
+            :unavailable => unavailableCount
+        };
     }
 
     // Whether the live state map tracks this entity at all — for callers that
