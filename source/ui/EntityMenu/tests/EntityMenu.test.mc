@@ -55,7 +55,7 @@ function toggleShowsNoTransientSubLabel(logger as Test.Logger) as Boolean {
 
     new EntityMenuDelegate(menu, session).onSelect(item);
 
-    Test.assertEqual(item.getSubLabel() as String, "3 lights");
+    Test.assertEqual(item.getSubLabel() as String, "Group • 3 Lights");
     return true;
 }
 
@@ -66,7 +66,7 @@ function groupRowShowsMemberCount(logger as Test.Logger) as Boolean {
         "groups" => { "light.grp" => 4 }
     });
 
-    Test.assertEqual(EntityMenu.buildSubLabel(session, "light.grp") as String, "4 lights");
+    Test.assertEqual(EntityMenu.buildSubLabel(session, "light.grp") as String, "Group • 4 Lights");
     return true;
 }
 
@@ -77,7 +77,7 @@ function singleMemberGroupIsSingular(logger as Test.Logger) as Boolean {
         "groups" => { "light.grp" => 1 }
     });
 
-    Test.assertEqual(EntityMenu.buildSubLabel(session, "light.grp") as String, "1 light");
+    Test.assertEqual(EntityMenu.buildSubLabel(session, "light.grp") as String, "Group • 1 Light");
     return true;
 }
 

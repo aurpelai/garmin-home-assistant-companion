@@ -75,7 +75,7 @@ class HaClient {
         "{% set ns.readings = dict(ns.readings, **{e: dict(" +
             "value=states(e) | float, display=states(e, true, true), " +
             "unit=state_attr(e, 'unit_of_measurement'))}) %}" +
-        "{% set ns.names = dict(ns.names, **{e: states[e].name}) %}" +
+        "{% set ns.names = dict(ns.names, **{e: entity_name(e)}) %}" +
         "{% set ns.available = dict(ns.available, " +
             "**{e: not is_state(e, 'unavailable') and not is_state(e, 'unknown')}) %}" +
         "{% set ns.kinds = dict(ns.kinds, **{e: kind}) %}" +

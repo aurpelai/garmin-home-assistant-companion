@@ -97,7 +97,11 @@ class EntityMenu extends WatchUi.Menu2 {
             return null;
         }
         var count = session.getMemberCount(entityId);
-        return count + (count == 1 ? " light" : " lights");
+        if (count == 1) {
+            return WatchUi.loadResource(Rez.Strings.GroupLightCountOne) as String;
+        }
+
+        return Lang.format(WatchUi.loadResource(Rez.Strings.GroupLightCount) as String, [count]);
     }
 
     // The same seam for a sensor row: HA's own formatting, verbatim, or the
