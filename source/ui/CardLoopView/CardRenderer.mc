@@ -263,17 +263,15 @@ class CardRenderer {
         var y = point[1];
 
         if (isCurrent) {
+            useAntiAlias(dc, true);
             dc.setColor(system_color_dark__text.color, system_color_dark__background.background);
             dc.fillCircle(x, y, PAGE_INDICATOR_RADIUS);
             return;
         }
 
-        // Outlined (non-filled) circles alias badly on real hardware, so
-        // anti-alias is switched off around them and restored after.
         useAntiAlias(dc, false);
         dc.setColor(Graphics.COLOR_DK_GRAY, system_color_dark__background.background);
         dc.drawCircle(x, y, PAGE_INDICATOR_RADIUS);
-        useAntiAlias(dc, true);
     }
 
     private function drawOverflowIndicator(dc as Graphics.Dc, angle as Float, centerX as Number,
@@ -285,7 +283,6 @@ class CardRenderer {
         useAntiAlias(dc, false);
         dc.setColor(Graphics.COLOR_DK_GRAY, system_color_dark__background.background);
         dc.fillCircle(x, y, PAGE_OVERFLOW_RADIUS);
-        useAntiAlias(dc, true);
     }
 
     // drawBitmap, not drawBitmap2: some devices ship this hint as a palette
