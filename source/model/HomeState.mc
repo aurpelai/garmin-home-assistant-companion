@@ -18,11 +18,6 @@ class HomeState {
         self._floors = floors;
     }
 
-    // Build from the already-JSON-parsed "home" value of the webhook response.
-    // `data` is the { "lights" => ..., "sensors" => ..., "areas" => ...,
-    // "floors" => ... } Dictionary, each section self-contained and keyed by
-    // entity/area/floor id. Each section parses defensively; a missing or
-    // malformed body yields an empty HomeState.
     static function fromTemplateData(data as Dictionary or String or Null) as HomeState {
         if (!(data instanceof Dictionary)) {
             return new HomeState({} as Dictionary<String, Dictionary>, {} as Dictionary<String, Dictionary>,
@@ -106,8 +101,7 @@ class HomeState {
         return (sensor as Dictionary).get(:device_class) as String or Null;
     }
 
-    // Falls back to the bare id (empty counts as missing) so a row always has a
-    // non-blank label; only reachable on a contract breach.
+    // Only reachable on a contract breach.
     function getName(entityId as String) as String {
         var entity = entityFor(entityId);
         var name = entity == null ? null : (entity as Dictionary).get(:name);
@@ -122,7 +116,7 @@ class HomeState {
         return light != null && (light as Dictionary).hasKey(:memberCount);
     }
 
-    // parseLights/parseSensors guarantee a present memberCount maps to a
+    // parseEntity guarantees a present memberCount maps to a
     // non-negative integer, so the bare cast never hits null for a group.
     function getMemberCount(entityId as String) as Number {
         return (_lights.get(entityId) as Dictionary).get(:memberCount) as Number;
@@ -136,8 +130,6 @@ class HomeState {
         return orderAvailableFirst(area.get(:lights) as Array<String>);
     }
 
-    // Every light across the floor's areas, in area order. A floor whose id
-    // matches nothing yields an empty list.
     function listLightsInFloor(floorId as String) as Array<String> {
         var out = [] as Array<String>;
 
@@ -166,10 +158,8 @@ class HomeState {
         return area.get(:sensors) as Array<String>;
     }
 
-    // Floors come out in HA's own floors() order (basement-up); parseFloors
-    // already ordered `_floors` by each floor's numeric order. Areas within a
-    // floor are re-sorted rather than trusting input order. Areas on no floor
-    // go in a trailing entry whose :id and :name are null.
+    // Areas within a floor are re-sorted rather than trusting input order. Areas
+    // on no floor go in a trailing entry whose :id and :name are null.
     function buildFloors() as Array<Dictionary> {
         var floored = {} as Dictionary<String, Boolean>;
         var out = [] as Array<Dictionary>;
@@ -229,7 +219,6 @@ class HomeState {
         return _areas.get(areaId) as Dictionary or Null;
     }
 
-    // Order area ids by their display name alphabetically, case-insensitively.
     // Only areas that actually hold entities (present in `areas`) are kept — a
     // floor's areas list may name an area the areas section dropped for
     // holding neither.
@@ -248,7 +237,6 @@ class HomeState {
         return _areas.hasKey(areaId);
     }
 
-    // Available lights before unavailable, each partition then group-ordered.
     private function orderAvailableFirst(ids as Array<String>) as Array<String> {
         var availableIds = [] as Array<String>;
         var unavailableIds = [] as Array<String>;
@@ -267,7 +255,7 @@ class HomeState {
     }
 
     // Groups first — they aggregate several lights, so they read as the area's
-    // primary controls — then plain lights.
+    // primary controls.
     private function orderGroupsFirst(ids as Array<String>) as Array<String> {
         var grouped = [] as Array<String>;
         var plain = [] as Array<String>;
@@ -311,8 +299,7 @@ class HomeState {
         return ordered;
     }
 
-    // Areas keyed by area id -> { name, lights: [entity ids], sensors: [entity
-    // ids] }. An area survives only if it has at least one light or sensor.
+    // An area survives only if it has at least one light or sensor.
     private static function parseAreas(raw as Object or Null) as Dictionary<String, Dictionary> {
         var out = {} as Dictionary<String, Dictionary>;
 
@@ -346,10 +333,7 @@ class HomeState {
         return out;
     }
 
-    // An entity section (lights or sensors): entity id -> its attribute object.
-    // Drops any entry whose id is not a String or whose value is not a
-    // Dictionary; per-field validation happens at the accessor. When
-    // requireDisplayState is set (sensors), an entry with no String
+    // When requireDisplayState is set (sensors), an entry with no String
     // display_state is dropped: display_state is the row's text and a missing
     // one can't be rendered.
     private static function parseEntityMap(raw as Object or Null,

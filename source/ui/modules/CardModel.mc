@@ -1,13 +1,11 @@
 import Toybox.Lang;
 import Toybox.WatchUi;
 
-// Pure session -> card-dictionary functions behind the card loop's view. No
-// drawing; the view (CardLoopView) owns state, paging, and rendering.
+// No drawing; the view (CardLoopView) owns state, paging, and rendering.
 module CardModel {
 
-    // Walks the session's grouped floor structure into a flat card sequence:
-    // for each floor group, a floor card (skipped when :name is null — the
-    // trailing unfloored bucket has no header) followed by its area cards.
+    // Floor card skipped when :name is null — the trailing unfloored bucket has
+    // no header.
     function buildCards(session as HomeSession) as Array<Dictionary> {
         var cards = [] as Array<Dictionary>;
         var groups = session.buildFloors();
@@ -65,9 +63,8 @@ module CardModel {
         return states;
     }
 
-    // A glanceable line summarizing a whole floor's lights, judged among its
-    // available lights only. "No lights available" covers both a floor with no
-    // lights and one whose lights are all unavailable.
+    // "No lights available" covers both a floor with no lights and one whose
+    // lights are all unavailable.
     function buildFloorLightSummary(session as HomeSession, areaIds as Array<String>) as String {
         var states = session.getFloorLightStates(areaIds);
         var onCount = states.get(:on) as Number;
@@ -88,9 +85,6 @@ module CardModel {
         return WatchUi.loadResource(Rez.Strings.FloorLightsAllOff) as String;
     }
 
-    // For now each kind shows its first sensor's reading as-is; moving to a
-    // mean/range/list later is a change here, not in the session, which hands
-    // over every sensor untouched.
     function buildAreaSensorSummary(session as HomeSession, areaId as String) as Array<Dictionary> {
         var groups = groupReadingsByKind(session.getAreaReadings(areaId));
         var summary = [] as Array<Dictionary>;
@@ -123,8 +117,7 @@ module CardModel {
         return summary;
     }
 
-    // Readings grouped by kind, in first-seen kind order, as an ordered list of
-    // { :kind => String, :readings => Array<SensorReading> }.
+    // Readings grouped by kind, in first-seen kind order.
     function groupReadingsByKind(readings as Array<HomeSession.SensorReading>) as Array<Dictionary> {
         var groups = [] as Array<Dictionary>;
         var indexByKind = {} as Dictionary<String, Number>;
@@ -170,9 +163,8 @@ module CardModel {
         return mean + " " + unit;
     }
 
-    // Decimal places HA showed for a reading, e.g. 1 for "21.5 °C", 0 for
-    // "120 lx". The unit is stripped off the display by value rather than guessed
-    // at a separator, leaving the numeric part to measure.
+    // The unit is stripped off the display by value rather than guessed at a
+    // separator, leaving the numeric part to measure.
     function decimalsOf(reading as HomeSession.SensorReading) as Number {
         var display = reading.get(:display) as String;
         var unit = reading.get(:unit) as String or Null;

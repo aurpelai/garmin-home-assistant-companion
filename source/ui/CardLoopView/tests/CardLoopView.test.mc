@@ -1,9 +1,7 @@
 import Toybox.Lang;
 import Toybox.Test;
 
-// Exercises the card loop view's paging, over a session built from a grouped
-// payload. Mirrors EntityMenuTest's stateOf/sessionOf helper style; card
-// content and sequencing are covered by CardModelTest.
+// Card content and sequencing are covered by CardModelTest.
 
 (:test)
 module CardLoopViewTest {

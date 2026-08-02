@@ -82,7 +82,6 @@ function dropsInvalidMemberCounts(logger as Test.Logger) as Boolean {
     Test.assert(!state.isGroup("light.strc"));
     Test.assert(!state.isGroup("light.arrc"));
     Test.assert(!state.isGroup("light.negc"));
-    // The one valid entry survives.
     Test.assert(state.isGroup("light.ok"));
     Test.assertEqual(state.getMemberCount("light.ok"), 2);
     return true;
@@ -100,8 +99,8 @@ function ordersGroupsFirstDespiteName(logger as Test.Logger) as Boolean {
     var state = HomeState.fromTemplateData(data);
     var lights = state.listLightsInArea("area.a");
     Test.assertEqual(lights.size(), 3);
-    Test.assertEqual(lights[0], "light.zzz_group");   // group first
-    Test.assertEqual(lights[1], "light.apple");       // then plain, alphabetical
+    Test.assertEqual(lights[0], "light.zzz_group");
+    Test.assertEqual(lights[1], "light.apple");
     Test.assertEqual(lights[2], "light.mango");
     return true;
 }
@@ -119,10 +118,8 @@ function listLightsInAreaOrdersGroupsFirst(logger as Test.Logger) as Boolean {
     var state = HomeState.fromTemplateData(data);
     var lights = state.listLightsInArea("area.living");
     Test.assertEqual(lights.size(), 4);
-    // Groups first, alphabetical among themselves.
     Test.assertEqual(lights[0], "light.a_group");
     Test.assertEqual(lights[1], "light.b_group");
-    // Then plain lights, alphabetical among themselves.
     Test.assertEqual(lights[2], "light.ceiling");
     Test.assertEqual(lights[3], "light.lamp");
     return true;
@@ -130,7 +127,6 @@ function listLightsInAreaOrdersGroupsFirst(logger as Test.Logger) as Boolean {
 
 (:test)
 function ordersByNameNotId(logger as Test.Logger) as Boolean {
-    // The whole point of names: order by the visible name, not the entity id.
     // light.zzz has name "Aaa" and must sort FIRST despite its id sorting last.
     var data = {
         "areas" => { "area.a" => { "name" => "A", "lights" => ["light.aaa", "light.zzz"] } },
@@ -142,8 +138,8 @@ function ordersByNameNotId(logger as Test.Logger) as Boolean {
     var state = HomeState.fromTemplateData(data);
     var lights = state.listLightsInArea("area.a");
     Test.assertEqual(lights.size(), 2);
-    Test.assertEqual(lights[0], "light.zzz");   // name "Aaa" first
-    Test.assertEqual(lights[1], "light.aaa");   // name "Zebra" second
+    Test.assertEqual(lights[0], "light.zzz");
+    Test.assertEqual(lights[1], "light.aaa");
     return true;
 }
 
@@ -160,8 +156,8 @@ function nameOrderIsCaseInsensitive(logger as Test.Logger) as Boolean {
     };
     var state = HomeState.fromTemplateData(data);
     var lights = state.listLightsInArea("area.a");
-    Test.assertEqual(lights[0], "light.two");   // "apple"
-    Test.assertEqual(lights[1], "light.one");   // "Banana"
+    Test.assertEqual(lights[0], "light.two");
+    Test.assertEqual(lights[1], "light.one");
     return true;
 }
 
@@ -177,15 +173,13 @@ function equalNamesBreakTieOnId(logger as Test.Logger) as Boolean {
     };
     var state = HomeState.fromTemplateData(data);
     var lights = state.listLightsInArea("area.a");
-    Test.assertEqual(lights[0], "light.a");   // equal names -> id tiebreak
+    Test.assertEqual(lights[0], "light.a");
     Test.assertEqual(lights[1], "light.b");
     return true;
 }
 
 (:test)
 function missingLightsSectionFallsBackToAlpha(logger as Test.Logger) as Boolean {
-    // No "lights" section: nothing is a group, no names, ordering is plain
-    // alphabetical on id.
     var data = { "areas" => { "area.a" => { "name" => "A",
         "lights" => ["light.c", "light.a", "light.b"] } } };
     var state = HomeState.fromTemplateData(data);
@@ -200,7 +194,6 @@ function missingLightsSectionFallsBackToAlpha(logger as Test.Logger) as Boolean 
 
 (:test)
 function nonMapLightsDegradesCleanly(logger as Test.Logger) as Boolean {
-    // A malformed "lights" section: nothing is a group, ordering stays alphabetical.
     var data = {
         "areas" => { "area.a" => { "name" => "A", "lights" => ["light.b", "light.a"] } },
         "lights" => "nope"

@@ -2,8 +2,7 @@ import Toybox.Lang;
 import Toybox.WatchUi;
 
 // Once a floor toggle resolves, snaps the switch to the floor's derived on
-// state — a no-op on success, a flip-back on failure — then refreshes state so
-// the cards behind converge.
+// state — a no-op on success, a flip-back on failure.
 class FloorToggleHandler {
     private var _menu as AllLightsMenu;
     private var _item as WatchUi.ToggleMenuItem;

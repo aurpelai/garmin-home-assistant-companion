@@ -1,9 +1,7 @@
 import Toybox.Lang;
 
-// Shared UI-side state passed between the area and entity menus: the HA client,
-// the immutable server-truth HomeState (areas + loaded states), and a mutable
-// copy of the states map. Toggles update the mutable copy optimistically so the
-// switch flips immediately, leaving the HomeState as the untouched server truth.
+// Toggles update the mutable copy optimistically so the switch flips
+// immediately, leaving the HomeState as the untouched server truth.
 class HomeSession {
     typedef LightStates as {
         :on as Number,
@@ -20,19 +18,17 @@ class HomeSession {
 
     public var client as HaClient;
     private var _state as HomeState;
-    private var _states as Dictionary<String, Boolean>;   // entity_id -> isOn, mutable
+    private var _optimisticOn as Dictionary<String, Boolean>;
 
     function initialize(client as HaClient, state as HomeState) {
         self.client = client;
         _state = state;
-        // Copy the loaded states so optimistic toggles never mutate the
-        // HomeState (which stays immutable server-truth).
         var copy = {} as Dictionary<String, Boolean>;
         var entityIds = state.lightIds();
         for (var i = 0; i < entityIds.size(); i++) {
             copy.put(entityIds[i], state.isOn(entityIds[i]));
         }
-        self._states = copy;
+        self._optimisticOn = copy;
     }
 
     function listLightsInArea(areaId as String) as Array<String> {
@@ -51,30 +47,22 @@ class HomeSession {
         return _state.getAreaName(areaId);
     }
 
-    // HA's display name for an entity (bare id as last-resort fallback).
     function getName(entityId as String) as String {
         return _state.getName(entityId);
     }
 
-    // A sensor's HA-formatted value, null when the server sent none. Server truth
-    // only, like availability, so it reads straight from the HomeState.
     function getReading(entityId as String) as String or Null {
         return _state.getReading(entityId);
     }
 
-    // A sensor's numeric value, null when the server sent none. Server truth
-    // only, like availability, so it reads straight from the HomeState.
     function getReadingValue(entityId as String) as Float or Null {
         return _state.getReadingValue(entityId);
     }
 
-    // A sensor's unit of measurement, null when the server sent none. Server truth
-    // only, like availability, so it reads straight from the HomeState.
     function getReadingUnit(entityId as String) as String or Null {
         return _state.getReadingUnit(entityId);
     }
 
-    // A sensor's device_class, null when the payload carries none for the id.
     function getDeviceClass(entityId as String) as String or Null {
         return _state.getDeviceClass(entityId);
     }
@@ -91,9 +79,8 @@ class HomeSession {
         return _state.getMemberCount(entityId);
     }
 
-    // An entity absent from the live state map reads as off.
     function isOn(entityId as String) as Boolean {
-        var state = _states.get(entityId);
+        var state = _optimisticOn.get(entityId);
         return state == null
             ? false
             : state as Boolean;
@@ -105,8 +92,7 @@ class HomeSession {
         return _state.isAvailable(entityId);
     }
 
-    // Tallies physical lights. Availability is server truth; on is counted
-    // only among available lights.
+    // Tallies physical lights. On is counted only among available lights.
     function getLightStates(lights as Array<String>) as LightStates {
         var onCount = 0;
         var availableCount = 0;
@@ -191,28 +177,24 @@ class HomeSession {
         };
     }
 
-    // Whether the live state map tracks this entity at all — for callers that
-    // need to distinguish absent from present-but-off, which isOn's off default
-    // cannot.
+    // Distinguishes absent from present-but-off, which isOn's off default cannot.
     function isTracked(entityId as String) as Boolean {
-        return _states.hasKey(entityId);
+        return _optimisticOn.hasKey(entityId);
     }
 
-    // Flip local state and fire the toggle. The result callback reverts the
-    // optimistic flip on failure.
+    // The result callback reverts the optimistic flip on failure.
     function toggleState(entityId as String, onComplete as Method) as Void {
         var newOn = !isOn(entityId);
-        _states.put(entityId, newOn);
+        _optimisticOn.put(entityId, newOn);
         client.toggleLight(entityId,
             new ToggleResultHandler(self, entityId, newOn, onComplete).method(:onResult));
     }
 
     function revertState(entityId as String, attemptedOn as Boolean) as Void {
-        _states.put(entityId, !attemptedOn);
+        _optimisticOn.put(entityId, !attemptedOn);
     }
 
-    // Any available, physical light in the floor being on drives both the
-    // any-on -> off toggle decision and the floor card's status.
+    // Any available, physical light in the floor being on.
     function areFloorLightsOn(floorId as String) as Boolean {
         var lights = toggleableFloorLights(floorId);
 
@@ -236,7 +218,7 @@ class HomeSession {
         for (var i = 0; i < lights.size(); i++) {
             var entityId = lights[i];
             priorOn.put(entityId, isOn(entityId));
-            _states.put(entityId, newOn);
+            _optimisticOn.put(entityId, newOn);
         }
 
         var service = newOn ? "turn_on" : "turn_off";
@@ -249,7 +231,7 @@ class HomeSession {
 
         for (var i = 0; i < entityIds.size(); i++) {
             var entityId = entityIds[i];
-            _states.put(entityId, priorOn.get(entityId) as Boolean);
+            _optimisticOn.put(entityId, priorOn.get(entityId) as Boolean);
         }
     }
 
@@ -267,10 +249,6 @@ class HomeSession {
         return toggleable;
     }
 
-    // Re-sync from a freshly fetched HomeState (most-recent-fetch wins). The
-    // new state becomes the server truth backing structural reads on the next
-    // menu construction; the live on/off map converges to it now.
-    //
     // Only entities already present in the live map are updated, and only when
     // the fresh state actually knows them — a state that omits an entity leaves
     // its value alone rather than reading the isOn default and flipping it off.
@@ -279,18 +257,16 @@ class HomeSession {
     function applyState(state as HomeState) as Void {
         _state = state;
 
-        var entityIds = _states.keys();
+        var entityIds = _optimisticOn.keys();
         for (var i = 0; i < entityIds.size(); i++) {
             var entityId = entityIds[i];
             if (state.hasLight(entityId)) {
-                _states.put(entityId, state.isOn(entityId));
+                _optimisticOn.put(entityId, state.isOn(entityId));
             }
         }
     }
 
-    // The single silent-convergence path for {action-completion, navigation,
-    // resume}: fetch fresh state, apply it, then invoke onDone. A fetch
-    // failure is swallowed (last-known state stays and heals on the next
+    // A fetch failure is swallowed (last-known state stays and heals on the next
     // trigger), yet onDone still fires so callers need no error branch.
     function refreshState(onDone as Method) as Void {
         client.fetchHomeState(new RefreshHandler(self, onDone).method(:onFetched));

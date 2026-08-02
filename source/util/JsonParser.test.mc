@@ -142,11 +142,8 @@ function jsonFeedsHomeStateEndToEndWithRawNonAscii(logger as Test.Logger) as Boo
     return true;
 }
 
-// The state-less-entity guard (states[e] is not none) is a template-side
-// concern the JSON layer can't see directly, but a light the template omitted
-// for that reason arrives here simply absent — the parse must not fail the
-// whole payload just because one entity id present in an area's list has no
-// corresponding lights-section entry.
+// The parse must not fail the whole payload just because one entity id present
+// in an area's list has no corresponding lights-section entry.
 (:test)
 function jsonFeedsHomeStateEndToEndWithAStateLessEntityDropped(logger as Test.Logger) as Boolean {
     var payload = "{\"areas\": {\"area.hall\": {\"name\": \"Hall\", " +

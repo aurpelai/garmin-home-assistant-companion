@@ -54,8 +54,8 @@ module HomeSessionTest {
         return new HomeSession(new HaClient(), state);
     }
 
-    // A one-area floor "floor_up" carrying the given light states, backed by
-    // the FakeHaClient so the floor service callback can be fired synchronously.
+    // Backed by the FakeHaClient so the floor service callback can be fired
+    // synchronously.
     function fakeFloorSessionWith(states as Dictionary<String, Boolean>) as HomeSession {
         var state = HomeState.fromTemplateData({
             "areas" => { "area.room" => { "name" => "Room", "lights" => states.keys() } },
@@ -66,7 +66,6 @@ module HomeSessionTest {
     }
 }
 
-// A no-op completion for tests that only care about the optimistic flip.
 (:test)
 class NoopCompletion {
     function onComplete() as Void {
@@ -144,11 +143,11 @@ function toggleStateRevertsOptimisticFlipOnFailure(logger as Test.Logger) as Boo
     var spy = new CompletionSpy();
 
     session.toggleState("light.a", spy.method(:onComplete));
-    Test.assert(session.isOn("light.a"));   // flipped optimistically
+    Test.assert(session.isOn("light.a"));
 
     (session.client as FakeHaClient).fireServiceFailure();
 
-    Test.assert(!session.isOn("light.a"));   // reverted
+    Test.assert(!session.isOn("light.a"));
     Test.assert(spy.fired);
     return true;
 }
@@ -217,7 +216,7 @@ function refreshStateSwallowsFailureButStillCompletes(logger as Test.Logger) as 
     session.refreshState(spy.method(:onDone));
     (session.client as FakeHaClient).fireFetchFailure();
 
-    Test.assert(session.isOn("light.a"));   // last-known state survives
+    Test.assert(session.isOn("light.a"));
     Test.assert(spy.fired);
     return true;
 }
@@ -296,8 +295,8 @@ function toggleFloorLightsRestoresEachLightToItsOwnPriorStateOnFailure(logger as
 
     (session.client as FakeHaClient).fireServiceFailure();
 
-    Test.assert(session.isOn("light.on"));    // restored to its original ON
-    Test.assert(!session.isOn("light.off"));  // restored to its original OFF
+    Test.assert(session.isOn("light.on"));
+    Test.assert(!session.isOn("light.off"));
     return true;
 }
 

@@ -2,8 +2,7 @@ import Toybox.Lang;
 import Toybox.Test;
 
 // Exercises the card model's pure session -> card-dictionary functions:
-// sequence construction, light/sensor summaries. Mirrors EntityMenuTest's
-// stateOf/sessionOf helper style.
+// sequence construction, light/sensor summaries.
 
 (:test)
 module CardModelTest {
