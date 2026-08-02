@@ -17,7 +17,6 @@ class CardRenderer {
 
     private const LIGHT_INDICATOR_RADIUS = 6;
     private const LIGHT_INDICATOR_SPACING = LIGHT_INDICATOR_RADIUS * 3;
-    private const UNAVAILABLE_PEN = 2;
 
     private const PAGE_INDICATOR_RADIUS = 4;
     private const PAGE_OVERFLOW_RADIUS = 2;
@@ -109,6 +108,8 @@ class CardRenderer {
         for (var i = 0; i < totalCount; i++) {
             var x = startX + i * LIGHT_INDICATOR_SPACING;
 
+            useAntiAlias(dc, true);
+
             if (i < onCount) {
                 drawFilledLightIndicator(dc, x, centerY, Graphics.COLOR_YELLOW);
             } else if (i < availableCount) {
@@ -126,10 +127,9 @@ class CardRenderer {
     }
 
     private function drawOutlinedLightIndicator(dc as Graphics.Dc, x as Number, y as Number) as Void {
+        useAntiAlias(dc, false);
         dc.setColor(Graphics.COLOR_DK_GRAY, system_color_dark__background.background);
-        dc.setPenWidth(UNAVAILABLE_PEN);
         dc.drawCircle(x, y, LIGHT_INDICATOR_RADIUS);
-        dc.setPenWidth(1);
     }
 
     // Temperature and humidity share the lower third, side by side; any other
