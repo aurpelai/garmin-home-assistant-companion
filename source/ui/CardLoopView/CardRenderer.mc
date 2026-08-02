@@ -108,8 +108,6 @@ class CardRenderer {
         for (var i = 0; i < totalCount; i++) {
             var x = startX + i * LIGHT_INDICATOR_SPACING;
 
-            useAntiAlias(dc, true);
-
             if (i < onCount) {
                 drawFilledLightIndicator(dc, x, centerY, Graphics.COLOR_YELLOW);
             } else if (i < availableCount) {
@@ -122,6 +120,7 @@ class CardRenderer {
 
     private function drawFilledLightIndicator(dc as Graphics.Dc, x as Number, y as Number,
                                               color as Number) as Void {
+        useAntiAlias(dc, true);
         dc.setColor(color, system_color_dark__background.background);
         dc.fillCircle(x, y, LIGHT_INDICATOR_RADIUS);
     }
