@@ -53,22 +53,22 @@ module CardModel {
         };
     }
 
-    function buildAreaLightSummary(session as HomeSession, areaId as String) as HomeSession.LightStates or Null {
-        var states = session.getLightStates(session.listLightsInArea(areaId));
+    function buildAreaLightSummary(session as HomeSession, areaId as String) as HomeSession.LightSummary or Null {
+        var summary = session.getLightSummary(session.listLightsInArea(areaId));
 
-        if ((states.get(:available) as Number) + (states.get(:unavailable) as Number) == 0) {
+        if ((summary.get(:available) as Number) + (summary.get(:unavailable) as Number) == 0) {
             return null;
         }
 
-        return states;
+        return summary;
     }
 
     // "No lights available" covers both a floor with no lights and one whose
     // lights are all unavailable.
     function buildFloorLightSummary(session as HomeSession, areaIds as Array<String>) as String {
-        var states = session.getFloorLightStates(areaIds);
-        var onCount = states.get(:on) as Number;
-        var availableCount = states.get(:available) as Number;
+        var summary = session.getFloorLightSummary(areaIds);
+        var onCount = summary.get(:on) as Number;
+        var availableCount = summary.get(:available) as Number;
 
         if (availableCount == 0) {
             return WatchUi.loadResource(Rez.Strings.FloorLightsNone) as String;
@@ -86,14 +86,14 @@ module CardModel {
     }
 
     function buildAreaSensorSummary(session as HomeSession, areaId as String) as Array<Dictionary> {
-        var groups = groupReadingsByKind(session.getAreaReadings(areaId));
+        var groups = groupReadingsByDeviceClass(session.getAreaReadings(areaId));
         var summary = [] as Array<Dictionary>;
 
         for (var index = 0; index < groups.size(); index++) {
             var group = groups[index];
 
             summary.add({
-                :kind => group.get(:kind) as String,
+                :device_class => group.get(:device_class) as String,
                 :reading => (group.get(:readings) as Array<HomeSession.SensorReading>)[0].get(:display) as String
             });
         }
@@ -102,14 +102,14 @@ module CardModel {
     }
 
     function buildFloorSensorSummary(session as HomeSession, areaIds as Array<String>) as Array<Dictionary> {
-        var groups = groupReadingsByKind(session.getFloorReadings(areaIds));
+        var groups = groupReadingsByDeviceClass(session.getFloorReadings(areaIds));
         var summary = [] as Array<Dictionary>;
 
         for (var index = 0; index < groups.size(); index++) {
             var group = groups[index];
 
             summary.add({
-                :kind => group.get(:kind) as String,
+                :device_class => group.get(:device_class) as String,
                 :reading => calculateMeanReading(group.get(:readings) as Array<HomeSession.SensorReading>)
             });
         }
@@ -117,21 +117,21 @@ module CardModel {
         return summary;
     }
 
-    // Readings grouped by kind, in first-seen kind order.
-    function groupReadingsByKind(readings as Array<HomeSession.SensorReading>) as Array<Dictionary> {
+    // Readings grouped by device_class, in first-seen order.
+    function groupReadingsByDeviceClass(readings as Array<HomeSession.SensorReading>) as Array<Dictionary> {
         var groups = [] as Array<Dictionary>;
-        var indexByKind = {} as Dictionary<String, Number>;
+        var indexByDeviceClass = {} as Dictionary<String, Number>;
 
         for (var index = 0; index < readings.size(); index++) {
             var reading = readings[index];
-            var kind = reading.get(:device_class) as String;
+            var deviceClass = reading.get(:device_class) as String;
 
-            if (!indexByKind.hasKey(kind)) {
-                indexByKind.put(kind, groups.size());
-                groups.add({ :kind => kind, :readings => [] as Array<HomeSession.SensorReading> });
+            if (!indexByDeviceClass.hasKey(deviceClass)) {
+                indexByDeviceClass.put(deviceClass, groups.size());
+                groups.add({ :device_class => deviceClass, :readings => [] as Array<HomeSession.SensorReading> });
             }
 
-            (groups[indexByKind.get(kind) as Number].get(:readings) as Array<HomeSession.SensorReading>).add(reading);
+            (groups[indexByDeviceClass.get(deviceClass) as Number].get(:readings) as Array<HomeSession.SensorReading>).add(reading);
         }
 
         return groups;

@@ -11,7 +11,7 @@ import Toybox.WatchUi;
 //
 // UP/DOWN page one card at a time (SWIPE_UP/SWIPE_DOWN do the same, for free,
 // via BehaviorDelegate's onNextPage/onPreviousPage); the loop wraps at both ends.
-// START drills an area card into the existing EntityMenu; it is a no-op on a
+// START drills an area card into the existing AreaEntityMenu; it is a no-op on a
 // floor card. BACK exits the loop.
 //
 // Card content is recomputed from the session on every show/redraw rather than
@@ -35,7 +35,7 @@ class CardLoopView extends WatchUi.View {
         redraw();
     }
 
-    // The named redraw seam onActive dispatches to (see EntityMenu.redraw).
+    // The named redraw seam onActive dispatches to (see AreaEntityMenu.redraw).
     // Rebuilds the card sequence from the session's live state and clamps the
     // current index onto it, preserving position when the sequence shrinks.
     function redraw() as Void {

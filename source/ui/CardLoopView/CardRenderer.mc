@@ -74,7 +74,7 @@ class CardRenderer {
 
         drawTitle(dc, centerX, titleY, card.get(:name) as String);
 
-        var lightSummary = card.get(:lightSummary) as HomeSession.LightStates or Null;
+        var lightSummary = card.get(:lightSummary) as HomeSession.LightSummary or Null;
 
         if (lightSummary != null) {
             var indicatorsY = titleY + dc.getFontHeight(TITLE_FONT) + SECTION_GAP;
@@ -99,7 +99,7 @@ class CardRenderer {
     // An indicator per light: filled yellow when on, filled gray when
     // available-but-off, an outline when unavailable. The row is centered on centerX.
     private function drawLightIndicators(dc as Graphics.Dc, centerX as Number, y as Number,
-                                         lightSummary as HomeSession.LightStates) as Void {
+                                         lightSummary as HomeSession.LightSummary) as Void {
         var onCount = lightSummary.get(:on) as Number;
         var availableCount = lightSummary.get(:available) as Number;
         var totalCount = availableCount + (lightSummary.get(:unavailable) as Number);
@@ -135,7 +135,7 @@ class CardRenderer {
     }
 
     // Temperature and humidity share the lower third, side by side; any other
-    // kind drops to its own row beneath them.
+    // deviceClass drops to its own row beneath them.
     private function drawSensorSummary(dc as Graphics.Dc, card as Dictionary,
                                        centerX as Number) as Void {
         var summary = card.get(:sensorSummary) as Array<Dictionary> or Null;
@@ -151,16 +151,16 @@ class CardRenderer {
 
         for (var i = 0; i < summary.size(); i++) {
             var entry = summary[i];
-            var kind = entry.get(:kind) as String or Null;
+            var deviceClass = entry.get(:device_class) as String or Null;
             var reading = entry.get(:reading) as String;
 
             var x = centerX;
             var y = extraRowY;
 
-            if ("temperature".equals(kind)) {
+            if ("temperature".equals(deviceClass)) {
                 x = dc.getWidth() / 3;
                 y = baseY;
-            } else if ("humidity".equals(kind)) {
+            } else if ("humidity".equals(deviceClass)) {
                 x = 2 * dc.getWidth() / 3;
                 y = baseY;
             }

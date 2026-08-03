@@ -5,6 +5,24 @@ import Toybox.Lang;
 // empty list and all-off defaults instead of crashing the watch.
 
 class HomeState {
+    typedef Light as {
+        :state as Boolean,
+        :name as String or Null,
+        :available as Boolean,
+        :memberCount as Number or Null
+    };
+
+    // :state is polymorphic — a Float reading, or a Boolean when the sensor's
+    // state was non-numeric and degraded.
+    typedef Sensor as {
+        :state as Float or Boolean,
+        :display_state as String or Null,
+        :unit as String or Null,
+        :device_class as String or Null,
+        :name as String or Null,
+        :available as Boolean
+    };
+
     private var _areas as Dictionary<String, Dictionary>;
     private var _lights as Dictionary<String, Dictionary>;
     private var _sensors as Dictionary<String, Dictionary>;
@@ -38,7 +56,7 @@ class HomeState {
         if (light == null) {
             return false;
         }
-        return (light as Dictionary).get(:state) as Boolean;
+        return (light as Light).get(:state) as Boolean;
     }
 
     function lightIds() as Array<String> {
@@ -67,7 +85,7 @@ class HomeState {
         if (sensor == null) {
             return null;
         }
-        return (sensor as Dictionary).get(:display_state) as String or Null;
+        return (sensor as Sensor).get(:display_state) as String or Null;
     }
 
     // A sensor's `state` slot is polymorphic (parseEntity stores a Boolean for a
@@ -78,6 +96,8 @@ class HomeState {
         if (sensor == null) {
             return null;
         }
+        // Read as Dictionary, not Sensor: the :state slot is polymorphic here
+        // (Boolean on degrade), which the Sensor typedef's Float would deny.
         var state = (sensor as Dictionary).get(:state);
         if (state instanceof Float || state instanceof Number) {
             return state as Float;
@@ -90,7 +110,7 @@ class HomeState {
         if (sensor == null) {
             return null;
         }
-        return (sensor as Dictionary).get(:unit) as String or Null;
+        return (sensor as Sensor).get(:unit) as String or Null;
     }
 
     function getDeviceClass(entityId as String) as String or Null {
@@ -98,7 +118,7 @@ class HomeState {
         if (sensor == null) {
             return null;
         }
-        return (sensor as Dictionary).get(:device_class) as String or Null;
+        return (sensor as Sensor).get(:device_class) as String or Null;
     }
 
     // Only reachable on a contract breach.
@@ -113,13 +133,13 @@ class HomeState {
 
     function isGroup(entityId as String) as Boolean {
         var light = _lights.get(entityId);
-        return light != null && (light as Dictionary).hasKey(:memberCount);
+        return light != null && (light as Light).hasKey(:memberCount);
     }
 
     // parseEntity guarantees a present memberCount maps to a
     // non-negative integer, so the bare cast never hits null for a group.
     function getMemberCount(entityId as String) as Number {
-        return (_lights.get(entityId) as Dictionary).get(:memberCount) as Number;
+        return (_lights.get(entityId) as Light).get(:memberCount) as Number;
     }
 
     function listLightsInArea(areaId as String) as Array<String> {

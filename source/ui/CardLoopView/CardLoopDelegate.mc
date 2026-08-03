@@ -38,16 +38,16 @@ class CardLoopDelegate extends WatchUi.BehaviorDelegate {
     }
 
     private function openFloorMenu(card as Dictionary) as Void {
-        var menu = new AllLightsMenu(_session, card.get(:id) as String, card.get(:name) as String);
-        WatchUi.pushView(menu, new AllLightsMenuDelegate(menu, _session), WatchUi.SLIDE_LEFT);
+        var menu = new FloorEntityMenu(_session, card.get(:id) as String, card.get(:name) as String);
+        WatchUi.pushView(menu, new FloorEntityMenuDelegate(menu, _session), WatchUi.SLIDE_LEFT);
     }
 
     private function openAreaMenu(card as Dictionary) as Void {
         var areaId = card.get(:id) as String;
         var name = card.get(:name) as String;
-        var menu = new EntityMenu(_session, name, _session.listLightsInArea(areaId),
+        var menu = new AreaEntityMenu(_session, name, _session.listLightsInArea(areaId),
                                   _session.listSensorsInArea(areaId));
-        WatchUi.pushView(menu, new EntityMenuDelegate(menu, _session), WatchUi.SLIDE_LEFT);
+        WatchUi.pushView(menu, new AreaEntityMenuDelegate(menu, _session), WatchUi.SLIDE_LEFT);
     }
 
     // Root of the navigation stack (reached via switchToView): back has nowhere

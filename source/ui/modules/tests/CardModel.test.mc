@@ -298,9 +298,9 @@ function buildAreaSensorSummaryShowsFirstOfEachDeviceClass(logger as Test.Logger
     var summary = CardModel.buildAreaSensorSummary(session, "area.room");
 
     Test.assertEqual(summary.size(), 2);
-    Test.assertEqual(summary[0].get(:kind) as String, "temperature");
+    Test.assertEqual(summary[0].get(:device_class) as String, "temperature");
     Test.assertEqual(summary[0].get(:reading) as String, "21.5 °C");
-    Test.assertEqual(summary[1].get(:kind) as String, "humidity");
+    Test.assertEqual(summary[1].get(:device_class) as String, "humidity");
     Test.assertEqual(summary[1].get(:reading) as String, "40 %");
     return true;
 }
@@ -317,7 +317,7 @@ function buildAreaSensorSummarySkipsASensorAbsentFromThePayload(logger as Test.L
     var summary = CardModel.buildAreaSensorSummary(session, "area.room");
 
     Test.assertEqual(summary.size(), 1);
-    Test.assertEqual(summary[0].get(:kind) as String, "temperature");
+    Test.assertEqual(summary[0].get(:device_class) as String, "temperature");
     Test.assertEqual(summary[0].get(:reading) as String, "23.0 °C");
     return true;
 }
@@ -339,7 +339,7 @@ function buildFloorSensorSummaryAveragesAcrossAreas(logger as Test.Logger) as Bo
     var summary = CardModel.buildFloorSensorSummary(session, ["area.bedroom", "area.kitchen"]);
 
     Test.assertEqual(summary.size(), 1);
-    Test.assertEqual(summary[0].get(:kind) as String, "temperature");
+    Test.assertEqual(summary[0].get(:device_class) as String, "temperature");
     Test.assertEqual(summary[0].get(:reading) as String, "21.0 °C");
     return true;
 }
