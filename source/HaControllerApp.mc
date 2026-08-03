@@ -48,7 +48,7 @@ class HaControllerApp extends Application.AppBase {
         // view must be added to it.
         var view = _currentView;
         if (view != null && view has :redraw) {
-            (view as AreaEntityMenu or CardLoopView).redraw();
+            (view as AreaEntityMenu or FloorEntityMenu or CardLoopView).redraw();
         }
     }
 }

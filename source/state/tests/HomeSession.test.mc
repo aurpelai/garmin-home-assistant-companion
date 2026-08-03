@@ -145,10 +145,45 @@ function toggleStateRevertsOptimisticFlipOnFailure(logger as Test.Logger) as Boo
     session.toggleState("light.a", spy.method(:onComplete));
     Test.assert(session.isOn("light.a"));
 
-    (session.client as FakeHaClient).fireServiceFailure();
+    (session.client as FakeHaClient).fireServiceFailureAt(0, -1);
 
     Test.assert(!session.isOn("light.a"));
     Test.assert(spy.fired);
+    return true;
+}
+
+(:test)
+function overlappingTogglesRevertTheCorrectLight(logger as Test.Logger) as Boolean {
+    // Guards the per-call isolation that shared in-flight state would break.
+    var session = HomeSessionTest.fakeSessionWith({ "light.a" => false, "light.b" => false });
+    var spyA = new CompletionSpy();
+
+    session.toggleState("light.a", spyA.method(:onComplete));
+    session.toggleState("light.b", new NoopCompletion().method(:onComplete));
+    Test.assert(session.isOn("light.a"));
+    Test.assert(session.isOn("light.b"));
+
+    (session.client as FakeHaClient).fireServiceFailureAt(0, -1);
+
+    Test.assert(!session.isOn("light.a"));
+    Test.assert(session.isOn("light.b"));
+    Test.assert(spyA.fired);
+    return true;
+}
+
+(:test)
+function toggleRevertSurvivesRefreshLandingMidFlight(logger as Test.Logger) as Boolean {
+    // The revert must restore the captured pre-flip value, not the post-refresh
+    // map value.
+    var session = HomeSessionTest.fakeSessionWith({ "light.a" => false });
+
+    session.toggleState("light.a", new NoopCompletion().method(:onComplete));
+    session.refreshState(new CompletionSpy().method(:onDone));
+    (session.client as FakeHaClient).fireFetchSuccess(HomeSessionTest.stateOf({ "light.a" => false }));
+
+    (session.client as FakeHaClient).fireServiceFailureAt(0, -1);
+
+    Test.assert(!session.isOn("light.a"));
     return true;
 }
 
@@ -169,7 +204,7 @@ function toggleStateKeepsFlipOnSuccess(logger as Test.Logger) as Boolean {
     var spy = new CompletionSpy();
 
     session.toggleState("light.a", spy.method(:onComplete));
-    (session.client as FakeHaClient).fireServiceSuccess();
+    (session.client as FakeHaClient).fireServiceSuccessAt(0);
 
     Test.assert(session.isOn("light.a"));
     Test.assert(spy.fired);
@@ -196,7 +231,7 @@ function refreshStateCorrectsActionThatDidNotTakeEffect(logger as Test.Logger) a
     session.toggleState("light.a", new NoopCompletion().method(:onComplete));
     // The service call reports success, but HA's actual state never moved —
     // only the later reconciling re-fetch can catch that, not this response.
-    (session.client as FakeHaClient).fireServiceSuccess();
+    (session.client as FakeHaClient).fireServiceSuccessAt(0);
     Test.assert(session.isOn("light.a"));
 
     var spy = new CompletionSpy();
@@ -293,7 +328,7 @@ function toggleFloorLightsRestoresEachLightToItsOwnPriorStateOnFailure(logger as
     Test.assert(!session.isOn("light.on"));
     Test.assert(!session.isOn("light.off"));
 
-    (session.client as FakeHaClient).fireServiceFailure();
+    (session.client as FakeHaClient).fireServiceFailureAt(0, -1);
 
     Test.assert(session.isOn("light.on"));
     Test.assert(!session.isOn("light.off"));
@@ -306,7 +341,7 @@ function toggleFloorLightsKeepsFlipsOnSuccess(logger as Test.Logger) as Boolean 
     var spy = new CompletionSpy();
 
     session.toggleFloorLights("floor_up", spy.method(:onComplete));
-    (session.client as FakeHaClient).fireServiceSuccess();
+    (session.client as FakeHaClient).fireServiceSuccessAt(0);
 
     Test.assert(session.isOn("light.a"));
     Test.assert(session.isOn("light.b"));

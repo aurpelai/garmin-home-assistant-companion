@@ -1,6 +1,8 @@
 import Toybox.Lang;
 
-class RefreshHandler {
+// A failed fetch is swallowed (last-known state stays and heals on the next
+// trigger), yet the completion still fires so callers need no error branch.
+class PendingRefresh {
     private var _session as HomeSession;
     private var _onDone as Method;
 
@@ -13,6 +15,7 @@ class RefreshHandler {
         if (error == null) {
             _session.applyState(state as HomeState);
         }
+
         _onDone.invoke();
     }
 }

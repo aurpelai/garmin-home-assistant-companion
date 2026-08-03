@@ -12,9 +12,12 @@ class FloorEntityMenuDelegate extends WatchUi.Menu2InputDelegate {
     }
 
     function onSelect(item as WatchUi.MenuItem) as Void {
-        var toggle = item as WatchUi.ToggleMenuItem;
+        _session.toggleFloorLights(_menu.floorId, method(:onToggleComplete));
+    }
 
-        _session.toggleFloorLights(_menu.floorId,
-            new FloorToggleHandler(_menu, toggle, _session).method(:onComplete));
+    // Holds no per-tap state, so overlapping taps cannot cross their snaps.
+    function onToggleComplete() as Void {
+        _menu.redraw();
+        _session.refreshState(_menu.method(:redraw));
     }
 }

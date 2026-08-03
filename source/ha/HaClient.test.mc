@@ -8,11 +8,14 @@ import Toybox.Test;
 (:test)
 class FakeHaClient extends HaClient {
     private var _fetchCallback as Method?;
-    private var _serviceCallback as Method?;
     private var _registerCallback as Method?;
 
-    // Each call keeps only its latest callback, so a test cannot tell "never
-    // called" from "called once" by the callback alone — these count the calls.
+    // A list, not a single slot, so a test can fire an earlier in-flight toggle
+    // after a later one began.
+    public var serviceCallbacks as Array<Method> = [];
+
+    // Callback capture alone can't distinguish "never called" from "called
+    // once", so these count the calls.
     public var toggleCount as Number;
     public var registerCount as Number;
     public var fetchCount as Number;
@@ -32,7 +35,7 @@ class FakeHaClient extends HaClient {
     }
 
     function toggleLight(entityId as String, callback as Method) as Void {
-        _serviceCallback = callback;
+        serviceCallbacks.add(callback);
         toggleCount++;
     }
 
@@ -47,12 +50,12 @@ class FakeHaClient extends HaClient {
     }
 
     function callService(entityId as String, callback as Method) as Void {
-        _serviceCallback = callback;
+        serviceCallbacks.add(callback);
         toggleCount++;
     }
 
     function toggleFloorLights(floorId as String, service as String, callback as Method) as Void {
-        _serviceCallback = callback;
+        serviceCallbacks.add(callback);
         lastFloorService = service;
         floorToggleCount++;
     }
@@ -69,16 +72,12 @@ class FakeHaClient extends HaClient {
         (_fetchCallback as Method).invoke(null, code);
     }
 
-    function fireServiceSuccess() as Void {
-        (_serviceCallback as Method).invoke(true, null);
+    function fireServiceSuccessAt(index as Number) as Void {
+        serviceCallbacks[index].invoke(true, null);
     }
 
-    function fireServiceFailure() as Void {
-        (_serviceCallback as Method).invoke(null, -1);
-    }
-
-    function fireServiceFailureWithCode(code as Number) as Void {
-        (_serviceCallback as Method).invoke(null, code);
+    function fireServiceFailureAt(index as Number, code as Number) as Void {
+        serviceCallbacks[index].invoke(null, code);
     }
 
     function fireRegisterSuccess(webhookId as String) as Void {
@@ -291,9 +290,9 @@ function toggleLightRecoversOnceFromInvalidWebhook(logger as Test.Logger) as Boo
 
     new RecoveryHandler(client, new CallServiceHandler(client, "light.a").method(:callService),
         capture.method(:onResult)).attempt();
-    client.fireServiceFailureWithCode(Communications.INVALID_HTTP_BODY_IN_NETWORK_RESPONSE);
+    client.fireServiceFailureAt(0, Communications.INVALID_HTTP_BODY_IN_NETWORK_RESPONSE);
     client.fireRegisterSuccess("fresh-id");
-    client.fireServiceSuccess();
+    client.fireServiceSuccessAt(0);
 
     Test.assertEqual(client.toggleCount, 2);
     Test.assertEqual(client.registerCount, 1);
