@@ -18,12 +18,20 @@ class CardRenderer {
     private const LIGHT_INDICATOR_RADIUS = 6;
     private const LIGHT_INDICATOR_SPACING = LIGHT_INDICATOR_RADIUS * 3;
 
-    private const PAGE_INDICATOR_RADIUS = 4;
-    private const PAGE_OVERFLOW_RADIUS = 2;
     private const PAGE_INDICATOR_INSET = 8;
-    private const PAGE_INDICATOR_SPACING = 16;
     private const MAX_PAGE_INDICATORS = 5;
     private const LEFT_ANGLE = Math.PI;
+
+    private var _pageIndicatorRadius as Number;
+    private var _pageOverflowRadius as Number;
+    private var _pageIndicatorSpacing as Number;
+
+    function initialize() {
+        var dimensions = WatchUi.loadResource(Rez.JsonData.PageIndicatorDimensions) as Dictionary;
+        _pageIndicatorRadius = dimensions.get("radius") as Number;
+        _pageOverflowRadius = dimensions.get("overflowRadius") as Number;
+        _pageIndicatorSpacing = dimensions.get("spacing") as Number;
+    }
 
     function drawCard(dc as Graphics.Dc, card as Dictionary, pageCount as Number,
                       pageIndex as Number) as Void {
@@ -181,13 +189,13 @@ class CardRenderer {
 
         var window = pageWindow(pageCount, currentIndex);
         var visibleCount = window.get(:count) as Number;
-        var radius = (dc.getWidth() / 2 - PAGE_INDICATOR_INSET - PAGE_INDICATOR_RADIUS).toFloat();
+        var radius = (dc.getWidth() / 2 - PAGE_INDICATOR_INSET - _pageIndicatorRadius).toFloat();
         var centerX = dc.getWidth() / 2;
         var centerY = dc.getHeight() / 2;
 
         // Derive the angular step from a target pixel gap so indicators keep the
         // same on-screen spacing whatever the display's radius.
-        var angleStep = PAGE_INDICATOR_SPACING / radius;
+        var angleStep = _pageIndicatorSpacing / radius;
 
         if (window.get(:moreBefore) as Boolean) {
             drawOverflowIndicator(dc, fanAngle(-1, visibleCount, angleStep), centerX, centerY, radius);
@@ -268,13 +276,13 @@ class CardRenderer {
         if (isCurrent) {
             useAntiAlias(dc, true);
             dc.setColor(system_color_dark__text.color, system_color_dark__background.background);
-            dc.fillCircle(x, y, PAGE_INDICATOR_RADIUS);
+            dc.fillCircle(x, y, _pageIndicatorRadius);
             return;
         }
 
         useAntiAlias(dc, false);
         dc.setColor(Graphics.COLOR_DK_GRAY, system_color_dark__background.background);
-        dc.drawCircle(x, y, PAGE_INDICATOR_RADIUS);
+        dc.drawCircle(x, y, _pageIndicatorRadius);
     }
 
     private function drawOverflowIndicator(dc as Graphics.Dc, angle as Float, centerX as Number,
@@ -285,7 +293,7 @@ class CardRenderer {
 
         useAntiAlias(dc, false);
         dc.setColor(Graphics.COLOR_DK_GRAY, system_color_dark__background.background);
-        dc.fillCircle(x, y, PAGE_OVERFLOW_RADIUS);
+        dc.fillCircle(x, y, _pageOverflowRadius);
     }
 
     private function drawSelectHint(dc as Graphics.Dc) as Void {
