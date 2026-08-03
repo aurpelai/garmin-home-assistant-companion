@@ -28,7 +28,7 @@ class LoadingView extends WatchUi.View {
             showRetryScreen(Rez.Strings.ErrNoConfig, null);
             return;
         }
-        setMessage(WatchUi.loadResource(Rez.Strings.LoadingAreas) as String);
+        setMessage(WatchUi.loadResource(Rez.Strings.Loading) as String);
         _client.fetchHomeState(method(:onLoaded));
     }
 

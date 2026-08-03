@@ -13,7 +13,7 @@ import Toybox.WatchUi;
 // silently converges the visible rows to server truth without ever blocking on
 // the network. Resume is handled separately by the app's onActive; onShow may
 // also fire on resume, a tolerated harmless double-fetch.
-class EntityMenu extends WatchUi.Menu2 {
+class AreaEntityMenu extends WatchUi.Menu2 {
     private var _session as HomeSession;
     private var _lights as Array<String>;
     private var _sensors as Array<String>;
@@ -31,7 +31,7 @@ class EntityMenu extends WatchUi.Menu2 {
         // still opens onto nothing.
         if (lights.size() == 0 && sensors.size() == 0) {
             addItem(new WatchUi.MenuItem(
-                WatchUi.loadResource(Rez.Strings.NoEntities) as String, null, :none, null));
+                WatchUi.loadResource(Rez.Strings.NoEntitiesInArea) as String, null, :none, null));
             return;
         }
         for (var i = 0; i < lights.size(); i++) {
@@ -79,7 +79,7 @@ class EntityMenu extends WatchUi.Menu2 {
     }
 
     // A reading is a plain MenuItem, never a toggle: that is what makes the row
-    // inert (see EntityMenuDelegate.onSelect). It still carries the entity id, so
+    // inert (see AreaEntityMenuDelegate.onSelect). It still carries the entity id, so
     // redraw can find it.
     static function buildSensorItem(session as HomeSession, entityId as String) as WatchUi.MenuItem {
         return new WatchUi.MenuItem(

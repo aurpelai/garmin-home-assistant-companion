@@ -4,13 +4,13 @@ import Toybox.WatchUi;
 // Once a toggle resolves, snaps the switch to the session's state — a no-op on
 // success, a flip-back on failure — then refreshes every visible row.
 class ToggleHandler {
-    private var _menu as EntityMenu;
+    private var _menu as AreaEntityMenu;
     private var _item as WatchUi.ToggleMenuItem;
     private var _session as HomeSession;
     private var _entityId as String;
 
     function initialize(
-            menu as EntityMenu, item as WatchUi.ToggleMenuItem, session as HomeSession,
+            menu as AreaEntityMenu, item as WatchUi.ToggleMenuItem, session as HomeSession,
             entityId as String) {
         _menu = menu;
         _item = item;

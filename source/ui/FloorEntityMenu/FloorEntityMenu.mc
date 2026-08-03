@@ -1,7 +1,7 @@
 import Toybox.Lang;
 import Toybox.WatchUi;
 
-class AllLightsMenu extends WatchUi.Menu2 {
+class FloorEntityMenu extends WatchUi.Menu2 {
     public var floorId as String;
 
     function initialize(session as HomeSession, floorId as String, floorName as String) {

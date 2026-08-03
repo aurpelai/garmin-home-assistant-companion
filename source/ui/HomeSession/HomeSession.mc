@@ -3,7 +3,7 @@ import Toybox.Lang;
 // Toggles update the mutable copy optimistically so the switch flips
 // immediately, leaving the HomeState as the untouched server truth.
 class HomeSession {
-    typedef LightStates as {
+    typedef LightSummary as {
         :on as Number,
         :available as Number,
         :unavailable as Number
@@ -93,7 +93,7 @@ class HomeSession {
     }
 
     // Tallies physical lights. On is counted only among available lights.
-    function getLightStates(lights as Array<String>) as LightStates {
+    function getLightSummary(lights as Array<String>) as LightSummary {
         var onCount = 0;
         var availableCount = 0;
         var unavailableCount = 0;
@@ -158,16 +158,16 @@ class HomeSession {
         return readings;
     }
 
-    function getFloorLightStates(areaIds as Array<String>) as LightStates {
+    function getFloorLightSummary(areaIds as Array<String>) as LightSummary {
         var onCount = 0;
         var availableCount = 0;
         var unavailableCount = 0;
 
         for (var i = 0; i < areaIds.size(); i++) {
-            var states = getLightStates(listLightsInArea(areaIds[i]));
-            onCount += states.get(:on) as Number;
-            availableCount += states.get(:available) as Number;
-            unavailableCount += states.get(:unavailable) as Number;
+            var summary = getLightSummary(listLightsInArea(areaIds[i]));
+            onCount += summary.get(:on) as Number;
+            availableCount += summary.get(:available) as Number;
+            unavailableCount += summary.get(:unavailable) as Number;
         }
 
         return {

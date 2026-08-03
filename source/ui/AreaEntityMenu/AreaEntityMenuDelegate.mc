@@ -1,11 +1,11 @@
 import Toybox.Lang;
 import Toybox.WatchUi;
 
-class EntityMenuDelegate extends WatchUi.Menu2InputDelegate {
-    private var _menu as EntityMenu;
+class AreaEntityMenuDelegate extends WatchUi.Menu2InputDelegate {
+    private var _menu as AreaEntityMenu;
     private var _session as HomeSession;
 
-    function initialize(menu as EntityMenu, session as HomeSession) {
+    function initialize(menu as AreaEntityMenu, session as HomeSession) {
         Menu2InputDelegate.initialize();
         _menu = menu;
         _session = session;
