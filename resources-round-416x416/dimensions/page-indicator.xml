@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jsonDataResources>
+    <jsonData id="PageIndicatorDimensions">
+        { "radius": 6, "overflowRadius": 3, "spacing": 28 }
+    </jsonData>
+</jsonDataResources>
