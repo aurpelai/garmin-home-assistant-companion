@@ -26,7 +26,14 @@ class AreaEntityMenuDelegate extends WatchUi.Menu2InputDelegate {
         }
         // The native ToggleMenuItem already flipped on tap; it stays flipped
         // with no in-flight affordance until server truth arrives.
-        _session.toggleState(entityId,
-            new ToggleHandler(_menu, toggle, _session, entityId).method(:onComplete));
+        _session.toggleState(entityId, method(:onToggleComplete));
+    }
+
+    // Snaps every row to session truth once the call resolves (a no-op on
+    // success, a flip-back on failure), then refetches and converges again.
+    // Holds no per-tap state, so overlapping taps cannot cross their snaps.
+    function onToggleComplete() as Void {
+        _menu.redraw();
+        _session.refreshState(_menu.method(:redraw));
     }
 }

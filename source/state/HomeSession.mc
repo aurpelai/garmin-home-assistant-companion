@@ -18,7 +18,10 @@ class HomeSession {
 
     public var client as HaClient;
     private var _state as HomeState;
-    private var _optimisticOn as Dictionary<String, Boolean>;
+    // A light's on/off, the Boolean projection of HA's richer state string —
+    // all we need to drive a toggle. Availability is a separate axis (see
+    // isAvailable), never encoded here.
+    private var _states as Dictionary<String, Boolean>;
 
     function initialize(client as HaClient, state as HomeState) {
         self.client = client;
@@ -28,7 +31,7 @@ class HomeSession {
         for (var i = 0; i < entityIds.size(); i++) {
             copy.put(entityIds[i], state.isOn(entityIds[i]));
         }
-        self._optimisticOn = copy;
+        self._states = copy;
     }
 
     function listLightsInArea(areaId as String) as Array<String> {
@@ -80,10 +83,9 @@ class HomeSession {
     }
 
     function isOn(entityId as String) as Boolean {
-        var state = _optimisticOn.get(entityId);
-        return state == null
-            ? false
-            : state as Boolean;
+        return _states.hasKey(entityId)
+            ? _states.get(entityId) as Boolean
+            : false;
     }
 
     // Availability is server truth only, never optimistically mutated, so it
@@ -179,19 +181,18 @@ class HomeSession {
 
     // Distinguishes absent from present-but-off, which isOn's off default cannot.
     function isTracked(entityId as String) as Boolean {
-        return _optimisticOn.hasKey(entityId);
+        return _states.hasKey(entityId);
     }
 
-    // The result callback reverts the optimistic flip on failure.
     function toggleState(entityId as String, onComplete as Method) as Void {
-        var newOn = !isOn(entityId);
-        _optimisticOn.put(entityId, newOn);
+        var savedState = isOn(entityId);
+        _states.put(entityId, !savedState);
         client.toggleLight(entityId,
-            new ToggleResultHandler(self, entityId, newOn, onComplete).method(:onResult));
+            new PendingToggle(self, entityId, savedState, onComplete).method(:onResult));
     }
 
-    function revertState(entityId as String, attemptedOn as Boolean) as Void {
-        _optimisticOn.put(entityId, !attemptedOn);
+    function revertToggle(entityId as String, savedState as Boolean) as Void {
+        _states.put(entityId, savedState);
     }
 
     // Any available, physical light in the floor being on.
@@ -211,27 +212,27 @@ class HomeSession {
     // state. Each affected light's prior value is captured before the optimistic
     // flip, so a failed call restores exactly those, not a blanket flip.
     function toggleFloorLights(floorId as String, onComplete as Method) as Void {
-        var newOn = !areFloorLightsOn(floorId);
+        var targetState = !areFloorLightsOn(floorId);
         var lights = toggleableFloorLights(floorId);
-        var priorOn = {} as Dictionary<String, Boolean>;
+        var savedStates = {} as Dictionary<String, Boolean>;
 
         for (var i = 0; i < lights.size(); i++) {
             var entityId = lights[i];
-            priorOn.put(entityId, isOn(entityId));
-            _optimisticOn.put(entityId, newOn);
+            savedStates.put(entityId, isOn(entityId));
+            _states.put(entityId, targetState);
         }
 
-        var service = newOn ? "turn_on" : "turn_off";
+        var service = targetState ? "turn_on" : "turn_off";
         client.toggleFloorLights(floorId, service,
-            new FloorToggleResultHandler(self, priorOn, onComplete).method(:onResult));
+            new PendingWholeFloorToggle(self, savedStates, onComplete).method(:onResult));
     }
 
-    function revertStates(priorOn as Dictionary<String, Boolean>) as Void {
-        var entityIds = priorOn.keys();
+    function revertStates(savedStates as Dictionary<String, Boolean>) as Void {
+        var entityIds = savedStates.keys();
 
         for (var i = 0; i < entityIds.size(); i++) {
             var entityId = entityIds[i];
-            _optimisticOn.put(entityId, priorOn.get(entityId) as Boolean);
+            _states.put(entityId, savedStates.get(entityId) as Boolean);
         }
     }
 
@@ -257,11 +258,11 @@ class HomeSession {
     function applyState(state as HomeState) as Void {
         _state = state;
 
-        var entityIds = _optimisticOn.keys();
+        var entityIds = _states.keys();
         for (var i = 0; i < entityIds.size(); i++) {
             var entityId = entityIds[i];
             if (state.hasLight(entityId)) {
-                _optimisticOn.put(entityId, state.isOn(entityId));
+                _states.put(entityId, state.isOn(entityId));
             }
         }
     }
@@ -269,6 +270,6 @@ class HomeSession {
     // A fetch failure is swallowed (last-known state stays and heals on the next
     // trigger), yet onDone still fires so callers need no error branch.
     function refreshState(onDone as Method) as Void {
-        client.fetchHomeState(new RefreshHandler(self, onDone).method(:onFetched));
+        client.fetchHomeState(new PendingRefresh(self, onDone).method(:onFetched));
     }
 }
