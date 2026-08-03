@@ -103,7 +103,7 @@ class HaClient {
     function initialize() {}
 
     function fetchHomeState(callback as Method) as Void {
-        new RecoveryHandler(self, method(:fetchOnce), callback).attempt();
+        new RecoveryHandler(self, method(:fetch), callback).attempt();
     }
 
     function register(callback as Method) as Void {
@@ -125,15 +125,15 @@ class HaClient {
     }
 
     function toggleLight(entityId as String, callback as Method) as Void {
-        new RecoveryHandler(self, new ServiceOnceHandler(self, entityId).method(:serviceOnce), callback).attempt();
+        new RecoveryHandler(self, new CallServiceHandler(self, entityId).method(:callService), callback).attempt();
     }
 
     function toggleFloorLights(floorId as String, service as String, callback as Method) as Void {
         new RecoveryHandler(self,
-            new FloorServiceOnceHandler(self, floorId, service).method(:serviceOnce), callback).attempt();
+            new CallFloorServiceHandler(self, floorId, service).method(:callFloorService), callback).attempt();
     }
 
-    function fetchOnce(callback as Method) as Void {
+    function fetch(callback as Method) as Void {
         var webhookId = Settings.getWebhookId();
         if (webhookId == null) {
             callback.invoke(null, 404);
@@ -143,7 +143,7 @@ class HaClient {
         post("/api/webhook/" + webhookId, body, new ResponseHandler(callback, :onTemplate));
     }
 
-    function serviceOnce(entityId as String, callback as Method) as Void {
+    function callService(entityId as String, callback as Method) as Void {
         var webhookId = Settings.getWebhookId();
         if (webhookId == null) {
             callback.invoke(null, 404);
@@ -162,7 +162,7 @@ class HaClient {
 
     // HA's `target` (floor_id/area_id/device_id) is a distinct field from a
     // per-entity service_data.entity_id, so a floor service call targets `target`.
-    function floorServiceOnce(floorId as String, service as String, callback as Method) as Void {
+    function callFloorService(floorId as String, service as String, callback as Method) as Void {
         var webhookId = Settings.getWebhookId();
         if (webhookId == null) {
             callback.invoke(null, 404);
@@ -266,9 +266,9 @@ class RecoveryHandler {
     }
 }
 
-// Binds an entityId to HaClient.serviceOnce, so a per-toggle instance exposes
+// Binds an entityId to HaClient.callService, so a per-toggle instance exposes
 // the single-callback-argument shape RecoveryHandler's attemptOnce requires.
-class ServiceOnceHandler {
+class CallServiceHandler {
     private var _client as HaClient;
     private var _entityId as String;
 
@@ -277,27 +277,27 @@ class ServiceOnceHandler {
         _entityId = entityId;
     }
 
-    function serviceOnce(callback as Method) as Void {
-        _client.serviceOnce(_entityId, callback);
+    function callService(callback as Method) as Void {
+        _client.callService(_entityId, callback);
     }
 }
 
 class ResponseHandler {
     private var _callback as Method;
-    private var _kind as Symbol;
+    private var _responseType as Symbol;
 
-    function initialize(callback as Method, kind as Symbol) {
+    function initialize(callback as Method, responseType as Symbol) {
         _callback = callback;
-        _kind = kind;
+        _responseType = responseType;
     }
 
     function onResponse(code as Number, data as Dictionary or String or Null) as Void {
         if (code < 200 || code >= 300) {
-            System.println("HA request failed: kind=" + _kind + " code=" + code + " body=" + data);
+            System.println("HA request failed: responseType=" + _responseType + " code=" + code + " body=" + data);
             _callback.invoke(null, code);
             return;
         }
-        switch (_kind) {
+        switch (_responseType) {
             case :onTemplate:
                 var home = (data instanceof Dictionary) ? data.get("home") : null;
                 // The render_template webhook returns the rendered value as a
