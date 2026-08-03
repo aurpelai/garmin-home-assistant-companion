@@ -25,11 +25,11 @@ function aFreshTriggerWhileVisibleKeepsItVisible(logger as Test.Logger) as Boole
 }
 
 (:test)
-function retractingHidesTheIndicator(logger as Test.Logger) as Boolean {
+function hidingClearsTheVisibleState(logger as Test.Logger) as Boolean {
     var reveal = new PageIndicatorReveal();
 
     reveal.onTrigger(3);
-    reveal.onRetracted();
+    reveal.onHidden();
 
     Test.assert(!reveal.isVisible());
 

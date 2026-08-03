@@ -16,7 +16,7 @@ class PageIndicatorReveal {
         _state = pageCount < 2 ? PAGE_INDICATOR_HIDDEN : PAGE_INDICATOR_VISIBLE;
     }
 
-    function onRetracted() as Void {
+    function onHidden() as Void {
         _state = PAGE_INDICATOR_HIDDEN;
     }
 

@@ -6,13 +6,9 @@ import Toybox.Timer;
 import Toybox.WatchUi;
 
 class CardLoopView extends WatchUi.View {
-    private const SLIDE_SECONDS = 0.75;
-    private const HOLD_MS = 2000;
-    private const CROSSFADE_SECONDS = 0.05;
-
-    private const SEATED_X = 0;
-    private const CROSSFADE_BRIGHT = 1.0;
-    private const CROSSFADE_DIM = 0.0;
+    private const ANIMATION_DURATION = 0.1;
+    private const VISIBLE_DURATION_MS = 1800;
+    private const FADE_DURATION = 0.05;
 
     private var _session as HomeSession;
     private var _cards as Array<Dictionary>;
@@ -21,19 +17,18 @@ class CardLoopView extends WatchUi.View {
 
     private var _reveal as PageIndicatorReveal;
     private var _indicator as PageIndicatorLayer;
-    private var _holdTimer as Timer.Timer;
+    private var _visibleTimer as Timer.Timer;
 
-    private var _hiddenX as Number;
     private var _layerAdded as Boolean;
 
-    public var _slideX as Number;
-    public var _crossfadeFraction as Float;
+    public var _animationProgress as Float;
+    public var _fadeProgress as Float;
     private var _fromIndex as Number;
 
-    // cancelAllAnimations() invokes the cancelled slide's completion callback
+    // cancelAllAnimations() invokes the cancelled animation's completion callback
     // synchronously; the epoch stamp lets a superseded callback detect that and no-op.
     private var _epoch as Number;
-    private var _slideEpoch as Number;
+    private var _animationEpoch as Number;
 
     function initialize(session as HomeSession) {
         View.initialize();
@@ -44,17 +39,16 @@ class CardLoopView extends WatchUi.View {
 
         _reveal = new PageIndicatorReveal();
         _indicator = new PageIndicatorLayer();
-        _holdTimer = new Timer.Timer();
+        _visibleTimer = new Timer.Timer();
 
-        _hiddenX = 0;
         _layerAdded = false;
 
-        _slideX = 0;
-        _crossfadeFraction = CROSSFADE_BRIGHT;
+        _animationProgress = 0.0;
+        _fadeProgress = 1.0;
         _fromIndex = 0;
 
         _epoch = 0;
-        _slideEpoch = 0;
+        _animationEpoch = 0;
     }
 
     function onLayout(dc as Graphics.Dc) as Void {
@@ -62,15 +56,12 @@ class CardLoopView extends WatchUi.View {
             addLayer(_indicator.getLayer());
             _layerAdded = true;
         }
-
-        _hiddenX = -(dc.getWidth() / 2);
-        _slideX = _hiddenX;
     }
 
     function onShow() as Void {
         (Application.getApp() as HaControllerApp).setCurrentView(self);
         redraw();
-        reveal();
+        showIndicator();
     }
 
     // The named redraw seam onActive dispatches to (see AreaEntityMenu.redraw).
@@ -95,16 +86,18 @@ class CardLoopView extends WatchUi.View {
         _fromIndex = _index;
         _index = _index < _cards.size() - 1 ? _index + 1 : 0;
 
-        WatchUi.requestUpdate();
-        revealOnPageChange();
+        if (showIndicator()) {
+            fadeActiveDot();
+        }
     }
 
     function showPrevious() as Void {
         _fromIndex = _index;
         _index = _index > 0 ? _index - 1 : _cards.size() - 1;
 
-        WatchUi.requestUpdate();
-        revealOnPageChange();
+        if (showIndicator()) {
+            fadeActiveDot();
+        }
     }
 
     function onUpdate(dc as Graphics.Dc) as Void {
@@ -121,8 +114,7 @@ class CardLoopView extends WatchUi.View {
         _renderer.drawCard(dc, card as Dictionary);
 
         if (_reveal.isVisible()) {
-            _indicator.setLocation(_slideX, 0);
-            _indicator.draw(_index, _cards.size(), _crossfadeFraction, _fromIndex);
+            _indicator.draw(_index, _cards.size(), _fadeProgress, _fromIndex, _animationProgress);
         }
     }
 
@@ -130,63 +122,50 @@ class CardLoopView extends WatchUi.View {
         View.onHide();
         _epoch++;
         WatchUi.cancelAllAnimations();
-        _holdTimer.stop();
-        _reveal.onRetracted();
-        _indicator.setVisible(false);
+        _visibleTimer.stop();
+        _reveal.onHidden();
+        _indicator.clear();
     }
 
-    private function reveal() as Void {
-        if (!show()) {
-            return;
-        }
-
-        _crossfadeFraction = CROSSFADE_BRIGHT;
-    }
-
-    private function revealOnPageChange() as Void {
-        if (!show()) {
-            return;
-        }
-
-        _crossfadeFraction = CROSSFADE_DIM;
-        WatchUi.animate(self, :_crossfadeFraction, WatchUi.ANIM_TYPE_LINEAR,
-                        CROSSFADE_DIM, CROSSFADE_BRIGHT, CROSSFADE_SECONDS, null);
-    }
-
-    private function show() as Boolean {
+    private function showIndicator() as Boolean {
         _reveal.onTrigger(_cards.size());
 
         if (!_reveal.isVisible()) {
-            _indicator.setVisible(false);
             return false;
         }
 
         _epoch++;
         WatchUi.cancelAllAnimations();
-        _holdTimer.stop();
+        _visibleTimer.stop();
 
-        _slideX = SEATED_X;
-        _indicator.setVisible(true);
+        _animationProgress = 0.0;
+        _fadeProgress = 1.0;
         WatchUi.requestUpdate();
 
-        _holdTimer.start(method(:onHoldExpired), HOLD_MS, false);
+        _visibleTimer.start(method(:hideIndicator), VISIBLE_DURATION_MS, false);
 
         return true;
     }
 
-    function onHoldExpired() as Void {
-        _epoch++;
-        _slideEpoch = _epoch;
-        WatchUi.animate(self, :_slideX, WatchUi.ANIM_TYPE_EASE_IN, _slideX, _hiddenX,
-                        SLIDE_SECONDS, method(:onRetracted));
+    private function fadeActiveDot() as Void {
+        _fadeProgress = 0.0;
+        WatchUi.animate(self, :_fadeProgress, WatchUi.ANIM_TYPE_LINEAR, 0.0, 1.0,
+                        FADE_DURATION, null);
     }
 
-    function onRetracted() as Void {
-        if (_epoch != _slideEpoch) {
+    function hideIndicator() as Void {
+        _epoch++;
+        _animationEpoch = _epoch;
+        WatchUi.animate(self, :_animationProgress, WatchUi.ANIM_TYPE_LINEAR, _animationProgress, 1.0,
+                        ANIMATION_DURATION, method(:onIndicatorHide));
+    }
+
+    function onIndicatorHide() as Void {
+        if (_epoch != _animationEpoch) {
             return;
         }
 
-        _reveal.onRetracted();
-        _indicator.setVisible(false);
+        _reveal.onHidden();
+        _indicator.clear();
     }
 }

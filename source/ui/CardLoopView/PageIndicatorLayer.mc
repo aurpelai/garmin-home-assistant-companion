@@ -11,7 +11,7 @@ class PageIndicatorLayer {
     private const MAX_PAGE_INDICATORS = 5;
     private const LEFT_ANGLE = Math.PI;
 
-    private const INACTIVE_COLOR = Graphics.COLOR_DK_GRAY;
+    private const INACTIVE_COLOR = Graphics.COLOR_LT_GRAY;
 
     private var _layer as WatchUi.Layer;
     private var _pageIndicatorRadius as Number;
@@ -31,16 +31,19 @@ class PageIndicatorLayer {
         return _layer;
     }
 
-    function setLocation(x as Number, y as Number) as Void {
-        _layer.setLocation(x, y);
+    function clear() as Void {
+        var dc = _layer.getDc();
+
+        if (dc == null) {
+            return;
+        }
+
+        dc.setColor(system_color_dark__text.color, Graphics.COLOR_TRANSPARENT);
+        dc.clear();
     }
 
-    function setVisible(visible as Boolean) as Void {
-        _layer.setVisible(visible);
-    }
-
-    function draw(currentIndex as Number, pageCount as Number, crossfadeFraction as Float,
-                  fromIndex as Number) as Void {
+    function draw(currentIndex as Number, pageCount as Number, fadeProgress as Float,
+                  fromIndex as Number, animationProgress as Float) as Void {
         var dc = _layer.getDc();
 
         if (dc == null) {
@@ -50,18 +53,26 @@ class PageIndicatorLayer {
         dc.setColor(system_color_dark__text.color, Graphics.COLOR_TRANSPARENT);
         dc.clear();
 
-        drawPagination(dc, currentIndex, pageCount, crossfadeFraction, fromIndex);
+        if (dc has :setAntiAlias) {
+            dc.setAntiAlias(true);
+        }
+
+        drawPagination(dc, currentIndex, pageCount, fadeProgress, fromIndex, animationProgress);
     }
 
     private function drawPagination(dc as Graphics.Dc, currentIndex as Number, pageCount as Number,
-                                    crossfadeFraction as Float, fromIndex as Number) as Void {
+                                    fadeProgress as Float, fromIndex as Number,
+                                    animationProgress as Float) as Void {
         var window = pageWindow(pageCount, currentIndex);
         var visibleCount = window.get(:count) as Number;
-        var radius = (dc.getWidth() / 2 - PAGE_INDICATOR_INSET - _pageIndicatorRadius).toFloat();
+        var baseRadius = (dc.getWidth() / 2 - PAGE_INDICATOR_INSET - _pageIndicatorRadius).toFloat();
         var centerX = dc.getWidth() / 2;
         var centerY = dc.getHeight() / 2;
 
-        var angleStep = _pageIndicatorSpacing / radius;
+        // The angular step stays keyed to the base radius so the fan holds its
+        // shape as it expands past the bezel rather than narrowing.
+        var radius = baseRadius + animationProgress * (centerX + _pageIndicatorRadius - baseRadius);
+        var angleStep = _pageIndicatorSpacing / baseRadius;
 
         if (window.get(:moreBefore) as Boolean) {
             drawOverflowIndicator(dc, fanAngle(-1, visibleCount, angleStep), centerX, centerY, radius);
@@ -72,7 +83,7 @@ class PageIndicatorLayer {
         for (var i = 0; i < visibleCount; i++) {
             var page = start + i;
             drawPageIndicator(dc, fanAngle(i, visibleCount, angleStep), centerX, centerY, radius,
-                              page, currentIndex, fromIndex, crossfadeFraction);
+                              page, currentIndex, fromIndex, fadeProgress);
         }
 
         if (window.get(:moreAfter) as Boolean) {
@@ -122,40 +133,37 @@ class PageIndicatorLayer {
     }
 
     private function computePointOnCircle(angle as Float, centerX as Number, centerY as Number,
-                                          radius as Float) as Array<Number> {
+                                          radius as Float) as Array<Float> {
         return [
-            centerX + Math.round(radius * Math.cos(angle)).toNumber(),
-            centerY + Math.round(radius * Math.sin(angle)).toNumber()
+            (centerX + radius * Math.cos(angle)).toFloat(),
+            (centerY + radius * Math.sin(angle)).toFloat()
         ];
     }
 
     private function drawPageIndicator(dc as Graphics.Dc, angle as Float, centerX as Number,
                                        centerY as Number, radius as Float, page as Number,
                                        currentIndex as Number, fromIndex as Number,
-                                       crossfadeFraction as Float) as Void {
+                                       fadeProgress as Float) as Void {
         var point = computePointOnCircle(angle, centerX, centerY, radius);
         var x = point[0];
         var y = point[1];
 
-        useAntiAlias(dc, true);
-
         if (page == currentIndex) {
-            dc.setColor(lerpColor(INACTIVE_COLOR, system_color_dark__text.color, crossfadeFraction),
+            dc.setColor(lerpColor(INACTIVE_COLOR, system_color_dark__text.color, fadeProgress),
                         system_color_dark__background.background);
             dc.fillCircle(x, y, _pageIndicatorRadius);
 
             return;
         }
 
-        if (page == fromIndex && crossfadeFraction < 1.0) {
-            dc.setColor(lerpColor(system_color_dark__text.color, INACTIVE_COLOR, crossfadeFraction),
+        if (page == fromIndex && fadeProgress < 1.0) {
+            dc.setColor(lerpColor(system_color_dark__text.color, INACTIVE_COLOR, fadeProgress),
                         system_color_dark__background.background);
             dc.fillCircle(x, y, _pageIndicatorRadius);
 
             return;
         }
 
-        useAntiAlias(dc, false);
         dc.setColor(INACTIVE_COLOR, system_color_dark__background.background);
         dc.drawCircle(x, y, _pageIndicatorRadius);
     }
@@ -166,7 +174,6 @@ class PageIndicatorLayer {
         var x = point[0];
         var y = point[1];
 
-        useAntiAlias(dc, false);
         dc.setColor(INACTIVE_COLOR, system_color_dark__background.background);
         dc.fillCircle(x, y, _pageOverflowRadius);
     }
@@ -185,11 +192,5 @@ class PageIndicatorLayer {
         var blue = (fromBlue + (toBlue - fromBlue) * fraction).toNumber();
 
         return (red << 16) | (green << 8) | blue;
-    }
-
-    private function useAntiAlias(dc as Graphics.Dc, enabled as Boolean) as Void {
-        if (dc has :setAntiAlias) {
-            dc.setAntiAlias(enabled);
-        }
     }
 }
