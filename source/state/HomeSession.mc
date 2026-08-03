@@ -18,9 +18,7 @@ class HomeSession {
 
     public var client as HaClient;
     private var _state as HomeState;
-    // A light's on/off, the Boolean projection of HA's richer state string —
-    // all we need to drive a toggle. Availability is a separate axis (see
-    // isAvailable), never encoded here.
+    // Availability is a separate axis (see isAvailable), never encoded here.
     private var _states as Dictionary<String, Boolean>;
 
     function initialize(client as HaClient, state as HomeState) {

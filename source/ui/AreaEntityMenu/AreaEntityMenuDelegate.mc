@@ -29,8 +29,6 @@ class AreaEntityMenuDelegate extends WatchUi.Menu2InputDelegate {
         _session.toggleState(entityId, method(:onToggleComplete));
     }
 
-    // Snaps every row to session truth once the call resolves (a no-op on
-    // success, a flip-back on failure), then refetches and converges again.
     // Holds no per-tap state, so overlapping taps cannot cross their snaps.
     function onToggleComplete() as Void {
         _menu.redraw();

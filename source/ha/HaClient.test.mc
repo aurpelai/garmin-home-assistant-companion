@@ -10,8 +10,8 @@ class FakeHaClient extends HaClient {
     private var _fetchCallback as Method?;
     private var _registerCallback as Method?;
 
-    // Service callbacks in the order the calls began, so a test can hold several
-    // toggles in flight and fire an earlier one after a later one started.
+    // A list, not a single slot, so a test can fire an earlier in-flight toggle
+    // after a later one began.
     public var serviceCallbacks as Array<Method> = [];
 
     // Callback capture alone can't distinguish "never called" from "called

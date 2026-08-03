@@ -154,10 +154,7 @@ function toggleStateRevertsOptimisticFlipOnFailure(logger as Test.Logger) as Boo
 
 (:test)
 function overlappingTogglesRevertTheCorrectLight(logger as Test.Logger) as Boolean {
-    // A second toggle starting before the first resolves must not hijack the
-    // first's revert: when light.a's call fails, light.a reverts — not light.b,
-    // whose toggle began later. Guards the per-call isolation that shared state
-    // would break.
+    // Guards the per-call isolation that shared in-flight state would break.
     var session = HomeSessionTest.fakeSessionWith({ "light.a" => false, "light.b" => false });
     var spyA = new CompletionSpy();
 
@@ -176,10 +173,8 @@ function overlappingTogglesRevertTheCorrectLight(logger as Test.Logger) as Boole
 
 (:test)
 function toggleRevertSurvivesRefreshLandingMidFlight(logger as Test.Logger) as Boolean {
-    // A refresh completing between the optimistic flip and a FAILED reply heals
-    // the map to server truth (still off). The revert must restore the captured
-    // pre-flip value (off), not flip whatever the map now holds — which would
-    // wrongly show the light on after a failed command.
+    // The revert must restore the captured pre-flip value, not the post-refresh
+    // map value.
     var session = HomeSessionTest.fakeSessionWith({ "light.a" => false });
 
     session.toggleState("light.a", new NoopCompletion().method(:onComplete));

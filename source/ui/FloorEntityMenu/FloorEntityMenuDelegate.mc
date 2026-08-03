@@ -15,9 +15,7 @@ class FloorEntityMenuDelegate extends WatchUi.Menu2InputDelegate {
         _session.toggleFloorLights(_menu.floorId, method(:onToggleComplete));
     }
 
-    // Snaps the "All Lights" switch to session truth once the call resolves (a
-    // no-op on success, a flip-back on failure), then refetches and converges
-    // again. Holds no per-tap state, so overlapping taps cannot cross their snaps.
+    // Holds no per-tap state, so overlapping taps cannot cross their snaps.
     function onToggleComplete() as Void {
         _menu.redraw();
         _session.refreshState(_menu.method(:redraw));

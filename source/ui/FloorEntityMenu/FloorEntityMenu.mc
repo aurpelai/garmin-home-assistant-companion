@@ -22,8 +22,8 @@ class FloorEntityMenu extends WatchUi.Menu2 {
         _session.refreshState(method(:redraw));
     }
 
-    // Snaps the "All Lights" switch to the floor's derived on state. The named
-    // redraw seam onActive dispatches to (see AreaEntityMenu.redraw).
+    // The redraw seam onActive dispatches into; a view is registered for it in
+    // HaControllerApp.onRefreshed.
     function redraw() as Void {
         var index = findItemById(:allLights);
         if (index < 0) {
