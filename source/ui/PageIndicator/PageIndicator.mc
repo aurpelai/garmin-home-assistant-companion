@@ -6,7 +6,7 @@ import Toybox.WatchUi;
 
 // The page indicators on their own transparent layer, painted above the card so
 // the fan can slide and crossfade without repainting the card.
-class PageIndicatorLayer {
+class PageIndicator {
     private const PAGE_INDICATOR_INSET = 8;
     private const MAX_PAGE_INDICATORS = 5;
     private const LEFT_ANGLE = Math.PI;

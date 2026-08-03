@@ -15,8 +15,8 @@ class CardLoopView extends WatchUi.View {
     private var _index as Number;
     private var _renderer as CardRenderer;
 
-    private var _reveal as PageIndicatorReveal;
-    private var _indicator as PageIndicatorLayer;
+    private var _pageIndicatorState as PageIndicatorState;
+    private var _pageIndicator as PageIndicator;
     private var _visibleTimer as Timer.Timer;
 
     private var _layerAdded as Boolean;
@@ -37,8 +37,8 @@ class CardLoopView extends WatchUi.View {
         _index = 0;
         _renderer = new CardRenderer();
 
-        _reveal = new PageIndicatorReveal();
-        _indicator = new PageIndicatorLayer();
+        _pageIndicatorState = new PageIndicatorState();
+        _pageIndicator = new PageIndicator();
         _visibleTimer = new Timer.Timer();
 
         _layerAdded = false;
@@ -53,7 +53,7 @@ class CardLoopView extends WatchUi.View {
 
     function onLayout(dc as Graphics.Dc) as Void {
         if (!_layerAdded) {
-            addLayer(_indicator.getLayer());
+            addLayer(_pageIndicator.getLayer());
             _layerAdded = true;
         }
     }
@@ -113,8 +113,8 @@ class CardLoopView extends WatchUi.View {
 
         _renderer.drawCard(dc, card as Dictionary);
 
-        if (_reveal.isVisible()) {
-            _indicator.draw(_index, _cards.size(), _fadeProgress, _fromIndex, _animationProgress);
+        if (_pageIndicatorState.isVisible()) {
+            _pageIndicator.draw(_index, _cards.size(), _fadeProgress, _fromIndex, _animationProgress);
         }
     }
 
@@ -123,14 +123,14 @@ class CardLoopView extends WatchUi.View {
         _epoch++;
         WatchUi.cancelAllAnimations();
         _visibleTimer.stop();
-        _reveal.onHidden();
-        _indicator.clear();
+        _pageIndicatorState.onHidden();
+        _pageIndicator.clear();
     }
 
     private function showIndicator() as Boolean {
-        _reveal.onTrigger(_cards.size());
+        _pageIndicatorState.onTrigger(_cards.size());
 
-        if (!_reveal.isVisible()) {
+        if (!_pageIndicatorState.isVisible()) {
             return false;
         }
 
@@ -165,7 +165,7 @@ class CardLoopView extends WatchUi.View {
             return;
         }
 
-        _reveal.onHidden();
-        _indicator.clear();
+        _pageIndicatorState.onHidden();
+        _pageIndicator.clear();
     }
 }

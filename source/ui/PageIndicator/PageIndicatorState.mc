@@ -1,12 +1,12 @@
 import Toybox.Lang;
 
-enum PageIndicatorState {
+enum State {
     PAGE_INDICATOR_HIDDEN,
     PAGE_INDICATOR_VISIBLE
 }
 
-class PageIndicatorReveal {
-    private var _state as PageIndicatorState;
+class PageIndicatorState {
+    private var _state as State;
 
     function initialize() {
         _state = PAGE_INDICATOR_HIDDEN;

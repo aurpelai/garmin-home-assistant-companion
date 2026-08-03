@@ -3,7 +3,7 @@ import Toybox.Test;
 
 (:test)
 function aTriggerMakesTheIndicatorVisible(logger as Test.Logger) as Boolean {
-    var reveal = new PageIndicatorReveal();
+    var reveal = new PageIndicatorState();
 
     reveal.onTrigger(3);
 
@@ -14,7 +14,7 @@ function aTriggerMakesTheIndicatorVisible(logger as Test.Logger) as Boolean {
 
 (:test)
 function aFreshTriggerWhileVisibleKeepsItVisible(logger as Test.Logger) as Boolean {
-    var reveal = new PageIndicatorReveal();
+    var reveal = new PageIndicatorState();
 
     reveal.onTrigger(3);
     reveal.onTrigger(3);
@@ -26,7 +26,7 @@ function aFreshTriggerWhileVisibleKeepsItVisible(logger as Test.Logger) as Boole
 
 (:test)
 function hidingClearsTheVisibleState(logger as Test.Logger) as Boolean {
-    var reveal = new PageIndicatorReveal();
+    var reveal = new PageIndicatorState();
 
     reveal.onTrigger(3);
     reveal.onHidden();
@@ -38,7 +38,7 @@ function hidingClearsTheVisibleState(logger as Test.Logger) as Boolean {
 
 (:test)
 function fewerThanTwoPagesNeverBecomesVisible(logger as Test.Logger) as Boolean {
-    var reveal = new PageIndicatorReveal();
+    var reveal = new PageIndicatorState();
 
     reveal.onTrigger(1);
 
