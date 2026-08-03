@@ -1,8 +1,7 @@
 import Toybox.Lang;
 
-// One in-flight single-light toggle. Carries the light's pre-flip state so a
-// failed call restores exactly that — not whatever the map holds at reply time,
-// which a refresh landing mid-flight could have overwritten with server truth.
+// Carries the pre-flip state rather than recovering it from the map on failure:
+// a refresh landing mid-flight could have overwritten the map with server truth.
 class PendingToggle {
     private var _session as HomeSession;
     private var _entityId as String;

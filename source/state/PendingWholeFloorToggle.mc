@@ -1,9 +1,5 @@
 import Toybox.Lang;
 
-// One in-flight whole-floor toggle: a single service call that drives every
-// light on the floor to one direction. The optimistic flip overwrites each
-// light's own value, so the pre-flip states are carried here to restore exactly
-// on failure.
 class PendingWholeFloorToggle {
     private var _session as HomeSession;
     private var _savedStates as Dictionary<String, Boolean>;
