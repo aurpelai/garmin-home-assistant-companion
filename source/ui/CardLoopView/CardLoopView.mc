@@ -47,7 +47,7 @@ class CardLoopView extends WatchUi.View {
     }
 
     function onHide() as Void {
-        _pageIndicator.onHide();
+        _pageIndicator.onParentViewHide();
         removeLayer(_pageIndicator.getLayer());
         View.onHide();
     }

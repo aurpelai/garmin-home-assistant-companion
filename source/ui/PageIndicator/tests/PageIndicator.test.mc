@@ -29,7 +29,7 @@ function hidingClearsTheVisibleState(logger as Test.Logger) as Boolean {
     var indicator = new PageIndicator(5);
 
     indicator.updateIndex(3);
-    indicator.onHide();
+    indicator.onParentViewHide();
 
     Test.assert(!indicator.isVisible());
 
