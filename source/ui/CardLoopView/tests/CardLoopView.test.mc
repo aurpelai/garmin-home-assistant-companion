@@ -28,7 +28,7 @@ function pagingMovesThroughTheSequenceAndWrapsAtBothEnds(logger as Test.Logger) 
     });
     var view = new CardLoopView(session);
 
-    view.redraw();
+    view.draw();
     Test.assertEqual((view.getCurrentCard() as Dictionary).get(:name) as String, "Ground Floor");
 
     view.showPrevious();

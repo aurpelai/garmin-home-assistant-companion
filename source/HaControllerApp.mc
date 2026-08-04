@@ -44,11 +44,11 @@ class HaControllerApp extends Application.AppBase {
 
     function onRefreshed() as Void {
         // No interface to type this against (Menu2 owns the single base slot),
-        // so the redraw call is a duck-typed cast union — a new state-showing
+        // so the draw call is a duck-typed cast union — a new state-showing
         // view must be added to it.
         var view = _currentView;
-        if (view != null && view has :redraw) {
-            (view as AreaEntityMenu or FloorEntityMenu or CardLoopView).redraw();
+        if (view != null && view has :draw) {
+            (view as AreaEntityMenu or FloorEntityMenu or CardLoopView).draw();
         }
     }
 }
