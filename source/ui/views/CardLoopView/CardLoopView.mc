@@ -35,7 +35,11 @@ class CardLoopView extends WatchUi.View {
         var card = getCurrentCard();
 
         if (card == null) {
-            CenteredMessage.draw(dc, WatchUi.loadResource(Rez.Strings.NoEntitiesInAnyArea) as String);
+            WatchUi.switchToView(
+                new ErrorView(WatchUi.loadResource(Rez.Strings.NoEntitiesInAnyArea) as String),
+                new ErrorDelegate(),
+                WatchUi.SLIDE_IMMEDIATE
+            );
             return;
         }
 

@@ -10,8 +10,6 @@ enum PageIndicatorState {
     PAGE_INDICATOR_VISIBLE
 }
 
-// The page indicators on their own transparent layer, painted above the card so
-// the fan can slide and crossfade without repainting the card.
 class PageIndicator {
     private const ANIMATION_DURATION = 0.1;
     private const VISIBLE_DURATION_MS = 1800;
