@@ -11,34 +11,36 @@ enum PageIndicatorState {
 }
 
 class PageIndicator {
-    private const ANIMATION_DURATION = 0.2;
+    private const SLIDE_OUT_DURATION = 0.2;
     private const VISIBLE_DURATION_MS = 1800;
-    private const FADE_DURATION = 0.05;
+    private const INDICATOR_FADE_DURATION = 0.05;
 
-    private const LEFT_ANGLE = Math.PI;
+    private const START_ANGLE = Math.PI;
 
-    private const INACTIVE_INDICATOR_COLOR = Graphics.COLOR_LT_GRAY;
     private const PAGE_INDICATOR_INSET = 8;
     private const MAX_PAGE_INDICATORS = 5;
     private const MIN_PAGE_INDICATORS = 3;
 
+    private const ACTIVE_INDICATOR_COLOR_CHANNEL = 254; // NOTE: 255 causes Graphics.createColor to return -1 (transparent)
+    private const INACTIVE_INDICATOR_COLOR_CHANNEL = 0;
+    private const INACTIVE_INDICATOR_STROKE_COLOR = Graphics.COLOR_LT_GRAY;
+
     private var _pageIndicatorRadius as Number;
     private var _pageOverflowRadius as Number;
     private var _pageIndicatorSpacing as Number;
-
-    private var _layer as WatchUi.Layer;
-    private var _state as PageIndicatorState;
+    public var _inactiveIndicatorColorChannel as Number;
 
     private var _radiusStart as Float;
     private var _radiusEnd as Float;
     public var _radius as Float;
 
+    private var _layer as WatchUi.Layer;
+    private var _state as PageIndicatorState;
+    private var _timer as Timer.Timer;
+
     private var _pageCount as Number;
     private var _currentPage as Number;
-
-    private var _timer as Timer.Timer;
-    public var _fadeProgress as Float;
-
+    private var _previousPage as Number;
 
     function initialize(pageCount as Number) {
         _layer = new WatchUi.Layer(null);
@@ -46,6 +48,7 @@ class PageIndicator {
 
         _pageCount = pageCount;
         _currentPage = 0;
+        _previousPage = 0;
 
         var dimensions = WatchUi.loadResource(Rez.JsonData.PageIndicatorDimensions) as Dictionary;
         _pageIndicatorRadius = dimensions.get("radius") as Number;
@@ -62,7 +65,7 @@ class PageIndicator {
             : 0.0;
 
         _timer = new Timer.Timer();
-        _fadeProgress = 1.0;
+        _inactiveIndicatorColorChannel = INACTIVE_INDICATOR_COLOR_CHANNEL;
     }
 
     function onParentViewHide() as Void {
@@ -78,8 +81,20 @@ class PageIndicator {
             WatchUi.ANIM_TYPE_LINEAR,
             _radiusStart,
             _radiusEnd,
-            ANIMATION_DURATION,
+            SLIDE_OUT_DURATION,
             method(:hideIndicator)
+        );
+    }
+
+    private function onIndexUpdate() as Void {
+        WatchUi.animate(
+            self,
+            :_inactiveIndicatorColorChannel,
+            WatchUi.ANIM_TYPE_LINEAR,
+            ACTIVE_INDICATOR_COLOR_CHANNEL,
+            INACTIVE_INDICATOR_COLOR_CHANNEL,
+            INDICATOR_FADE_DURATION,
+            null
         );
     }
 
@@ -98,10 +113,6 @@ class PageIndicator {
         var angleStep = _pageIndicatorSpacing / _radiusStart;
 
         clear();
-
-        if (dc has :setAntiAlias) {
-            dc.setAntiAlias(true);
-        }
 
         if (currentPageWindow.get(:moreBefore) as Boolean) {
             drawOverflowIndicator(
@@ -146,32 +157,38 @@ class PageIndicator {
         var y = point[1];
 
         if (page == _currentPage) {
-            dc.setColor(lerpColor(INACTIVE_INDICATOR_COLOR, system_color_dark__text.color, _fadeProgress),
-                        system_color_dark__background.background);
-            dc.fillCircle(x, y, _pageIndicatorRadius);
+            if (dc has :setAntiAlias) {
+                dc.setAntiAlias(true);
+            }
 
+            var color = Graphics.createColor(255, ACTIVE_INDICATOR_COLOR_CHANNEL, ACTIVE_INDICATOR_COLOR_CHANNEL, ACTIVE_INDICATOR_COLOR_CHANNEL);
+            dc.setColor(color, system_color_dark__background.background);
+            dc.fillCircle(x, y, _pageIndicatorRadius);
             return;
         }
 
-        if (page == _currentPage && _fadeProgress < 1.0) {
-            dc.setColor(lerpColor(system_color_dark__text.color, INACTIVE_INDICATOR_COLOR, _fadeProgress),
-                        system_color_dark__background.background);
-            dc.fillCircle(x, y, _pageIndicatorRadius);
-
-            return;
+        if (dc has :setAntiAlias) {
+            dc.setAntiAlias(false);
         }
 
-        dc.setColor(INACTIVE_INDICATOR_COLOR, system_color_dark__background.background);
+        if (page == _previousPage) {
+            var color = Graphics.createColor(255, _inactiveIndicatorColorChannel, _inactiveIndicatorColorChannel, _inactiveIndicatorColorChannel);
+            dc.setColor(color, system_color_dark__background.background);
+            dc.fillCircle(x, y, _pageIndicatorRadius);
+        }
+
+        dc.setColor(INACTIVE_INDICATOR_STROKE_COLOR, system_color_dark__background.background);
         dc.drawCircle(x, y, _pageIndicatorRadius);
     }
 
     private function drawOverflowIndicator(dc as Graphics.Dc, angle as Float, centerX as Number,
                                            centerY as Number, radius as Float) as Void {
+        var color = Graphics.createColor(255, INACTIVE_INDICATOR_COLOR_CHANNEL, INACTIVE_INDICATOR_COLOR_CHANNEL, INACTIVE_INDICATOR_COLOR_CHANNEL);
         var point = calculatePointOnCircle(angle, centerX, centerY, radius);
         var x = point[0];
         var y = point[1];
 
-        dc.setColor(INACTIVE_INDICATOR_COLOR, system_color_dark__background.background);
+        dc.setColor(color, system_color_dark__background.background);
         dc.fillCircle(x, y, _pageOverflowRadius);
     }
 
@@ -207,9 +224,7 @@ class PageIndicator {
         WatchUi.cancelAllAnimations();
         _timer.stop();
 
-        _fadeProgress = 1.0;
         WatchUi.requestUpdate();
-
         _timer.start(method(:onHideStart), VISIBLE_DURATION_MS, false);
     }
 
@@ -219,34 +234,16 @@ class PageIndicator {
     }
 
     function updateIndex(index as Number) as Void {
-        if (index < 0) {
-            _currentPage = 0;
-        } else if (index >= _pageCount) {
-            _currentPage = _pageCount - 1;
-        } else {
-            _currentPage = index;
-        }
+        _previousPage = _currentPage;
+        _currentPage = index;
 
+        onIndexUpdate();
         showIndicator();
         draw();
-        fadeActiveDot();
-    }
-
-    private function fadeActiveDot() as Void {
-        _fadeProgress = 0.0;
-        WatchUi.animate(
-            self,
-            :_fadeProgress,
-            WatchUi.ANIM_TYPE_LINEAR,
-            0.0,
-            1.0,
-            FADE_DURATION,
-            null
-        );
     }
 
     private function calculateFanAngle(i as Number, visibleIndicatorCount as Number, angleStep as Float) as Float {
-        return LEFT_ANGLE - (i - (visibleIndicatorCount - 1) / 2.0) * angleStep;
+        return START_ANGLE - (i - (visibleIndicatorCount - 1) / 2.0) * angleStep;
     }
 
     private function calculatePointOnCircle(angle as Float, centerX as Number, centerY as Number,
@@ -291,21 +288,5 @@ class PageIndicator {
             :moreBefore => true,
             :moreAfter => true
         };
-    }
-
-    private function lerpColor(from as Number, to as Number, fraction as Float) as Number {
-        var fromRed = (from >> 16) & 0xFF;
-        var fromGreen = (from >> 8) & 0xFF;
-        var fromBlue = from & 0xFF;
-
-        var toRed = (to >> 16) & 0xFF;
-        var toGreen = (to >> 8) & 0xFF;
-        var toBlue = to & 0xFF;
-
-        var red = (fromRed + (toRed - fromRed) * fraction).toNumber();
-        var green = (fromGreen + (toGreen - fromGreen) * fraction).toNumber();
-        var blue = (fromBlue + (toBlue - fromBlue) * fraction).toNumber();
-
-        return (red << 16) | (green << 8) | blue;
     }
 }
