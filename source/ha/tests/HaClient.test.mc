@@ -288,7 +288,7 @@ function toggleLightRecoversOnceFromInvalidWebhook(logger as Test.Logger) as Boo
     var client = new FakeHaClient();
     var capture = new ResultCapture();
 
-    new RecoveryHandler(client, new CallServiceHandler(client, "light.a").method(:callService),
+    new RecoveryHandler(client, new ServiceCallHandler(client, "light.a").method(:callService),
         capture.method(:onResult)).attempt();
     client.fireServiceFailureAt(0, Communications.INVALID_HTTP_BODY_IN_NETWORK_RESPONSE);
     client.fireRegisterSuccess("fresh-id");

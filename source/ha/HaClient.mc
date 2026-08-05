@@ -1,30 +1,21 @@
 import Toybox.Communications;
 import Toybox.Lang;
-import Toybox.System;
 
 // Everything rides one webhook template render because a plain GET /api/states
 // returns every entity in the instance and blows past Connect IQ's HTTP
 // response-size limit.
 class HaClient {
-
     // The device can't introspect its real model/OS, so every install registers
     // under these same constants.
     private const DEVICE_ID = "companion_for_home_assistant";
     private const APP_ID = "companion_for_home_assistant";
     private const APP_NAME = "Companion For Home Assistant";
-    private const APP_VERSION = "1";
+    private const APP_VERSION = "0.2.0";
     private const DEVICE_NAME = "Garmin Watch";
     private const MANUFACTURER = "Garmin";
     private const MODEL = "Connect IQ";
     private const OS_NAME = "Connect IQ";
     private const OS_VERSION = "1";
-
-    // A dead webhook_id shows up as one of these: -400 because HA sends no body
-    // (Connect IQ reports that as invalid-http-body), or 404 when the id is gone.
-    private const INVALID_WEBHOOK_CODES = [
-        Communications.INVALID_HTTP_BODY_IN_NETWORK_RESPONSE,
-        404
-    ];
 
     // Piped through `| tojson`: the render_template webhook returns the rendered
     // value as a string, so without it the payload is a Python repr (single
@@ -125,12 +116,12 @@ class HaClient {
     }
 
     function toggleLight(entityId as String, callback as Method) as Void {
-        new RecoveryHandler(self, new CallServiceHandler(self, entityId).method(:callService), callback).attempt();
+        new RecoveryHandler(self, new ServiceCallHandler(self, entityId).method(:callService), callback).attempt();
     }
 
     function toggleFloorLights(floorId as String, service as String, callback as Method) as Void {
         new RecoveryHandler(self,
-            new CallFloorServiceHandler(self, floorId, service).method(:callFloorService), callback).attempt();
+            new FloorServiceCallHandler(self, floorId, service).method(:callFloorService), callback).attempt();
     }
 
     function fetch(callback as Method) as Void {
@@ -139,187 +130,32 @@ class HaClient {
             callback.invoke(null, 404);
             return;
         }
-        var body = { "type" => "render_template", "data" => { "home" => { "template" => HOME_STATE_TEMPLATE } } };
+        var body = {
+            "type" => "render_template",
+            "data" => {
+                "home" => {
+                    "template" => HOME_STATE_TEMPLATE
+                }
+            }
+        };
         post("/api/webhook/" + webhookId, body, new ResponseHandler(callback, :onTemplate));
     }
 
-    function callService(entityId as String, callback as Method) as Void {
-        var webhookId = Settings.getWebhookId();
-        if (webhookId == null) {
-            callback.invoke(null, 404);
-            return;
-        }
-        var body = {
-            "type" => "call_service",
-            "data" => {
-                "domain" => "light",
-                "service" => "toggle",
-                "service_data" => { "entity_id" => entityId }
-            }
-        };
-        post("/api/webhook/" + webhookId, body, new ResponseHandler(callback, :onService));
-    }
-
-    // HA's `target` (floor_id/area_id/device_id) is a distinct field from a
-    // per-entity service_data.entity_id, so a floor service call targets `target`.
-    function callFloorService(floorId as String, service as String, callback as Method) as Void {
-        var webhookId = Settings.getWebhookId();
-        if (webhookId == null) {
-            callback.invoke(null, 404);
-            return;
-        }
-        var body = {
-            "type" => "call_service",
-            "data" => {
-                "domain" => "light",
-                "service" => service,
-                "service_data" => { "floor_id" => floorId }
-            }
-        };
-        post("/api/webhook/" + webhookId, body, new ResponseHandler(callback, :onService));
-    }
-
-    function isInvalidWebhookCode(code as Number) as Boolean {
-        for (var index = 0; index < INVALID_WEBHOOK_CODES.size(); index++) {
-            if (INVALID_WEBHOOK_CODES[index] == code) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private function post(path as String, body as Dictionary, handler as ResponseHandler) as Void {
-        Communications.makeWebRequest(
-            Settings.getBaseUrl() + path, body as Dictionary<Object, Object>,
-            buildOptions(Communications.HTTP_REQUEST_METHOD_POST),
-            handler.method(:onResponse));
-    }
-
-    // The verbose return type is spelled out to satisfy strict type checking (-l 3).
-    private function buildOptions(httpMethod as Communications.HttpRequestMethod) as {
-            :method as Communications.HttpRequestMethod,
-            :headers as Dictionary,
-            :responseType as Communications.HttpResponseContentType } {
-        return {
-            :method => httpMethod,
+    function post(path as String, body as Dictionary, handler as ResponseHandler) as Void {
+        var options = {
+            :method => Communications.HTTP_REQUEST_METHOD_POST,
             :headers => {
                 "Authorization" => "Bearer " + Settings.getToken(),
                 "Content-Type" => Communications.REQUEST_CONTENT_TYPE_JSON
             },
             :responseType => Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON
         };
-    }
-}
 
-class RegisterCacheHandler {
-    private var _callback as Method;
-
-    function initialize(callback as Method) {
-        _callback = callback;
-    }
-
-    function onRegistered(webhookId as String or Null, error as Number or Null) as Void {
-        if (error == null) {
-            Settings.setWebhookId(webhookId as String);
-            Settings.setRegisteredUrl(Settings.getBaseUrl());
-        }
-        _callback.invoke(webhookId, error);
-    }
-}
-
-// One-shot recovery around any single webhook attempt: no path re-enters
-// attempt(), so a persistently invalid webhook_id can never loop.
-class RecoveryHandler {
-    private var _client as HaClient;
-    private var _attemptOnce as Method;
-    private var _callback as Method;
-
-    function initialize(client as HaClient, attemptOnce as Method, callback as Method) {
-        _client = client;
-        _attemptOnce = attemptOnce;
-        _callback = callback;
-    }
-
-    function attempt() as Void {
-        _attemptOnce.invoke(method(:onFirstAttempt));
-    }
-
-    function onFirstAttempt(result as Object or Null, error as Number or Null) as Void {
-        if (error == null || !_client.isInvalidWebhookCode(error as Number)) {
-            _callback.invoke(result, error);
-            return;
-        }
-        Settings.clearWebhookId();
-        _client.register(method(:onRegistered));
-    }
-
-    function onRegistered(webhookId as String or Null, error as Number or Null) as Void {
-        if (error != null) {
-            _callback.invoke(null, error);
-            return;
-        }
-        _attemptOnce.invoke(method(:onRetryAttempt));
-    }
-
-    function onRetryAttempt(result as Object or Null, error as Number or Null) as Void {
-        _callback.invoke(result, error);
-    }
-}
-
-// Binds an entityId to HaClient.callService, so a per-toggle instance exposes
-// the single-callback-argument shape RecoveryHandler's attemptOnce requires.
-class CallServiceHandler {
-    private var _client as HaClient;
-    private var _entityId as String;
-
-    function initialize(client as HaClient, entityId as String) {
-        _client = client;
-        _entityId = entityId;
-    }
-
-    function callService(callback as Method) as Void {
-        _client.callService(_entityId, callback);
-    }
-}
-
-class ResponseHandler {
-    private var _callback as Method;
-    private var _responseType as Symbol;
-
-    function initialize(callback as Method, responseType as Symbol) {
-        _callback = callback;
-        _responseType = responseType;
-    }
-
-    function onResponse(code as Number, data as Dictionary or String or Null) as Void {
-        if (code < 200 || code >= 300) {
-            System.println("HA request failed: responseType=" + _responseType + " code=" + code + " body=" + data);
-            _callback.invoke(null, code);
-            return;
-        }
-        switch (_responseType) {
-            case :onTemplate:
-                var home = (data instanceof Dictionary) ? data.get("home") : null;
-                // The render_template webhook returns the rendered value as a
-                // string, so the payload arrives JSON-encoded a second time.
-                if (home instanceof Lang.String) {
-                    home = JsonParser.parse(home);
-                }
-                _callback.invoke(HomeState.fromTemplateData(home as Dictionary or String or Null), null);
-                break;
-            case :onRegister:
-                var webhookId = (data instanceof Dictionary) ? data.get("webhook_id") : null;
-                if (webhookId instanceof Lang.String) {
-                    _callback.invoke(webhookId, null);
-                } else {
-                    // Report an error code, not the 200: a body without a usable
-                    // webhook_id is a failure the error channel must carry.
-                    _callback.invoke(null, Communications.INVALID_HTTP_BODY_IN_NETWORK_RESPONSE);
-                }
-                break;
-            case :onService:
-                _callback.invoke(true, null);
-                break;
-        }
+        Communications.makeWebRequest(
+            Settings.getBaseUrl() + path,
+            body as Dictionary<Object, Object>,
+            options,
+            handler.method(:onResponse)
+        );
     }
 }
