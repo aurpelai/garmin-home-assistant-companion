@@ -7,12 +7,16 @@ module Settings {
 
     function getBaseUrl() as String {
         var value = Application.Properties.getValue("haBaseUrl") as String or Null;
-        return (value == null) ? "" : trimTrailingSlash(value);
+        return (value == null)
+            ? ""
+            : trimTrailingSlash(value);
     }
 
     function getToken() as String {
         var value = Application.Properties.getValue("haToken") as String or Null;
-        return (value == null) ? "" : value;
+        return (value == null)
+            ? ""
+            : value;
     }
 
     function isConfigured() as Boolean {
@@ -48,18 +52,4 @@ module Settings {
         Application.Storage.setValue("registeredUrl", url);
     }
 
-    function registerIfNeeded(client as HaClient, callback as Method) as Void {
-        var baseUrl = getBaseUrl();
-        var registeredUrl = getRegisteredUrl();
-
-        // A URL change clears the stale id and falls through to register; only a
-        // still-valid id short-circuits, so a token-only change never re-registers.
-        if (registeredUrl != null && !(registeredUrl as String).equals(baseUrl)) {
-            clearWebhookId();
-        } else if (getWebhookId() != null) {
-            return;
-        }
-
-        client.register(callback);
-    }
 }

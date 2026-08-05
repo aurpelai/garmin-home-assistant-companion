@@ -6,16 +6,19 @@ import Toybox.WatchUi;
 // First screen and startup orchestrator: it runs the initial fetch and swaps
 // itself for the card loop (or an error screen) once it completes.
 class LoadingView extends WatchUi.View {
-    private var _client as HaClient;
+    private var _app as HaControllerApp;
 
     function initialize() {
         View.initialize();
-        _client = new HaClient();
+        _app = Application.getApp() as HaControllerApp;
     }
 
     function onLayout(dc as Graphics.Dc) as Void {
         WatchUi.pushView(
-            new WatchUi.ProgressBar(WatchUi.loadResource(Rez.Strings.Loading) as String, null),
+            new WatchUi.ProgressBar(
+                WatchUi.loadResource(Rez.Strings.Loading) as String,
+                null
+            ),
             null,
             WatchUi.SLIDE_DOWN
         );
@@ -27,11 +30,9 @@ class LoadingView extends WatchUi.View {
             return;
         }
 
-        _client.fetchHomeState(method(:onLoaded));
+        _app.fetchHomeState(method(:onLoaded));
     }
 
-    // The client signals failure only as a non-null error; state is never null
-    // when error is null.
     function onLoaded(state as HomeState or Null, error as Number or Null) as Void {
         if (error != null) {
             showRetryScreen(resolveErrorMessage(error), error);
@@ -48,14 +49,17 @@ class LoadingView extends WatchUi.View {
             return;
         }
 
-        var session = new HomeSession(_client, state);
         // Safe to swap the session wholesale only because this runs at
         // startup/retry, before any view holds it. Mid-session refresh must go
         // through applyState instead, or injected references would diverge.
-        (Application.getApp() as HaControllerApp).setSession(session);
-        var view = new CardLoopView(session);
-        WatchUi.switchToView(view, new CardLoopDelegate(view, session),
-            WatchUi.SLIDE_IMMEDIATE);
+        var session = _app.setSession(state);
+        var cardLoopView = new CardLoopView(session);
+
+        WatchUi.switchToView(
+            cardLoopView,
+            new CardLoopDelegate(cardLoopView, session),
+            WatchUi.SLIDE_IMMEDIATE
+        );
     }
 
     private function showRetryScreen(id as ResourceId, code as Number or Null) as Void {

@@ -126,10 +126,12 @@ class HaClient {
 
     function fetch(callback as Method) as Void {
         var webhookId = Settings.getWebhookId();
+
         if (webhookId == null) {
             callback.invoke(null, 404);
             return;
         }
+
         var body = {
             "type" => "render_template",
             "data" => {

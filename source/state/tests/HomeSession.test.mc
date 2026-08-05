@@ -1,7 +1,7 @@
 import Toybox.Lang;
 import Toybox.Test;
 
-// Async branches are driven by firing FakeHaClient's captured callback, so no
+// Async branches are driven by firing MockHaClient's captured callback, so no
 // live network is involved.
 
 (:test)
@@ -36,7 +36,7 @@ module HomeSessionTest {
             "areas" => { "area.room" => { "name" => "Room", "lights" => states.keys() } },
             "lights" => lightsSection(states)
         });
-        return new HomeSession(new FakeHaClient(), state);
+        return new HomeSession(new MockHaClient(), state);
     }
 
     function sessionWithAvailable(states as Dictionary<String, Boolean>,
@@ -54,7 +54,7 @@ module HomeSessionTest {
         return new HomeSession(new HaClient(), state);
     }
 
-    // Backed by the FakeHaClient so the floor service callback can be fired
+    // Backed by the MockHaClient so the floor service callback can be fired
     // synchronously.
     function fakeFloorSessionWith(states as Dictionary<String, Boolean>) as HomeSession {
         var state = HomeState.fromTemplateData({
@@ -62,7 +62,7 @@ module HomeSessionTest {
             "lights" => lightsSection(states),
             "floors" => { "floor_up" => { "name" => "Upstairs", "areas" => ["area.room"] } }
         });
-        return new HomeSession(new FakeHaClient(), state);
+        return new HomeSession(new MockHaClient(), state);
     }
 }
 
@@ -145,7 +145,7 @@ function toggleStateRevertsOptimisticFlipOnFailure(logger as Test.Logger) as Boo
     session.toggleState("light.a", spy.method(:onComplete));
     Test.assert(session.isOn("light.a"));
 
-    (session.client as FakeHaClient).fireServiceFailureAt(0, -1);
+    (session.client as MockHaClient).fireServiceFailureAt(0, -1);
 
     Test.assert(!session.isOn("light.a"));
     Test.assert(spy.fired);
@@ -163,7 +163,7 @@ function overlappingTogglesRevertTheCorrectLight(logger as Test.Logger) as Boole
     Test.assert(session.isOn("light.a"));
     Test.assert(session.isOn("light.b"));
 
-    (session.client as FakeHaClient).fireServiceFailureAt(0, -1);
+    (session.client as MockHaClient).fireServiceFailureAt(0, -1);
 
     Test.assert(!session.isOn("light.a"));
     Test.assert(session.isOn("light.b"));
@@ -179,9 +179,9 @@ function toggleRevertSurvivesRefreshLandingMidFlight(logger as Test.Logger) as B
 
     session.toggleState("light.a", new NoopCompletion().method(:onComplete));
     session.refreshState(new CompletionSpy().method(:onDone));
-    (session.client as FakeHaClient).fireFetchSuccess(HomeSessionTest.stateOf({ "light.a" => false }));
+    (session.client as MockHaClient).fireFetchSuccess(HomeSessionTest.stateOf({ "light.a" => false }));
 
-    (session.client as FakeHaClient).fireServiceFailureAt(0, -1);
+    (session.client as MockHaClient).fireServiceFailureAt(0, -1);
 
     Test.assert(!session.isOn("light.a"));
     return true;
@@ -193,7 +193,7 @@ function toggleStateFiresExactlyOneServiceCall(logger as Test.Logger) as Boolean
 
     session.toggleState("light.a", new NoopCompletion().method(:onComplete));
 
-    Test.assertEqual((session.client as FakeHaClient).toggleCount, 1);
+    Test.assertEqual((session.client as MockHaClient).toggleCount, 1);
     Test.assert(session.isOn("light.a"));
     return true;
 }
@@ -204,7 +204,7 @@ function toggleStateKeepsFlipOnSuccess(logger as Test.Logger) as Boolean {
     var spy = new CompletionSpy();
 
     session.toggleState("light.a", spy.method(:onComplete));
-    (session.client as FakeHaClient).fireServiceSuccessAt(0);
+    (session.client as MockHaClient).fireServiceSuccessAt(0);
 
     Test.assert(session.isOn("light.a"));
     Test.assert(spy.fired);
@@ -218,7 +218,7 @@ function refreshStateHealsOptimisticDisagreementOnSuccess(logger as Test.Logger)
     var spy = new CompletionSpy();
 
     session.refreshState(spy.method(:onDone));
-    (session.client as FakeHaClient).fireFetchSuccess(HomeSessionTest.stateOf({ "light.a" => false }));
+    (session.client as MockHaClient).fireFetchSuccess(HomeSessionTest.stateOf({ "light.a" => false }));
 
     Test.assert(!session.isOn("light.a"));
     Test.assert(spy.fired);
@@ -231,12 +231,12 @@ function refreshStateCorrectsActionThatDidNotTakeEffect(logger as Test.Logger) a
     session.toggleState("light.a", new NoopCompletion().method(:onComplete));
     // The service call reports success, but HA's actual state never moved —
     // only the later reconciling re-fetch can catch that, not this response.
-    (session.client as FakeHaClient).fireServiceSuccessAt(0);
+    (session.client as MockHaClient).fireServiceSuccessAt(0);
     Test.assert(session.isOn("light.a"));
 
     var spy = new CompletionSpy();
     session.refreshState(spy.method(:onDone));
-    (session.client as FakeHaClient).fireFetchSuccess(HomeSessionTest.stateOf({ "light.a" => false }));
+    (session.client as MockHaClient).fireFetchSuccess(HomeSessionTest.stateOf({ "light.a" => false }));
 
     Test.assert(!session.isOn("light.a"));
     Test.assert(spy.fired);
@@ -249,7 +249,7 @@ function refreshStateSwallowsFailureButStillCompletes(logger as Test.Logger) as 
     var spy = new CompletionSpy();
 
     session.refreshState(spy.method(:onDone));
-    (session.client as FakeHaClient).fireFetchFailure();
+    (session.client as MockHaClient).fireFetchFailure();
 
     Test.assert(session.isOn("light.a"));
     Test.assert(spy.fired);
@@ -290,7 +290,7 @@ function toggleFloorLightsTurnsAllOnWhenAllOff(logger as Test.Logger) as Boolean
 
     Test.assert(session.isOn("light.a"));
     Test.assert(session.isOn("light.b"));
-    Test.assertEqual((session.client as FakeHaClient).lastFloorService as String, "turn_on");
+    Test.assertEqual((session.client as MockHaClient).lastFloorService as String, "turn_on");
     return true;
 }
 
@@ -302,7 +302,7 @@ function toggleFloorLightsTurnsAllOffWhenAnyOn(logger as Test.Logger) as Boolean
 
     Test.assert(!session.isOn("light.a"));
     Test.assert(!session.isOn("light.b"));
-    Test.assertEqual((session.client as FakeHaClient).lastFloorService as String, "turn_off");
+    Test.assertEqual((session.client as MockHaClient).lastFloorService as String, "turn_off");
     return true;
 }
 
@@ -312,7 +312,7 @@ function toggleFloorLightsFiresExactlyOneFloorCall(logger as Test.Logger) as Boo
 
     session.toggleFloorLights("floor_up", new NoopCompletion().method(:onComplete));
 
-    Test.assertEqual((session.client as FakeHaClient).floorToggleCount, 1);
+    Test.assertEqual((session.client as MockHaClient).floorToggleCount, 1);
     return true;
 }
 
@@ -328,7 +328,7 @@ function toggleFloorLightsRestoresEachLightToItsOwnPriorStateOnFailure(logger as
     Test.assert(!session.isOn("light.on"));
     Test.assert(!session.isOn("light.off"));
 
-    (session.client as FakeHaClient).fireServiceFailureAt(0, -1);
+    (session.client as MockHaClient).fireServiceFailureAt(0, -1);
 
     Test.assert(session.isOn("light.on"));
     Test.assert(!session.isOn("light.off"));
@@ -341,7 +341,7 @@ function toggleFloorLightsKeepsFlipsOnSuccess(logger as Test.Logger) as Boolean 
     var spy = new CompletionSpy();
 
     session.toggleFloorLights("floor_up", spy.method(:onComplete));
-    (session.client as FakeHaClient).fireServiceSuccessAt(0);
+    (session.client as MockHaClient).fireServiceSuccessAt(0);
 
     Test.assert(session.isOn("light.a"));
     Test.assert(session.isOn("light.b"));

@@ -6,7 +6,7 @@ import Toybox.Test;
 // Captures each entry point's callback instead of making a web request, so a
 // test can fire success or failure synchronously.
 (:test)
-class FakeHaClient extends HaClient {
+class MockHaClient extends HaClient {
     private var _fetchCallback as Method?;
     private var _registerCallback as Method?;
 
@@ -188,63 +188,10 @@ function onResponseNormalizesRegisterFailureToError(logger as Test.Logger) as Bo
 }
 
 (:test)
-function registerIfNeededRegistersWhenNoCachedWebhookId(logger as Test.Logger) as Boolean {
-    Application.Storage.clearValues();
-    var client = new FakeHaClient();
-
-    Settings.registerIfNeeded(client, new NoopRegisterCompletion().method(:onRegistered));
-
-    Test.assertEqual(client.registerCount, 1);
-    return true;
-}
-
-(:test)
-function registerIfNeededNoOpsWhenUrlUnchangedWithCachedId(logger as Test.Logger) as Boolean {
-    Application.Storage.clearValues();
-    Settings.setWebhookId("existing-id");
-    Settings.setRegisteredUrl(Settings.getBaseUrl());
-    var client = new FakeHaClient();
-
-    Settings.registerIfNeeded(client, new NoopRegisterCompletion().method(:onRegistered));
-
-    Test.assertEqual(client.registerCount, 0);
-    return true;
-}
-
-(:test)
-function registerIfNeededReRegistersAfterUrlChange(logger as Test.Logger) as Boolean {
-    Application.Storage.clearValues();
-    Settings.setWebhookId("stale-id");
-    Settings.setRegisteredUrl("https://old.example.com");
-    var client = new FakeHaClient();
-
-    Settings.registerIfNeeded(client, new NoopRegisterCompletion().method(:onRegistered));
-
-    Test.assertEqual(client.registerCount, 1);
-    Test.assert(Settings.getWebhookId() == null);
-    return true;
-}
-
-(:test)
-function registerIfNeededNoOpsOnTokenOnlyChange(logger as Test.Logger) as Boolean {
-    Application.Storage.clearValues();
-    Settings.setWebhookId("existing-id");
-    Settings.setRegisteredUrl(Settings.getBaseUrl());
-    var client = new FakeHaClient();
-
-    // A token-only change never touches Storage's registeredUrl, so the gate
-    // sees the same URL it cached and must not re-register.
-    Settings.registerIfNeeded(client, new NoopRegisterCompletion().method(:onRegistered));
-
-    Test.assertEqual(client.registerCount, 0);
-    return true;
-}
-
-(:test)
 function fetchHomeStateRecoversOnceFromInvalidWebhook(logger as Test.Logger) as Boolean {
     Application.Storage.clearValues();
     Settings.setWebhookId("stale-id");
-    var client = new FakeHaClient();
+    var client = new MockHaClient();
     var capture = new ResultCapture();
 
     new RecoveryHandler(client, client.method(:fetch), capture.method(:onResult)).attempt();
@@ -263,7 +210,7 @@ function fetchHomeStateRecoversOnceFromInvalidWebhook(logger as Test.Logger) as 
 function fetchHomeStateRecoversFrom404TooAndSucceeds(logger as Test.Logger) as Boolean {
     Application.Storage.clearValues();
     Settings.setWebhookId("stale-id");
-    var client = new FakeHaClient();
+    var client = new MockHaClient();
     var capture = new ResultCapture();
 
     new RecoveryHandler(client, client.method(:fetch), capture.method(:onResult)).attempt();
@@ -285,7 +232,7 @@ function fetchHomeStateRecoversFrom404TooAndSucceeds(logger as Test.Logger) as B
 function toggleLightRecoversOnceFromInvalidWebhook(logger as Test.Logger) as Boolean {
     Application.Storage.clearValues();
     Settings.setWebhookId("stale-id");
-    var client = new FakeHaClient();
+    var client = new MockHaClient();
     var capture = new ResultCapture();
 
     new RecoveryHandler(client, new ServiceCallHandler(client, "light.a").method(:callService),
@@ -299,10 +246,4 @@ function toggleLightRecoversOnceFromInvalidWebhook(logger as Test.Logger) as Boo
     Test.assertEqual(capture.result as Boolean, true);
     Test.assert(capture.error == null);
     return true;
-}
-
-(:test)
-class NoopRegisterCompletion {
-    function onRegistered(webhookId as String or Null, error as Number or Null) as Void {
-    }
 }

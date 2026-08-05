@@ -162,12 +162,12 @@ function sensorRowsFollowLightRowsInSensorOrder(logger as Test.Logger) as Boolea
 
 (:test)
 function areaWithNoEntitiesShowsOneInertRow(logger as Test.Logger) as Boolean {
-    var client = new FakeHaClient();
+    var client = new MockHaClient();
     var session = new HomeSession(client, AreaEntityMenuTest.stateOf({} as Dictionary));
     var menu = new AreaEntityMenu(session, "Room", [] as Array<String>, [] as Array<String>);
     var item = menu.getItem(0) as WatchUi.MenuItem;
 
-    Test.assertEqual(item.getLabel() as String, "No entities found");
+    Test.assertEqual(item.getLabel() as String, "No entities in the area");
     Test.assert(menu.getItem(1) == null);
 
     new AreaEntityMenuDelegate(menu, session).onSelect(item);
