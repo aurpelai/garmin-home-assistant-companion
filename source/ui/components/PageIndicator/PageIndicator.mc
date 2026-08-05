@@ -11,7 +11,7 @@ enum PageIndicatorState {
 }
 
 class PageIndicator {
-    private const ANIMATION_DURATION = 0.1;
+    private const ANIMATION_DURATION = 0.2;
     private const VISIBLE_DURATION_MS = 1800;
     private const FADE_DURATION = 0.05;
 
@@ -29,29 +29,40 @@ class PageIndicator {
     private var _layer as WatchUi.Layer;
     private var _state as PageIndicatorState;
 
+    private var _radiusStart as Float;
+    private var _radiusEnd as Float;
+    public var _radius as Float;
+
     private var _pageCount as Number;
     private var _currentPage as Number;
 
     private var _timer as Timer.Timer;
-    public var _animationProgress as Float;
     public var _fadeProgress as Float;
 
 
     function initialize(pageCount as Number) {
         _layer = new WatchUi.Layer(null);
+        _state = PAGE_INDICATOR_HIDDEN;
+
         _pageCount = pageCount;
+        _currentPage = 0;
 
         var dimensions = WatchUi.loadResource(Rez.JsonData.PageIndicatorDimensions) as Dictionary;
         _pageIndicatorRadius = dimensions.get("radius") as Number;
         _pageOverflowRadius = dimensions.get("overflowRadius") as Number;
         _pageIndicatorSpacing = dimensions.get("spacing") as Number;
 
-        _timer = new Timer.Timer();
-        _state = PAGE_INDICATOR_HIDDEN;
+        var dc = _layer.getDc();
+        _radiusStart = dc != null
+            ? (dc.getWidth() / 2 - PAGE_INDICATOR_INSET - _pageIndicatorRadius).toFloat()
+            : 0.0;
+        _radius = _radiusStart;
+        _radiusEnd = dc != null
+            ? (dc.getWidth() / 2 + PAGE_INDICATOR_INSET + _pageIndicatorRadius).toFloat()
+            : 0.0;
 
-        _animationProgress = 0.0;
+        _timer = new Timer.Timer();
         _fadeProgress = 1.0;
-        _currentPage = 0;
     }
 
     function onParentViewHide() as Void {
@@ -61,8 +72,15 @@ class PageIndicator {
     }
 
     function onHideStart() as Void {
-        WatchUi.animate(self, :_animationProgress, WatchUi.ANIM_TYPE_LINEAR, _animationProgress, 1.0,
-                        ANIMATION_DURATION, method(:hideIndicator));
+        WatchUi.animate(
+            self,
+            :_radius,
+            WatchUi.ANIM_TYPE_LINEAR,
+            _radiusStart,
+            _radiusEnd,
+            ANIMATION_DURATION,
+            method(:hideIndicator)
+        );
     }
 
     function draw() as Void {
@@ -75,14 +93,9 @@ class PageIndicator {
         var currentPageWindow = getCurrentPageWindow();
         var visibleIndicatorCount = currentPageWindow.get(:count) as Number;
 
-        var baseRadius = (dc.getWidth() / 2 - PAGE_INDICATOR_INSET - _pageIndicatorRadius).toFloat();
         var centerX = dc.getWidth() / 2;
         var centerY = dc.getHeight() / 2;
-
-        // The angular step stays keyed to the base radius so the fan holds its
-        // shape as it expands past the bezel rather than narrowing.
-        var radius = baseRadius + _animationProgress * (centerX + _pageIndicatorRadius - baseRadius);
-        var angleStep = _pageIndicatorSpacing / baseRadius;
+        var angleStep = _pageIndicatorSpacing / _radiusStart;
 
         clear();
 
@@ -91,20 +104,37 @@ class PageIndicator {
         }
 
         if (currentPageWindow.get(:moreBefore) as Boolean) {
-            drawOverflowIndicator(dc, calculateFanAngle(-1, visibleIndicatorCount, angleStep), centerX, centerY, radius);
+            drawOverflowIndicator(
+                dc,
+                calculateFanAngle(-1, visibleIndicatorCount, angleStep),
+                centerX,
+                centerY,
+                _radius
+            );
         }
 
         var start = currentPageWindow.get(:start) as Number;
 
         for (var i = 0; i < visibleIndicatorCount; i++) {
             var page = start + i;
-            drawPageIndicator(dc, calculateFanAngle(i, visibleIndicatorCount, angleStep), centerX, centerY, radius,
-                              page);
+            drawPageIndicator(
+                dc,
+                calculateFanAngle(i, visibleIndicatorCount, angleStep),
+                centerX,
+                centerY,
+                _radius,
+                page
+            );
         }
 
         if (currentPageWindow.get(:moreAfter) as Boolean) {
-            drawOverflowIndicator(dc, calculateFanAngle(visibleIndicatorCount, visibleIndicatorCount, angleStep),
-                                  centerX, centerY, radius);
+            drawOverflowIndicator(
+                dc,
+                calculateFanAngle(visibleIndicatorCount, visibleIndicatorCount, angleStep),
+                centerX,
+                centerY,
+                _radius
+            );
         }
 
     }
@@ -165,6 +195,7 @@ class PageIndicator {
     }
 
     function showIndicator() as Void {
+        _radius = _radiusStart;
         _state = _pageCount < MIN_PAGE_INDICATORS
             ? PAGE_INDICATOR_HIDDEN
             : PAGE_INDICATOR_VISIBLE;
@@ -176,7 +207,6 @@ class PageIndicator {
         WatchUi.cancelAllAnimations();
         _timer.stop();
 
-        _animationProgress = 0.0;
         _fadeProgress = 1.0;
         WatchUi.requestUpdate();
 
@@ -189,8 +219,13 @@ class PageIndicator {
     }
 
     function updateIndex(index as Number) as Void {
-        // TODO check overflow
-        _currentPage = index;
+        if (index < 0) {
+            _currentPage = 0;
+        } else if (index >= _pageCount) {
+            _currentPage = _pageCount - 1;
+        } else {
+            _currentPage = index;
+        }
 
         showIndicator();
         draw();
@@ -199,8 +234,15 @@ class PageIndicator {
 
     private function fadeActiveDot() as Void {
         _fadeProgress = 0.0;
-        WatchUi.animate(self, :_fadeProgress, WatchUi.ANIM_TYPE_LINEAR, 0.0, 1.0,
-                        FADE_DURATION, null);
+        WatchUi.animate(
+            self,
+            :_fadeProgress,
+            WatchUi.ANIM_TYPE_LINEAR,
+            0.0,
+            1.0,
+            FADE_DURATION,
+            null
+        );
     }
 
     private function calculateFanAngle(i as Number, visibleIndicatorCount as Number, angleStep as Float) as Float {
