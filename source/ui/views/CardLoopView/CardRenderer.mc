@@ -7,9 +7,20 @@ import Toybox.WatchUi;
 // come from the device's SDK personality (System 6 / API 5.0.0), so they track
 // the watch theme instead of being hand-picked.
 class CardRenderer {
-    private const TITLE_FONT = Graphics.FONT_SMALL;
-    private const SUBTITLE_FONT = Graphics.FONT_XTINY;
-    private const SUMMARY_FONT = Graphics.FONT_GLANCE;
+    private const TITLE_FONT = Graphics.getVectorFont({
+        :face => "RobotoCondensedBold",
+        :size => 32
+    }) as Graphics.VectorFont;
+
+    private const SUBTITLE_FONT = Graphics.getVectorFont({
+        :face => "RobotoCondensedRegular",
+        :size => 16
+    }) as Graphics.VectorFont;
+
+    private const LABEL_FONT = Graphics.getVectorFont({
+        :face => "RobotoCondensedRegular",
+        :size => 24
+    }) as Graphics.VectorFont;
 
     private const SECTION_GAP = 16;
     private const SUMMARY_LINE_GAP = 8;
@@ -47,7 +58,7 @@ class CardRenderer {
     private function drawFloorLightStatus(dc as Graphics.Dc, centerX as Number, y as Number,
                                           text as String) as Void {
         dc.setColor(Graphics.COLOR_LT_GRAY, system_color_dark__text.background);
-        dc.drawText(centerX, y, SUMMARY_FONT, text, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(centerX, y, LABEL_FONT, text, Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     private function drawAreaCard(dc as Graphics.Dc, card as Dictionary) as Void {
@@ -134,7 +145,7 @@ class CardRenderer {
         }
 
         var baseY = 2 * dc.getHeight() / 3;
-        var extraRowY = baseY + dc.getFontHeight(SUMMARY_FONT) + SUMMARY_LINE_GAP;
+        var extraRowY = baseY + dc.getFontHeight(LABEL_FONT) + SUMMARY_LINE_GAP;
 
         dc.setColor(Graphics.COLOR_LT_GRAY, system_color_dark__text.background);
 
@@ -154,7 +165,7 @@ class CardRenderer {
                 y = baseY;
             }
 
-            dc.drawText(x, y, SUMMARY_FONT, reading, Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(x, y, LABEL_FONT, reading, Graphics.TEXT_JUSTIFY_CENTER);
         }
     }
 
