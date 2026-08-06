@@ -40,6 +40,10 @@ class HaControllerApp extends Application.AppBase {
         }
     }
 
+    function getGlanceView() as [WatchUi.GlanceView] or [WatchUi.GlanceView, WatchUi.GlanceViewDelegate] or Null {
+        return [new GlanceView()];
+    }
+
     function getInitialView() as [WatchUi.Views] or [WatchUi.Views, WatchUi.InputDelegates] {
         return [new LoadingView(), new LoadingDelegate()];
     }
