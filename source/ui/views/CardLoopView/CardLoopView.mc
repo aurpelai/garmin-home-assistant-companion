@@ -29,7 +29,7 @@ class CardLoopView extends WatchUi.View {
     }
 
     function onUpdate(dc as Graphics.Dc) as Void {
-        dc.setColor(Graphics.COLOR_TRANSPARENT, system_color_dark__background.background);
+        dc.setColor(system_color_dark__text.color, system_color_dark__background.background);
         dc.clear();
 
         var card = getCurrentCard();

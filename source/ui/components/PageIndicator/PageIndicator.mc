@@ -203,7 +203,7 @@ class PageIndicator {
             return;
         }
 
-        dc.setColor(system_color_dark__text.color, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(system_color_dark__text.color, system_color_dark__text.background);
         dc.clear();
     }
 

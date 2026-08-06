@@ -1,3 +1,4 @@
+import Rez.Styles;
 import Toybox.Graphics;
 import Toybox.Lang;
 import Toybox.WatchUi;
@@ -9,7 +10,7 @@ class ErrorView extends WatchUi.View {
         View.initialize();
         textArea = new WatchUi.TextArea({
             :text => message + "\n\n" + (WatchUi.loadResource(Rez.Strings.RetryHint) as String),
-            :color => Graphics.COLOR_WHITE,
+            :color => system_color_dark__text.color,
             :justification => Graphics.TEXT_JUSTIFY_CENTER,
             :font => [Graphics.FONT_SMALL, Graphics.FONT_TINY, Graphics.FONT_XTINY],
             :locX => 20,
@@ -20,7 +21,7 @@ class ErrorView extends WatchUi.View {
     }
 
     function onUpdate(dc as Graphics.Dc) as Void {
-        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_BLACK);
+        dc.setColor(system_color_dark__text.color, system_color_dark__text.background);
         dc.clear();
         textArea.draw(dc);
     }
