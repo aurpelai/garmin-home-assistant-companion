@@ -7,19 +7,21 @@ import Toybox.WatchUi;
 // come from the device's SDK personality (System 6 / API 5.0.0), so they track
 // the watch theme instead of being hand-picked.
 class CardRenderer {
+    private const FONT_SIZES = WatchUi.loadResource(Rez.JsonData.VectorFontSizes) as Dictionary;
+
     private const TITLE_FONT = Graphics.getVectorFont({
-        :face => "RobotoCondensedBold",
-        :size => 32
+        :face => ["RobotoCondensedBold", "RobotoRegular"],
+        :size => FONT_SIZES.get("large") as Number
     }) as Graphics.VectorFont;
 
     private const SUBTITLE_FONT = Graphics.getVectorFont({
-        :face => "RobotoCondensedRegular",
-        :size => 16
+        :face => ["RobotoCondensedRegular", "RobotoRegular"],
+        :size => FONT_SIZES.get("small") as Number
     }) as Graphics.VectorFont;
 
     private const LABEL_FONT = Graphics.getVectorFont({
-        :face => "RobotoCondensedRegular",
-        :size => 24
+        :face => ["RobotoCondensedRegular", "RobotoRegular"],
+        :size => FONT_SIZES.get("medium") as Number
     }) as Graphics.VectorFont;
 
     private const SECTION_GAP = 16;

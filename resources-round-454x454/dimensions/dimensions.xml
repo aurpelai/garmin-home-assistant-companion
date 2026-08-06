@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jsonDataResources>
+    <jsonData id="PageIndicatorDimensions">
+        {
+            "radius": 8,
+            "overflowRadius": 4,
+            "spacing": 36
+        }
+    </jsonData>
+    <jsonData id="VectorFontSizes">
+        {
+            "large": 48,
+            "medium": 40,
+            "small": 32,
+            "tiny": 24
+        }
+    </jsonData>
+</jsonDataResources>

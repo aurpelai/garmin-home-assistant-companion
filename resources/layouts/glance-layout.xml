@@ -1,0 +1,6 @@
+<resources xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://developer.garmin.com/downloads/connect-iq/resources.xsd">
+    <layout id="GlanceLayout">
+        <label id="title" x="0" y="25%" />
+        <label id="subtitle" x="0" y="55%" />
+    </layout>
+</resources>
