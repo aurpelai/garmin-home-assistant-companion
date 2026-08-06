@@ -17,7 +17,6 @@ class GlanceView extends WatchUi.GlanceView {
     function initialize() {
         GlanceView.initialize();
         _app = Application.getApp() as HaControllerApp;
-        // _app.fetchHomeState(:glance);
 
         _titleFont = Graphics.getVectorFont({
             :face => ["RobotoCondensedBold", "RobotoRegular"],

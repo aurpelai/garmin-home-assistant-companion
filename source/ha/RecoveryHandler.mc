@@ -25,12 +25,13 @@ class RecoveryHandler {
     }
 
     function onFirstAttempt(result as Object or Null, error as Number or Null) as Void {
-        if (error == null || !isInvalidWebhookCode(error as Number)) {
-            _callback.invoke(result, error);
+        if (error != null || isInvalidWebhookCode(error as Number)) {
+            Settings.clearWebhookId();
+            _client.register(method(:onRegistered));
             return;
         }
-        Settings.clearWebhookId();
-        _client.register(method(:onRegistered));
+
+        _callback.invoke(result, error);
     }
 
     function onRegistered(webhookId as String or Null, error as Number or Null) as Void {
