@@ -24,7 +24,7 @@ class CardRenderer {
     }) as Graphics.VectorFont;
 
     private const SUBTITLE_FONT = Graphics.getVectorFont({
-        :face => ["RobotoCondensedRegular", "RobotoRegular"],
+        :face => ["RobotoCondensedBold", "RobotoRegular"],
         :size => FONT_SIZES.get("small") as Number
     }) as Graphics.VectorFont;
 
