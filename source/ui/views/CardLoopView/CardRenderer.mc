@@ -25,7 +25,7 @@ class CardRenderer {
     }) as Graphics.VectorFont;
 
     private const LABEL_FONT = Graphics.getVectorFont({
-        :face => ["RobotoCondensedBold", "RobotoRegular"],
+        :face => ["RobotoCondensedRegular", "RobotoRegular"],
         :size => FONT_SIZES.get("medium") as Number
     }) as Graphics.VectorFont;
 
