@@ -12,6 +12,10 @@ class CardRenderer {
     private const LIGHT_INDICATOR_SAFE_AREA = 4;
     private const LIGHT_INDICATOR_SIZE = 2 * (LIGHT_INDICATOR_RADIUS + LIGHT_INDICATOR_SAFE_AREA);
 
+    private const BOX_HORIZONTAL_PADDING = 10;
+    private const BOX_VERTICAL_PADDING = 5;
+    private const BOX_BORDER_RADIUS = 6;
+
     private const FONT_SIZES = WatchUi.loadResource(Rez.JsonData.VectorFontSizes) as Dictionary;
 
     private const TITLE_FONT = Graphics.getVectorFont({
@@ -243,6 +247,13 @@ class CardRenderer {
     private function drawTemperature(dc as Graphics.Dc, entity as Dictionary) as Void {
         var x = dc.getWidth() * 4 / COLUMN_COUNT;
         var y = dc.getHeight() * 8 / COLUMN_COUNT;
+        var reading = entity.get(:reading) as String;
+        var textWidth = dc.getTextWidthInPixels(reading, LABEL_FONT);
+        var textHeight = dc.getFontHeight(LABEL_FONT);
+
+        useAntiAlias(dc, false);
+        dc.setColor(Graphics.COLOR_DK_GRAY, system_color_dark__text.background);
+        dc.drawRoundedRectangle(x - BOX_HORIZONTAL_PADDING - (textWidth / 2), y - BOX_VERTICAL_PADDING, textWidth + (2 * BOX_HORIZONTAL_PADDING), textHeight + (2 * BOX_VERTICAL_PADDING), BOX_BORDER_RADIUS);
 
         useAntiAlias(dc, true);
         dc.setColor(Graphics.COLOR_LT_GRAY, system_color_dark__text.background);
@@ -250,7 +261,7 @@ class CardRenderer {
             x,
             y,
             LABEL_FONT,
-            entity.get(:reading) as String,
+            reading,
             Graphics.TEXT_JUSTIFY_CENTER
         );
     }
@@ -258,6 +269,13 @@ class CardRenderer {
     private function drawHumidity(dc as Graphics.Dc, entity as Dictionary) as Void {
         var x = dc.getWidth() * 8 / COLUMN_COUNT;
         var y = dc.getHeight() * 8 / COLUMN_COUNT;
+        var reading = entity.get(:reading) as String;
+        var textWidth = dc.getTextWidthInPixels(reading, LABEL_FONT);
+        var textHeight = dc.getFontHeight(LABEL_FONT);
+
+        useAntiAlias(dc, false);
+        dc.setColor(Graphics.COLOR_DK_GRAY, system_color_dark__text.background);
+        dc.drawRoundedRectangle(x - BOX_HORIZONTAL_PADDING - (textWidth / 2), y - BOX_VERTICAL_PADDING, textWidth + (2 * BOX_HORIZONTAL_PADDING), textHeight + (2 * BOX_VERTICAL_PADDING), BOX_BORDER_RADIUS);
 
         useAntiAlias(dc, true);
         dc.setColor(Graphics.COLOR_LT_GRAY, system_color_dark__text.background);
@@ -265,7 +283,7 @@ class CardRenderer {
             x,
             y,
             LABEL_FONT,
-            entity.get(:reading) as String,
+            reading,
             Graphics.TEXT_JUSTIFY_CENTER
         );
     }
@@ -273,6 +291,13 @@ class CardRenderer {
     private function drawIlluminance(dc as Graphics.Dc, entity as Dictionary) as Void {
         var x = dc.getWidth() / 2;
         var y = dc.getHeight() * 10 / COLUMN_COUNT;
+        var reading = entity.get(:reading) as String;
+        var textWidth = dc.getTextWidthInPixels(reading, LABEL_FONT);
+        var textHeight = dc.getFontHeight(LABEL_FONT);
+
+        useAntiAlias(dc, false);
+        dc.setColor(Graphics.COLOR_DK_GRAY, system_color_dark__text.background);
+        dc.drawRoundedRectangle(x - BOX_HORIZONTAL_PADDING - (textWidth / 2), y - BOX_VERTICAL_PADDING, textWidth + (2 * BOX_HORIZONTAL_PADDING), textHeight + (2 * BOX_VERTICAL_PADDING), BOX_BORDER_RADIUS);
 
         useAntiAlias(dc, true);
         dc.setColor(Graphics.COLOR_LT_GRAY, system_color_dark__text.background);
@@ -280,7 +305,7 @@ class CardRenderer {
             x,
             y,
             LABEL_FONT,
-            entity.get(:reading) as String,
+            reading,
             Graphics.TEXT_JUSTIFY_CENTER
         );
     }
