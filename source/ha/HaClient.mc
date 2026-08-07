@@ -88,8 +88,10 @@ class HaClient {
             "name=floor_name(f), order=loop.index0, areas=floor_areas(f) | list)}) %}" +
         "{% endfor %}" +
 
-        "{{ dict(lights=ns.lights, sensors=ns.sensors, areas=ns.areasOut, " +
-            "floors=ns.floorsOut) | tojson }}";
+        "{% set zone = state_attr('zone.home', 'friendly_name') %}" +
+
+        "{{ dict(zone=zone, lights=ns.lights, sensors=ns.sensors, " +
+            "areas=ns.areasOut, floors=ns.floorsOut) | tojson }}";
 
     function initialize() {}
 

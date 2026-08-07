@@ -23,13 +23,15 @@ class HomeState {
         :available as Boolean
     };
 
+    private var _zone as String;
     private var _areas as Dictionary<String, Dictionary>;
     private var _lights as Dictionary<String, Dictionary>;
     private var _sensors as Dictionary<String, Dictionary>;
     private var _floors as Array<Dictionary>;
 
-    function initialize(areas as Dictionary<String, Dictionary>, lights as Dictionary<String, Dictionary>,
+    function initialize(zone as String, areas as Dictionary<String, Dictionary>, lights as Dictionary<String, Dictionary>,
                         sensors as Dictionary<String, Dictionary>, floors as Array<Dictionary>) {
+        self._zone = zone;
         self._areas = areas;
         self._lights = lights;
         self._sensors = sensors;
@@ -38,12 +40,14 @@ class HomeState {
 
     static function fromTemplateData(data as Dictionary or String or Null) as HomeState {
         if (!(data instanceof Dictionary)) {
-            return new HomeState({} as Dictionary<String, Dictionary>, {} as Dictionary<String, Dictionary>,
+            return new HomeState("", {} as Dictionary<String, Dictionary>, {} as Dictionary<String, Dictionary>,
                                      {} as Dictionary<String, Dictionary>, [] as Array<Dictionary>);
         }
         var lights = parseEntityMap(data.get("lights"), false);
         var sensors = parseEntityMap(data.get("sensors"), true);
-        return new HomeState(parseAreas(data.get("areas")), lights, sensors,
+        var zone = data.get("zone") as String;
+
+        return new HomeState(zone, parseAreas(data.get("areas")), lights, sensors,
                                  parseFloors(data.get("floors")));
     }
 
@@ -129,6 +133,10 @@ class HomeState {
             return entityId;
         }
         return name as String;
+    }
+
+    function getZoneName() as String {
+        return _zone;
     }
 
     function isGroup(entityId as String) as Boolean {

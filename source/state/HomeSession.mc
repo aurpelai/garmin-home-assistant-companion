@@ -68,6 +68,10 @@ class HomeSession {
         return _state.getDeviceClass(entityId);
     }
 
+    function getZoneName() as String {
+        return _state.getZoneName();
+    }
+
     function buildFloors() as Array<Dictionary> {
         return _state.buildFloors();
     }

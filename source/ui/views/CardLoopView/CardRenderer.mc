@@ -46,14 +46,18 @@ class CardRenderer {
 
     private function drawFloorCard(dc as Graphics.Dc, card as Dictionary) as Void {
         var centerX = dc.getWidth() / 2;
-        var titleY = dc.getHeight() / 3;
-        var statusYOffset = -6;
+        var titleY = dc.getHeight() / 4;
+        var subtitle = card.get(:zone) as String or Null;
+
+        if (subtitle != null) {
+            var subtitleY = titleY - SECTION_GAP - dc.getFontHeight(SUBTITLE_FONT);
+            drawSubtitle(dc, centerX, subtitleY, subtitle);
+        }
 
         drawTitle(dc, centerX, titleY, card.get(:name) as String);
 
         var statusY = titleY + dc.getFontHeight(TITLE_FONT) + SECTION_GAP;
-        drawFloorLightStatus(dc, centerX, statusY + statusYOffset, card.get(:lightSummary) as String);
-
+        drawFloorLightStatus(dc, centerX, statusY, card.get(:lightSummary) as String);
         drawSensorSummary(dc, card, centerX);
     }
 
@@ -65,15 +69,12 @@ class CardRenderer {
 
     private function drawAreaCard(dc as Graphics.Dc, card as Dictionary) as Void {
         var centerX = dc.getWidth() / 2;
-        var titleY = dc.getHeight() / 3;
+        var titleY = dc.getHeight() / 4;
+        var subtitle = card.get(:floor) as String or Null;
 
-        var floor = card.get(:floor) as String or Null;
-
-        if (floor != null) {
-            useAntiAlias(dc, false);
-            var floorY = titleY - SECTION_GAP - dc.getFontHeight(SUBTITLE_FONT);
-            drawFloorLabel(dc, centerX, floorY, floor);
-            useAntiAlias(dc, true);
+        if (subtitle != null) {
+            var subtitleY = titleY - SECTION_GAP - dc.getFontHeight(SUBTITLE_FONT);
+            drawSubtitle(dc, centerX, subtitleY, subtitle);
         }
 
         drawTitle(dc, centerX, titleY, card.get(:name) as String);
@@ -88,20 +89,20 @@ class CardRenderer {
         drawSensorSummary(dc, card, centerX);
     }
 
-    private function drawFloorLabel(dc as Graphics.Dc, centerX as Number, y as Number,
+    private function drawSubtitle(dc as Graphics.Dc, centerX as Number, y as Number,
                                     text as String) as Void {
+        useAntiAlias(dc, false);
         dc.setColor(Graphics.COLOR_DK_GRAY, system_color_dark__text.background);
         dc.drawText(centerX, y, SUBTITLE_FONT, text, Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     private function drawTitle(dc as Graphics.Dc, centerX as Number, y as Number,
                                text as String) as Void {
+        useAntiAlias(dc, true);
         dc.setColor(system_color_dark__text.color, system_color_dark__text.background);
         dc.drawText(centerX, y, TITLE_FONT, text, Graphics.TEXT_JUSTIFY_CENTER);
     }
 
-    // An indicator per light: filled yellow when on, filled gray when
-    // available-but-off, an outline when unavailable. The row is centered on centerX.
     private function drawLightIndicators(dc as Graphics.Dc, centerX as Number, y as Number,
                                          lightSummary as HomeSession.LightSummary) as Void {
         var onCount = lightSummary.get(:on) as Number;
@@ -151,6 +152,7 @@ class CardRenderer {
         var baseY = 2 * dc.getHeight() / 3;
         var extraRowY = baseY + dc.getFontHeight(LABEL_FONT) + SUMMARY_LINE_GAP;
 
+        useAntiAlias(dc, true);
         dc.setColor(Graphics.COLOR_LT_GRAY, system_color_dark__text.background);
 
         for (var i = 0; i < summary.size(); i++) {
@@ -176,6 +178,7 @@ class CardRenderer {
     private function drawSelectHint(dc as Graphics.Dc) as Void {
         var hint = WatchUi.loadResource(Rez.Drawables.SelectHint) as BitmapResource;
 
+        useAntiAlias(dc, true);
         dc.drawBitmap(
             system_loc__hint_button_right_top.x,
             system_loc__hint_button_right_top.y,

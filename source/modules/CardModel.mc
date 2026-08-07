@@ -9,6 +9,7 @@ module CardModel {
     function buildCards(session as HomeSession) as Array<Dictionary> {
         var cards = [] as Array<Dictionary>;
         var groups = session.buildFloors();
+        var zone = session.getZoneName();
 
         for (var groupIndex = 0; groupIndex < groups.size(); groupIndex++) {
             var group = groups[groupIndex];
@@ -17,7 +18,7 @@ module CardModel {
             var areaIds = group.get(:areas) as Array<String>;
 
             if (floorName != null) {
-                cards.add(buildFloorCard(session, floorId, floorName, areaIds));
+                cards.add(buildFloorCard(session, zone, floorId, floorName, areaIds));
             }
 
             for (var areaIndex = 0; areaIndex < areaIds.size(); areaIndex++) {
@@ -41,10 +42,11 @@ module CardModel {
         };
     }
 
-    function buildFloorCard(session as HomeSession, id as String or Null, name as String,
-                            areaIds as Array<String>) as Dictionary {
+    function buildFloorCard(session as HomeSession, zone as String, id as String or Null,
+                            name as String, areaIds as Array<String>) as Dictionary {
         return {
             :type => :floor,
+            :zone => zone,
             :id => id,
             :name => name,
             :selectable => true,
