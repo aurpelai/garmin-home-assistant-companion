@@ -20,7 +20,7 @@ class CardRenderer {
     }) as Graphics.VectorFont;
 
     private const LABEL_FONT = Graphics.getVectorFont({
-        :face => ["RobotoCondensedRegular", "RobotoRegular"],
+        :face => ["RobotoCondensedBold", "RobotoRegular"],
         :size => FONT_SIZES.get("medium") as Number
     }) as Graphics.VectorFont;
 
@@ -60,7 +60,7 @@ class CardRenderer {
     private function drawFloorLightStatus(dc as Graphics.Dc, centerX as Number, y as Number,
                                           text as String) as Void {
         dc.setColor(Graphics.COLOR_LT_GRAY, system_color_dark__text.background);
-        dc.drawText(centerX, y, LABEL_FONT, text, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(centerX, y, SUBTITLE_FONT, text, Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     private function drawAreaCard(dc as Graphics.Dc, card as Dictionary) as Void {
@@ -70,8 +70,10 @@ class CardRenderer {
         var floor = card.get(:floor) as String or Null;
 
         if (floor != null) {
+            useAntiAlias(dc, false);
             var floorY = titleY - SECTION_GAP - dc.getFontHeight(SUBTITLE_FONT);
             drawFloorLabel(dc, centerX, floorY, floor);
+            useAntiAlias(dc, true);
         }
 
         drawTitle(dc, centerX, titleY, card.get(:name) as String);
