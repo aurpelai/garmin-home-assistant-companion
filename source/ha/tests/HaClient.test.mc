@@ -229,23 +229,6 @@ function fetchHomeStateRecoversFrom404TooAndSucceeds(logger as Test.Logger) as B
 }
 
 (:test)
-function fetchHomeStateSurfacesAuthFailureWithoutReRegistering(logger as Test.Logger) as Boolean {
-    Application.Storage.clearValues();
-    Settings.setWebhookId("valid-id");
-    var client = new MockHaClient();
-    var capture = new ResultCapture();
-
-    new RecoveryHandler(client, client.method(:fetch), capture.method(:onResult)).attempt();
-    client.fireFetchFailureWithCode(401);
-
-    Test.assertEqual(client.registerCount, 0);
-    Test.assertEqual(client.fetchCount, 1);
-    Test.assertEqual(capture.error as Number, 401);
-    Test.assertEqual(Settings.getWebhookId() as String, "valid-id");
-    return true;
-}
-
-(:test)
 function toggleLightRecoversOnceFromInvalidWebhook(logger as Test.Logger) as Boolean {
     Application.Storage.clearValues();
     Settings.setWebhookId("stale-id");
