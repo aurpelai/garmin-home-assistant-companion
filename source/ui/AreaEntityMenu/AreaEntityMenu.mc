@@ -44,13 +44,10 @@ class AreaEntityMenu extends WatchUi.Menu2 {
 
     function onShow() as Void {
         (Application.getApp() as HaControllerApp).setCurrentView(self);
-        _session.refreshState(method(:redraw));
+        _session.refreshState(method(:draw));
     }
 
-    // The named redraw seam onActive dispatches to (see CardLoopView.redraw);
-    // any new state-showing view implements it. Rows are updated in place and never
-    // added, removed or reordered, so scroll and focus survive.
-    function redraw() as Void {
+    function draw() as Void {
         for (var i = 0; i < _lights.size(); i++) {
             var entityId = _lights[i];
             var index = findItemById(entityId);
@@ -80,13 +77,13 @@ class AreaEntityMenu extends WatchUi.Menu2 {
 
     // A reading is a plain MenuItem, never a toggle: that is what makes the row
     // inert (see AreaEntityMenuDelegate.onSelect). It still carries the entity id, so
-    // redraw can find it.
+    // draw can find it.
     static function buildSensorItem(session as HomeSession, entityId as String) as WatchUi.MenuItem {
         return new WatchUi.MenuItem(
             session.getName(entityId), buildReading(session, entityId), entityId, null);
     }
 
-    // The single seam for a light row's sublabel: both construction and redraw
+    // The single seam for a light row's sublabel: both construction and draw
     // route through here, so the two never disagree on what a row shows.
     static function buildSubLabel(session as HomeSession, entityId as String) as String or Null {
         if (!session.isAvailable(entityId)) {

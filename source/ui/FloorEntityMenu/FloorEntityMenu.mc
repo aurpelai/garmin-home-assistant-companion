@@ -19,12 +19,10 @@ class FloorEntityMenu extends WatchUi.Menu2 {
 
     function onShow() as Void {
         (Application.getApp() as HaControllerApp).setCurrentView(self);
-        _session.refreshState(method(:redraw));
+        _session.refreshState(method(:draw));
     }
 
-    // The redraw seam onActive dispatches into; a view is registered for it in
-    // HaControllerApp.onRefreshed.
-    function redraw() as Void {
+    function draw() as Void {
         var index = findItemById(:allLights);
         if (index < 0) {
             return;

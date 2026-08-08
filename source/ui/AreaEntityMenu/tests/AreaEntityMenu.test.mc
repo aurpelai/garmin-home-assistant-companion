@@ -38,7 +38,7 @@ function appliedStateRowReflectsConvergedTruth(logger as Test.Logger) as Boolean
     var menu = new AreaEntityMenu(session, "Room", ["light.x"], [] as Array<String>);
 
     session.applyState(AreaEntityMenuTest.stateOf({ "lights" => { "light.x" => { "state" => false } } }));
-    menu.redraw();
+    menu.draw();
 
     Test.assert(!(menu.getItem(menu.findItemById("light.x")) as WatchUi.ToggleMenuItem).isEnabled());
     return true;
@@ -253,7 +253,7 @@ function appliedStateRowsShowNewReadingsInPlace(logger as Test.Logger) as Boolea
             "sensor.humidity" => { "state" => 44, "display_state" => "44 %", "unit" => "%" }
         }
     }));
-    menu.redraw();
+    menu.draw();
 
     Test.assertEqual((menu.getItem(1) as WatchUi.MenuItem).getSubLabel() as String, "22.1 C");
     Test.assertEqual((menu.getItem(2) as WatchUi.MenuItem).getSubLabel() as String, "44 %");

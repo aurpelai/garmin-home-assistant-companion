@@ -17,7 +17,7 @@ class FloorEntityMenuDelegate extends WatchUi.Menu2InputDelegate {
 
     // Holds no per-tap state, so overlapping taps cannot cross their snaps.
     function onToggleComplete() as Void {
-        _menu.redraw();
-        _session.refreshState(_menu.method(:redraw));
+        _menu.draw();
+        _session.refreshState(_menu.method(:draw));
     }
 }
