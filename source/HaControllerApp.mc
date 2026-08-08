@@ -117,6 +117,11 @@ class HaControllerApp extends Application.AppBase {
             return;
         }
 
+        if (state.isUnparsed()) {
+            showRetryScreen(Rez.Strings.ErrUnparsedHaState, null);
+            return;
+        }
+
         if (state.isEmpty()) {
             showRetryScreen(Rez.Strings.ErrEmptyHaState, null);
             return;

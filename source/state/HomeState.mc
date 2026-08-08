@@ -55,6 +55,13 @@ class HomeState {
         return _areas.size() == 0;
     }
 
+    // Distinguishes a payload that failed to parse at all from one that parsed
+    // but described no areas: both leave _areas empty, and the error screen is
+    // the only diagnostic channel on a real watch.
+    function isUnparsed() as Boolean {
+        return _areas.size() == 0 && _lights.size() == 0 && _sensors.size() == 0;
+    }
+
     function isOn(entityId as String) as Boolean {
         var light = _lights.get(entityId);
         if (light == null) {

@@ -23,6 +23,7 @@
 
     <string id="ErrNullHaState">HA didn't return a valid state</string>
     <string id="ErrEmptyHaState">HA returned an empty state</string>
+    <string id="ErrUnparsedHaState">HA's response couldn't be read</string>
 
     <!-- Errors -->
     <string id="ErrAuth">Auth failed — check your token</string>
