@@ -345,6 +345,49 @@ function buildFloorSensorSummaryAveragesAcrossAreas(logger as Test.Logger) as Bo
 }
 
 (:test)
+function buildAreaSensorSummaryDropsADeviceClassWhoseOnlySensorIsUnavailable(logger as Test.Logger) as Boolean {
+    var session = CardModelTest.sessionOf({
+        "areas" => { "area.kitchen" => { "name" => "Kitchen",
+            "sensors" => ["sensor.k_temp", "sensor.k_humidity"] } },
+        "sensors" => {
+            "sensor.k_temp" => { "state" => 0.0, "display_state" => "unavailable", "unit" => "°C",
+                "device_class" => "temperature", "available" => false },
+            "sensor.k_humidity" => { "state" => 41.0, "display_state" => "41 %", "unit" => "%",
+                "device_class" => "humidity" }
+        }
+    });
+    var summary = CardModel.buildAreaSensorSummary(session, "area.kitchen");
+
+    Test.assertEqual(summary.size(), 1);
+    Test.assertEqual(summary[0].get(:device_class) as String, "humidity");
+    Test.assertEqual(summary[0].get(:reading) as String, "41 %");
+    return true;
+}
+
+(:test)
+function buildFloorSensorSummaryMeanExcludesUnavailableSensors(logger as Test.Logger) as Boolean {
+    var session = CardModelTest.sessionOf({
+        "areas" => {
+            "area.kitchen" => { "name" => "Kitchen", "sensors" => ["sensor.k_temp"] },
+            "area.bedroom" => { "name" => "Bedroom", "sensors" => ["sensor.b_temp"] }
+        },
+        "sensors" => {
+            // An unavailable sensor reports a zero reading, which would drag the
+            // mean down if it were counted.
+            "sensor.k_temp" => { "state" => 0.0, "display_state" => "unavailable", "unit" => "°C",
+                "device_class" => "temperature", "available" => false },
+            "sensor.b_temp" => { "state" => 22.0, "display_state" => "22.0 °C", "unit" => "°C",
+                "device_class" => "temperature" }
+        }
+    });
+    var summary = CardModel.buildFloorSensorSummary(session, ["area.kitchen", "area.bedroom"]);
+
+    Test.assertEqual(summary.size(), 1);
+    Test.assertEqual(summary[0].get(:reading) as String, "22.0 °C");
+    return true;
+}
+
+(:test)
 function buildFloorSensorSummaryMeanTakesFewestDecimalsOfItsInputs(logger as Test.Logger) as Boolean {
     var session = CardModelTest.sessionOf({
         "areas" => {

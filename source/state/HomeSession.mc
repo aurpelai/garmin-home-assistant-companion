@@ -137,7 +137,7 @@ class HomeSession {
             var value = getReadingValue(entityId);
             var display = getReading(entityId);
 
-            if (deviceClass == null || value == null || display == null) {
+            if (deviceClass == null || value == null || display == null || !isAvailable(entityId)) {
                 continue;
             }
 
