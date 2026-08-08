@@ -17,8 +17,6 @@ class HaControllerApp extends Application.AppBase {
     }
 
     function onStart(state as Dictionary or Null) as Void {
-        registerNativeAppToHomeAssistant();
-
         if (_session == null) {
             return;
         }
@@ -68,11 +66,6 @@ class HaControllerApp extends Application.AppBase {
 
     function fetchHomeState() as Void {
         _client.fetchHomeState(method(:onLoaded));
-    }
-
-    function registerNativeAppToHomeAssistant() as Void {
-        Settings.clearWebhookId();
-        _client.register(method(:noOpRegister));
     }
 
     function registerIfNeeded() as Void {

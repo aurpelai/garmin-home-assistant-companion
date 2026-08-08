@@ -1,0 +1,3 @@
+kind: 🔧 Fixed
+body: '**A failing request no longer discards the Home Assistant registration** — only a dead webhook is re-registered, so an authentication or server error is reported instead of quietly replacing the registration.'
+time: 2026-08-09T00:36:00.000000000+03:00
