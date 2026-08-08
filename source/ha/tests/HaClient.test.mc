@@ -3,6 +3,26 @@ import Toybox.Communications;
 import Toybox.Lang;
 import Toybox.Test;
 
+// Restates a posted request's ResponseHandler as the (result, error) shape the
+// toggle entry points capture, so every recorded callback fires the same way.
+(:test)
+class PostedRequest {
+    private var _handler as ResponseHandler;
+
+    function initialize(handler as ResponseHandler) {
+        _handler = handler;
+    }
+
+    function respond(result as Object?, error as Number?) as Void {
+        if (error != null) {
+            _handler.onResponse(error, null);
+            return;
+        }
+
+        _handler.onResponse(200, null);
+    }
+}
+
 // Captures each entry point's callback instead of making a web request, so a
 // test can fire success or failure synchronously.
 (:test)
@@ -40,7 +60,7 @@ class MockHaClient extends HaClient {
     }
 
     function register(callback as Method) as Void {
-        _registerCallback = callback;
+        _registerCallback = new RegisterCacheHandler(callback).method(:onRegistered);
         registerCount++;
     }
 
@@ -49,8 +69,8 @@ class MockHaClient extends HaClient {
         fetchCount++;
     }
 
-    function callService(entityId as String, callback as Method) as Void {
-        serviceCallbacks.add(callback);
+    function post(path as String, body as Dictionary, handler as ResponseHandler) as Void {
+        serviceCallbacks.add(new PostedRequest(handler).method(:respond));
         toggleCount++;
     }
 
@@ -239,7 +259,7 @@ function toggleLightRecoversOnceFromInvalidWebhook(logger as Test.Logger) as Boo
         capture.method(:onResult)).attempt();
     client.fireServiceFailureAt(0, Communications.INVALID_HTTP_BODY_IN_NETWORK_RESPONSE);
     client.fireRegisterSuccess("fresh-id");
-    client.fireServiceSuccessAt(0);
+    client.fireServiceSuccessAt(1);
 
     Test.assertEqual(client.toggleCount, 2);
     Test.assertEqual(client.registerCount, 1);
