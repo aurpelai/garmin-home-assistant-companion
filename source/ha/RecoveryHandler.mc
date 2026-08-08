@@ -25,7 +25,7 @@ class RecoveryHandler {
     }
 
     function onFirstAttempt(result as Object or Null, error as Number or Null) as Void {
-        if (error != null || isInvalidWebhookCode(error as Number)) {
+        if (error != null && isInvalidWebhookCode(error)) {
             Settings.clearWebhookId();
             _client.register(method(:onRegistered));
             return;
