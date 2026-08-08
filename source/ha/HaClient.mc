@@ -67,7 +67,7 @@ class HaClient {
         "{% if e.startswith('sensor.') and state_attr(e, 'device_class') == device_class %}" +
         "{% set ns.areaSensors = ns.areaSensors + [e] %}" +
         "{% set ns.sensors = dict(ns.sensors, **{e: dict(" +
-            "state=states(e) | float, display_state=states(e, true, true), " +
+            "state=states(e) | float(0), display_state=states(e, true, true), " +
             "unit=state_attr(e, 'unit_of_measurement'), device_class=device_class, " +
             "name=entity_name(e), " +
             "available=not is_state(e, 'unavailable') and not is_state(e, 'unknown'))}) %}" +
