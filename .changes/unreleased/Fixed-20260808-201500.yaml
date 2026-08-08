@@ -1,3 +1,0 @@
-kind: 🔧 Fixed
-body: '**Unavailable sensors are left out of card readings and averages** — an offline sensor no longer reads as "unavailable °C" or drags a floor''s average down.'
-time: 2026-08-08T20:15:00.000000000+03:00

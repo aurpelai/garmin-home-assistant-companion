@@ -9,8 +9,7 @@ headerPath: header.tpl.md
 changelogPath: CHANGELOG.md
 versionExt: md
 
-# Unprefixed version (0.2.0) — matches CHANGELOG headers and the string typed
-# into the Connect IQ Store; the git tag adds the `v` prefix in the release workflow.
+# `{{.Version}}` renders with the `v` prefix, matching the git tag verbatim.
 versionFormat: '## [{{.Version}}] - {{.Time.Format "2006-01-02"}}'
 kindFormat: '### {{.Kind}}'
 # Hand-authored fragments only — no commit SHA or PR link, so CHANGELOG.md reads
@@ -33,3 +32,12 @@ kinds:
 # Fragment body is a single free-text line the author writes in `changie new`.
 body:
   block: false
+
+# Without `endOfVersion`, version files end unterminated and `merge` runs the
+# previous release's heading onto the last line of the newer one. The rest
+# reproduce the blank lines a Markdown formatter would otherwise add back.
+newlines:
+  endOfVersion: 1
+  beforeKind: 1
+  afterKind: 1
+  beforeChangelogVersion: 1

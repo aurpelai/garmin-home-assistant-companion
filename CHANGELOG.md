@@ -5,6 +5,18 @@ All notable changes to this project are documented here.
 This file is compiled from change fragments by [changie](https://changie.dev);
 do not edit it by hand. Add a fragment with `changie new` in your PR instead.
 
+## [v0.4.0] - 2026-08-09
+
+### ✨ Improved
+
+- **An unreadable response is named as such** — a reply that could not be read is no longer reported as an empty home.
+
+### 🔧 Fixed
+
+- **An unavailable sensor no longer blanks the whole app** — a sensor reporting no reading made Home Assistant abandon the entire state request, leaving the watch with nothing to show.
+- **Unavailable sensors are left out of card readings and averages** — an offline sensor no longer reads as "unavailable °C" or drags a floor's average down.
+- **A failing request no longer discards the Home Assistant registration** — only a dead webhook is re-registered, so an authentication or server error is reported instead of quietly replacing the registration.
+
 ## [v0.3.0] - 2026-08-08
 
 ### ✨ Improved
@@ -27,7 +39,9 @@ do not edit it by hand. Add a fragment with `changie new` in your PR instead.
 
 ### 🔧 Fixed
 
-- **The app now loads on real watches, not just the simulator** — home state is fetched over a channel Home Assistant returns as JSON, resolving the network error that left the app blank on-device.## [v0.1.0] - 2026-07-29
+- **The app now loads on real watches, not just the simulator** — home state is fetched over a channel Home Assistant returns as JSON, resolving the network error that left the app blank on-device.
+
+## [v0.1.0] - 2026-07-29
 
 ### 🎉 New
 
