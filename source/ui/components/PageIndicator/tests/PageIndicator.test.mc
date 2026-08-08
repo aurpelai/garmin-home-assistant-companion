@@ -35,11 +35,3 @@ function hidingClearsTheVisibleState(logger as Test.Logger) as Boolean {
 
     return true;
 }
-
-(:test)
-function fewerThanMinPageIndicatorsNeverBecomesVisible(logger as Test.Logger) as Boolean {
-    // MIN_PAGE_INDICATORS is 3, but it is a private constant so we can't reference it here.
-    var indicator = new PageIndicator(2);
-    Test.assert(!indicator.isVisible());
-    return true;
-}

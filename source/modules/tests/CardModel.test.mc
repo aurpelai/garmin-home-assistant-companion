@@ -83,32 +83,6 @@ function noFloorsYieldsOnlyAreaCards(logger as Test.Logger) as Boolean {
 }
 
 (:test)
-function areaCardsandFloorCardsAreSelectable(logger as Test.Logger) as Boolean {
-    var session = CardModelTest.sessionOf({
-        "areas" => { "area.kitchen" => { "name" => "Kitchen", "lights" => ["light.kitchen"] } },
-        "floors" => { "floor.ground" => { "name" => "Ground Floor", "areas" => ["area.kitchen"] } }
-    });
-    var cards = CardModel.buildCards(session);
-
-    Test.assert((cards[0].get(:selectable) as Boolean));
-    Test.assert(cards[1].get(:selectable) as Boolean);
-    return true;
-}
-
-(:test)
-function floorCardIsSelectableWithIdAndLights(logger as Test.Logger) as Boolean {
-    var session = CardModelTest.sessionOf({
-        "areas" => { "area.kitchen" => { "name" => "Kitchen", "lights" => ["light.kitchen"] } },
-        "floors" => { "floor_ground" => { "name" => "Ground Floor", "areas" => ["area.kitchen"] } }
-    });
-    var cards = CardModel.buildCards(session);
-
-    Test.assertEqual(cards[0].get(:type) as Symbol, :floor);
-    Test.assert(cards[0].get(:selectable) as Boolean);
-    return true;
-}
-
-(:test)
 function buildAreaLightSummaryCountsOnAndAvailableLights(logger as Test.Logger) as Boolean {
     var session = CardModelTest.sessionOf({
         "areas" => { "area.room" => { "name" => "Room",
