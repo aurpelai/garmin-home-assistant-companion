@@ -61,21 +61,21 @@ There is no Conventional Commits requirement and no commit linter; these are hel
 
 The changelog is compiled from hand-written fragments by [changie](https://changie.dev) — `CHANGELOG.md` is generated, never edited by hand.
 
-When your change is user-visible, add a fragment in the same PR:
+Add a fragment in the same PR:
 
 ```sh
 changie new
 ```
 
-It prompts for a **kind** (🎉 New / ✨ Improved / 🔧 Fixed) and a one-line description, then writes a file under `.changes/unreleased/`. Commit that file with your change. Fragments carry no commit hashes, so the changelog stays clean and user-facing.
+It prompts for a **kind** (🎉 New / ✨ Improved / 🔧 Fixed) and a one-line description, then writes a file under `.changes/unreleased/`. Commit that file with your change. Fragments carry no commit hashes.
 
-Purely internal changes (refactors, CI, docs) don't need a fragment.
+The changelog is the engineering-facing record of what shipped between two git tags, so technical changes earn a fragment too — leaving them out loses history. The user-facing filter is applied later, when the Store release notes are compiled; see [Changelog vs. release notes](#changelog-vs-release-notes).
 
 ## Releases
 
 Releases are cut manually from the **Release** GitHub Actions workflow (`workflow_dispatch`): pick the bump (patch / minor / major / auto) and run it. It batches the fragments, compiles `CHANGELOG.md`, commits, tags `vX.Y.Z`, and creates the GitHub Release.
 
-Versioning is [SemVer](https://semver.org/). The git tag is the canonical version of record. changie stores versions **unprefixed** (`0.2.0`); the `v` prefix is a git-tag convention added only to the tag and Release.
+Versioning is [SemVer](https://semver.org/). The git tag is the canonical version of record. changie stores versions **prefixed** (`v0.2.0`), matching the git tag, the version filename and the `CHANGELOG.md` header verbatim. The Store wants the bare number — drop the `v` when you type it there.
 
 ### Publishing to the Connect IQ Store
 
