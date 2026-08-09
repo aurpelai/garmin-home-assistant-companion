@@ -61,9 +61,9 @@ jobs:
           version: latest
           args: merge
 
-      # changie stores versions unprefixed (0.2.0) — matching CHANGELOG.md headers
-      # and the string you type into the Connect IQ Store. The `v` prefix is a
-      # git-tag convention only, added by the tag/release steps below.
+      # `changie latest` returns the version prefixed (v0.2.0), matching the git
+      # tag, the version filename and the CHANGELOG.md header verbatim. The
+      # Connect IQ Store wants the bare number — drop the `v` when you type it.
       - name: Read the batched version
         id: version
         uses: miniscruff/changie-action@v3
@@ -79,7 +79,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add CHANGELOG.md .changes
           git commit -m "Release $VERSION"
-          git tag "v$VERSION"
+          git tag "$VERSION"
           git push origin HEAD --follow-tags
 
       - name: Create the GitHub Release
@@ -87,6 +87,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ steps.version.outputs.output }}
         run: |
-          gh release create "v$VERSION" \
-            --title "v$VERSION" \
+          gh release create "$VERSION" \
+            --title "$VERSION" \
             --notes-file ".changes/${VERSION}.md"
