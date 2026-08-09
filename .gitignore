@@ -12,3 +12,6 @@ developer_key*
 .DS_Store
 
 .claude/
+
+# Internal working notes — never committed
+.notes/
