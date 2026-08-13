@@ -18,7 +18,7 @@ class FloorEntityMenu extends WatchUi.Menu2 {
     }
 
     function onShow() as Void {
-        (Application.getApp() as HaControllerApp).setCurrentView(self);
+        (Application.getApp() as HaCompanionApp).setCurrentView(self);
         _session.refreshState(method(:draw));
     }
 
