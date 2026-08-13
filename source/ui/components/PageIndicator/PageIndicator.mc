@@ -69,6 +69,10 @@ class PageIndicator {
     }
 
     function onParentViewHide() as Void {
+        dismiss();
+    }
+
+    private function dismiss() as Void {
         WatchUi.cancelAllAnimations();
         _timer.stop();
         hideIndicator();
@@ -231,6 +235,20 @@ class PageIndicator {
     function hideIndicator() as Void {
         _state = PAGE_INDICATOR_HIDDEN;
         clear();
+    }
+
+    // A rebuild has no "from" page to cross-fade out of, hence both indices
+    // taking the same value. Only showIndicator arms the auto-hide timer, so a
+    // count change may hide but must never reveal: anything revealed here would
+    // stay on screen indefinitely.
+    function setPageCount(pageCount as Number, page as Number) as Void {
+        _pageCount = pageCount;
+        _currentPage = page;
+        _previousPage = page;
+
+        if (isVisible() && _pageCount < MIN_PAGE_INDICATORS) {
+            dismiss();
+        }
     }
 
     function updateIndex(index as Number) as Void {
