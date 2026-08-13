@@ -324,7 +324,9 @@ function buildAreaSensorSummaryDropsADeviceClassWhoseOnlySensorIsUnavailable(log
         "areas" => { "area.kitchen" => { "name" => "Kitchen",
             "sensors" => ["sensor.k_temp", "sensor.k_humidity"] } },
         "sensors" => {
-            "sensor.k_temp" => { "state" => 0.0, "display_state" => "unavailable", "unit" => "°C",
+            // An unavailable sensor's state renders as JSON null (float(none)),
+            // not a numeric zero.
+            "sensor.k_temp" => { "state" => null, "display_state" => "unavailable", "unit" => "°C",
                 "device_class" => "temperature", "available" => false },
             "sensor.k_humidity" => { "state" => 41.0, "display_state" => "41 %", "unit" => "%",
                 "device_class" => "humidity" }
@@ -346,9 +348,9 @@ function buildFloorSensorSummaryMeanExcludesUnavailableSensors(logger as Test.Lo
             "area.bedroom" => { "name" => "Bedroom", "sensors" => ["sensor.b_temp"] }
         },
         "sensors" => {
-            // An unavailable sensor reports a zero reading, which would drag the
-            // mean down if it were counted.
-            "sensor.k_temp" => { "state" => 0.0, "display_state" => "unavailable", "unit" => "°C",
+            // An unavailable sensor's state renders as JSON null (float(none)), not
+            // a numeric zero, which would drag the mean down if it were counted.
+            "sensor.k_temp" => { "state" => null, "display_state" => "unavailable", "unit" => "°C",
                 "device_class" => "temperature", "available" => false },
             "sensor.b_temp" => { "state" => 22.0, "display_state" => "22.0 °C", "unit" => "°C",
                 "device_class" => "temperature" }
@@ -358,6 +360,52 @@ function buildFloorSensorSummaryMeanExcludesUnavailableSensors(logger as Test.Lo
 
     Test.assertEqual(summary.size(), 1);
     Test.assertEqual(summary[0].get(:reading) as String, "22.0 °C");
+    return true;
+}
+
+(:test)
+function buildFloorSensorSummaryMeanOverNullAndRealReadingIsTheRealValue(logger as Test.Logger) as Boolean {
+    // A null-valued reading is excluded from the mean entirely rather than
+    // treated as 0: {null, 21.5} must average to 21.5, not 10.75.
+    var session = CardModelTest.sessionOf({
+        "areas" => {
+            "area.kitchen" => { "name" => "Kitchen", "sensors" => ["sensor.k_temp"] },
+            "area.bedroom" => { "name" => "Bedroom", "sensors" => ["sensor.b_temp"] }
+        },
+        "sensors" => {
+            "sensor.k_temp" => { "state" => null, "display_state" => "unavailable", "unit" => "°C",
+                "device_class" => "temperature" },
+            "sensor.b_temp" => { "state" => 21.5, "display_state" => "21.5 °C", "unit" => "°C",
+                "device_class" => "temperature" }
+        }
+    });
+    var summary = CardModel.buildFloorSensorSummary(session, ["area.kitchen", "area.bedroom"]);
+
+    Test.assertEqual(summary.size(), 1);
+    Test.assertEqual(summary[0].get(:reading) as String, "21.5 °C");
+    return true;
+}
+
+(:test)
+function buildFloorSensorSummaryMeanIncludesAGenuineZeroReading(logger as Test.Logger) as Boolean {
+    // Zero and absent must not collapse: a real 0.0 reading counts in the mean
+    // alongside another real reading.
+    var session = CardModelTest.sessionOf({
+        "areas" => {
+            "area.kitchen" => { "name" => "Kitchen", "sensors" => ["sensor.k_temp"] },
+            "area.bedroom" => { "name" => "Bedroom", "sensors" => ["sensor.b_temp"] }
+        },
+        "sensors" => {
+            "sensor.k_temp" => { "state" => 0.0, "display_state" => "0.0 °C", "unit" => "°C",
+                "device_class" => "temperature" },
+            "sensor.b_temp" => { "state" => 22.0, "display_state" => "22.0 °C", "unit" => "°C",
+                "device_class" => "temperature" }
+        }
+    });
+    var summary = CardModel.buildFloorSensorSummary(session, ["area.kitchen", "area.bedroom"]);
+
+    Test.assertEqual(summary.size(), 1);
+    Test.assertEqual(summary[0].get(:reading) as String, "11.0 °C");
     return true;
 }
 

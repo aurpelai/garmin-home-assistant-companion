@@ -26,6 +26,11 @@ class HaClient {
     // instead of a regex like select('match','^light\.'). A backslash in this
     // string would be sent unescaped by the Connect IQ JSON serializer, producing
     // an invalid JSON escape and a 400 "Invalid JSON specified" from HA.
+    //
+    // Every value reaching the closing `| tojson` is guarded at its own site.
+    // An Undefined raises TypeError from inside tojson, before any later filter
+    // runs, so `| tojson | default(...)` cannot catch it — one bad entity would
+    // cost the whole payload rather than its own row.
     private const HOME_STATE_TEMPLATE =
         "{% set ns = namespace(lights={}, sensors={}, areaLights={}, areaSensors={}, " +
             "areasOut={}, floorsOut={}) %}" +
@@ -62,12 +67,18 @@ class HaClient {
         // `states(e, true, true)` keeps HA's own display precision and unit as a
         // string, so the watch never reparses or rounds and can't disagree with
         // the user's dashboard. Needs HA 2023.3.
+        //
+        // `float(none)`, never `float(0)`: a non-numeric state defaulted to 0 is
+        // indistinguishable from a sensor genuinely reading zero, so an area mean
+        // silently absorbs it — one unavailable sensor plus a real 21.5 °C shows
+        // 10.8 °C. null makes the absence visible to the parser instead.
         "{% for device_class in ['temperature', 'humidity', 'illuminance'] %}" +
         "{% for e in visible %}" +
-        "{% if e.startswith('sensor.') and state_attr(e, 'device_class') == device_class %}" +
+        "{% if e.startswith('sensor.') and states[e] is not none " +
+            "and state_attr(e, 'device_class') == device_class %}" +
         "{% set ns.areaSensors = ns.areaSensors + [e] %}" +
         "{% set ns.sensors = dict(ns.sensors, **{e: dict(" +
-            "state=states(e) | float(0), display_state=states(e, true, true), " +
+            "state=states(e) | float(none), display_state=states(e, true, true), " +
             "unit=state_attr(e, 'unit_of_measurement'), device_class=device_class, " +
             "name=entity_name(e), " +
             "available=not is_state(e, 'unavailable') and not is_state(e, 'unknown'))}) %}" +
@@ -75,9 +86,12 @@ class HaClient {
         "{% endfor %}" +
         "{% endfor %}" +
 
+        // `| default(none)` includes the area with a null name, where an `{% if %}`
+        // would omit it and take every light and reading in it along. Same for the
+        // floor below: a naming gap should cost a label, not a room.
         "{% if ns.areaLights or ns.areaSensors %}" +
         "{% set ns.areasOut = dict(ns.areasOut, **{a: dict(" +
-            "name=area_name(a), lights=ns.areaLights, sensors=ns.areaSensors)}) %}" +
+            "name=area_name(a) | default(none), lights=ns.areaLights, sensors=ns.areaSensors)}) %}" +
         "{% endif %}" +
         "{% endfor %}" +
 
@@ -85,7 +99,8 @@ class HaClient {
         // to the iteration and wouldn't escape.
         "{% for f in floors() %}" +
         "{% set ns.floorsOut = dict(ns.floorsOut, **{f: dict(" +
-            "name=floor_name(f), order=loop.index0, areas=floor_areas(f) | list)}) %}" +
+            "name=floor_name(f) | default(none), order=loop.index0, " +
+            "areas=floor_areas(f) | default([]) | list)}) %}" +
         "{% endfor %}" +
 
         "{% set zone = state_attr('zone.home', 'friendly_name') %}" +

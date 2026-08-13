@@ -1,0 +1,3 @@
+kind: 🔧 Fixed
+body: '**An unavailable or non-numeric sensor no longer corrupts an area''s mean reading, and an undefined value no longer discards the whole payload** — per-value template guards replace the single float(0) default.'
+time: 2026-08-14T01:11:05.000000000+03:00
