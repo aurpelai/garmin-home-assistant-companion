@@ -35,3 +35,26 @@ function hidingClearsTheVisibleState(logger as Test.Logger) as Boolean {
 
     return true;
 }
+
+(:test)
+function aCountFallingBelowTheMinimumHidesAVisibleIndicator(logger as Test.Logger) as Boolean {
+    var indicator = new PageIndicator(5);
+
+    indicator.updateIndex(3);
+    indicator.setPageCount(2, 1);
+
+    Test.assert(!indicator.isVisible());
+
+    return true;
+}
+
+(:test)
+function aRisingCountAloneDoesNotRevealTheIndicator(logger as Test.Logger) as Boolean {
+    var indicator = new PageIndicator(2);
+
+    indicator.setPageCount(5, 0);
+
+    Test.assert(!indicator.isVisible());
+
+    return true;
+}

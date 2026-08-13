@@ -63,6 +63,7 @@ class CardLoopView extends WatchUi.View {
                 ? 0
                 : _cards.size() - 1;
         }
+        _pageIndicator.setPageCount(_cards.size(), _index);
         WatchUi.requestUpdate();
     }
 
