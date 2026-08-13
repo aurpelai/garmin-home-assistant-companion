@@ -291,6 +291,33 @@ function sensorWithNonNumericStateHasNoReadingValue(logger as Test.Logger) as Bo
 }
 
 (:test)
+function nullSensorStateYieldsNoReadingValue(logger as Test.Logger) as Boolean {
+    // JSON null (float(none) in the template) degrades like any other
+    // non-numeric state: no reading value, not a zero.
+    var data = {
+        "areas" => { "area.hall" => { "name" => "Hall", "sensors" => ["sensor.temp"] } },
+        "sensors" => { "sensor.temp" => { "state" => null, "display_state" => "unavailable",
+            "device_class" => "temperature", "available" => false } }
+    };
+    var state = HomeState.fromTemplateData(data);
+    Test.assert(state.getReadingValue("sensor.temp") == null);
+    return true;
+}
+
+(:test)
+function sensorAbsentFromPayloadHasNoReadingValue(logger as Test.Logger) as Boolean {
+    // A sensor with no state object at all is now omitted from the template's
+    // sensors map entirely, same as any other unlisted entity id.
+    var data = {
+        "areas" => { "area.hall" => { "name" => "Hall", "sensors" => ["sensor.gone"] } }
+    };
+    var state = HomeState.fromTemplateData(data);
+    Test.assert(state.getReadingValue("sensor.gone") == null);
+    Test.assert(state.getReading("sensor.gone") == null);
+    return true;
+}
+
+(:test)
 function parsesAvailableIntoIsAvailable(logger as Test.Logger) as Boolean {
     var data = {
         "areas" => { "area.kitchen" => { "name" => "Kitchen",
@@ -732,6 +759,34 @@ function buildFloorsDropsAFloorWhoseAreasAllHaveNoEntities(logger as Test.Logger
     var grouped = HomeState.fromTemplateData(data).buildFloors();
     Test.assertEqual(grouped.size(), 1);
     Test.assertEqual(grouped[0].get(:name) as String, "Ground Floor");
+    return true;
+}
+
+(:test)
+function floorWithEmptyAreasArrayParsesWithoutError(logger as Test.Logger) as Boolean {
+    var data = {
+        "areas" => { "area.kitchen" => { "name" => "Kitchen", "lights" => ["light.k"] } },
+        "floors" => {
+            "floor.ground" => { "name" => "Ground Floor", "areas" => ["area.kitchen"] },
+            "floor.bare" => { "name" => "Bare Floor", "areas" => [] as Array<String> }
+        }
+    };
+    var grouped = HomeState.fromTemplateData(data).buildFloors();
+    Test.assertEqual(grouped.size(), 1);
+    Test.assertEqual(grouped[0].get(:name) as String, "Ground Floor");
+    return true;
+}
+
+(:test)
+function nonAsciiFloorAndAreaNamesSurviveParsing(logger as Test.Logger) as Boolean {
+    var data = {
+        "areas" => { "area.kok" => { "name" => "Kök", "lights" => ["light.k"] } },
+        "floors" => { "floor.ovre" => { "name" => "Wohnzimmer über", "areas" => ["area.kok"] } }
+    };
+    var state = HomeState.fromTemplateData(data);
+    Test.assertEqual(state.getAreaName("area.kok"), "Kök");
+    var grouped = state.buildFloors();
+    Test.assertEqual(grouped[0].get(:name) as String, "Wohnzimmer über");
     return true;
 }
 
