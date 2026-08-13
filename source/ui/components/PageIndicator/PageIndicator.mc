@@ -69,6 +69,10 @@ class PageIndicator {
     }
 
     function onParentViewHide() as Void {
+        dismiss();
+    }
+
+    private function dismiss() as Void {
         WatchUi.cancelAllAnimations();
         _timer.stop();
         hideIndicator();
@@ -243,7 +247,7 @@ class PageIndicator {
         _previousPage = page;
 
         if (isVisible() && _pageCount < MIN_PAGE_INDICATORS) {
-            onParentViewHide();
+            dismiss();
         }
     }
 

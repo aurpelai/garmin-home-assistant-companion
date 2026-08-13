@@ -58,11 +58,13 @@ class CardLoopView extends WatchUi.View {
 
     function draw() as Void {
         _cards = CardModel.buildCards(_session);
+
         if (_index >= _cards.size()) {
             _index = _cards.size() == 0
                 ? 0
                 : _cards.size() - 1;
         }
+
         _pageIndicator.setPageCount(_cards.size(), _index);
         WatchUi.requestUpdate();
     }
