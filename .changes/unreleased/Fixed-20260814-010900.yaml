@@ -1,0 +1,3 @@
+kind: 🔧 Fixed
+body: '**The application class is renamed from `HaControllerApp` to `HaCompanionApp`** — it describes a companion app, not a controller.'
+time: 2026-08-14T01:09:00.000000000+03:00

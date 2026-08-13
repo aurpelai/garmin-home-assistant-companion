@@ -6,7 +6,7 @@
   from here on rather than editing by hand.
 -->
 <iq:manifest xmlns:iq="http://www.garmin.com/xml/connectiq" version="3">
-  <iq:application id="8e138eb2fa084fb995abd7e01246ab29" type="watch-app" name="@Strings.AppName" entry="HaControllerApp" launcherIcon="@Drawables.LauncherIcon" minApiLevel="5.0.0">
+  <iq:application id="8e138eb2fa084fb995abd7e01246ab29" type="watch-app" name="@Strings.AppName" entry="HaCompanionApp" launcherIcon="@Drawables.LauncherIcon" minApiLevel="5.0.0">
     <iq:products>
       <iq:product id="enduro3"/>
       <iq:product id="fenix7"/>

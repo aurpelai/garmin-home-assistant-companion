@@ -22,7 +22,7 @@ class CardLoopView extends WatchUi.View {
     }
 
     function onShow() as Void {
-        (Application.getApp() as HaControllerApp).setCurrentView(self);
+        (Application.getApp() as HaCompanionApp).setCurrentView(self);
         addLayer(_pageIndicator.getLayer());
         _pageIndicator.showIndicator();
         draw();

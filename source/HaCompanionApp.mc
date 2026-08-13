@@ -4,7 +4,7 @@ import Toybox.WatchUi;
 
 // getInitialView returns a plain loading view rather than a Menu2: returning a
 // Menu2 here crashes on some devices.
-class HaControllerApp extends Application.AppBase {
+class HaCompanionApp extends Application.AppBase {
     private var _client as HaClient;
     private var _session as HomeSession or Null;
     private var _currentView as WatchUi.Views or Null;
