@@ -55,6 +55,30 @@ function lightsWithEqualNamesOrderByIdRatherThanArbitrarily(logger as Test.Logge
 }
 
 (:test)
+function areasOrderByNameAndDropAnIdTheStructureNeverReported(logger as Test.Logger) as Boolean {
+    // A floor's area list can name an area the areas section never carried, and
+    // ordering is by the label on screen rather than by the id behind it. An
+    // unnamed area falls back to its id, which is what a reader sees.
+    var haState = new HaState();
+    haState.setStructure(HaPayload.parseStructure({
+        "areas" => {
+            "area.zulu" => { "name" => "Alcove" },
+            "area.alpha" => { "name" => "Ülkerum" },
+            "area.nameless" => {} as Dictionary
+        }
+    }));
+
+    var ordered = DisplayOrder.orderAreaIds(haState,
+        ["area.alpha", "area.ghost", "area.nameless", "area.zulu"]);
+
+    Test.assertEqual(ordered.size(), 3);
+    Test.assertEqual(ordered[0], "area.zulu");
+    Test.assertEqual(ordered[1], "area.nameless");
+    Test.assertEqual(ordered[2], "area.alpha");
+    return true;
+}
+
+(:test)
 function sensorsGroupByDeviceClassInTheOrderTheTemplateUsedTo(logger as Test.Logger) as Boolean {
     var haState = DisplayOrderTest.stateWith({}, {
         "sensor.lux" => DisplayOrderTest.reading("illuminance"),

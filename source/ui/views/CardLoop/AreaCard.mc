@@ -16,11 +16,10 @@ class AreaCard extends Card {
     }
 
     function draw(dc as Graphics.Dc) as Void {
-        useAntiAlias(dc, true);
         drawFrame(dc, _floorName);
 
         if (_lights.available + _lights.unavailable > 0) {
-            drawLightIndicators(dc, dc.getHeight() / 2 - LIGHT_INDICATOR_RADIUS, _lights);
+            drawLightIndicators(dc, _lights);
         }
     }
 }

@@ -1,0 +1,218 @@
+import Toybox.Lang;
+import Toybox.Test;
+
+(:test)
+module CardLoopModelTest {
+
+    function stateOf(structure as Dictionary, lights as Dictionary,
+                     sensors as Dictionary) as HaState {
+        var haState = new HaState();
+        haState.setStructure(HaPayload.parseStructure(structure));
+        haState.setLights(HaPayload.parseLights({ "lights" => lights }));
+        haState.setSensors(HaPayload.parseSensors({ "sensors" => sensors }));
+        return haState;
+    }
+
+    function light(state as Boolean, areaId as String) as Dictionary {
+        return { "state" => state, "area_id" => areaId, "available" => true };
+    }
+
+    function temperature(display as String, value as Float or Null, areaId as String) as Dictionary {
+        return { "state" => value, "display_state" => display, "unit" => "°C",
+            "device_class" => "temperature", "area_id" => areaId, "available" => value != null };
+    }
+
+    function cardIds(model as CardLoopModel) as Array<String> {
+        var ids = [] as Array<String>;
+
+        for (var index = 0; index < model.cards.size(); index++) {
+            ids.add(model.cards[index].id);
+        }
+
+        return ids;
+    }
+
+    // Empty rather than null on a miss: a card never carries a blank reading, so
+    // an empty result is unambiguous and keeps the assertions comparing strings.
+    function readingOf(model as CardLoopModel, cardId as String, deviceClass as String) as String {
+        for (var index = 0; index < model.cards.size(); index++) {
+            var card = model.cards[index];
+            if (!card.id.equals(cardId)) {
+                continue;
+            }
+
+            for (var readingIndex = 0; readingIndex < card.readings.size(); readingIndex++) {
+                if (card.readings[readingIndex].deviceClass.equals(deviceClass)) {
+                    return card.readings[readingIndex].text;
+                }
+            }
+        }
+
+        return "";
+    }
+}
+
+(:test)
+function eachFloorHeadsItsOwnAreasAndUnflooredAreasTrailEveryFloor(logger as Test.Logger) as Boolean {
+    // Upstairs is listed first but carries the higher order, so a correct
+    // sequence puts Ground first — payload order alone would not. Within a
+    // floor, areas sort by name rather than by the order the floor listed them.
+    var haState = CardLoopModelTest.stateOf({
+        "areas" => {
+            "area.bedroom" => { "name" => "Bedroom" },
+            "area.kitchen" => { "name" => "Kitchen" },
+            "area.attic" => { "name" => "Attic" },
+            "area.garage" => { "name" => "Garage" }
+        },
+        "floors" => {
+            "floor.upstairs" => { "name" => "Upstairs", "order" => 1, "areas" => ["area.bedroom", "area.attic"] },
+            "floor.ground" => { "name" => "Ground", "order" => 0, "areas" => ["area.kitchen"] }
+        }
+    }, {} as Dictionary, {} as Dictionary);
+
+    Test.assertEqual(
+        CardLoopModelTest.cardIds(buildCardLoopModel(haState)).toString(),
+        ["floor.ground", "area.kitchen", "floor.upstairs", "area.attic", "area.bedroom", "area.garage"].toString());
+    return true;
+}
+
+(:test)
+function anEmptyHomeYieldsAModelWithNoCardsRatherThanNull(logger as Test.Logger) as Boolean {
+    // The card loop's builder has no subject to look up, so it cannot report
+    // absence the way the per-screen builders do: an empty home is a finding
+    // for the caller to act on, not a missing model.
+    var model = buildCardLoopModel(new HaState());
+
+    Test.assertEqual(model.cards.size(), 0);
+    return true;
+}
+
+(:test)
+function anAreaCardTalliesPhysicalLightsAndCountsOnAmongAvailableOnes(logger as Test.Logger) as Boolean {
+    var haState = CardLoopModelTest.stateOf({
+        "areas" => { "area.room" => { "name" => "Room" } }
+    }, {
+        "light.on" => CardLoopModelTest.light(true, "area.room"),
+        "light.off" => CardLoopModelTest.light(false, "area.room"),
+        // An unavailable light that HA still reports as on must not be counted
+        // on: there is no reachable switch behind the claim.
+        "light.dead" => { "state" => true, "area_id" => "area.room", "available" => false },
+        // The group entity would double-count its own members.
+        "light.grp" => { "state" => true, "area_id" => "area.room", "available" => true,
+            "memberIds" => ["light.on", "light.off"] }
+    }, {} as Dictionary);
+    var lights = new LightTally();
+    lights.add(haState, haState.getLightIdsInArea("area.room"));
+
+    Test.assertEqual(lights.on, 1);
+    Test.assertEqual(lights.available, 2);
+    Test.assertEqual(lights.unavailable, 1);
+    return true;
+}
+
+(:test)
+function anAreaCardTallyReadsTheAssumedValueOfAPendingLight(logger as Test.Logger) as Boolean {
+    // Backing out to the card loop before a toggle's reply must show the tap's
+    // assumed value, which only an override-resolved read gives.
+    var haState = CardLoopModelTest.stateOf({
+        "areas" => { "area.room" => { "name" => "Room" } }
+    }, { "light.a" => CardLoopModelTest.light(false, "area.room") }, {} as Dictionary);
+
+    haState.override("light.a", true);
+
+    var lights = new LightTally();
+    lights.add(haState, haState.getLightIdsInArea("area.room"));
+
+    Test.assertEqual(lights.on, 1);
+    return true;
+}
+
+(:test)
+function aFloorCardAveragesADeviceClassAcrossItsAreas(logger as Test.Logger) as Boolean {
+    // A floor's sensors sit in different rooms with no one of them speaking for
+    // the floor, so its band is a mean rather than whichever reading came first.
+    var haState = CardLoopModelTest.stateOf({
+        "areas" => {
+            "area.kitchen" => { "name" => "Kitchen" },
+            "area.bedroom" => { "name" => "Bedroom" }
+        },
+        "floors" => { "floor.ground" => { "name" => "Ground", "order" => 0,
+            "areas" => ["area.kitchen", "area.bedroom"] } }
+    }, {} as Dictionary, {
+        "sensor.kitchen" => CardLoopModelTest.temperature("19.0 °C", 19.0, "area.kitchen"),
+        "sensor.bedroom" => CardLoopModelTest.temperature("23.0 °C", 23.0, "area.bedroom")
+    });
+
+    Test.assertEqual(
+        CardLoopModelTest.readingOf(buildCardLoopModel(haState), "floor.ground", "temperature"),
+        "21.0 °C");
+    return true;
+}
+
+(:test)
+function aFloorMeanTakesTheFewestDecimalsItsInputsCarried(logger as Test.Logger) as Boolean {
+    // A mean is no more precise than its coarsest input, so 21.5 with 22 reads
+    // 22 rather than 21.75. The unit is stripped by value, not guessed at a
+    // separator, so a non-ASCII unit does not confuse the measurement.
+    var haState = CardLoopModelTest.stateOf({
+        "areas" => { "area.a" => { "name" => "A" }, "area.b" => { "name" => "B" } },
+        "floors" => { "floor.g" => { "name" => "G", "order" => 0, "areas" => ["area.a", "area.b"] } }
+    }, {} as Dictionary, {
+        "sensor.a" => CardLoopModelTest.temperature("21.5 °C", 21.5, "area.a"),
+        "sensor.b" => CardLoopModelTest.temperature("22 °C", 22.0, "area.b")
+    });
+
+    Test.assertEqual(
+        CardLoopModelTest.readingOf(buildCardLoopModel(haState), "floor.g", "temperature"), "22 °C");
+    return true;
+}
+
+(:test)
+function aFloorMeanExcludesAnUnusableReadingRatherThanCountingItAsZero(logger as Test.Logger) as Boolean {
+    // An unavailable sensor's state arrives as null, never a numeric zero:
+    // averaged in, it would drag the floor's reading down by half.
+    var haState = CardLoopModelTest.stateOf({
+        "areas" => { "area.a" => { "name" => "A" }, "area.b" => { "name" => "B" } },
+        "floors" => { "floor.g" => { "name" => "G", "order" => 0, "areas" => ["area.a", "area.b"] } }
+    }, {} as Dictionary, {
+        "sensor.dead" => CardLoopModelTest.temperature("unavailable", null, "area.a"),
+        "sensor.live" => CardLoopModelTest.temperature("21.5 °C", 21.5, "area.b")
+    });
+
+    Test.assertEqual(
+        CardLoopModelTest.readingOf(buildCardLoopModel(haState), "floor.g", "temperature"), "21.5 °C");
+    return true;
+}
+
+(:test)
+function aGenuineZeroReadingStillCountsInAFloorMean(logger as Test.Logger) as Boolean {
+    // Zero and absent must not collapse: a real 0.0 halves a 22.0 reading where
+    // an absent one leaves it alone.
+    var haState = CardLoopModelTest.stateOf({
+        "areas" => { "area.a" => { "name" => "A" }, "area.b" => { "name" => "B" } },
+        "floors" => { "floor.g" => { "name" => "G", "order" => 0, "areas" => ["area.a", "area.b"] } }
+    }, {} as Dictionary, {
+        "sensor.a" => CardLoopModelTest.temperature("0.0 °C", 0.0, "area.a"),
+        "sensor.b" => CardLoopModelTest.temperature("22.0 °C", 22.0, "area.b")
+    });
+
+    Test.assertEqual(
+        CardLoopModelTest.readingOf(buildCardLoopModel(haState), "floor.g", "temperature"), "11.0 °C");
+    return true;
+}
+
+(:test)
+function aDeviceClassWhoseOnlySensorIsUnusableIsAbsentRatherThanBlank(logger as Test.Logger) as Boolean {
+    var haState = CardLoopModelTest.stateOf({
+        "areas" => { "area.room" => { "name" => "Room" } }
+    }, {} as Dictionary, {
+        "sensor.dead" => CardLoopModelTest.temperature("unavailable", null, "area.room"),
+        "sensor.humid" => { "state" => 41.0, "display_state" => "41 %", "unit" => "%",
+            "device_class" => "humidity", "area_id" => "area.room", "available" => true }
+    });
+    var model = buildCardLoopModel(haState);
+
+    Test.assertEqual(model.cards[0].readings.size(), 1);
+    Test.assertEqual(CardLoopModelTest.readingOf(model, "area.room", "humidity"), "41 %");
+    return true;
+}

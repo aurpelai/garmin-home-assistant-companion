@@ -11,9 +11,8 @@ import Toybox.WatchUi;
 // (System 6 / API 5.0.0), so they track the watch theme instead of being
 // hand-picked.
 class Card {
-    hidden const COLUMN_COUNT = 12;
-    hidden const LIGHT_INDICATOR_RADIUS = 7;
-
+    private const COLUMN_COUNT = 12;
+    private const LIGHT_INDICATOR_RADIUS = 7;
     private const LIGHT_INDICATOR_SAFE_AREA = 4;
     private const LIGHT_INDICATOR_SIZE = 2 * (LIGHT_INDICATOR_RADIUS + LIGHT_INDICATOR_SAFE_AREA);
 
@@ -59,6 +58,8 @@ class Card {
     hidden function drawFrame(dc as Graphics.Dc, subtitle as String or Null) as Void {
         var centerX = dc.getWidth() / 2;
 
+        useAntiAlias(dc, true);
+
         if (subtitle != null) {
             drawSubtitle(dc, centerX, dc.getHeight() * 2 / COLUMN_COUNT, subtitle as String);
         }
@@ -68,18 +69,19 @@ class Card {
         drawSelectHint(dc);
     }
 
-    hidden function drawLightStatus(dc as Graphics.Dc, y as Number, text as String) as Void {
+    hidden function drawLightStatus(dc as Graphics.Dc, text as String) as Void {
         useAntiAlias(dc, true);
         dc.setColor(Graphics.COLOR_LT_GRAY, system_color_dark__text.background);
-        dc.drawText(dc.getWidth() / 2, y, SUBTITLE_FONT, text, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(dc.getWidth() / 2, middleBandY(dc), SUBTITLE_FONT, text,
+            Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     // Tally in, dots out: one per physical light, filled yellow while on, filled
     // grey while off, outlined while unavailable.
-    hidden function drawLightIndicators(dc as Graphics.Dc, y as Number, lights as LightTally) as Void {
+    hidden function drawLightIndicators(dc as Graphics.Dc, lights as LightTally) as Void {
         var totalCount = lights.available + lights.unavailable;
         var firstX = dc.getWidth() / 2 - (totalCount - 1) * LIGHT_INDICATOR_SIZE / 2;
-        var centerY = y + LIGHT_INDICATOR_RADIUS;
+        var centerY = middleBandY(dc) + LIGHT_INDICATOR_RADIUS;
 
         for (var index = 0; index < totalCount; index++) {
             var x = firstX + index * LIGHT_INDICATOR_SIZE;
@@ -98,6 +100,12 @@ class Card {
         if (dc has :setAntiAlias) {
             dc.setAntiAlias(enabled);
         }
+    }
+
+    // Where a card type's own band sits, the same slot in every layout so the
+    // loop does not shift vertically as it pages between types.
+    private function middleBandY(dc as Graphics.Dc) as Number {
+        return dc.getHeight() / 2 - LIGHT_INDICATOR_RADIUS;
     }
 
     private function drawTitle(dc as Graphics.Dc, x as Number, y as Number, text as String) as Void {

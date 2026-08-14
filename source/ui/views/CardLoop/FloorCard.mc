@@ -17,9 +17,8 @@ class FloorCard extends Card {
     }
 
     function draw(dc as Graphics.Dc) as Void {
-        useAntiAlias(dc, true);
         drawFrame(dc, _zone);
-        drawLightStatus(dc, dc.getHeight() / 2 - LIGHT_INDICATOR_RADIUS, lightStatus());
+        drawLightStatus(dc, lightStatus());
     }
 
     // "No lights available" covers both a floor with no lights and one whose
