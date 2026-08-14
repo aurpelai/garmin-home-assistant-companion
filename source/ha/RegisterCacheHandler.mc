@@ -9,8 +9,7 @@ class RegisterCacheHandler {
 
     function onRegistered(webhookId as String or Null, error as Number or Null) as Void {
         if (error == null) {
-            Settings.setWebhookId(webhookId as String);
-            Settings.setRegisteredUrl(Settings.getBaseUrl());
+            Webhook.setId(webhookId as String);
         }
         _callback.invoke(webhookId, error);
     }

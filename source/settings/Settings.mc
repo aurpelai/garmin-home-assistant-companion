@@ -1,8 +1,8 @@
 import Toybox.Application;
 import Toybox.Lang;
 
-// User config (URL, token) lives in Properties; the webhook_id and the URL it
-// was registered against are derived, so they live in Storage, not Properties.
+// The user config only: the URL and token the user edits in Properties. The
+// webhook registration the app derives from them lives in Webhook.
 module Settings {
 
     function getBaseUrl() as String {
@@ -30,26 +30,6 @@ module Settings {
             url = url.substring(0, url.length() - 1) as String;
         }
         return url;
-    }
-
-    function getWebhookId() as String or Null {
-        return Application.Storage.getValue("webhookId") as String or Null;
-    }
-
-    function setWebhookId(webhookId as String) as Void {
-        Application.Storage.setValue("webhookId", webhookId);
-    }
-
-    function clearWebhookId() as Void {
-        Application.Storage.deleteValue("webhookId");
-    }
-
-    function getRegisteredUrl() as String or Null {
-        return Application.Storage.getValue("registeredUrl") as String or Null;
-    }
-
-    function setRegisteredUrl(url as String) as Void {
-        Application.Storage.setValue("registeredUrl", url);
     }
 
 }

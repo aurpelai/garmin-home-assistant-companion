@@ -31,9 +31,11 @@ class HaCompanionApp extends Application.AppBase {
     }
 
     // A fresh HaClient, not _session's: settings can change before the first
-    // load, when there is no session yet.
+    // load, when there is no session yet. onSettingsChanged only fires when
+    // the URL or token actually changed, so registering here needs no
+    // comparison against a remembered prior value.
     function onSettingsChanged() as Void {
-        registerIfNeeded();
+        _client.register(method(:noOpRegister));
     }
 
     function onRefreshed() as Void {
@@ -62,21 +64,6 @@ class HaCompanionApp extends Application.AppBase {
 
     function fetchHomeState() as Void {
         _client.fetchHomeState(method(:onLoaded));
-    }
-
-    function registerIfNeeded() as Void {
-        var baseUrl = Settings.getBaseUrl();
-        var registeredUrl = Settings.getRegisteredUrl();
-
-        // A URL change clears the stale id and falls through to register; only a
-        // still-valid id short-circuits, so a token-only change never re-registers.
-        if (registeredUrl != null && !(registeredUrl as String).equals(baseUrl)) {
-            Settings.clearWebhookId();
-        } else if (Settings.getWebhookId() != null) {
-            return;
-        }
-
-        _client.register(method(:noOpRegister));
     }
 
     function noOpRegister(state as Dictionary or Null, error as String or Null) as Void {}
