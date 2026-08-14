@@ -111,29 +111,6 @@ class StubScreen {
     }
 }
 
-// Records the coordinator's own WatchUi-reaching side effects instead of
-// performing them, so a test can assert one fired without depending on a
-// pushed view's own onShow, which the unit test runner never drives.
-(:test)
-class RecordingCoordinator extends Coordinator {
-    public var signalCount as Number = 0;
-    public var lastSignalledPart as ResourceId or Null;
-    public var cardLoopShowCount as Number = 0;
-
-    function initialize(client as HaClient) {
-        Coordinator.initialize(client);
-    }
-
-    function signal(error as RequestError) as Void {
-        signalCount++;
-        lastSignalledPart = resolveMissingPart(error);
-    }
-
-    function showCardLoop() as Void {
-        cardLoopShowCount++;
-    }
-}
-
 (:test)
 function rebuildDiscardsStateAndRefetchesRatherThanComparingValues(logger as Test.Logger) as Boolean {
     var client = new FakeCoordinatorClient();
@@ -443,14 +420,17 @@ function aSuccessWithNoAreasAndNoErrorLeavesTheLoadingScreenUp(logger as Test.Lo
     // failed and nothing was found yet, so this is still loading rather than
     // a finding to report.
     var client = new FakeCoordinatorClient();
-    var coordinator = new RecordingCoordinator(client);
+    var coordinator = new Coordinator(client);
     var loading = new StubScreen(true);
 
     coordinator.onViewShown(loading);
     client.fireMidRefreshTarget(:sensors, { "sensors" => {} });
 
+    // Neither branch that would move the app on touches the loading screen:
+    // showInfo would have cleared currentView, and a live view would have
+    // been asked to rebuild.
     Test.assert(coordinator.currentView() == loading);
-    Test.assertEqual(coordinator.cardLoopShowCount, 0);
+    Test.assertEqual(loading.rebuildCount, 0);
     return true;
 }
 
@@ -473,10 +453,10 @@ function aCompletedRefreshWithNoAreasIsAFindingNotLoading(logger as Test.Logger)
 
 (:test)
 function anAreaWithNoErrorGoesToTheRealViewRatherThanTheInfoScreen(logger as Test.Logger) as Boolean {
-    // The ordinary case: something to show and nothing wrong with it. No
-    // signal, no info screen — the live view simply rebuilds with the data.
+    // The ordinary case: something to show and nothing wrong with it. No info
+    // screen — the live view simply rebuilds with the data.
     var client = new FakeCoordinatorClient();
-    var coordinator = new RecordingCoordinator(client);
+    var coordinator = new Coordinator(client);
     var view = new StubScreen(true);
 
     coordinator.onViewShown(view);
@@ -486,7 +466,6 @@ function anAreaWithNoErrorGoesToTheRealViewRatherThanTheInfoScreen(logger as Tes
 
     Test.assert(coordinator.currentView() == view);
     Test.assertEqual(view.rebuildCount, 1);
-    Test.assertEqual(coordinator.signalCount, 0);
     return true;
 }
 
@@ -498,7 +477,7 @@ function aStructureFailureStaysOnTheInfoScreenEvenAfterASiblingTargetLands(
     // sending the user to an empty home screen would hide the very failure
     // that explains why their home did not load.
     var client = new FakeCoordinatorClient();
-    var coordinator = new RecordingCoordinator(client);
+    var coordinator = new Coordinator(client);
 
     coordinator.onViewShown(new StubScreen(true));
     client.fireTarget(:structure, null, new RequestError(401, :fetch, :structure));
@@ -508,7 +487,6 @@ function aStructureFailureStaysOnTheInfoScreenEvenAfterASiblingTargetLands(
         "lights" => { "light.a" => { "state" => true, "area_id" => "area.x" } }
     }, null);
 
-    Test.assertEqual(coordinator.cardLoopShowCount, 0);
     Test.assert(coordinator.currentView() == null);
     return true;
 }
@@ -517,10 +495,16 @@ function aStructureFailureStaysOnTheInfoScreenEvenAfterASiblingTargetLands(
 function aFailedTargetKeepsDataOnScreenRatherThanReplacingItWithTheFailure(logger as Test.Logger) as Boolean {
     // A partial refresh: the structure landed, lights landed, sensors failed.
     // Replacing a populated screen with an error page would throw away what
-    // the user can still use, so the view stays live and the failure reaches
-    // the user as a signal naming the part that was lost.
+    // the user can still use, so the view stays live and rebuilds rather than
+    // being torn down for the info screen.
+    //
+    // Whether the failure also reaches the user as a toast is not asserted
+    // here: resolveMessage and resolveMissingPart already pin what the toast
+    // would say, and observing that WatchUi.showToast itself fired would mean
+    // widening the coordinator's visibility for the test alone, which this
+    // codebase does not do.
     var client = new FakeCoordinatorClient();
-    var coordinator = new RecordingCoordinator(client);
+    var coordinator = new Coordinator(client);
     var view = new StubScreen(true);
 
     coordinator.onViewShown(view);
@@ -536,19 +520,22 @@ function aFailedTargetKeepsDataOnScreenRatherThanReplacingItWithTheFailure(logge
 
     Test.assert(coordinator.currentView() == view);
     Test.assertEqual(view.rebuildCount, rebuildsBeforeFailure + 1);
-    Test.assertEqual(coordinator.signalCount, 1);
-    Test.assertEqual(coordinator.lastSignalledPart as ResourceId, Rez.Strings.PartSensors);
     return true;
 }
 
 (:test)
-function aFailedToggleReportsItselfWithoutTakingTheScreenAway(logger as Test.Logger) as Boolean {
-    // A service-call failure does not consult the grid: it reports itself over
-    // whatever is showing, because the override clears either way and the row
-    // snapping back with no explanation reads as the app ignoring the tap.
-    // The screen the user was on must survive it.
+function aFailedToggleDoesNotTakeTheScreenAway(logger as Test.Logger) as Boolean {
+    // A service-call failure does not consult the grid: the override clears
+    // either way, so the row visibly snaps back regardless of outcome. The
+    // screen the user was on must survive that rather than being replaced by
+    // the info screen.
+    //
+    // Whether a toast explains the snap-back is not asserted here, for the
+    // same reason as the partial-refresh signal: resolveMessage's own tests
+    // pin the wording, and the coordinator has no accessor for "did I toast"
+    // that exists for a production reason.
     var client = new FakeCoordinatorClient();
-    var coordinator = new RecordingCoordinator(client);
+    var coordinator = new Coordinator(client);
     var view = new StubScreen(true);
 
     coordinator.onActivate();
@@ -564,6 +551,5 @@ function aFailedToggleReportsItselfWithoutTakingTheScreenAway(logger as Test.Log
 
     Test.assert(coordinator.currentView() == view);
     Test.assert(!coordinator.haState().isPending("light.a"));
-    Test.assertEqual(coordinator.signalCount, 1);
     return true;
 }

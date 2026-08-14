@@ -207,10 +207,8 @@ class Coordinator {
     }
 
     // Names the missing part where there is one, since the request type is
-    // :fetch for all three targets and cannot say which failed. Protected
-    // rather than private so a test can observe that it fired without
-    // depending on WatchUi.showToast.
-    protected function signal(error as RequestError) as Void {
+    // :fetch for all three targets and cannot say which failed.
+    private function signal(error as RequestError) as Void {
         var message = WatchUi.loadResource(resolveMessage(error)) as String;
         var part = resolveMissingPart(error);
 
@@ -239,10 +237,7 @@ class Coordinator {
         showCardLoop();
     }
 
-    // Protected rather than private so a test can observe that the app left
-    // for the card loop without depending on a pushed view's own onShow, which
-    // the unit test runner never drives.
-    protected function showCardLoop() as Void {
+    private function showCardLoop() as Void {
         var loop = new CardLoop(self, buildCardLoopModel(_haState));
         WatchUi.switchToView(loop, new CardLoopDelegate(loop, self), WatchUi.SLIDE_IMMEDIATE);
     }
