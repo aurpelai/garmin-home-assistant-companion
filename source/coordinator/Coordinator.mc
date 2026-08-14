@@ -13,11 +13,13 @@ class Coordinator {
     private var _client as HaClient;
     private var _haState as HaState;
     private var _currentView as Screen or Null;
+    private var _infoScreenShowing as Boolean;
 
     function initialize(client as HaClient) {
         _client = client;
         _haState = new HaState();
         _currentView = null;
+        _infoScreenShowing = false;
     }
 
     function onActivate() as Void {
@@ -41,6 +43,7 @@ class Coordinator {
     // navigation revealed the view.
     function onViewShown(view as Screen) as Void {
         _currentView = view;
+        _infoScreenShowing = false;
 
         var age = _client.msSinceLastRefresh();
         if (age == null || age > STALE_AFTER_MS) {
@@ -155,6 +158,7 @@ class Coordinator {
         }
 
         _currentView = null;
+        _infoScreenShowing = true;
         WatchUi.switchToView(new InfoView(message), new InfoDelegate(self), WatchUi.SLIDE_IMMEDIATE);
     }
 
@@ -199,19 +203,33 @@ class Coordinator {
                 break;
 
             case :realView:
-                onStateChanged();
+                showRealView();
                 break;
 
             case :realViewSignalled:
-                onStateChanged();
+                showRealView();
                 signal(error as RequestError);
                 break;
         }
     }
 
+    // Reached with entities to show. A view already live rebuilds in place; the
+    // info screen has nothing to push into and never announces itself, so a
+    // later reply in the same refresh is what moves the user off it.
+    private function showRealView() as Void {
+        if (_infoScreenShowing) {
+            showCardLoop();
+            return;
+        }
+
+        onStateChanged();
+    }
+
     // Names the missing part where there is one, since the request type is
-    // :fetch for all three targets and cannot say which failed.
-    private function signal(error as RequestError) as Void {
+    // :fetch for all three targets and cannot say which failed. Protected
+    // rather than private so a test can observe that it fired without
+    // depending on WatchUi.showToast.
+    protected function signal(error as RequestError) as Void {
         var message = WatchUi.loadResource(resolveMessage(error)) as String;
         var part = resolveMissingPart(error);
 
@@ -237,6 +255,13 @@ class Coordinator {
             return;
         }
 
+        showCardLoop();
+    }
+
+    // Protected rather than private so a test can observe that the app left
+    // for the card loop without depending on a pushed view's own onShow, which
+    // the unit test runner never drives.
+    protected function showCardLoop() as Void {
         var loop = new CardLoop(self, buildCardLoopModel(_haState));
         WatchUi.switchToView(loop, new CardLoopDelegate(loop, self), WatchUi.SLIDE_IMMEDIATE);
     }
