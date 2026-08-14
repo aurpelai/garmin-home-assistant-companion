@@ -108,11 +108,7 @@ class HaClient {
     // instead of a general in-flight flag every site would reuse loosely.
     private var _changeInFlight as Boolean;
 
-    // A tap is a distinct intention and must never be dropped, so it queues
-    // behind whatever currently holds the slot.
     private var _changeQueue as Array<QueuedChange>;
-
-    // The queued change's own caller, while its request occupies the slot.
     private var _pendingChangeCallback as Method or Null;
 
     // Targets still to fetch in the refresh currently running; empty means no
@@ -120,12 +116,9 @@ class HaClient {
     // dropped rather than coalesced target-by-target.
     private var _pendingFetchTargets as Array<Symbol>;
 
-    // The target currently occupying the slot, and the refresh's own caller.
     private var _currentTarget as Symbol or Null;
     private var _onRefreshTarget as Method or Null;
 
-    // Cleared per completed refresh: whether every target in that refresh
-    // landed without error, so a partial refresh does not stamp completion.
     private var _refreshHadFailure as Boolean;
 
     private var _lastRefreshCompletedAt as Number or Null;
@@ -189,6 +182,9 @@ class HaClient {
         _lastError = null;
         _requestInFlight = false;
         _changeInFlight = false;
+        _pendingChangeCallback = null;
+        _currentTarget = null;
+        _onRefreshTarget = null;
     }
 
     private function queueChange(request as Method, callback as Method) as Void {
@@ -197,8 +193,8 @@ class HaClient {
     }
 
     // Changes go out before fetches, and a fetch never starts while any
-    // change is queued or in flight — the slot frees here between requests,
-    // which is also where the next change or target is chosen.
+    // change is queued or in flight — this is where the next change or
+    // target is chosen, once the slot is free.
     private function drainSlot() as Void {
         if (_requestInFlight) {
             return;
@@ -227,6 +223,13 @@ class HaClient {
     function onChangeSettled(result as Object or Null, error as Number or Null) as Void {
         _requestInFlight = false;
         _changeInFlight = false;
+
+        // A cancelled request's reply can still arrive: cancelAll already
+        // nulled this, and there is nothing left to notify or converge.
+        if (_pendingChangeCallback == null) {
+            return;
+        }
+
         var callback = _pendingChangeCallback as Method;
         _pendingChangeCallback = null;
 
@@ -237,6 +240,8 @@ class HaClient {
         if (error != null) {
             _lastError = error;
             _changeQueue = [];
+        } else {
+            _lastError = null;
         }
 
         callback.invoke(result, error);
@@ -249,12 +254,22 @@ class HaClient {
 
     function onTargetSettled(result as Object or Null, error as Number or Null) as Void {
         _requestInFlight = false;
+
+        // A cancelled request's reply can still arrive: cancelAll already
+        // nulled these, and pushing a cancelled target's payload into
+        // whatever state now exists would be wrong.
+        if (_currentTarget == null || _onRefreshTarget == null) {
+            return;
+        }
+
         var target = _currentTarget as Symbol;
         var onTarget = _onRefreshTarget as Method;
 
         if (error != null) {
             _refreshHadFailure = true;
             _lastError = error;
+        } else {
+            _lastError = null;
         }
 
         onTarget.invoke(target, result, error);
@@ -292,11 +307,11 @@ class HaClient {
     }
 
     // fetchHomeState/toggleLight/toggleFloorLights drive today's single-
-    // template app and stay until the coordinator (Phase 3) takes over
-    // fetch policy. They bypass the slot and queue above entirely — the
-    // constraint they share with the new path is the platform's one
-    // outstanding request, which today's app already respects by construction
-    // (one request at a time, next fired only from a reply).
+    // template app and stay until the coordinator takes over fetch policy.
+    // They bypass the slot and queue above entirely — the constraint they
+    // share with the new path is the platform's one outstanding request,
+    // which today's app already respects by construction (one request at a
+    // time, next fired only from a reply).
 
     function fetchHomeState(callback as Method) as Void {
         new RetryManager(self, method(:fetchLegacyHomeState), new LegacyHomeStateReply(callback).method(:onPayload))

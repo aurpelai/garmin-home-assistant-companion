@@ -6,8 +6,6 @@ import Toybox.Lang;
 // table for. The cost is that an auth failure or a template error burns the
 // full threshold before it surfaces, which is why it is kept small.
 class RetryManager {
-    // Placeholder pending real-instance evidence: small enough that a
-    // deterministic failure surfaces quickly, per the design's own caveat.
     private const DEFAULT_THRESHOLD = 3;
 
     // A dead webhook_id shows up as one of these: -400 because HA sends no body

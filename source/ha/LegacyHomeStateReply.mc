@@ -1,8 +1,9 @@
 import Toybox.Lang;
 
-// Bridges the split-payload client back to the combined-template caller
-// still in use until Phase 5: ResponseHandler hands out a raw payload, and
-// this converts it to the HomeState today's app and HomeSession still expect.
+// Bridges the split-payload client back to the combined-template caller,
+// still in use until the combined-template path is gone: ResponseHandler
+// hands out a raw payload, and this converts it to the HomeState today's
+// app and HomeSession still expect.
 class LegacyHomeStateReply {
     private var _callback as Method;
 
