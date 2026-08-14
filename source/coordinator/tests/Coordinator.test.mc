@@ -9,6 +9,8 @@ class FakeCoordinatorClient extends HaClient {
     public var refreshCount as Number = 0;
     public var cancelCount as Number = 0;
     public var toggledEntityIds as Array<String> = [];
+    public var toggledFloorIds as Array<String> = [];
+    public var toggledFloorServices as Array<String> = [];
     private var _onTarget as Method?;
     private var _toggleCallbacks as Array<Method> = [];
     private var _msSinceLastRefresh as Number or Null = null;
@@ -28,6 +30,8 @@ class FakeCoordinatorClient extends HaClient {
     }
 
     function queueFloorLights(floorId as String, service as String, callback as Method) as Void {
+        toggledFloorIds.add(floorId);
+        toggledFloorServices.add(service);
         _toggleCallbacks.add(callback);
     }
 
@@ -136,6 +140,94 @@ function toggleRecordsAnOverrideFiresAndTheReplyClearsExactlyThoseIds(logger as 
     client.fireToggleFailureAt(client.toggledEntityIds.size() - 1, -1);
     coordinator.toggleEntity("light.b");
     Test.assertEqual(client.toggledEntityIds.size(), 4);
+    return true;
+}
+
+(:test)
+function toggleFloorLightsFlipsToOnWhenAllAreOffAndQueuesTheFloorTarget(logger as Test.Logger) as Boolean {
+    var client = new FakeCoordinatorClient();
+    var coordinator = new Coordinator(client);
+
+    coordinator.onActivate();
+    client.fireTarget(:structure, {
+        "floors" => { "floor.up" => { "name" => "Up", "order" => 0, "areas" => ["area.x"] } }
+    }, null);
+    client.fireTarget(:lights, {
+        "lights" => { "light.a" => { "state" => false, "area_id" => "area.x" } }
+    }, null);
+
+    coordinator.toggleFloorLights("floor.up");
+
+    Test.assertEqual(client.toggledFloorIds.size(), 1);
+    Test.assertEqual(client.toggledFloorIds[0], "floor.up");
+    Test.assertEqual(client.toggledFloorServices[0], "turn_on");
+    return true;
+}
+
+(:test)
+function toggleFloorLightsFlipsToOffWhenAnyIsOn(logger as Test.Logger) as Boolean {
+    var client = new FakeCoordinatorClient();
+    var coordinator = new Coordinator(client);
+
+    coordinator.onActivate();
+    client.fireTarget(:structure, {
+        "floors" => { "floor.up" => { "name" => "Up", "order" => 0, "areas" => ["area.x"] } }
+    }, null);
+    client.fireTarget(:lights, {
+        "lights" => {
+            "light.a" => { "state" => false, "area_id" => "area.x" },
+            "light.b" => { "state" => true, "area_id" => "area.x" }
+        }
+    }, null);
+
+    coordinator.toggleFloorLights("floor.up");
+
+    Test.assertEqual(client.toggledFloorServices[0], "turn_off");
+    return true;
+}
+
+(:test)
+function toggleFloorLightsWithNoCommandableMembersQueuesNothing(logger as Test.Logger) as Boolean {
+    var client = new FakeCoordinatorClient();
+    var coordinator = new Coordinator(client);
+
+    coordinator.onActivate();
+    client.fireTarget(:structure, {
+        "floors" => { "floor.up" => { "name" => "Up", "order" => 0, "areas" => ["area.x"] } }
+    }, null);
+
+    // No lights section at all: the floor has no commandable members, so the
+    // empty scope must not reach the client as an empty-target request.
+    coordinator.toggleFloorLights("floor.up");
+
+    Test.assertEqual(client.toggledFloorIds.size(), 0);
+    return true;
+}
+
+(:test)
+function aSecondFloorTapIsIgnoredWhileAMemberIsAlreadyPending(logger as Test.Logger) as Boolean {
+    var client = new FakeCoordinatorClient();
+    var coordinator = new Coordinator(client);
+
+    coordinator.onActivate();
+    client.fireTarget(:structure, {
+        "floors" => { "floor.up" => { "name" => "Up", "order" => 0, "areas" => ["area.x"] } }
+    }, null);
+    client.fireTarget(:lights, {
+        "lights" => { "light.a" => { "state" => false, "area_id" => "area.x" } }
+    }, null);
+
+    coordinator.toggleFloorLights("floor.up");
+    Test.assertEqual(client.toggledFloorIds.size(), 1);
+
+    // light.a is still pending from the first floor action: a second tap
+    // covering it must be ignored, regardless of what created the override.
+    coordinator.toggleFloorLights("floor.up");
+    Test.assertEqual(client.toggledFloorIds.size(), 1);
+
+    // A lone entity tap on the same covered light is ignored too.
+    coordinator.toggleEntity("light.a");
+    Test.assertEqual(client.toggledEntityIds.size(), 0);
     return true;
 }
 
