@@ -13,10 +13,18 @@ class HaCompanionApp extends Application.AppBase {
     }
 
     function onStart(state as Dictionary or Null) as Void {
+        if (!Settings.isConfigured()) {
+            return;
+        }
+
         _coordinator.onActivate();
     }
 
     function onActive(state as Dictionary or Null) as Void {
+        if (!Settings.isConfigured()) {
+            return;
+        }
+
         _coordinator.onActivate();
     }
 
@@ -25,6 +33,11 @@ class HaCompanionApp extends Application.AppBase {
     }
 
     function getInitialView() as [WatchUi.Views] or [WatchUi.Views, WatchUi.InputDelegates] {
+        if (!Settings.isConfigured()) {
+            return [new InfoView(WatchUi.loadResource(Rez.Strings.ErrNoConfig) as String),
+                    new InfoDelegate(_coordinator)];
+        }
+
         return [new LoadingView(_coordinator), new LoadingDelegate()];
     }
 }
