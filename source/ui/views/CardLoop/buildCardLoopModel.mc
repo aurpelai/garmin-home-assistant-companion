@@ -16,7 +16,7 @@ function buildCardLoopModel(haState as HaState) as CardLoopModel {
 
     for (var index = 0; index < floors.size(); index++) {
         var floor = floors[index];
-        var areaIds = DisplayOrder.orderAreaIds(haState, floor.areas);
+        var areaIds = DisplayOrder.orderAreaIds(haState, occupiedAreaIds(haState, floor.areas));
         if (areaIds.size() == 0) {
             continue;
         }
@@ -39,13 +39,30 @@ function buildCardLoopModel(haState as HaState) as CardLoopModel {
         }
     }
 
-    var orderedUnfloored = DisplayOrder.orderAreaIds(haState, unfloored);
+    var orderedUnfloored = DisplayOrder.orderAreaIds(haState, occupiedAreaIds(haState, unfloored));
 
     for (var index = 0; index < orderedUnfloored.size(); index++) {
         cards.add(buildAreaCard(haState, orderedUnfloored[index], null, null));
     }
 
     return new CardLoopModel(cards);
+}
+
+// An unavailable entity still counts: a room vanishing because a sensor's
+// battery died would be alarming, where a room showing an unavailable reading
+// says what is wrong.
+function occupiedAreaIds(haState as HaState, areaIds as Array<String>) as Array<String> {
+    var occupied = [] as Array<String>;
+
+    for (var index = 0; index < areaIds.size(); index++) {
+        var areaId = areaIds[index];
+
+        if (haState.getLightIdsInArea(areaId).size() > 0 || haState.getSensorIdsInArea(areaId).size() > 0) {
+            occupied.add(areaId);
+        }
+    }
+
+    return occupied;
 }
 
 function buildAreaCard(haState as HaState, areaId as String, floorId as String or Null,
