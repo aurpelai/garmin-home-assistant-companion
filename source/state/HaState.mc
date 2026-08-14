@@ -124,6 +124,26 @@ class HaState {
         return overrideAll(commandableFloorLightIds(floorId), isOn);
     }
 
+    // The floor lights a service call can actually command, and the one authority
+    // on that scope: the row that displays a floor's state, the guard that decides
+    // whether a tap is already covered, and the fan-out that creates the overrides
+    // must agree, or the row claims a state its own action would not reach.
+    //
+    // Resolves rather than reads, so it is not a get.
+    function commandableFloorLightIds(floorId as String) as Array<String> {
+        var out = [] as Array<String>;
+        var lightIds = getLightIdsInFloor(floorId);
+
+        for (var index = 0; index < lightIds.size(); index++) {
+            var light = _lights.get(lightIds[index]) as LightModel;
+            if (light.memberIds == null && light.available) {
+                out.add(lightIds[index]);
+            }
+        }
+
+        return out;
+    }
+
     // Finding no override is a no-op: a refresh may have dropped an orphan whose
     // reply then arrives.
     function clearOverrides(entityIds as Array<String>) as Void {
@@ -143,20 +163,6 @@ class HaState {
         }
 
         return overridden;
-    }
-
-    private function commandableFloorLightIds(floorId as String) as Array<String> {
-        var out = [] as Array<String>;
-        var lightIds = getLightIdsInFloor(floorId);
-
-        for (var index = 0; index < lightIds.size(); index++) {
-            var light = _lights.get(lightIds[index]) as LightModel;
-            if (light.memberIds == null && light.available) {
-                out.add(lightIds[index]);
-            }
-        }
-
-        return out;
     }
 
     private function areaIdsInFloor(floorId as String) as Array<String> {

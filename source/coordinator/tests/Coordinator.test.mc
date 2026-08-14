@@ -187,6 +187,34 @@ function toggleFloorLightsFlipsToOffWhenAnyIsOn(logger as Test.Logger) as Boolea
 }
 
 (:test)
+function theFlipDirectionIgnoresLightsTheCallCannotReach(logger as Test.Logger) as Boolean {
+    // An unavailable light Home Assistant still reports as on, and a group whose
+    // expansion the floor target covers anyway, are both outside the scope this
+    // call commands — so neither may decide the direction for the lights it can
+    // reach. Every commandable light here is off, so the floor turns on.
+    var client = new FakeCoordinatorClient();
+    var coordinator = new Coordinator(client);
+
+    coordinator.onActivate();
+    client.fireTarget(:structure, {
+        "floors" => { "floor.up" => { "name" => "Up", "order" => 0, "areas" => ["area.x"] } }
+    }, null);
+    client.fireTarget(:lights, {
+        "lights" => {
+            "light.off" => { "state" => false, "area_id" => "area.x", "available" => true },
+            "light.dead" => { "state" => true, "area_id" => "area.x", "available" => false },
+            "light.grp" => { "state" => true, "area_id" => "area.x", "available" => true,
+                "memberIds" => ["light.off"] }
+        }
+    }, null);
+
+    coordinator.toggleFloorLights("floor.up");
+
+    Test.assertEqual(client.toggledFloorServices[0], "turn_on");
+    return true;
+}
+
+(:test)
 function toggleFloorLightsWithNoCommandableMembersQueuesNothing(logger as Test.Logger) as Boolean {
     var client = new FakeCoordinatorClient();
     var coordinator = new Coordinator(client);

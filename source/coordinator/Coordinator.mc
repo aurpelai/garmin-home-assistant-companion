@@ -71,7 +71,7 @@ class Coordinator {
             return;
         }
 
-        var targetState = !anyFloorLightOn(floorId);
+        var targetState = !anyCommandableFloorLightOn(floorId);
         var overriddenIds = _haState.overrideFloorLights(floorId, targetState);
         if (overriddenIds.size() == 0) {
             return;
@@ -100,8 +100,11 @@ class Coordinator {
         refresh();
     }
 
-    private function anyFloorLightOn(floorId as String) as Boolean {
-        var lightIds = _haState.getLightIdsInFloor(floorId);
+    // Judged over the scope the call will actually command, so an unavailable
+    // light Home Assistant still reports as on cannot decide the direction for
+    // lights the call can reach.
+    private function anyCommandableFloorLightOn(floorId as String) as Boolean {
+        var lightIds = _haState.commandableFloorLightIds(floorId);
 
         for (var index = 0; index < lightIds.size(); index++) {
             if (_haState.isOn(lightIds[index])) {
@@ -112,15 +115,11 @@ class Coordinator {
         return false;
     }
 
-    // Mirrors the exclusions overrideFloorLights applies to its own scope —
-    // groups and unavailable lights are never in it, so their pending status
-    // cannot block it.
     private function anyCommandableFloorLightPending(floorId as String) as Boolean {
-        var lightIds = _haState.getLightIdsInFloor(floorId);
+        var lightIds = _haState.commandableFloorLightIds(floorId);
 
         for (var index = 0; index < lightIds.size(); index++) {
-            var light = _haState.getLight(lightIds[index]) as LightModel;
-            if (light.memberIds == null && light.available && _haState.isPending(lightIds[index])) {
+            if (_haState.isPending(lightIds[index])) {
                 return true;
             }
         }
