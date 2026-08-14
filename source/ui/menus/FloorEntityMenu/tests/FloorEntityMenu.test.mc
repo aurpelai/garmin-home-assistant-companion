@@ -26,7 +26,7 @@ module FloorEntityMenuTest {
 }
 
 (:test)
-function aPushMovesTheWholeLightsSwitchWithoutAddingASecondRow(logger as Test.Logger) as Boolean {
+function aPushMovesTheWholeLightsSwitchWithoutTouchingTheItemSet(logger as Test.Logger) as Boolean {
     var menu = FloorEntityMenuTest.menuOf(FloorEntityMenuTest.stateOf({
         "light.a" => { "state" => true, "area_id" => "area.room" }
     }));
@@ -75,9 +75,9 @@ function aVanishedFloorReportsItsSubjectGoneRatherThanPushing(logger as Test.Log
 }
 
 (:test)
-function theWholeLightsRowAppearsWhenItsLightsArriveLate(logger as Test.Logger) as Boolean {
-    // The floor is known from the structure before any light is, so a menu
-    // opened in that window must still gain its row once the lights land.
+function lightsArrivingAfterTheMenuOpenedAddNoRow(logger as Test.Logger) as Boolean {
+    // The structure names the floor before any light has landed, so a menu
+    // opened in that window stays rowless until it is reopened.
     var haState = new HaState();
     haState.setStructure(HaPayload.parseStructure({
         "areas" => { "area.room" => { "name" => "Room" } },
@@ -92,9 +92,6 @@ function theWholeLightsRowAppearsWhenItsLightsArriveLate(logger as Test.Logger) 
     }));
     menu.rebuild(haState);
 
-    Test.assert((menu.getItem(0) as WatchUi.ToggleMenuItem).isEnabled());
-    Test.assertEqual(menu.serviceTargetOf((menu.getItem(0) as WatchUi.MenuItem).getId()) as String,
-        "floor.up");
-    Test.assert(menu.getItem(1) == null);
+    Test.assert(menu.getItem(0) == null);
     return true;
 }

@@ -1,10 +1,11 @@
 import Toybox.Lang;
 import Toybox.WatchUi;
 
-// A push only ever appends, so every row already on screen keeps its position
-// and the one under the user's finger cannot move or vanish. Rows arrive late
-// routinely: a refresh fetches lights and sensors as separate requests, so a
-// menu opened between the two starts without the domain still in flight.
+// The item set is built once here and frozen for the life of the menu: a push
+// updates labels and toggle states and nothing else. An entity arriving or
+// leaving while the menu is open therefore changes no row, which is what makes
+// it impossible for one to move or vanish under the user's finger. Seeing a
+// changed set of entities means reopening the menu.
 class AreaEntityMenu extends WatchUi.Menu2 {
     private var _coordinator as Coordinator;
     private var _areaId as String;
@@ -13,6 +14,24 @@ class AreaEntityMenu extends WatchUi.Menu2 {
         Menu2.initialize({ :title => model.title });
         _coordinator = coordinator;
         _areaId = areaId;
+
+        for (var index = 0; index < model.lights.size(); index++) {
+            var row = model.lights[index];
+            addItem(new WatchUi.ToggleMenuItem(
+                labelOf(row.name, row.rowId), lightSubLabel(row), row.rowId, row.isOn, null));
+        }
+
+        for (var index = 0; index < model.sensors.size(); index++) {
+            var row = model.sensors[index];
+            addItem(new WatchUi.MenuItem(
+                labelOf(row.name, row.rowId), sensorSubLabel(row), row.rowId, null));
+        }
+
+        if (model.lights.size() == 0 && model.sensors.size() == 0) {
+            addItem(new WatchUi.MenuItem(
+                WatchUi.loadResource(Rez.Strings.NoEntitiesInArea) as String, null, :none, null));
+        }
+
         setModel(model);
     }
 
@@ -41,10 +60,7 @@ class AreaEntityMenu extends WatchUi.Menu2 {
             var row = model.lights[index];
             var item = findItem(row.rowId);
 
-            if (item == null) {
-                addItem(new WatchUi.ToggleMenuItem(
-                    labelOf(row.name, row.rowId), lightSubLabel(row), row.rowId, row.isOn, null));
-            } else {
+            if (item != null) {
                 (item as WatchUi.ToggleMenuItem).setEnabled(row.isOn);
                 item.setSubLabel(lightSubLabel(row));
             }
@@ -54,29 +70,9 @@ class AreaEntityMenu extends WatchUi.Menu2 {
             var row = model.sensors[index];
             var item = findItem(row.rowId);
 
-            if (item == null) {
-                addItem(new WatchUi.MenuItem(
-                    labelOf(row.name, row.rowId), sensorSubLabel(row), row.rowId, null));
-            } else {
+            if (item != null) {
                 item.setSubLabel(sensorSubLabel(row));
             }
-        }
-
-        updateEmptyRow(model);
-    }
-
-    // The only row a push may remove, and it is safe to: it exists precisely
-    // while there is nothing else to focus, so nothing can be focused on it
-    // that the arriving rows do not replace.
-    private function updateEmptyRow(model as AreaEntityMenuModel) as Void {
-        var index = findItemById(EMPTY_ROW_ID);
-        var isEmpty = model.lights.size() == 0 && model.sensors.size() == 0;
-
-        if (isEmpty && index < 0) {
-            addItem(new WatchUi.MenuItem(
-                WatchUi.loadResource(Rez.Strings.NoEntitiesInArea) as String, null, EMPTY_ROW_ID, null));
-        } else if (!isEmpty && index >= 0) {
-            deleteItem(index);
         }
     }
 
@@ -84,8 +80,6 @@ class AreaEntityMenu extends WatchUi.Menu2 {
         var index = findItemById(rowId);
         return index < 0 ? null : getItem(index);
     }
-
-    static const EMPTY_ROW_ID = :none;
 
     static function labelOf(name as String or Null, rowId as String) as String {
         return name == null || (name as String).length() == 0 ? rowId : name as String;

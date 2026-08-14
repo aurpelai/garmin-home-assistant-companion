@@ -1,9 +1,10 @@
 import Toybox.Lang;
 import Toybox.WatchUi;
 
-// A push only ever appends, so every row already on screen keeps its position
-// and the one under the user's finger cannot move or vanish. The whole-lights
-// row arrives late whenever the menu is opened before the lights request lands.
+// The item set is built once here and frozen for the life of the menu: a push
+// updates toggle states and nothing else. A floor gaining or losing its lights
+// while the menu is open therefore changes no row, and seeing a changed set
+// means reopening the menu.
 class FloorEntityMenu extends WatchUi.Menu2 {
     private var _coordinator as Coordinator;
     private var _floorId as String;
@@ -14,6 +15,14 @@ class FloorEntityMenu extends WatchUi.Menu2 {
         _coordinator = coordinator;
         _floorId = floorId;
         _model = model;
+
+        for (var index = 0; index < model.lights.size(); index++) {
+            var row = model.lights[index];
+            addItem(new WatchUi.ToggleMenuItem(
+                WatchUi.loadResource(Rez.Strings.AllLights) as String, null,
+                row.rowId, row.isOn, null));
+        }
+
         setModel(model);
     }
 
@@ -43,11 +52,7 @@ class FloorEntityMenu extends WatchUi.Menu2 {
             var row = model.lights[index];
             var item = findItem(row.rowId);
 
-            if (item == null) {
-                addItem(new WatchUi.ToggleMenuItem(
-                    WatchUi.loadResource(Rez.Strings.AllLights) as String, null,
-                    row.rowId, row.isOn, null));
-            } else {
+            if (item != null) {
                 (item as WatchUi.ToggleMenuItem).setEnabled(row.isOn);
             }
         }

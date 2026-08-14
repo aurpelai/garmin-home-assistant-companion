@@ -35,10 +35,10 @@ module AreaEntityMenuTest {
 }
 
 (:test)
-function aPushMovesNoRowAlreadyOnScreen(logger as Test.Logger) as Boolean {
-    // What keeps the row under the user's finger where it was: a model losing
-    // an entry removes nothing, and a model gaining one appends rather than
-    // re-sorting the rows around it.
+function aPushChangesTheItemSetInNeitherDirection(logger as Test.Logger) as Boolean {
+    // The freeze is what makes a row impossible to move or lose under the
+    // user's finger, so a model that both drops an entry and gains one leaves
+    // every item exactly where it was — the gained entity is not added either.
     var menu = AreaEntityMenuTest.menuOf(AreaEntityMenuTest.stateOf({
         "light.a" => { "state" => true, "area_id" => "area.room" },
         "light.b" => { "state" => true, "area_id" => "area.room" }
@@ -55,8 +55,7 @@ function aPushMovesNoRowAlreadyOnScreen(logger as Test.Logger) as Boolean {
 
     Test.assertEqual((menu.getItem(0) as WatchUi.MenuItem).getId() as String, "light.a");
     Test.assertEqual((menu.getItem(1) as WatchUi.MenuItem).getId() as String, "light.b");
-    Test.assertEqual((menu.getItem(2) as WatchUi.MenuItem).getId() as String, "light.c");
-    Test.assert(menu.getItem(3) == null);
+    Test.assert(menu.getItem(2) == null);
     return true;
 }
 
@@ -217,11 +216,11 @@ function aVanishedAreaReportsItsSubjectGoneRatherThanPushing(logger as Test.Logg
     return true;
 }
 
-
 (:test)
-function aDomainArrivingAfterTheMenuOpenedGetsItsRows(logger as Test.Logger) as Boolean {
+function aDomainArrivingAfterTheMenuOpenedAddsNoRow(logger as Test.Logger) as Boolean {
     // A refresh fetches lights and sensors as separate requests, so a menu
-    // opened between the two must still show the domain that was in flight.
+    // opened between the two shows only what had landed. The accepted cost of
+    // the freeze: reopening the menu is what reveals the rest.
     var haState = new HaState();
     haState.setStructure(HaPayload.parseStructure({
         "areas" => { "area.room" => { "name" => "Room" } }
@@ -240,14 +239,15 @@ function aDomainArrivingAfterTheMenuOpenedGetsItsRows(logger as Test.Logger) as 
     menu.rebuild(haState);
 
     Test.assertEqual((menu.getItem(0) as WatchUi.MenuItem).getId() as String, "light.a");
-    Test.assertEqual(AreaEntityMenuTest.itemOf(menu, "sensor.t").getSubLabel() as String, "21.5 °C");
+    Test.assert(menu.getItem(1) == null);
     return true;
 }
 
 (:test)
-function theEmptyRowGivesWayOnceRealRowsArrive(logger as Test.Logger) as Boolean {
-    // The one row a push may remove: it stands in for having nothing to show,
-    // so leaving it beside real rows would assert something no longer true.
+function theEmptyRowOutlivesTheEntitiesArriving(logger as Test.Logger) as Boolean {
+    // Frozen like every other row rather than special-cased: removing it would
+    // be the item set changing under an open menu, which is the one thing the
+    // freeze forbids.
     var haState = new HaState();
     haState.setStructure(HaPayload.parseStructure({
         "areas" => { "area.room" => { "name" => "Room" } }
@@ -262,7 +262,8 @@ function theEmptyRowGivesWayOnceRealRowsArrive(logger as Test.Logger) as Boolean
     }));
     menu.rebuild(haState);
 
-    Test.assertEqual((menu.getItem(0) as WatchUi.MenuItem).getId() as String, "light.a");
+    Test.assertEqual((menu.getItem(0) as WatchUi.MenuItem).getLabel() as String,
+        "No entities in the area");
     Test.assert(menu.getItem(1) == null);
     return true;
 }
