@@ -52,7 +52,7 @@ function buildAreaCard(haState as HaState, areaId as String, floorId as String o
                        floorName as String or Null) as AreaCard {
     var area = haState.getArea(areaId);
     var lights = new LightTally();
-    lights.add(haState, haState.getLightIdsInArea(areaId));
+    lights.addAll(haState, haState.getLightIdsInArea(areaId));
 
     return new AreaCard(
         areaId,
@@ -69,7 +69,7 @@ function buildFloorCard(haState as HaState, floorId as String, floorName as Stri
     var sensorIds = [] as Array<String>;
 
     for (var index = 0; index < areaIds.size(); index++) {
-        lights.add(haState, haState.getLightIdsInArea(areaIds[index]));
+        lights.addAll(haState, haState.getLightIdsInArea(areaIds[index]));
         sensorIds.addAll(haState.getSensorIdsInArea(areaIds[index]));
     }
 

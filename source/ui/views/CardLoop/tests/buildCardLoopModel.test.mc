@@ -88,21 +88,22 @@ function anEmptyHomeYieldsAModelWithNoCardsRatherThanNull(logger as Test.Logger)
 }
 
 (:test)
-function anAreaCardTalliesPhysicalLightsAndCountsOnAmongAvailableOnes(logger as Test.Logger) as Boolean {
+function anAreaCardTalliesPhysicalLightsAndSplitsThemByAvailability(logger as Test.Logger) as Boolean {
     var haState = CardLoopModelTest.stateOf({
         "areas" => { "area.room" => { "name" => "Room" } }
     }, {
         "light.on" => CardLoopModelTest.light(true, "area.room"),
         "light.off" => CardLoopModelTest.light(false, "area.room"),
-        // An unavailable light that HA still reports as on must not be counted
-        // on: there is no reachable switch behind the claim.
-        "light.dead" => { "state" => true, "area_id" => "area.room", "available" => false },
+        // A dead light is still one of the area's bulbs, so it is counted — as
+        // unavailable, which the card draws as an outline rather than a dot it
+        // could claim is off.
+        "light.dead" => { "state" => false, "area_id" => "area.room", "available" => false },
         // The group entity would double-count its own members.
         "light.grp" => { "state" => true, "area_id" => "area.room", "available" => true,
             "memberIds" => ["light.on", "light.off"] }
     }, {} as Dictionary);
     var lights = new LightTally();
-    lights.add(haState, haState.getLightIdsInArea("area.room"));
+    lights.addAll(haState, haState.getLightIdsInArea("area.room"));
 
     Test.assertEqual(lights.on, 1);
     Test.assertEqual(lights.available, 2);
@@ -121,7 +122,7 @@ function anAreaCardTallyReadsTheAssumedValueOfAPendingLight(logger as Test.Logge
     haState.override("light.a", true);
 
     var lights = new LightTally();
-    lights.add(haState, haState.getLightIdsInArea("area.room"));
+    lights.addAll(haState, haState.getLightIdsInArea("area.room"));
 
     Test.assertEqual(lights.on, 1);
     return true;
