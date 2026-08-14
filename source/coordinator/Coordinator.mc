@@ -99,7 +99,7 @@ class Coordinator {
 
         var overriddenIds = _haState.override(entityId, !_haState.isOn(entityId));
         _client.queueLightToggle(entityId, new ToggleReply(self, overriddenIds).method(:onSettled));
-        onStateChanged();
+        showState();
     }
 
     function toggleFloorLights(floorId as String) as Void {
@@ -113,7 +113,7 @@ class Coordinator {
         var service = targetState ? "turn_on" : "turn_off";
 
         _client.queueFloorLights(floorId, service, new ToggleReply(self, overriddenIds).method(:onSettled));
-        onStateChanged();
+        showState();
     }
 
     // A toggle reply is one of the three refresh triggers: every terminal
@@ -130,7 +130,7 @@ class Coordinator {
             signal(error);
         }
 
-        onStateChanged();
+        showState();
         refresh();
     }
 
@@ -187,7 +187,7 @@ class Coordinator {
         var error = _client.lastError();
 
         if (_haState.hasAreas()) {
-            onStateChanged();
+            showState();
 
             if (error != null) {
                 signal(error);
@@ -220,16 +220,14 @@ class Coordinator {
         WatchUi.showToast(message, null);
     }
 
-    // The one push site. A view whose subject is gone says so, and the card loop
-    // is where that leaves the user: it builds from the whole of HaState, so it
-    // is the one screen no deletion can empty out from under.
-    private function onStateChanged() as Void {
+    // The one push site. A live screen that is still the right one keeps the
+    // display, which is what stops a refresh moving a menu out from under the
+    // user. Anything else — nothing live, or a screen whose subject is gone —
+    // falls back to the card loop, the one screen no deletion can empty.
+    private function showState() as Void {
         var view = _currentView;
-        if (view == null) {
-            return;
-        }
 
-        if (view.rebuild(_haState)) {
+        if (view != null && view.rebuild(_haState)) {
             WatchUi.requestUpdate();
             return;
         }

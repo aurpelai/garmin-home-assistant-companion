@@ -168,6 +168,9 @@ function toggleRecordsAnOverrideFiresAndTheReplyClearsExactlyThoseIds(logger as 
         }
     }, null);
 
+    // A tap only ever arrives from a screen the user is looking at.
+    coordinator.onViewShown(new StubScreen(true));
+
     coordinator.toggleEntity("light.a");
 
     Test.assertEqual(client.toggledEntityIds.size(), 1);
