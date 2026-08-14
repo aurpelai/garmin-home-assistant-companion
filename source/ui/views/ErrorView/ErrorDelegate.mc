@@ -3,13 +3,16 @@ import Toybox.System;
 import Toybox.WatchUi;
 
 class ErrorDelegate extends WatchUi.BehaviorDelegate {
-    function initialize() {
+    private var _coordinator as Coordinator;
+
+    function initialize(coordinator as Coordinator) {
         BehaviorDelegate.initialize();
+        _coordinator = coordinator;
     }
 
-    // A fresh LoadingView re-runs the fetch in its onShow.
+    // A fresh LoadingView re-runs the fetch when the coordinator sees it reveal.
     function onSelect() as Boolean {
-        WatchUi.switchToView(new LoadingView(), new LoadingDelegate(), WatchUi.SLIDE_IMMEDIATE);
+        WatchUi.switchToView(new LoadingView(_coordinator), new LoadingDelegate(), WatchUi.SLIDE_IMMEDIATE);
         return true;
     }
 

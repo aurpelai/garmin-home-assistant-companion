@@ -21,6 +21,10 @@ class FloorCard extends Card {
         drawLightStatus(dc, lightStatus());
     }
 
+    function open(coordinator as Coordinator) as Void {
+        coordinator.showFloor(id);
+    }
+
     // "No lights available" covers both a floor with no lights and one whose
     // lights are all unavailable.
     private function lightStatus() as String {

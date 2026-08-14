@@ -22,4 +22,8 @@ class AreaCard extends Card {
             drawLightIndicators(dc, _lights);
         }
     }
+
+    function open(coordinator as Coordinator) as Void {
+        coordinator.showArea(id);
+    }
 }

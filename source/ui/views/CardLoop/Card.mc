@@ -60,6 +60,12 @@ class Card {
     function draw(dc as Graphics.Dc) as Void {
     }
 
+    // Which screen selecting this card opens. Declared here for the same reason
+    // as draw, and overridden per type so the choice sits with the type that
+    // knows it rather than in a test against the card's class.
+    function open(coordinator as Coordinator) as Void {
+    }
+
     // The title, its subtitle and the sensor boxes, which every card type shares.
     // The subtitle is skipped when null: an unfloored area has no floor to name.
     hidden function drawFrame(dc as Graphics.Dc, subtitle as String or Null) as Void {
