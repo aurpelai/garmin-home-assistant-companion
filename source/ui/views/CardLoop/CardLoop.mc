@@ -78,22 +78,26 @@ class CardLoop extends WatchUi.View {
     }
 
     private function indexOf(cardId as String or Null, floorId as String or Null) as Number {
-        if (cardId != null) {
-            for (var index = 0; index < _model.cards.size(); index++) {
-                if (_model.cards[index].id.equals(cardId)) {
-                    return index;
-                }
+        var found = cardIndexOf(cardId);
+
+        if (found < 0) {
+            found = cardIndexOf(floorId);
+        }
+
+        return found < 0 ? 0 : found;
+    }
+
+    private function cardIndexOf(cardId as String or Null) as Number {
+        if (cardId == null) {
+            return -1;
+        }
+
+        for (var index = 0; index < _model.cards.size(); index++) {
+            if (_model.cards[index].id.equals(cardId)) {
+                return index;
             }
         }
 
-        if (floorId != null) {
-            for (var index = 0; index < _model.cards.size(); index++) {
-                if (_model.cards[index].id.equals(floorId)) {
-                    return index;
-                }
-            }
-        }
-
-        return 0;
+        return -1;
     }
 }

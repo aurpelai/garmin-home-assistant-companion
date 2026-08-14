@@ -5,13 +5,12 @@ import Toybox.StringUtil;
 //
 // HA's render_template webhook returns the rendered template as a STRING inside
 // the JSON envelope, so Connect IQ decodes the envelope but hands the payload
-// back as an unparsed String (double-encoded). This turns that inner string
-// back into the Dictionary shape HomeState.fromTemplateData consumes.
+// back as an unparsed String (double-encoded). This decodes that inner string.
 //
 // One pass over a char-code array, no backtracking, minimal allocation: the
 // payload grows with home size and an on-device parse that runs too long trips
-// the "code took too long to run" watchdog. Malformed input yields null (never
-// throws), so a bad payload degrades to an empty HomeState.
+// the "code took too long to run" watchdog. Malformed input yields null rather
+// than throwing.
 class JsonParser {
     private var _str as String;
     // Char units, not bytes: _pos indexes both this and _str.substring, which is

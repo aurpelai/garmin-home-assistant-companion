@@ -359,3 +359,26 @@ function resolveErrorMessageMapsOtherCodesToUnknown(logger as Test.Logger) as Bo
     Test.assertEqual(coordinator.resolveErrorMessage(500), Rez.Strings.ErrUnknown);
     return true;
 }
+
+(:test)
+function theRetryScreenLeavesNothingLiveToPushInto(logger as Test.Logger) as Boolean {
+    // It shows no Home Assistant data, so it is not a Screen. Leaving the
+    // departed view current would push into something the user cannot see and
+    // navigate out from under the screen that replaced it.
+    var client = new FakeCoordinatorClient();
+    var coordinator = new Coordinator(client);
+    var view = new StubScreen(true);
+
+    coordinator.onViewShown(view);
+    Test.assert(coordinator.currentView() == view);
+
+    coordinator.showRetryScreen(Rez.Strings.ErrNoConfig, null);
+
+    Test.assert(coordinator.currentView() == null);
+
+    client.fireTarget(:lights, {
+        "lights" => { "light.a" => { "state" => true, "area_id" => "area.x" } }
+    }, null);
+    Test.assertEqual(view.rebuildCount, 0);
+    return true;
+}

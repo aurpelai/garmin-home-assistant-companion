@@ -152,6 +152,8 @@ class Coordinator {
         return Rez.Strings.ErrUnknown;
     }
 
+    // The error screen shows no Home Assistant data, so it is not a Screen and
+    // nothing is live to push into while it is up.
     function showRetryScreen(id as ResourceId, code as Number or Null) as Void {
         var message = WatchUi.loadResource(id) as String;
 
@@ -159,6 +161,7 @@ class Coordinator {
             message = Lang.format(WatchUi.loadResource(Rez.Strings.ErrCode) as String, [code]) + ":\n" + message;
         }
 
+        _currentView = null;
         WatchUi.switchToView(new ErrorView(message), new ErrorDelegate(self), WatchUi.SLIDE_IMMEDIATE);
     }
 
