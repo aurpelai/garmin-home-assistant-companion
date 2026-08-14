@@ -105,43 +105,57 @@ class HaState {
     }
 
     function override(entityId as String, isOn as Boolean) as Array<String> {
-        return overrideAll([entityId], isOn);
+        return overrideAll(entityScope(entityId), isOn);
     }
 
+    // Every light in the floor, groups and unavailable ones included: Home
+    // Assistant expands the floor server-side and accepts a call to a light that
+    // is currently unreachable, so anything narrower would model a smaller scope
+    // than the action actually has.
+    function overrideFloorLights(floorId as String, isOn as Boolean) as Array<String> {
+        return overrideAll(getLightIdsInFloor(floorId), isOn);
+    }
+
+    // What a toggle of this entity covers: itself and, when it is a group,
+    // everything it stands for. A group needs both — its own row is the one the
+    // user tapped, and its members are the rows beneath it, so moving either alone
+    // leaves the menu half-updated.
+    //
     // The members are the group's own, as the payload reported them — a display
     // claim, not a correctness claim: Home Assistant's own expansion can differ,
     // and the refresh after the reply is what makes them converge.
-    function overrideGroup(entityId as String, isOn as Boolean) as Array<String> {
+    function entityScope(entityId as String) as Array<String> {
         var light = _lights.get(entityId);
         var memberIds = light == null ? null : light.memberIds;
+        var scope = [entityId] as Array<String>;
 
-        return overrideAll(memberIds == null ? [] as Array<String> : memberIds, isOn);
+        if (memberIds != null) {
+            scope.addAll(memberIds);
+        }
+
+        return scope;
     }
 
-    // Groups are excluded because Home Assistant expands the floor itself, and
-    // unavailable entities because the call cannot reach them.
-    function overrideFloorLights(floorId as String, isOn as Boolean) as Array<String> {
-        return overrideAll(commandableFloorLightIds(floorId), isOn);
-    }
-
-    // The floor lights a service call can actually command, and the one authority
-    // on that scope: the row that displays a floor's state, the guard that decides
-    // whether a tap is already covered, and the fan-out that creates the overrides
-    // must agree, or the row claims a state its own action would not reach.
-    //
-    // Resolves rather than reads, so it is not a get.
-    function commandableFloorLightIds(floorId as String) as Array<String> {
-        var out = [] as Array<String>;
-        var lightIds = getLightIdsInFloor(floorId);
-
-        for (var index = 0; index < lightIds.size(); index++) {
-            var light = _lights.get(lightIds[index]) as LightModel;
-            if (light.memberIds == null && light.available) {
-                out.add(lightIds[index]);
+    // Both resolve over a scope, so a floor's own row, the direction its tap picks
+    // and the guard that refuses a second tap all read the same two questions.
+    function anyOn(entityIds as Array<String>) as Boolean {
+        for (var index = 0; index < entityIds.size(); index++) {
+            if (isOn(entityIds[index])) {
+                return true;
             }
         }
 
-        return out;
+        return false;
+    }
+
+    function anyPending(entityIds as Array<String>) as Boolean {
+        for (var index = 0; index < entityIds.size(); index++) {
+            if (isPending(entityIds[index])) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     // Finding no override is a no-op: a refresh may have dropped an orphan whose
@@ -152,8 +166,8 @@ class HaState {
         }
     }
 
-    // Returns its own array rather than the one passed in: a caller receiving
-    // LightModel.memberIds could rewrite a group's server-truth membership.
+    // Returns its own array rather than the one passed in, so what the caller
+    // holds onto can never alias anything HaState reads back.
     private function overrideAll(entityIds as Array<String>, isOn as Boolean) as Array<String> {
         var overridden = [] as Array<String>;
 

@@ -99,9 +99,9 @@ function clearingAnOverrideThatIsGoneIsANoOp(logger as Test.Logger) as Boolean {
 }
 
 (:test)
-function aGroupScopeFansOutToItsMemberIds(logger as Test.Logger) as Boolean {
-    // The group's own entity is left out deliberately; its row waits for the
-    // refresh.
+function aGroupScopeCoversTheGroupItselfAndItsMembers(logger as Test.Logger) as Boolean {
+    // The row the user tapped is the group's own, so leaving it out would show
+    // the members moving while the row that moved them sat stale.
     var haState = HaStateTest.stateWithLights({
         "light.group" => { "state" => false, "area_id" => "area.a", "available" => true,
             "memberIds" => ["light.one", "light.two"] },
@@ -109,26 +109,40 @@ function aGroupScopeFansOutToItsMemberIds(logger as Test.Logger) as Boolean {
         "light.two" => HaStateTest.light(false, "area.a")
     });
 
-    var overridden = haState.overrideGroup("light.group", true);
+    var overridden = haState.override("light.group", true);
 
-    Test.assertEqual(overridden.size(), 2);
+    Test.assertEqual(overridden.size(), 3);
+    Test.assert(haState.isOn("light.group"));
     Test.assert(haState.isOn("light.one"));
     Test.assert(haState.isOn("light.two"));
-    Test.assert(!haState.isPending("light.group"));
+    Test.assert(haState.isPending("light.group"));
+    return true;
+}
+
+(:test)
+function aGroupWithNoMembersStillOverridesItself(logger as Test.Logger) as Boolean {
+    // Membership rides on the payload, so a group whose ids never arrived still
+    // has a row that must move when it is tapped.
+    var haState = HaStateTest.stateWithLights({
+        "light.group" => HaStateTest.light(false, "area.a")
+    });
+
+    Test.assertEqual(haState.override("light.group", true).size(), 1);
+    Test.assert(haState.isOn("light.group"));
     return true;
 }
 
 (:test)
 function theOverriddenIdsBelongToTheCallerNotToServerTruth(logger as Test.Logger) as Boolean {
-    // The group path is the one that could hand back LightModel.memberIds itself,
-    // so mutating what comes out must not rewrite the group's membership.
+    // The caller holds these until its reply settles, so mutating them must not
+    // rewrite a group's membership or create an override nobody asked for.
     var haState = HaStateTest.stateWithLights({
         "light.group" => { "state" => false, "area_id" => "area.a", "available" => true,
             "memberIds" => ["light.one"] },
         "light.one" => HaStateTest.light(false, "area.a")
     });
 
-    var overridden = haState.overrideGroup("light.group", true);
+    var overridden = haState.override("light.group", true);
     overridden.add("light.intruder");
 
     Test.assertEqual(((haState.getLight("light.group") as LightModel).memberIds as Array<String>).size(), 1);
@@ -137,9 +151,11 @@ function theOverriddenIdsBelongToTheCallerNotToServerTruth(logger as Test.Logger
 }
 
 (:test)
-function aFloorScopeExcludesGroupsAndUnavailableEntities(logger as Test.Logger) as Boolean {
-    // Home Assistant expands the floor itself, so overriding a group would double
-    // count its members; an unavailable light cannot be reached at all.
+function aFloorScopeCoversEveryLightInItsAreasAndNothingOutside(logger as Test.Logger) as Boolean {
+    // Home Assistant expands the floor server-side and accepts a call to a light
+    // that is currently unreachable, so a group and a dead bulb are both in scope
+    // — anything narrower would claim less than the action does. Only the floor's
+    // own areas bound it.
     var haState = new HaState();
     haState.setStructure(HaPayload.parseStructure({
         "areas" => { "area.kitchen" => { "name" => "Küche" }, "area.hall" => { "name" => "Hall" } },
@@ -157,11 +173,11 @@ function aFloorScopeExcludesGroupsAndUnavailableEntities(logger as Test.Logger) 
 
     var overridden = haState.overrideFloorLights("floor.ground", true);
 
-    Test.assertEqual(overridden.size(), 2);
+    Test.assertEqual(overridden.size(), 4);
+    Test.assert(haState.isOn("light.group"));
     Test.assert(haState.isOn("light.kitchen"));
+    Test.assert(haState.isOn("light.broken"));
     Test.assert(haState.isOn("light.hall"));
-    Test.assert(!haState.isPending("light.group"));
-    Test.assert(!haState.isPending("light.broken"));
     Test.assert(!haState.isPending("light.elsewhere"));
     return true;
 }

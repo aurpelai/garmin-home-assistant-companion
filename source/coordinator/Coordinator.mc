@@ -54,8 +54,11 @@ class Coordinator {
         return _haState;
     }
 
+    // Ignored while anything the tap would cover is already pending, regardless of
+    // what created that override: one in-flight change per entity, and a group's
+    // scope reaches its members.
     function toggleEntity(entityId as String) as Void {
-        if (_haState.isPending(entityId)) {
+        if (_haState.anyPending(_haState.entityScope(entityId))) {
             return;
         }
 
@@ -64,20 +67,15 @@ class Coordinator {
     }
 
     function toggleFloorLights(floorId as String) as Void {
-        // Already covered if any commandable member is pending, regardless of
-        // what created that override — a floor action creates many overrides,
-        // so the same one-in-flight-per-entity rule applies to the whole scope.
-        if (anyCommandableFloorLightPending(floorId)) {
+        var lightIds = _haState.getLightIdsInFloor(floorId);
+        if (lightIds.size() == 0 || _haState.anyPending(lightIds)) {
             return;
         }
 
-        var targetState = !anyCommandableFloorLightOn(floorId);
+        var targetState = !_haState.anyOn(lightIds);
         var overriddenIds = _haState.overrideFloorLights(floorId, targetState);
-        if (overriddenIds.size() == 0) {
-            return;
-        }
-
         var service = targetState ? "turn_on" : "turn_off";
+
         _client.queueFloorLights(floorId, service, new ToggleReply(self, overriddenIds).method(:onSettled));
     }
 
@@ -98,33 +96,6 @@ class Coordinator {
         _client.cancelAll();
         _haState = new HaState();
         refresh();
-    }
-
-    // Judged over the scope the call will actually command, so a group — whose
-    // expansion the floor target covers anyway, and which no override here
-    // touches — cannot decide the direction for the lights that are commanded.
-    private function anyCommandableFloorLightOn(floorId as String) as Boolean {
-        var lightIds = _haState.commandableFloorLightIds(floorId);
-
-        for (var index = 0; index < lightIds.size(); index++) {
-            if (_haState.isOn(lightIds[index])) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private function anyCommandableFloorLightPending(floorId as String) as Boolean {
-        var lightIds = _haState.commandableFloorLightIds(floorId);
-
-        for (var index = 0; index < lightIds.size(); index++) {
-            if (_haState.isPending(lightIds[index])) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     private function refresh() as Void {

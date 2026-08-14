@@ -144,6 +144,47 @@ function toggleRecordsAnOverrideFiresAndTheReplyClearsExactlyThoseIds(logger as 
 }
 
 (:test)
+function aGroupTapMovesItsMembersAndIsBlockedByOneOfThemBeingPending(logger as Test.Logger) as Boolean {
+    // A group's scope reaches its members, so its tap flips the rows beneath it
+    // as well as its own — and the one-in-flight-per-entity rule then applies to
+    // that whole scope, whichever end of it the earlier tap came from.
+    var client = new FakeCoordinatorClient();
+    var coordinator = new Coordinator(client);
+
+    coordinator.onActivate();
+    client.fireTarget(:lights, {
+        "lights" => {
+            "light.grp" => { "state" => false, "area_id" => "area.x",
+                "memberIds" => ["light.one", "light.two"] },
+            "light.one" => { "state" => false, "area_id" => "area.x" },
+            "light.two" => { "state" => false, "area_id" => "area.x" }
+        }
+    }, null);
+
+    coordinator.toggleEntity("light.one");
+    Test.assertEqual(client.toggledEntityIds.size(), 1);
+
+    // The member is pending, so the group covering it is refused.
+    coordinator.toggleEntity("light.grp");
+    Test.assertEqual(client.toggledEntityIds.size(), 1);
+
+    client.fireToggleSuccessAt(0);
+    coordinator.toggleEntity("light.grp");
+    Test.assertEqual(client.toggledEntityIds.size(), 2);
+
+    // Every row the group stands for now shows the assumed value, its own
+    // included, so the menu is not half-updated.
+    Test.assert(coordinator.haState().isOn("light.grp"));
+    Test.assert(coordinator.haState().isOn("light.one"));
+    Test.assert(coordinator.haState().isOn("light.two"));
+
+    // And the reverse direction: a member covered by the pending group is refused.
+    coordinator.toggleEntity("light.two");
+    Test.assertEqual(client.toggledEntityIds.size(), 2);
+    return true;
+}
+
+(:test)
 function toggleFloorLightsFlipsToOnWhenAllAreOffAndQueuesTheFloorTarget(logger as Test.Logger) as Boolean {
     var client = new FakeCoordinatorClient();
     var coordinator = new Coordinator(client);
@@ -187,11 +228,11 @@ function toggleFloorLightsFlipsToOffWhenAnyIsOn(logger as Test.Logger) as Boolea
 }
 
 (:test)
-function theFlipDirectionIgnoresLightsTheCallCannotReach(logger as Test.Logger) as Boolean {
-    // A group is outside the scope this call commands — the floor target expands
-    // to its members server-side and no override here touches the group itself —
-    // so an on group must not decide the direction for the lights that are
-    // commanded. Every commandable light here is off, so the floor turns on.
+function everyLightInTheFloorDecidesTheFlipDirection(logger as Test.Logger) as Boolean {
+    // Nothing in the floor is out of scope: Home Assistant expands the floor
+    // server-side and accepts a call to a light it cannot currently reach, so a
+    // group and a dead bulb both count. The group alone being on is enough to
+    // send the floor off.
     var client = new FakeCoordinatorClient();
     var coordinator = new Coordinator(client);
 
@@ -202,6 +243,7 @@ function theFlipDirectionIgnoresLightsTheCallCannotReach(logger as Test.Logger) 
     client.fireTarget(:lights, {
         "lights" => {
             "light.off" => { "state" => false, "area_id" => "area.x", "available" => true },
+            "light.dead" => { "state" => false, "area_id" => "area.x", "available" => false },
             "light.grp" => { "state" => true, "area_id" => "area.x", "available" => true,
                 "memberIds" => ["light.off"] }
         }
@@ -209,12 +251,12 @@ function theFlipDirectionIgnoresLightsTheCallCannotReach(logger as Test.Logger) 
 
     coordinator.toggleFloorLights("floor.up");
 
-    Test.assertEqual(client.toggledFloorServices[0], "turn_on");
+    Test.assertEqual(client.toggledFloorServices[0], "turn_off");
     return true;
 }
 
 (:test)
-function toggleFloorLightsWithNoCommandableMembersQueuesNothing(logger as Test.Logger) as Boolean {
+function toggleFloorLightsWithNoLightsQueuesNothing(logger as Test.Logger) as Boolean {
     var client = new FakeCoordinatorClient();
     var coordinator = new Coordinator(client);
 
@@ -223,8 +265,8 @@ function toggleFloorLightsWithNoCommandableMembersQueuesNothing(logger as Test.L
         "floors" => { "floor.up" => { "name" => "Up", "order" => 0, "areas" => ["area.x"] } }
     }, null);
 
-    // No lights section at all: the floor has no commandable members, so the
-    // empty scope must not reach the client as an empty-target request.
+    // No lights section at all: the empty scope must not reach the client as an
+    // empty-target request.
     coordinator.toggleFloorLights("floor.up");
 
     Test.assertEqual(client.toggledFloorIds.size(), 0);

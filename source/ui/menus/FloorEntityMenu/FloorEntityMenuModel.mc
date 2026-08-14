@@ -1,7 +1,7 @@
 import Toybox.Lang;
 
-// A floor carries one row per domain present on it, so a floor with no
-// commandable lights has an empty lights array rather than a disabled row.
+// A floor carries one row per domain present on it, so a floor with no lights
+// has an empty lights array rather than a disabled row.
 class FloorEntityMenuModel {
     // The id of the whole-lights row, deliberately not shaped like an entity id:
     // this row's identity and its service target diverge, the target being the

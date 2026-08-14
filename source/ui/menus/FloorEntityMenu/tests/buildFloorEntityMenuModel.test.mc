@@ -30,19 +30,21 @@ function aFloorGoneFromTheStructureYieldsNoModel(logger as Test.Logger) as Boole
 }
 
 (:test)
-function aFloorWithNothingCommandableCarriesNoRowAtAll(logger as Test.Logger) as Boolean {
+function aFloorWithNoLightsCarriesNoRowWhileOneWithOnlyDeadOnesDoes(logger as Test.Logger) as Boolean {
     // The menu carries an item per domain present on the floor and omits the
-    // rest, so a floor whose only lights are a group and a dead bulb gets no
-    // row rather than one that commands nothing.
-    var haState = FloorEntityMenuModelTest.stateOf(
+    // rest, and presence is the only test: a dead bulb is still a light the call
+    // reaches, so only a floor with none at all loses the row.
+    var empty = FloorEntityMenuModelTest.stateOf(
+        FloorEntityMenuModelTest.oneFloorWith(["area.room"]), {} as Dictionary);
+    var onlyDead = FloorEntityMenuModelTest.stateOf(
         FloorEntityMenuModelTest.oneFloorWith(["area.room"]), {
-            "light.grp" => { "state" => true, "area_id" => "area.room", "available" => true,
-                "memberIds" => ["light.dead"] },
             "light.dead" => { "state" => false, "area_id" => "area.room", "available" => false }
         });
 
     Test.assertEqual(
-        (buildFloorEntityMenuModel(haState, "floor.g") as FloorEntityMenuModel).lights.size(), 0);
+        (buildFloorEntityMenuModel(empty, "floor.g") as FloorEntityMenuModel).lights.size(), 0);
+    Test.assertEqual(
+        (buildFloorEntityMenuModel(onlyDead, "floor.g") as FloorEntityMenuModel).lights.size(), 1);
     return true;
 }
 
@@ -62,9 +64,9 @@ function theFloorRowTargetsTheFloorRatherThanItsOwnRowId(logger as Test.Logger) 
 }
 
 (:test)
-function theFloorRowReadsOnWhenAnyCommandableLightIsOn(logger as Test.Logger) as Boolean {
-    // Judged over exactly the scope a tap would command — groups and dead lights
-    // excluded — so the row cannot claim a state its own action would not reach.
+function theFloorRowReadsOnWhenAnyLightInTheFloorIsOn(logger as Test.Logger) as Boolean {
+    // Read over exactly the scope a tap commands — every light in the floor — so
+    // the row cannot claim a state its own action would not produce.
     var haState = FloorEntityMenuModelTest.stateOf(
         FloorEntityMenuModelTest.oneFloorWith(["area.room"]), {
             "light.off" => { "state" => false, "area_id" => "area.room", "available" => true },
