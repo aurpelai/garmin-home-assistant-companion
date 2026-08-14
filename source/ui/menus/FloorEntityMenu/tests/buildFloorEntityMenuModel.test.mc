@@ -38,7 +38,7 @@ function aFloorWithNothingCommandableCarriesNoRowAtAll(logger as Test.Logger) as
         FloorEntityMenuModelTest.oneFloorWith(["area.room"]), {
             "light.grp" => { "state" => true, "area_id" => "area.room", "available" => true,
                 "memberIds" => ["light.dead"] },
-            "light.dead" => { "state" => true, "area_id" => "area.room", "available" => false }
+            "light.dead" => { "state" => false, "area_id" => "area.room", "available" => false }
         });
 
     Test.assertEqual(
@@ -68,7 +68,7 @@ function theFloorRowReadsOnWhenAnyCommandableLightIsOn(logger as Test.Logger) as
     var haState = FloorEntityMenuModelTest.stateOf(
         FloorEntityMenuModelTest.oneFloorWith(["area.room"]), {
             "light.off" => { "state" => false, "area_id" => "area.room", "available" => true },
-            "light.dead" => { "state" => true, "area_id" => "area.room", "available" => false }
+            "light.dead" => { "state" => false, "area_id" => "area.room", "available" => false }
         });
 
     Test.assert(!(buildFloorEntityMenuModel(haState, "floor.g") as FloorEntityMenuModel).lights[0].isOn);

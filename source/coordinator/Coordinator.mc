@@ -100,9 +100,9 @@ class Coordinator {
         refresh();
     }
 
-    // Judged over the scope the call will actually command, so an unavailable
-    // light Home Assistant still reports as on cannot decide the direction for
-    // lights the call can reach.
+    // Judged over the scope the call will actually command, so a group — whose
+    // expansion the floor target covers anyway, and which no override here
+    // touches — cannot decide the direction for the lights that are commanded.
     private function anyCommandableFloorLightOn(floorId as String) as Boolean {
         var lightIds = _haState.commandableFloorLightIds(floorId);
 

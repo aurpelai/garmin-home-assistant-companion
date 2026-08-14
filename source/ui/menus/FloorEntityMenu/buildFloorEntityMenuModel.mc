@@ -1,11 +1,5 @@
 import Toybox.Lang;
 
-// The row id for the floor's whole-lights row. Deliberately not shaped like an
-// entity id: the row's identity and its service target diverge here, the target
-// being the floor. A hyphen cannot occur in a Home Assistant object id, so this
-// can never be mistaken for one or collide with one.
-const FLOOR_LIGHTS_ROW_ID = "all-lights";
-
 // Pure: touches no WatchUi, fetches nothing, and mutates no HaState.
 //
 // Takes the floor id and looks the floor up, so absence is discovered and
@@ -45,6 +39,6 @@ function buildFloorLightRows(haState as HaState, floorId as String) as Array<Lig
         isPending = isPending || haState.isPending(lightIds[index]);
     }
 
-    return [new LightRowModel(FLOOR_LIGHTS_ROW_ID, floorId, null, isOn, true, null, isPending)]
-        as Array<LightRowModel>;
+    return [new LightRowModel(FloorEntityMenuModel.LIGHTS_ROW_ID, floorId, null, isOn, true,
+        null, isPending)] as Array<LightRowModel>;
 }
