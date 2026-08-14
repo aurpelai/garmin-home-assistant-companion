@@ -380,6 +380,10 @@ function changesGoOutBeforeFetches(logger as Test.Logger) as Boolean {
 
 (:test)
 function aRefreshTriggeredWhileOneIsIncompleteIsDropped(logger as Test.Logger) as Boolean {
+    // Both refreshes are driven all the way to completion: if the second
+    // trigger were merely deferred rather than dropped, its own three
+    // targets would still fire once the first refresh finished, and the
+    // total would be 6 rather than 3.
     Application.Storage.clearValues();
     Webhook.setId("some-id");
     var client = new MockHaClient();
@@ -388,9 +392,12 @@ function aRefreshTriggeredWhileOneIsIncompleteIsDropped(logger as Test.Logger) a
     client.refresh(log.method(:onTarget));
     client.refresh(log.method(:onTarget));
 
-    // Still only the first target's own single request: the second trigger
-    // was dropped rather than coalesced or queued.
-    Test.assertEqual(client.serviceCallbacks.size(), 1);
+    client.fireServiceSuccessAt(0);
+    client.fireServiceSuccessAt(1);
+    client.fireServiceSuccessAt(2);
+
+    Test.assertEqual(client.serviceCallbacks.size(), 3);
+    Test.assertEqual(log.targets.size(), 3);
     return true;
 }
 
@@ -467,26 +474,80 @@ function theQueueDrainsOnlyOnceTheThresholdIsExhausted(logger as Test.Logger) as
 
 (:test)
 function cancellingClearsTheQueueTheErrorAndTheSlotTogether(logger as Test.Logger) as Boolean {
+    // Cancels with a change genuinely occupying the slot (mid-retry, not yet
+    // exhausted, so lastError has nothing to do with why the slot later reads
+    // as free) and another genuinely still queued — not an empty queue and a
+    // free slot that arrived on their own from an already-exhausted run.
     Application.Storage.clearValues();
     Webhook.setId("some-id");
     var client = new MockHaClient();
+    var second = new ResultCapture();
 
     client.queueLightToggle("light.a", new ResultCapture().method(:onResult));
-    client.queueLightToggle("light.b", new ResultCapture().method(:onResult));
+    client.queueLightToggle("light.b", second.method(:onResult));
     client.fireServiceFailureAt(0, -1);
-    client.fireServiceFailureAt(1, -1);
-    client.fireServiceFailureAt(2, -1);
-    client.fireServiceFailureAt(3, -1);
-
-    Test.assert(client.lastError() != null);
 
     client.cancelAll();
 
     Test.assert(client.lastError() == null);
 
+    // The second tap was still queued, never posted, when cancelAll ran, so
+    // it is discarded rather than merely delayed: index 1 is the first
+    // change's own stale reissue, a reply to an already-cancelled request,
+    // and must reach nobody rather than resolve the second tap's callback.
+    client.fireServiceSuccessAt(1);
+    Test.assert(second.result == null);
+    Test.assert(second.error == null);
+
     // The slot is free again: a fresh change fires immediately rather than
     // waiting behind whatever the cancelled run left outstanding.
     client.queueLightToggle("light.c", new ResultCapture().method(:onResult));
-    Test.assertEqual(client.serviceCallbacks.size(), 5);
+    Test.assertEqual(client.serviceCallbacks.size(), 3);
+    return true;
+}
+
+(:test)
+function aRefreshWhereOneTargetFailsNeverStampsCompletion(logger as Test.Logger) as Boolean {
+    // Completed is a property of the whole refresh, not of one target: the
+    // first target succeeding, the second exhausting its retries, and the
+    // third succeeding still lands the refresh — but it must not stamp, since
+    // lights landing while sensors failed must not look like an up-to-date
+    // refresh.
+    Application.Storage.clearValues();
+    Webhook.setId("some-id");
+    var client = new MockHaClient();
+    var log = new TargetLog();
+
+    client.refresh(log.method(:onTarget));
+    client.fireServiceSuccessAt(0);
+    client.fireServiceFailureAt(1, -1);
+    client.fireServiceFailureAt(2, -1);
+    client.fireServiceFailureAt(3, -1);
+    client.fireServiceFailureAt(4, -1);
+    client.fireServiceSuccessAt(5);
+
+    Test.assertEqual(log.targets.size(), 3);
+    Test.assert(client.msSinceLastRefresh() == null);
+    return true;
+}
+
+(:test)
+function queueFloorLightsQueuesAFloorChangeRatherThanBeingDropped(logger as Test.Logger) as Boolean {
+    Application.Storage.clearValues();
+    Webhook.setId("some-id");
+    var client = new MockHaClient();
+    var first = new ResultCapture();
+    var second = new ResultCapture();
+
+    client.queueFloorLights("floor_up", "turn_on", first.method(:onResult));
+    client.queueLightToggle("light.a", second.method(:onResult));
+
+    // The floor change occupies the slot; the toggle behind it is still
+    // queued rather than discarded, so it fires only once the floor change
+    // settles.
+    Test.assertEqual(client.serviceCallbacks.size(), 1);
+    client.fireServiceSuccessAt(0);
+    Test.assertEqual(client.serviceCallbacks.size(), 2);
+    Test.assertEqual(first.result as Boolean, true);
     return true;
 }
