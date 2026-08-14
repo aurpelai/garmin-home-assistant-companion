@@ -52,6 +52,7 @@ class MockHaClient extends HaClient {
 
     function fetchHomeState(callback as Method) as Void {
         _fetchCallback = callback;
+        fetchCount++;
     }
 
     function toggleLight(entityId as String, callback as Method) as Void {
@@ -62,11 +63,6 @@ class MockHaClient extends HaClient {
     function register(callback as Method) as Void {
         _registerCallback = new RegisterCacheHandler(callback).method(:onRegistered);
         registerCount++;
-    }
-
-    function fetch(callback as Method) as Void {
-        _fetchCallback = callback;
-        fetchCount++;
     }
 
     function post(path as String, body as Dictionary, handler as ResponseHandler) as Void {
@@ -142,7 +138,7 @@ class ResultCapture {
 (:test)
 function onResponseNormalizesNon200ToError(logger as Test.Logger) as Boolean {
     var capture = new ResultCapture();
-    var handler = new ResponseHandler(capture.method(:onResult), :onTemplate);
+    var handler = new ResponseHandler(capture.method(:onResult), :fetch);
 
     handler.onResponse(401, null);
 
@@ -152,28 +148,28 @@ function onResponseNormalizesNon200ToError(logger as Test.Logger) as Boolean {
 }
 
 (:test)
-function onResponseNormalizesTemplateSuccessToHomeState(logger as Test.Logger) as Boolean {
+function onResponseHandsOutTheRawFetchPayload(logger as Test.Logger) as Boolean {
+    // ResponseHandler stays domain-ignorant: a fetch reply is the parsed
+    // dictionary under "home", not a HomeState the transport layer would have
+    // to name.
     var capture = new ResultCapture();
-    var handler = new ResponseHandler(capture.method(:onResult), :onTemplate);
+    var handler = new ResponseHandler(capture.method(:onResult), :fetch);
 
-    // The webhook wraps the rendered payload under a "home" key.
     handler.onResponse(200, {
-        "home" => {
-            "areas" => { "area.room" => { "name" => "Room", "lights" => ["light.a"] } },
-            "lights" => { "light.a" => { "state" => true } }
-        }
+        "home" => { "lights" => { "light.a" => { "state" => true } } }
     });
 
-    Test.assert(capture.result instanceof HomeState);
-    Test.assert((capture.result as HomeState).isOn("light.a"));
+    Test.assert(capture.result instanceof Dictionary);
+    Test.assert(!(capture.result instanceof HomeState));
+    Test.assertEqual(((capture.result as Dictionary).get("lights") as Dictionary).size(), 1);
     Test.assert(capture.error == null);
     return true;
 }
 
 (:test)
-function onResponseNormalizesServiceSuccessToTrue(logger as Test.Logger) as Boolean {
+function onResponseNormalizesServiceCallSuccessToTrue(logger as Test.Logger) as Boolean {
     var capture = new ResultCapture();
-    var handler = new ResponseHandler(capture.method(:onResult), :onService);
+    var handler = new ResponseHandler(capture.method(:onResult), :serviceCall);
 
     handler.onResponse(200, null);
 
@@ -183,9 +179,9 @@ function onResponseNormalizesServiceSuccessToTrue(logger as Test.Logger) as Bool
 }
 
 (:test)
-function onResponseNormalizesRegisterSuccessToWebhookId(logger as Test.Logger) as Boolean {
+function onResponseNormalizesRegistrationSuccessToWebhookId(logger as Test.Logger) as Boolean {
     var capture = new ResultCapture();
-    var handler = new ResponseHandler(capture.method(:onResult), :onRegister);
+    var handler = new ResponseHandler(capture.method(:onResult), :registration);
 
     // HA returns 201 Created for /api/mobile_app/registrations.
     handler.onResponse(201, { "webhook_id" => "abc123" });
@@ -196,9 +192,9 @@ function onResponseNormalizesRegisterSuccessToWebhookId(logger as Test.Logger) a
 }
 
 (:test)
-function onResponseNormalizesRegisterFailureToError(logger as Test.Logger) as Boolean {
+function onResponseNormalizesRegistrationFailureToError(logger as Test.Logger) as Boolean {
     var capture = new ResultCapture();
-    var handler = new ResponseHandler(capture.method(:onResult), :onRegister);
+    var handler = new ResponseHandler(capture.method(:onResult), :registration);
 
     handler.onResponse(400, null);
 
@@ -210,11 +206,11 @@ function onResponseNormalizesRegisterFailureToError(logger as Test.Logger) as Bo
 (:test)
 function fetchHomeStateRecoversOnceFromInvalidWebhook(logger as Test.Logger) as Boolean {
     Application.Storage.clearValues();
-    Settings.setWebhookId("stale-id");
+    Webhook.setId("stale-id");
     var client = new MockHaClient();
     var capture = new ResultCapture();
 
-    new RecoveryHandler(client, client.method(:fetch), capture.method(:onResult)).attempt();
+    new RetryManager(client, client.method(:fetchHomeState), capture.method(:onResult)).attempt();
     client.fireFetchFailureWithCode(Communications.INVALID_HTTP_BODY_IN_NETWORK_RESPONSE);
     client.fireRegisterSuccess("fresh-id");
     client.fireFetchFailureWithCode(Communications.INVALID_HTTP_BODY_IN_NETWORK_RESPONSE);
@@ -229,11 +225,11 @@ function fetchHomeStateRecoversOnceFromInvalidWebhook(logger as Test.Logger) as 
 (:test)
 function fetchHomeStateRecoversFrom404TooAndSucceeds(logger as Test.Logger) as Boolean {
     Application.Storage.clearValues();
-    Settings.setWebhookId("stale-id");
+    Webhook.setId("stale-id");
     var client = new MockHaClient();
     var capture = new ResultCapture();
 
-    new RecoveryHandler(client, client.method(:fetch), capture.method(:onResult)).attempt();
+    new RetryManager(client, client.method(:fetchHomeState), capture.method(:onResult)).attempt();
     client.fireFetchFailureWithCode(404);
     client.fireRegisterSuccess("fresh-id");
     client.fireFetchSuccess(HomeState.fromTemplateData({
@@ -251,11 +247,11 @@ function fetchHomeStateRecoversFrom404TooAndSucceeds(logger as Test.Logger) as B
 (:test)
 function toggleLightRecoversOnceFromInvalidWebhook(logger as Test.Logger) as Boolean {
     Application.Storage.clearValues();
-    Settings.setWebhookId("stale-id");
+    Webhook.setId("stale-id");
     var client = new MockHaClient();
     var capture = new ResultCapture();
 
-    new RecoveryHandler(client, new ServiceCallHandler(client, "light.a").method(:callService),
+    new RetryManager(client, new ServiceCall(client, "toggle", "entity_id", "light.a").method(:call),
         capture.method(:onResult)).attempt();
     client.fireServiceFailureAt(0, Communications.INVALID_HTTP_BODY_IN_NETWORK_RESPONSE);
     client.fireRegisterSuccess("fresh-id");
@@ -265,5 +261,232 @@ function toggleLightRecoversOnceFromInvalidWebhook(logger as Test.Logger) as Boo
     Test.assertEqual(client.registerCount, 1);
     Test.assertEqual(capture.result as Boolean, true);
     Test.assert(capture.error == null);
+    return true;
+}
+
+(:test)
+function retryManagerReissuesOnAnyOtherFailureUpToTheThreshold(logger as Test.Logger) as Boolean {
+    // Every reason is retried, not just an invalid webhook id: nothing
+    // classifies a failure, so an ordinary transport error is reissued too.
+    Application.Storage.clearValues();
+    Webhook.setId("some-id");
+    var client = new MockHaClient();
+    var capture = new ResultCapture();
+
+    new RetryManager(client, client.method(:fetchHomeState), capture.method(:onResult)).attempt();
+    client.fireFetchFailureWithCode(-1);
+    client.fireFetchFailureWithCode(-1);
+    client.fireFetchSuccess(HomeState.fromTemplateData({}));
+
+    Test.assertEqual(client.fetchCount, 3);
+    Test.assertEqual(client.registerCount, 0);
+    Test.assert(capture.result instanceof HomeState);
+    Test.assert(capture.error == null);
+    return true;
+}
+
+(:test)
+function retryManagerSurfacesTheFailureOnceItsThresholdIsSpent(logger as Test.Logger) as Boolean {
+    Application.Storage.clearValues();
+    Webhook.setId("some-id");
+    var client = new MockHaClient();
+    var capture = new ResultCapture();
+
+    new RetryManager(client, client.method(:fetchHomeState), capture.method(:onResult)).attempt();
+    client.fireFetchFailureWithCode(-1);
+    client.fireFetchFailureWithCode(-1);
+    client.fireFetchFailureWithCode(-1);
+    client.fireFetchFailureWithCode(-1);
+
+    Test.assert(capture.result == null);
+    Test.assertEqual(capture.error as Number, -1);
+    return true;
+}
+
+// Drives HaClient's new split-payload surface directly. Both a refresh
+// target and a queued change end up posted through the same mocked post(),
+// so serviceCallbacks/toggleCount (the shared "request reached transport"
+// seam) is what every assertion below reads, whichever kind fired it.
+// Webhook.setId is called first so a target's own request does not itself
+// fail with the "unregistered" 404 the client returns for a missing id.
+
+(:test)
+class TargetLog {
+    public var targets as Array<Symbol> = [];
+    public var results as Array<Object?> = [];
+    public var errors as Array<Number?> = [];
+
+    function onTarget(target as Symbol, result as Object?, error as Number?) as Void {
+        targets.add(target);
+        results.add(result);
+        errors.add(error);
+    }
+}
+
+(:test)
+function onlyOneRequestIsOutstandingAtATime(logger as Test.Logger) as Boolean {
+    // A refresh fires three targets, but the platform allows one outstanding
+    // request of any kind: the second and third targets must not be posted
+    // until the first has settled.
+    Application.Storage.clearValues();
+    Webhook.setId("some-id");
+    var client = new MockHaClient();
+    var log = new TargetLog();
+
+    client.refresh(log.method(:onTarget));
+
+    Test.assertEqual(client.serviceCallbacks.size(), 1);
+    return true;
+}
+
+(:test)
+function aChangeQueuesRatherThanBeingDropped(logger as Test.Logger) as Boolean {
+    Application.Storage.clearValues();
+    Webhook.setId("some-id");
+    var client = new MockHaClient();
+    var first = new ResultCapture();
+    var second = new ResultCapture();
+
+    client.queueLightToggle("light.a", first.method(:onResult));
+    client.queueLightToggle("light.b", second.method(:onResult));
+
+    // The first tap occupies the slot; the second is still queued rather than
+    // discarded, so it fires only once the first settles.
+    Test.assertEqual(client.serviceCallbacks.size(), 1);
+    client.fireServiceSuccessAt(0);
+    Test.assertEqual(client.serviceCallbacks.size(), 2);
+    return true;
+}
+
+(:test)
+function changesGoOutBeforeFetches(logger as Test.Logger) as Boolean {
+    Application.Storage.clearValues();
+    Webhook.setId("some-id");
+    var client = new MockHaClient();
+    var log = new TargetLog();
+
+    client.refresh(log.method(:onTarget));
+    client.queueLightToggle("light.a", new ResultCapture().method(:onResult));
+
+    // The refresh's first target already occupies the slot when the toggle is
+    // queued; once it settles, the queued change must go out before the
+    // refresh's next target does.
+    Test.assertEqual(client.serviceCallbacks.size(), 1);
+    client.fireServiceSuccessAt(0);
+    Test.assertEqual(client.serviceCallbacks.size(), 2);
+    Test.assertEqual(log.targets.size(), 1);
+    return true;
+}
+
+(:test)
+function aRefreshTriggeredWhileOneIsIncompleteIsDropped(logger as Test.Logger) as Boolean {
+    Application.Storage.clearValues();
+    Webhook.setId("some-id");
+    var client = new MockHaClient();
+    var log = new TargetLog();
+
+    client.refresh(log.method(:onTarget));
+    client.refresh(log.method(:onTarget));
+
+    // Still only the first target's own single request: the second trigger
+    // was dropped rather than coalesced or queued.
+    Test.assertEqual(client.serviceCallbacks.size(), 1);
+    return true;
+}
+
+(:test)
+function aReplyDoesNotStartARefreshWhileChangesAreQueued(logger as Test.Logger) as Boolean {
+    // Simulates the coordinator asking for a refresh right after a toggle's
+    // own reply, with a second toggle still queued behind it: the refresh
+    // trigger must be dropped, since converging against server truth is
+    // pointless when more changes are about to be posted.
+    Application.Storage.clearValues();
+    Webhook.setId("some-id");
+    var client = new MockHaClient();
+    var log = new TargetLog();
+
+    client.queueLightToggle("light.a", new ResultCapture().method(:onResult));
+    client.queueLightToggle("light.b", new ResultCapture().method(:onResult));
+    client.refresh(log.method(:onTarget));
+
+    Test.assertEqual(log.targets.size(), 0);
+    return true;
+}
+
+(:test)
+function aReplyDoesNotStartARefreshWhileAChangeIsStillInFlight(logger as Test.Logger) as Boolean {
+    // Same trigger, but with nothing queued — the one change already
+    // occupying the slot is enough on its own to drop the refresh.
+    Application.Storage.clearValues();
+    Webhook.setId("some-id");
+    var client = new MockHaClient();
+    var log = new TargetLog();
+
+    client.queueLightToggle("light.a", new ResultCapture().method(:onResult));
+    client.refresh(log.method(:onTarget));
+
+    Test.assertEqual(log.targets.size(), 0);
+    return true;
+}
+
+(:test)
+function theQueueDrainsOnlyOnceTheThresholdIsExhausted(logger as Test.Logger) as Boolean {
+    Application.Storage.clearValues();
+    Webhook.setId("some-id");
+    var client = new MockHaClient();
+    var first = new ResultCapture();
+    var second = new ResultCapture();
+
+    client.queueLightToggle("light.a", first.method(:onResult));
+    client.queueLightToggle("light.b", second.method(:onResult));
+
+    // One failure is a hypothesis, not a verdict: RetryManager reissues the
+    // first toggle on its own (indices 1, 2, 3 below are its own reissues),
+    // and the second tap must still be waiting in the queue throughout —
+    // untouched by any of them.
+    client.fireServiceFailureAt(0, -1);
+    client.fireServiceFailureAt(1, -1);
+    client.fireServiceFailureAt(2, -1);
+    Test.assertEqual(client.serviceCallbacks.size(), 4);
+    Test.assert(first.error == null);
+    Test.assert(second.result == null);
+    Test.assert(second.error == null);
+
+    // The fourth failure exhausts RetryManager's threshold, which is what
+    // finally drains the second tap: it is discarded, not fired, and its
+    // callback is never invoked — one signal for one cause, not one per
+    // queued change.
+    client.fireServiceFailureAt(3, -1);
+
+    Test.assertEqual(first.error as Number, -1);
+    Test.assertEqual(client.serviceCallbacks.size(), 4);
+    Test.assert(second.result == null);
+    Test.assert(second.error == null);
+    return true;
+}
+
+(:test)
+function cancellingClearsTheQueueTheErrorAndTheSlotTogether(logger as Test.Logger) as Boolean {
+    Application.Storage.clearValues();
+    Webhook.setId("some-id");
+    var client = new MockHaClient();
+
+    client.queueLightToggle("light.a", new ResultCapture().method(:onResult));
+    client.queueLightToggle("light.b", new ResultCapture().method(:onResult));
+    client.fireServiceFailureAt(0, -1);
+    client.fireServiceFailureAt(1, -1);
+    client.fireServiceFailureAt(2, -1);
+    client.fireServiceFailureAt(3, -1);
+
+    Test.assert(client.lastError() != null);
+
+    client.cancelAll();
+
+    Test.assert(client.lastError() == null);
+
+    // The slot is free again: a fresh change fires immediately rather than
+    // waiting behind whatever the cancelled run left outstanding.
+    client.queueLightToggle("light.c", new ResultCapture().method(:onResult));
+    Test.assertEqual(client.serviceCallbacks.size(), 5);
     return true;
 }
