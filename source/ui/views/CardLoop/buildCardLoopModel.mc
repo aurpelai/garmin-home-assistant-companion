@@ -1,6 +1,6 @@
 import Toybox.Lang;
 
-// Pure: touches no platform UI, fetches nothing, and mutates no HaState.
+// Pure: touches no WatchUi, fetches nothing, and mutates no HaState.
 //
 // Unlike the per-screen builders this one has no subject to look up, so it takes
 // the whole of HaState and always returns a model — an empty home yields an empty
@@ -59,7 +59,7 @@ function buildAreaCard(haState as HaState, areaId as String, floorId as String o
         floorId,
         area == null || area.name == null ? areaId : area.name as String,
         floorName,
-        CardReading.forSensors(haState, haState.getSensorIdsInArea(areaId), false),
+        CardReading.forSensors(haState, haState.getSensorIdsInArea(areaId)),
         lights);
 }
 
@@ -77,6 +77,6 @@ function buildFloorCard(haState as HaState, floorId as String, floorName as Stri
         floorId,
         floorName,
         haState.getZone(),
-        CardReading.forSensors(haState, sensorIds, true),
+        CardReading.forSensors(haState, sensorIds),
         lights);
 }

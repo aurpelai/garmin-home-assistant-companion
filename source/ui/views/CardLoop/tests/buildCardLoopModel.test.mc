@@ -128,9 +128,10 @@ function anAreaCardTallyReadsTheAssumedValueOfAPendingLight(logger as Test.Logge
 }
 
 (:test)
-function aFloorCardAveragesADeviceClassAcrossItsAreas(logger as Test.Logger) as Boolean {
-    // A floor's sensors sit in different rooms with no one of them speaking for
-    // the floor, so its band is a mean rather than whichever reading came first.
+function severalSensorsOfOneDeviceClassAverageWhateverTheScope(logger as Test.Logger) as Boolean {
+    // No one sensor speaks for its scope, so picking one would put whichever the
+    // walk reached first on the card. An area with two of a class averages them
+    // exactly as a floor averages across its areas.
     var haState = CardLoopModelTest.stateOf({
         "areas" => {
             "area.kitchen" => { "name" => "Kitchen" },
@@ -139,13 +140,32 @@ function aFloorCardAveragesADeviceClassAcrossItsAreas(logger as Test.Logger) as 
         "floors" => { "floor.ground" => { "name" => "Ground", "order" => 0,
             "areas" => ["area.kitchen", "area.bedroom"] } }
     }, {} as Dictionary, {
-        "sensor.kitchen" => CardLoopModelTest.temperature("19.0 °C", 19.0, "area.kitchen"),
+        "sensor.kitchen_near" => CardLoopModelTest.temperature("18.0 °C", 18.0, "area.kitchen"),
+        "sensor.kitchen_far" => CardLoopModelTest.temperature("20.0 °C", 20.0, "area.kitchen"),
         "sensor.bedroom" => CardLoopModelTest.temperature("23.0 °C", 23.0, "area.bedroom")
+    });
+    var model = buildCardLoopModel(haState);
+
+    Test.assertEqual(CardLoopModelTest.readingOf(model, "area.kitchen", "temperature"), "19.0 °C");
+    Test.assertEqual(CardLoopModelTest.readingOf(model, "floor.ground", "temperature"), "20.3 °C");
+    return true;
+}
+
+(:test)
+function aLoneReadingIsEchoedAsHomeAssistantSentIt(logger as Test.Logger) as Boolean {
+    // Echoed rather than recomposed from the value: Home Assistant's grouping
+    // separator is formatting we cannot reproduce, so a lone reading must pass
+    // through untouched instead of being rebuilt as "1024 lx".
+    var haState = CardLoopModelTest.stateOf({
+        "areas" => { "area.attic" => { "name" => "Attic" } }
+    }, {} as Dictionary, {
+        "sensor.lux" => { "state" => 1024.0, "display_state" => "1,024 lx", "unit" => "lx",
+            "device_class" => "illuminance", "area_id" => "area.attic", "available" => true }
     });
 
     Test.assertEqual(
-        CardLoopModelTest.readingOf(buildCardLoopModel(haState), "floor.ground", "temperature"),
-        "21.0 °C");
+        CardLoopModelTest.readingOf(buildCardLoopModel(haState), "area.attic", "illuminance"),
+        "1,024 lx");
     return true;
 }
 
