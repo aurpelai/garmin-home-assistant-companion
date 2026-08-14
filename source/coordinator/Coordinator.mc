@@ -13,13 +13,11 @@ class Coordinator {
     private var _client as HaClient;
     private var _haState as HaState;
     private var _currentView as Screen or Null;
-    private var _infoScreenShowing as Boolean;
 
     function initialize(client as HaClient) {
         _client = client;
         _haState = new HaState();
         _currentView = null;
-        _infoScreenShowing = false;
     }
 
     function onActivate() as Void {
@@ -43,7 +41,6 @@ class Coordinator {
     // navigation revealed the view.
     function onViewShown(view as Screen) as Void {
         _currentView = view;
-        _infoScreenShowing = false;
 
         var age = _client.msSinceLastRefresh();
         if (age == null || age > STALE_AFTER_MS) {
@@ -158,7 +155,6 @@ class Coordinator {
         }
 
         _currentView = null;
-        _infoScreenShowing = true;
         WatchUi.switchToView(new InfoView(message), new InfoDelegate(self), WatchUi.SLIDE_IMMEDIATE);
     }
 
@@ -183,46 +179,31 @@ class Coordinator {
         showDestination();
     }
 
-    // The one navigation gate: the screen follows from three facts and no stored
-    // status value. Reached only from a reply, so a signal here reports the
-    // failure that just settled rather than re-announcing an old one.
+    // The one navigation gate: the screen follows from three facts and no
+    // stored status value. Reached only from a reply, so a signal here
+    // reports the failure that just settled rather than re-announcing an old
+    // one.
     private function showDestination() as Void {
         var error = _client.lastError();
 
-        switch (resolveDestination(_haState.hasEntities(), error, _client.hasCompletedARefresh())) {
-            case :loading:
-                break;
+        if (_haState.hasAreas()) {
+            onStateChanged();
 
-            case :nothingFound:
-                showInfo(Rez.Strings.NothingFound, null);
-                break;
+            if (error != null) {
+                signal(error);
+            }
 
-            case :failure:
-                var failure = error as RequestError;
-                showInfo(resolveMessage(failure), failure.reason);
-                break;
-
-            case :realView:
-                showRealView();
-                break;
-
-            case :realViewSignalled:
-                showRealView();
-                signal(error as RequestError);
-                break;
-        }
-    }
-
-    // Reached with entities to show. A view already live rebuilds in place; the
-    // info screen has nothing to push into and never announces itself, so a
-    // later reply in the same refresh is what moves the user off it.
-    private function showRealView() as Void {
-        if (_infoScreenShowing) {
-            showCardLoop();
             return;
         }
 
-        onStateChanged();
+        if (error != null) {
+            showInfo(resolveMessage(error), error.reason);
+            return;
+        }
+
+        if (_client.hasCompletedARefresh()) {
+            showInfo(Rez.Strings.NothingFound, null);
+        }
     }
 
     // Names the missing part where there is one, since the request type is

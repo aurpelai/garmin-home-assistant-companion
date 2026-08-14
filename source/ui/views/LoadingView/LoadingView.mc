@@ -33,6 +33,6 @@ class LoadingView extends WatchUi.View {
     }
 
     function rebuild(haState as HaState) as Boolean {
-        return !haState.hasEntities();
+        return !haState.hasAreas();
     }
 }

@@ -74,6 +74,15 @@ class FakeCoordinatorClient extends HaClient {
         (_onTarget as Method).invoke(target, result, error);
     }
 
+    // Unlike fireTarget, this does not stamp completion on success — for the
+    // one case that needs the distinction: a target landing before the whole
+    // refresh has finished, which the real client does not treat as complete
+    // either.
+    function fireMidRefreshTarget(target as Symbol, result as Object or Null) as Void {
+        _lastError = null;
+        (_onTarget as Method).invoke(target, result, null);
+    }
+
     function fireToggleSuccessAt(index as Number) as Void {
         _lastError = null;
         _toggleCallbacks[index].invoke(true, null);
@@ -428,39 +437,96 @@ function aFailedStartupFetchLeavesTheLoadingScreenRatherThanHoldingIt(logger as 
 }
 
 (:test)
-function aLaterTargetSucceedingLeavesTheInfoScreenRatherThanBeingStrandedBehindIt(
+function aSuccessWithNoAreasAndNoErrorLeavesTheLoadingScreenUp(logger as Test.Logger) as Boolean {
+    // A target can succeed without ever reporting an area — the very first
+    // reply of a refresh, before the structure target has landed. Nothing
+    // failed and nothing was found yet, so this is still loading rather than
+    // a finding to report.
+    var client = new FakeCoordinatorClient();
+    var coordinator = new RecordingCoordinator(client);
+    var loading = new StubScreen(true);
+
+    coordinator.onViewShown(loading);
+    client.fireMidRefreshTarget(:sensors, { "sensors" => {} });
+
+    Test.assert(coordinator.currentView() == loading);
+    Test.assertEqual(coordinator.cardLoopShowCount, 0);
+    return true;
+}
+
+(:test)
+function aCompletedRefreshWithNoAreasIsAFindingNotLoading(logger as Test.Logger) as Boolean {
+    // The same empty structure, but a refresh has genuinely finished. A
+    // healthy instance with nothing supported is told that plainly, rather
+    // than being shown a spinner that will never resolve or an error it did
+    // not cause.
+    var client = new FakeCoordinatorClient();
+    var coordinator = new Coordinator(client);
+    var loading = new StubScreen(true);
+
+    coordinator.onViewShown(loading);
+    client.fireTarget(:structure, { "areas" => {} }, null);
+
+    Test.assert(coordinator.currentView() == null);
+    return true;
+}
+
+(:test)
+function anAreaWithNoErrorGoesToTheRealViewRatherThanTheInfoScreen(logger as Test.Logger) as Boolean {
+    // The ordinary case: something to show and nothing wrong with it. No
+    // signal, no info screen — the live view simply rebuilds with the data.
+    var client = new FakeCoordinatorClient();
+    var coordinator = new RecordingCoordinator(client);
+    var view = new StubScreen(true);
+
+    coordinator.onViewShown(view);
+    client.fireTarget(:structure, {
+        "areas" => { "area.x" => { "name" => "Kitchen" } }
+    }, null);
+
+    Test.assert(coordinator.currentView() == view);
+    Test.assertEqual(view.rebuildCount, 1);
+    Test.assertEqual(coordinator.signalCount, 0);
+    return true;
+}
+
+(:test)
+function aStructureFailureStaysOnTheInfoScreenEvenAfterASiblingTargetLands(
         logger as Test.Logger) as Boolean {
-    // The one target that failed put the info screen up; a sibling target in
-    // the same refresh then lands with data. The info screen is not a Screen
-    // and never announces itself, so nothing but the coordinator's own
-    // navigation can move the user off it — here, requesting the card loop.
+    // The card loop builds from areas, and areas arrive only on the structure
+    // target. Lights landing afterwards is not something to show without it —
+    // sending the user to an empty home screen would hide the very failure
+    // that explains why their home did not load.
     var client = new FakeCoordinatorClient();
     var coordinator = new RecordingCoordinator(client);
 
     coordinator.onViewShown(new StubScreen(true));
     client.fireTarget(:structure, null, new RequestError(401, :fetch, :structure));
     Test.assert(coordinator.currentView() == null);
-    Test.assertEqual(coordinator.cardLoopShowCount, 0);
 
     client.fireTarget(:lights, {
         "lights" => { "light.a" => { "state" => true, "area_id" => "area.x" } }
     }, null);
 
-    Test.assertEqual(coordinator.cardLoopShowCount, 1);
+    Test.assertEqual(coordinator.cardLoopShowCount, 0);
+    Test.assert(coordinator.currentView() == null);
     return true;
 }
 
 (:test)
 function aFailedTargetKeepsDataOnScreenRatherThanReplacingItWithTheFailure(logger as Test.Logger) as Boolean {
-    // A partial refresh: lights landed, sensors failed. Replacing a populated
-    // screen with an error page would throw away what the user can still use,
-    // so the view stays live and the failure reaches the user as a signal
-    // naming the part that was lost.
+    // A partial refresh: the structure landed, lights landed, sensors failed.
+    // Replacing a populated screen with an error page would throw away what
+    // the user can still use, so the view stays live and the failure reaches
+    // the user as a signal naming the part that was lost.
     var client = new FakeCoordinatorClient();
     var coordinator = new RecordingCoordinator(client);
     var view = new StubScreen(true);
 
     coordinator.onViewShown(view);
+    client.fireTarget(:structure, {
+        "areas" => { "area.x" => { "name" => "Kitchen" } }
+    }, null);
     client.fireTarget(:lights, {
         "lights" => { "light.a" => { "state" => true, "area_id" => "area.x" } }
     }, null);
