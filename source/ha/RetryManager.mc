@@ -13,6 +13,7 @@ import Toybox.Lang;
 // the same code on a fetch means a template error on the Home Assistant side.
 class RetryManager {
     private const REQUEST_RETRIES = 3;
+    private const REGISTRATION_RETRIES = 1;
 
     // A dead webhook_id shows up as one of these: -400 because HA sends no body
     // (Connect IQ reports that as invalid-http-body), or 404 when the id is gone.
@@ -27,7 +28,7 @@ class RetryManager {
     private var _requestType as Symbol;
     private var _target as Symbol or Null;
     private var _attemptsLeft as Number;
-    private var _hasReregistered as Boolean;
+    private var _registrationsLeft as Number;
 
     function initialize(client as HaClient, request as Method, callback as Method,
                         requestType as Symbol, target as Symbol or Null) {
@@ -37,7 +38,7 @@ class RetryManager {
         _requestType = requestType;
         _target = target;
         _attemptsLeft = REQUEST_RETRIES;
-        _hasReregistered = false;
+        _registrationsLeft = REGISTRATION_RETRIES;
     }
 
     function attempt() as Void {
@@ -51,17 +52,16 @@ class RetryManager {
         }
 
         if (reason instanceof Number && isInvalidWebhookCode(reason)) {
-            // Bounded to one re-registration cycle per request: a webhook id
-            // that is invalid again right after a fresh registration is a
-            // Home Assistant-side condition this loop cannot fix by
-            // repeating itself, so it surfaces rather than falling through
-            // to the generic reissue below.
-            if (_hasReregistered) {
+            // A webhook id that is invalid again after REGISTRATION_RETRIES
+            // fresh registrations is a Home Assistant-side condition this loop
+            // cannot fix by repeating itself, so it surfaces rather than
+            // falling through to the generic reissue below.
+            if (_registrationsLeft <= 0) {
                 surface(reason, _requestType, _target);
                 return;
             }
 
-            _hasReregistered = true;
+            _registrationsLeft--;
             Webhook.clearId();
             _client.register(method(:onRegistered));
             return;

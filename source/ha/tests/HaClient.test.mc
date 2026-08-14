@@ -364,9 +364,9 @@ function aRegistrationFailureInsideFetchRecoveryStaysARegistrationFailure(logger
 class TargetLog {
     public var targets as Array<Symbol> = [];
     public var results as Array<Object?> = [];
-    public var errors as Array<Number?> = [];
+    public var errors as Array<RequestError?> = [];
 
-    function onTarget(target as Symbol, result as Object?, error as Number?) as Void {
+    function onTarget(target as Symbol, result as Object?, error as RequestError or Null) as Void {
         targets.add(target);
         results.add(result);
         errors.add(error);
