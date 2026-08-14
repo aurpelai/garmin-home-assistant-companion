@@ -29,7 +29,7 @@ class Coordinator {
     // rebuilds from the loading screen anyway.
     function onLaunch(view as Screen) as Void {
         if (!Settings.isConfigured()) {
-            showRetryScreen(Rez.Strings.ErrNoConfig, null);
+            showInfo(Rez.Strings.ErrNoConfig, null);
             return;
         }
 
@@ -119,8 +119,17 @@ class Coordinator {
     // A toggle reply is one of the three refresh triggers: every terminal
     // outcome clears its own override, then a refresh reconverges with
     // whatever Home Assistant actually did.
-    function onToggleSettled(overriddenIds as Array<String>) as Void {
+    //
+    // A failure signals whatever is on screen, rather than deferring to the
+    // grid: the override clears either way, so the row snaps back, and without
+    // a signal that looks exactly like the app ignoring the tap.
+    function onToggleSettled(overriddenIds as Array<String>, error as RequestError or Null) as Void {
         _haState.clearOverrides(overriddenIds);
+
+        if (error != null) {
+            signal(error);
+        }
+
         onStateChanged();
         refresh();
     }
@@ -136,53 +145,82 @@ class Coordinator {
         refresh();
     }
 
-    function resolveErrorMessage(code as Number) as ResourceId {
-        if (code == 401 || code == 403) {
-            return Rez.Strings.ErrAuth;
-        }
-
-        if (code == 404) {
-            return Rez.Strings.ErrNotFound;
-        }
-
-        if (code < 0) {
-            return Rez.Strings.ErrNetwork;
-        }
-
-        return Rez.Strings.ErrUnknown;
-    }
-
-    // The error screen shows no Home Assistant data, so it is not a Screen and
+    // The info screen shows no Home Assistant data, so it is not a Screen and
     // nothing is live to push into while it is up.
-    function showRetryScreen(id as ResourceId, code as Number or Null) as Void {
+    function showInfo(id as ResourceId, code as Object or Null) as Void {
         var message = WatchUi.loadResource(id) as String;
 
-        if (code != null) {
+        if (code instanceof Number) {
             message = Lang.format(WatchUi.loadResource(Rez.Strings.ErrCode) as String, [code]) + ":\n" + message;
         }
 
         _currentView = null;
-        WatchUi.switchToView(new ErrorView(message), new ErrorDelegate(self), WatchUi.SLIDE_IMMEDIATE);
+        WatchUi.switchToView(new InfoView(message), new InfoDelegate(self), WatchUi.SLIDE_IMMEDIATE);
     }
 
     private function refresh() as Void {
         _client.refresh(method(:onFetchTarget));
     }
 
-    function onFetchTarget(target as Symbol, result as Object or Null, error as Number or Null) as Void {
-        if (error != null) {
-            return;
+    // Every reply lands here, failures included: nothing else would prompt a
+    // look at the client's last error, so a failure with nothing loaded would
+    // leave the loading screen up forever.
+    function onFetchTarget(target as Symbol, result as Object or Null, error as RequestError or Null) as Void {
+        if (error == null) {
+            if (target == :structure) {
+                _haState.setStructure(HaPayload.parseStructure(result));
+            } else if (target == :lights) {
+                _haState.setLights(HaPayload.parseLights(result));
+            } else if (target == :sensors) {
+                _haState.setSensors(HaPayload.parseSensors(result));
+            }
         }
 
-        if (target == :structure) {
-            _haState.setStructure(HaPayload.parseStructure(result));
-        } else if (target == :lights) {
-            _haState.setLights(HaPayload.parseLights(result));
-        } else if (target == :sensors) {
-            _haState.setSensors(HaPayload.parseSensors(result));
+        showDestination();
+    }
+
+    // The one navigation gate: the screen follows from three facts and no stored
+    // status value. Reached only from a reply, so a signal here reports the
+    // failure that just settled rather than re-announcing an old one.
+    private function showDestination() as Void {
+        var error = _client.lastError();
+
+        switch (resolveDestination(_haState.hasEntities(), error, _client.hasCompletedARefresh())) {
+            case :loading:
+                break;
+
+            case :nothingFound:
+                showInfo(Rez.Strings.NothingFound, null);
+                break;
+
+            case :failure:
+                var failure = error as RequestError;
+                showInfo(resolveMessage(failure), failure.reason);
+                break;
+
+            case :realView:
+                onStateChanged();
+                break;
+
+            case :realViewSignalled:
+                onStateChanged();
+                signal(error as RequestError);
+                break;
+        }
+    }
+
+    // Names the missing part where there is one, since the request type is
+    // :fetch for all three targets and cannot say which failed.
+    private function signal(error as RequestError) as Void {
+        var message = WatchUi.loadResource(resolveMessage(error)) as String;
+        var part = resolveMissingPart(error);
+
+        if (part != null) {
+            message = Lang.format(WatchUi.loadResource(Rez.Strings.ErrPart) as String,
+                                  [WatchUi.loadResource(part), message]);
         }
 
-        onStateChanged();
+        WatchUi.showToast(message, null);
     }
 
     // The one push site. A view whose subject is gone says so, and the card loop

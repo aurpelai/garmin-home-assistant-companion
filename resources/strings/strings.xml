@@ -18,18 +18,24 @@
     <string id="Loading">Loading</string>
     <string id="NoEntitiesInAnyArea">No entities in any area</string>
     <string id="NoEntitiesInArea">No entities in the area</string>
+    <string id="NothingFound">No supported entities found</string>
     <string id="RetryHint">Press select to retry</string>
     <string id="Unavailable">Unavailable</string>
 
-    <string id="ErrNullHaState">HA didn't return a valid state</string>
-    <string id="ErrEmptyHaState">HA returned an empty state</string>
-    <string id="ErrUnparsedHaState">HA's response couldn't be read</string>
+    <!-- Which part of a refresh a signal reports as missing -->
+    <string id="PartLights">Lights</string>
+    <string id="PartSensors">Sensors</string>
+    <string id="PartStructure">Rooms</string>
 
     <!-- Errors -->
     <string id="ErrAuth">Auth failed — check your token</string>
     <string id="ErrNetwork">Network error</string>
     <string id="ErrNoConfig">Set URL and token in the app settings</string>
-    <string id="ErrNotFound">HA instance not found</string>
+    <string id="ErrRegistrationGone">Registration expired — retry to re-register</string>
+    <string id="ErrRegistrationRejected">HA rejected this watch's registration</string>
+    <string id="ErrTemplate">HA couldn't render the request</string>
     <string id="ErrUnknown">Something went wrong</string>
+    <string id="ErrUnreadableBody">HA's response couldn't be read</string>
     <string id="ErrCode">Error $1$</string>
+    <string id="ErrPart">$1$: $2$</string>
 </strings>

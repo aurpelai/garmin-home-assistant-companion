@@ -2,7 +2,7 @@ import Toybox.Lang;
 import Toybox.System;
 import Toybox.WatchUi;
 
-class ErrorDelegate extends WatchUi.BehaviorDelegate {
+class InfoDelegate extends WatchUi.BehaviorDelegate {
     private var _coordinator as Coordinator;
 
     function initialize(coordinator as Coordinator) {

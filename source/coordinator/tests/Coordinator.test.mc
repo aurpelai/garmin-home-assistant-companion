@@ -14,6 +14,8 @@ class FakeCoordinatorClient extends HaClient {
     private var _onTarget as Method?;
     private var _toggleCallbacks as Array<Method> = [];
     private var _msSinceLastRefresh as Number or Null = null;
+    private var _lastError as RequestError or Null = null;
+    private var _hasCompletedARefresh as Boolean = false;
 
     function initialize() {
         HaClient.initialize();
@@ -47,16 +49,39 @@ class FakeCoordinatorClient extends HaClient {
         _msSinceLastRefresh = value;
     }
 
-    function fireTarget(target as Symbol, result as Object or Null, error as Number or Null) as Void {
+    function lastError() as RequestError or Null {
+        return _lastError;
+    }
+
+    function hasCompletedARefresh() as Boolean {
+        return _hasCompletedARefresh;
+    }
+
+    function setHasCompletedARefresh(value as Boolean) as Void {
+        _hasCompletedARefresh = value;
+    }
+
+    // Mirrors the real client's own bookkeeping: a settled failure becomes the
+    // last error and any success clears it, so a test drives the grid's facts
+    // the way the client would rather than setting them behind its back.
+    function fireTarget(target as Symbol, result as Object or Null, error as RequestError or Null) as Void {
+        _lastError = error;
+
+        if (error == null) {
+            _hasCompletedARefresh = true;
+        }
+
         (_onTarget as Method).invoke(target, result, error);
     }
 
     function fireToggleSuccessAt(index as Number) as Void {
+        _lastError = null;
         _toggleCallbacks[index].invoke(true, null);
     }
 
-    function fireToggleFailureAt(index as Number, code as Number) as Void {
-        _toggleCallbacks[index].invoke(null, code);
+    function fireToggleFailureAt(index as Number, error as RequestError) as Void {
+        _lastError = error;
+        _toggleCallbacks[index].invoke(null, error);
     }
 }
 
@@ -154,7 +179,8 @@ function toggleRecordsAnOverrideFiresAndTheReplyClearsExactlyThoseIds(logger as 
     // A failed reply clears its own override too: nothing to restore, since
     // server truth was never overwritten.
     coordinator.toggleEntity("light.b");
-    client.fireToggleFailureAt(client.toggledEntityIds.size() - 1, -1);
+    client.fireToggleFailureAt(client.toggledEntityIds.size() - 1,
+        new RequestError(-1, :serviceCall, null));
     coordinator.toggleEntity("light.b");
     Test.assertEqual(client.toggledEntityIds.size(), 4);
     return true;
@@ -336,32 +362,7 @@ function stalenessGovernsTheFetchOnRevealNotNavigationShape(logger as Test.Logge
 }
 
 (:test)
-function resolveErrorMessageMapsAuthCodes(logger as Test.Logger) as Boolean {
-    var coordinator = new Coordinator(new FakeCoordinatorClient());
-
-    Test.assertEqual(coordinator.resolveErrorMessage(401), Rez.Strings.ErrAuth);
-    Test.assertEqual(coordinator.resolveErrorMessage(403), Rez.Strings.ErrAuth);
-    return true;
-}
-
-(:test)
-function resolveErrorMessageMapsNegativeCodesToNetwork(logger as Test.Logger) as Boolean {
-    var coordinator = new Coordinator(new FakeCoordinatorClient());
-
-    Test.assertEqual(coordinator.resolveErrorMessage(-1), Rez.Strings.ErrNetwork);
-    return true;
-}
-
-(:test)
-function resolveErrorMessageMapsOtherCodesToUnknown(logger as Test.Logger) as Boolean {
-    var coordinator = new Coordinator(new FakeCoordinatorClient());
-
-    Test.assertEqual(coordinator.resolveErrorMessage(500), Rez.Strings.ErrUnknown);
-    return true;
-}
-
-(:test)
-function theRetryScreenLeavesNothingLiveToPushInto(logger as Test.Logger) as Boolean {
+function theInfoScreenLeavesNothingLiveToPushInto(logger as Test.Logger) as Boolean {
     // It shows no Home Assistant data, so it is not a Screen. Leaving the
     // departed view current would push into something the user cannot see and
     // navigate out from under the screen that replaced it.
@@ -372,7 +373,7 @@ function theRetryScreenLeavesNothingLiveToPushInto(logger as Test.Logger) as Boo
     coordinator.onViewShown(view);
     Test.assert(coordinator.currentView() == view);
 
-    coordinator.showRetryScreen(Rez.Strings.ErrNoConfig, null);
+    coordinator.showInfo(Rez.Strings.ErrNoConfig, null);
 
     Test.assert(coordinator.currentView() == null);
 
@@ -380,5 +381,73 @@ function theRetryScreenLeavesNothingLiveToPushInto(logger as Test.Logger) as Boo
         "lights" => { "light.a" => { "state" => true, "area_id" => "area.x" } }
     }, null);
     Test.assertEqual(view.rebuildCount, 0);
+    return true;
+}
+
+(:test)
+function aFailedStartupFetchLeavesTheLoadingScreenRatherThanHoldingIt(logger as Test.Logger) as Boolean {
+    // A bad token used to leave the spinner up forever: the reply returned
+    // early on error, so nothing ever looked at the failure. The failing reply
+    // must navigate, which the info screen taking over shows.
+    var client = new FakeCoordinatorClient();
+    var coordinator = new Coordinator(client);
+    var loading = new StubScreen(true);
+
+    coordinator.onViewShown(loading);
+    Test.assert(coordinator.currentView() == loading);
+
+    client.fireTarget(:structure, null, new RequestError(401, :fetch, :structure));
+
+    // Nothing loaded and a spent threshold: the failure itself is the screen,
+    // and the info screen is not a Screen to push into.
+    Test.assert(coordinator.currentView() == null);
+    return true;
+}
+
+(:test)
+function aFailedTargetKeepsDataOnScreenRatherThanReplacingItWithTheFailure(logger as Test.Logger) as Boolean {
+    // A partial refresh: lights landed, sensors failed. Replacing a populated
+    // screen with an error page would throw away what the user can still use,
+    // so the view stays live and the failure reaches them another way.
+    var client = new FakeCoordinatorClient();
+    var coordinator = new Coordinator(client);
+    var view = new StubScreen(true);
+
+    coordinator.onViewShown(view);
+    client.fireTarget(:lights, {
+        "lights" => { "light.a" => { "state" => true, "area_id" => "area.x" } }
+    }, null);
+
+    var rebuildsBeforeFailure = view.rebuildCount;
+    client.fireTarget(:sensors, null, new RequestError(-1, :fetch, :sensors));
+
+    Test.assert(coordinator.currentView() == view);
+    Test.assertEqual(view.rebuildCount, rebuildsBeforeFailure + 1);
+    return true;
+}
+
+(:test)
+function aFailedToggleReportsItselfWithoutTakingTheScreenAway(logger as Test.Logger) as Boolean {
+    // A service-call failure does not consult the grid: it reports itself over
+    // whatever is showing, because the override clears either way and the row
+    // snapping back with no explanation reads as the app ignoring the tap.
+    // The screen the user was on must survive it.
+    var client = new FakeCoordinatorClient();
+    var coordinator = new Coordinator(client);
+    var view = new StubScreen(true);
+
+    coordinator.onActivate();
+    client.fireTarget(:lights, {
+        "lights" => { "light.a" => { "state" => false, "area_id" => "area.x" } }
+    }, null);
+    coordinator.onViewShown(view);
+
+    coordinator.toggleEntity("light.a");
+    Test.assert(coordinator.haState().isPending("light.a"));
+
+    client.fireToggleFailureAt(0, new RequestError(-1, :serviceCall, null));
+
+    Test.assert(coordinator.currentView() == view);
+    Test.assert(!coordinator.haState().isPending("light.a"));
     return true;
 }
