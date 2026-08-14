@@ -6,8 +6,7 @@ import Toybox.Lang;
 // created. Retains no models — that is a view's job.
 class Coordinator {
     // How long a completed refresh may be trusted before a view reveal
-    // triggers another one. Not evidence-based yet; see the staleness window
-    // note in the architecture notes for how this is expected to move.
+    // triggers another one.
     private const STALE_AFTER_MS = 60 * 1000;
 
     private var _client as HaClient;
@@ -58,6 +57,13 @@ class Coordinator {
     }
 
     function toggleFloorLights(floorId as String) as Void {
+        // Already covered if any commandable member is pending, regardless of
+        // what created that override — a floor action creates many overrides,
+        // so the same one-in-flight-per-entity rule applies to the whole scope.
+        if (anyCommandableFloorLightPending(floorId)) {
+            return;
+        }
+
         var targetState = !anyFloorLightOn(floorId);
         var overriddenIds = _haState.overrideFloorLights(floorId, targetState);
         if (overriddenIds.size() == 0) {
@@ -92,6 +98,22 @@ class Coordinator {
 
         for (var index = 0; index < lightIds.size(); index++) {
             if (_haState.isOn(lightIds[index])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // Mirrors the exclusions overrideFloorLights applies to its own scope —
+    // groups and unavailable lights are never in it, so their pending status
+    // cannot block it.
+    private function anyCommandableFloorLightPending(floorId as String) as Boolean {
+        var lightIds = _haState.getLightIdsInFloor(floorId);
+
+        for (var index = 0; index < lightIds.size(); index++) {
+            var light = _haState.getLight(lightIds[index]) as LightModel;
+            if (light.memberIds == null && light.available && _haState.isPending(lightIds[index])) {
                 return true;
             }
         }
