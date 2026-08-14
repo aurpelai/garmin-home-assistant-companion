@@ -122,7 +122,12 @@ class HaClient {
     private var _refreshHadFailure as Boolean;
 
     private var _lastRefreshCompletedAt as Number or Null;
-    private var _lastError as Number or Null;
+
+    // The failure the last settled request ended on, cleared by any success so
+    // it means a current failure rather than a historical high-water mark. Only
+    // set once a threshold is spent: a failure with attempts left is still being
+    // retried.
+    private var _lastError as RequestError or Null;
 
     function initialize() {
         _requestInFlight = false;
@@ -141,8 +146,15 @@ class HaClient {
         return _lastRefreshCompletedAt == null ? null : System.getTimer() - (_lastRefreshCompletedAt as Number);
     }
 
-    function lastError() as Number or Null {
+    function lastError() as RequestError or Null {
         return _lastError;
+    }
+
+    // Distinct from the staleness question msSinceLastRefresh answers: a cold
+    // start before any reply is loading, while a completed refresh that returned
+    // nothing is a finding.
+    function hasCompletedARefresh() as Boolean {
+        return _lastRefreshCompletedAt != null;
     }
 
     // A trigger arriving while a refresh is already outstanding is dropped:
@@ -206,7 +218,7 @@ class HaClient {
             _requestInFlight = true;
             _changeInFlight = true;
             _pendingChangeCallback = next.callback;
-            new RetryManager(self, next.request, method(:onChangeSettled)).attempt();
+            new RetryManager(self, next.request, method(:onChangeSettled), :serviceCall, null).attempt();
             return;
         }
 
@@ -215,12 +227,12 @@ class HaClient {
             _pendingFetchTargets = _pendingFetchTargets.slice(1, null) as Array<Symbol>;
             _requestInFlight = true;
             _currentTarget = target;
-            new RetryManager(self, new TargetFetch(self, target).method(:request), method(:onTargetSettled))
-                .attempt();
+            new RetryManager(self, new TargetFetch(self, target).method(:request), method(:onTargetSettled),
+                             :fetch, target).attempt();
         }
     }
 
-    function onChangeSettled(result as Object or Null, error as Number or Null) as Void {
+    function onChangeSettled(result as Object or Null, error as RequestError or Null) as Void {
         _requestInFlight = false;
         _changeInFlight = false;
 
@@ -252,7 +264,7 @@ class HaClient {
         drainSlot();
     }
 
-    function onTargetSettled(result as Object or Null, error as Number or Null) as Void {
+    function onTargetSettled(result as Object or Null, error as RequestError or Null) as Void {
         _requestInFlight = false;
 
         // A cancelled request's reply can still arrive: cancelAll already

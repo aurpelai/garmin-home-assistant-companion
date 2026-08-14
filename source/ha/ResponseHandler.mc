@@ -17,13 +17,15 @@ class ResponseHandler {
         }
         switch (_responseType) {
             case :fetch:
-                var home = (data instanceof Dictionary) ? data.get("home") : null;
+                var rendered = (data instanceof Dictionary) ? data.get("home") : null;
                 // The render_template webhook returns the rendered value as a
                 // string, so the payload arrives JSON-encoded a second time.
-                if (home instanceof Lang.String) {
-                    home = JsonParser.parse(home);
+                var home = (rendered instanceof Lang.String) ? JsonParser.parse(rendered) : rendered;
+                if (home == null) {
+                    _callback.invoke(null, RequestError.UNREADABLE_BODY);
+                } else {
+                    _callback.invoke(home, null);
                 }
-                _callback.invoke(home, null);
                 break;
             case :registration:
                 var webhookId = (data instanceof Dictionary) ? data.get("webhook_id") : null;

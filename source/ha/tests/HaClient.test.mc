@@ -5,21 +5,27 @@ import Toybox.Test;
 
 // Restates a posted request's ResponseHandler as the (result, error) shape the
 // toggle entry points capture, so every recorded callback fires the same way.
+//
+// A success carries a rendered body, since a fetch reply without one is a
+// failure rather than an empty home. The service-call branch reads no body, so
+// the same shape serves both request types the mock posts.
 (:test)
 class PostedRequest {
+    private const RENDERED_EMPTY_HOME = { "home" => "{}" };
+
     private var _handler as ResponseHandler;
 
     function initialize(handler as ResponseHandler) {
         _handler = handler;
     }
 
-    function respond(result as Object?, error as Number?) as Void {
-        if (error != null) {
-            _handler.onResponse(error, null);
+    function respond(result as Object?, code as Number?) as Void {
+        if (code != null) {
+            _handler.onResponse(code, null);
             return;
         }
 
-        _handler.onResponse(200, null);
+        _handler.onResponse(200, RENDERED_EMPTY_HOME);
     }
 }
 
@@ -68,10 +74,6 @@ class MockHaClient extends HaClient {
         (_fetchCallback as Method).invoke(payload, null);
     }
 
-    function fireFetchFailure() as Void {
-        (_fetchCallback as Method).invoke(null, -1);
-    }
-
     function fireFetchFailureWithCode(code as Number) as Void {
         (_fetchCallback as Method).invoke(null, code);
     }
@@ -88,8 +90,8 @@ class MockHaClient extends HaClient {
         (_registerCallback as Method).invoke(webhookId, null);
     }
 
-    function fireRegisterFailure() as Void {
-        (_registerCallback as Method).invoke(null, -1);
+    function fireRegisterFailureWithCode(code as Number) as Void {
+        (_registerCallback as Method).invoke(null, code);
     }
 }
 
@@ -112,12 +114,15 @@ class CompletionSpy {
     }
 }
 
+// Sits at two layers: below RetryManager an error is the raw reason a response
+// yielded, above it the RequestError the retry loop surfaced. The field is as
+// wide as both, and each test asserts the shape its own layer produces.
 (:test)
 class ResultCapture {
     public var result as Object?;
-    public var error as Number?;
+    public var error as Object?;
 
-    function onResult(result as Object?, error as Number?) as Void {
+    function onResult(result as Object?, error as Object?) as Void {
         self.result = result;
         self.error = error;
     }
@@ -150,6 +155,33 @@ function onResponseHandsOutTheRawFetchPayload(logger as Test.Logger) as Boolean 
     Test.assert(capture.result instanceof Dictionary);
     Test.assertEqual(((capture.result as Dictionary).get("lights") as Dictionary).size(), 1);
     Test.assert(capture.error == null);
+    return true;
+}
+
+(:test)
+function aFetchBodyThatCannotBeReadIsAFailureNotAnEmptyHome(logger as Test.Logger) as Boolean {
+    // The distinction the error path exists to keep: an unreadable reply and a
+    // home with nothing in it both yield no entities, so passing this off as a
+    // success would tell a broken instance it is merely empty.
+    var missingSection = new ResultCapture();
+    new ResponseHandler(missingSection.method(:onResult), :fetch).onResponse(200, {});
+
+    Test.assert(missingSection.result == null);
+    Test.assertEqual(missingSection.error as Symbol, RequestError.UNREADABLE_BODY);
+
+    var unparsable = new ResultCapture();
+    new ResponseHandler(unparsable.method(:onResult), :fetch).onResponse(200, { "home" => "{not json" });
+
+    Test.assert(unparsable.result == null);
+    Test.assertEqual(unparsable.error as Symbol, RequestError.UNREADABLE_BODY);
+
+    // A home that genuinely rendered empty still reads as a success: emptiness
+    // is the info view's finding, not the error path's.
+    var empty = new ResultCapture();
+    new ResponseHandler(empty.method(:onResult), :fetch).onResponse(200, { "home" => "{}" });
+
+    Test.assert(empty.result instanceof Dictionary);
+    Test.assert(empty.error == null);
     return true;
 }
 
@@ -197,7 +229,7 @@ function aFetchRecoversOnceFromInvalidWebhook(logger as Test.Logger) as Boolean 
     var client = new MockHaClient();
     var capture = new ResultCapture();
 
-    new RetryManager(client, client.method(:fetchOnce), capture.method(:onResult)).attempt();
+    new RetryManager(client, client.method(:fetchOnce), capture.method(:onResult), :fetch, :lights).attempt();
     client.fireFetchFailureWithCode(Communications.INVALID_HTTP_BODY_IN_NETWORK_RESPONSE);
     client.fireRegisterSuccess("fresh-id");
     client.fireFetchFailureWithCode(Communications.INVALID_HTTP_BODY_IN_NETWORK_RESPONSE);
@@ -205,7 +237,13 @@ function aFetchRecoversOnceFromInvalidWebhook(logger as Test.Logger) as Boolean 
     Test.assertEqual(client.fetchCount, 2);
     Test.assertEqual(client.registerCount, 1);
     Test.assert(capture.result == null);
-    Test.assertEqual(capture.error as Number, Communications.INVALID_HTTP_BODY_IN_NETWORK_RESPONSE);
+
+    // The request that failed is what the error names: the re-registration
+    // succeeded, so the fetch behind it owns this failure.
+    var error = capture.error as RequestError;
+    Test.assertEqual(error.reason as Number, Communications.INVALID_HTTP_BODY_IN_NETWORK_RESPONSE);
+    Test.assertEqual(error.requestType, :fetch);
+    Test.assertEqual(error.target as Symbol, :lights);
     return true;
 }
 
@@ -216,7 +254,7 @@ function aFetchRecoversFrom404TooAndSucceeds(logger as Test.Logger) as Boolean {
     var client = new MockHaClient();
     var capture = new ResultCapture();
 
-    new RetryManager(client, client.method(:fetchOnce), capture.method(:onResult)).attempt();
+    new RetryManager(client, client.method(:fetchOnce), capture.method(:onResult), :fetch, :lights).attempt();
     client.fireFetchFailureWithCode(404);
     client.fireRegisterSuccess("fresh-id");
     client.fireFetchSuccess({ "lights" => { "light.a" => { "state" => true } } });
@@ -236,7 +274,7 @@ function toggleLightRecoversOnceFromInvalidWebhook(logger as Test.Logger) as Boo
     var capture = new ResultCapture();
 
     new RetryManager(client, new ServiceCall(client, "toggle", "entity_id", "light.a").method(:call),
-        capture.method(:onResult)).attempt();
+        capture.method(:onResult), :serviceCall, null).attempt();
     client.fireServiceFailureAt(0, Communications.INVALID_HTTP_BODY_IN_NETWORK_RESPONSE);
     client.fireRegisterSuccess("fresh-id");
     client.fireServiceSuccessAt(1);
@@ -257,7 +295,7 @@ function retryManagerReissuesOnAnyOtherFailureUpToTheThreshold(logger as Test.Lo
     var client = new MockHaClient();
     var capture = new ResultCapture();
 
-    new RetryManager(client, client.method(:fetchOnce), capture.method(:onResult)).attempt();
+    new RetryManager(client, client.method(:fetchOnce), capture.method(:onResult), :fetch, :lights).attempt();
     client.fireFetchFailureWithCode(-1);
     client.fireFetchFailureWithCode(-1);
     client.fireFetchSuccess({} as Dictionary);
@@ -276,14 +314,42 @@ function retryManagerSurfacesTheFailureOnceItsThresholdIsSpent(logger as Test.Lo
     var client = new MockHaClient();
     var capture = new ResultCapture();
 
-    new RetryManager(client, client.method(:fetchOnce), capture.method(:onResult)).attempt();
+    new RetryManager(client, client.method(:fetchOnce), capture.method(:onResult), :fetch, :sensors).attempt();
     client.fireFetchFailureWithCode(-1);
     client.fireFetchFailureWithCode(-1);
     client.fireFetchFailureWithCode(-1);
     client.fireFetchFailureWithCode(-1);
 
     Test.assert(capture.result == null);
-    Test.assertEqual(capture.error as Number, -1);
+
+    // A spent threshold is the only thing that produces an error at all, and it
+    // carries the identity of the request that spent it.
+    var error = capture.error as RequestError;
+    Test.assertEqual(error.reason as Number, -1);
+    Test.assertEqual(error.requestType, :fetch);
+    Test.assertEqual(error.target as Symbol, :sensors);
+    return true;
+}
+
+(:test)
+function aRegistrationFailureInsideFetchRecoveryStaysARegistrationFailure(logger as Test.Logger) as Boolean {
+    // The one site where two request types interleave. Flattening this to the
+    // fetch would do real damage: a bad request against our registration body
+    // means our own body is malformed, while the same code on a fetch means a
+    // template error on the Home Assistant side.
+    Application.Storage.clearValues();
+    Webhook.setId("stale-id");
+    var client = new MockHaClient();
+    var capture = new ResultCapture();
+
+    new RetryManager(client, client.method(:fetchOnce), capture.method(:onResult), :fetch, :lights).attempt();
+    client.fireFetchFailureWithCode(404);
+    client.fireRegisterFailureWithCode(400);
+
+    var error = capture.error as RequestError;
+    Test.assertEqual(error.reason as Number, 400);
+    Test.assertEqual(error.requestType, :registration);
+    Test.assert(error.target == null);
     return true;
 }
 
@@ -449,7 +515,7 @@ function theQueueDrainsOnlyOnceTheThresholdIsExhausted(logger as Test.Logger) as
     // queued change.
     client.fireServiceFailureAt(3, -1);
 
-    Test.assertEqual(first.error as Number, -1);
+    Test.assertEqual((first.error as RequestError).reason as Number, -1);
     Test.assertEqual(client.serviceCallbacks.size(), 4);
     Test.assert(second.result == null);
     Test.assert(second.error == null);
