@@ -8,6 +8,25 @@ module DisplayOrder {
     // Carried over from the template that used to emit sensors already grouped.
     const SENSOR_DEVICE_CLASSES = ["temperature", "humidity", "illuminance"] as Array<String>;
 
+    // By name, dropping any id the structure does not know: a floor's area list
+    // can name an area the areas section never reported.
+    function orderAreaIds(haState as HaState, areaIds as Array<String>) as Array<String> {
+        var known = [] as Array<String>;
+        var labels = [] as Array<String>;
+
+        for (var index = 0; index < areaIds.size(); index++) {
+            var area = haState.getArea(areaIds[index]);
+            if (area == null) {
+                continue;
+            }
+
+            known.add(areaIds[index]);
+            labels.add(area.name == null ? areaIds[index] : area.name as String);
+        }
+
+        return orderByLabel(known, labels);
+    }
+
     // Available first, then groups, then by name. Groups lead because they
     // aggregate several lights, so they read as the area's primary controls.
     function orderLightIds(haState as HaState, entityIds as Array<String>) as Array<String> {
@@ -73,19 +92,27 @@ module DisplayOrder {
         return ordered;
     }
 
-    // Sort key is `lowercased-name \n id`: the newline sorts below any printable
-    // character, so equal names fall back to the unique id. toLower is ASCII-only,
-    // so non-Latin names order by code point rather than locale collation.
     function orderByLightName(haState as HaState, entityIds as Array<String>) as Array<String> {
+        var labels = [] as Array<String>;
+
+        for (var index = 0; index < entityIds.size(); index++) {
+            var light = haState.getLight(entityIds[index]);
+            labels.add(light == null || light.name == null ? entityIds[index] : light.name as String);
+        }
+
+        return orderByLabel(entityIds, labels);
+    }
+
+    // Sort key is `lowercased-label \n id`: the newline sorts below any printable
+    // character, so equal labels fall back to the unique id. toLower is ASCII-only,
+    // so non-Latin labels order by code point rather than locale collation.
+    function orderByLabel(ids as Array<String>, labels as Array<String>) as Array<String> {
         var idForKey = {} as Dictionary<String, String>;
         var keys = [] as Array<String>;
 
-        for (var index = 0; index < entityIds.size(); index++) {
-            var entityId = entityIds[index];
-            var light = haState.getLight(entityId);
-            var name = light == null || light.name == null ? entityId : light.name as String;
-            var key = name.toLower() + "\n" + entityId;
-            idForKey.put(key, entityId);
+        for (var index = 0; index < ids.size(); index++) {
+            var key = labels[index].toLower() + "\n" + ids[index];
+            idForKey.put(key, ids[index]);
             keys.add(key);
         }
 

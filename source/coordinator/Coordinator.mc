@@ -47,6 +47,13 @@ class Coordinator {
         return _currentView;
     }
 
+    // What the builders read. Handing the state out rather than proxying every
+    // question keeps them plain functions; the coordinator stays the only writer,
+    // since the rebuild sequence replaces this field wholesale.
+    function haState() as HaState {
+        return _haState;
+    }
+
     function toggleEntity(entityId as String) as Void {
         if (_haState.isPending(entityId)) {
             return;
