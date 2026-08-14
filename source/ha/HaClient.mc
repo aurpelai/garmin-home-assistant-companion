@@ -1,9 +1,10 @@
 import Toybox.Communications;
 import Toybox.Lang;
+import Toybox.System;
 
-// Everything rides one webhook template render because a plain GET /api/states
-// returns every entity in the instance and blows past Connect IQ's HTTP
-// response-size limit.
+// The only object that talks to Home Assistant, and the only one that decides
+// when. Knows no domain types: a fetch reply hands out a raw payload, and the
+// caller (eventually the coordinator) parses it.
 class HaClient {
     // The device can't introspect its real model/OS, so every install registers
     // under these same constants.
@@ -16,6 +17,10 @@ class HaClient {
     private const MODEL = "Connect IQ";
     private const OS_NAME = "Connect IQ";
     private const OS_VERSION = "1";
+
+    // Fired in this order on every refresh; either arrival order is tolerated
+    // downstream, so the order here is just the one chosen.
+    private const REFRESH_TARGETS = [:structure, :lights, :sensors];
 
     // Piped through `| tojson`: the render_template webhook returns the rendered
     // value as a string, so without it the payload is a Python repr (single
@@ -31,87 +36,241 @@ class HaClient {
     // An Undefined raises TypeError from inside tojson, before any later filter
     // runs, so `| tojson | default(...)` cannot catch it — one bad entity would
     // cost the whole payload rather than its own row.
-    private const HOME_STATE_TEMPLATE =
-        "{% set ns = namespace(lights={}, sensors={}, areaLights={}, areaSensors={}, " +
-            "areasOut={}, floorsOut={}) %}" +
+    //
+    // Every area is emitted, including empty ones: entity targets arrive
+    // separately, so an area that looks empty here may be populated later.
+    private const STRUCTURE_TEMPLATE =
+        "{% set ns = namespace(areasOut={}, floorsOut={}) %}" +
         "{% for a in areas() %}" +
-
-        // `| list` is load-bearing: reject() yields a generator that the second
-        // (per-device_class) walk below would find already exhausted. Needs HA 2023.4.
-        "{% set visible = area_entities(a) | reject('is_hidden_entity') | list %}" +
-        "{% set ns.areaLights = [] %}" +
-        "{% set ns.areaSensors = [] %}" +
-
-        // Skip any area-assigned entity with no state object: `states[e].name`
-        // on it renders Undefined, and the closing `| tojson` would then fail the
-        // whole render rather than omit one row. Not known to occur via any
-        // user-reachable path (disabled entities are already absent here), but the
-        // blast radius is the entire payload, so the id is dropped defensively.
-        "{% for e in visible %}" +
-        "{% if e.startswith('light.') and states[e] is not none %}" +
-        "{% set isGroup = state_attr(e, 'entity_id') is not none %}" +
-        "{% set visibleMembers = expand(e) | rejectattr('entity_id', 'is_hidden_entity') " +
-            "| list | count if isGroup else 0 %}" +
-        "{% if not isGroup or visibleMembers > 0 %}" +
-        "{% set ns.areaLights = ns.areaLights + [e] %}" +
-        "{% set light = dict(state=is_state(e, 'on'), name=states[e].name, " +
-            "available=not is_state(e, 'unavailable')) %}" +
-        "{% if isGroup %}" +
-        "{% set light = dict(light, memberCount=visibleMembers) %}" +
-        "{% endif %}" +
-        "{% set ns.lights = dict(ns.lights, **{e: light}) %}" +
-        "{% endif %}" +
-        "{% endif %}" +
+        "{% set ns.areasOut = dict(ns.areasOut, **{a: dict(name=area_name(a) | default(none))}) %}" +
         "{% endfor %}" +
-
-        // `states(e, true, true)` keeps HA's own display precision and unit as a
-        // string, so the watch never reparses or rounds and can't disagree with
-        // the user's dashboard. Needs HA 2023.3.
-        //
-        // `float(none)`, never `float(0)`: a non-numeric state defaulted to 0 is
-        // indistinguishable from a sensor genuinely reading zero, so an area mean
-        // silently absorbs it — one unavailable sensor plus a real 21.5 °C shows
-        // 10.8 °C. null makes the absence visible to the parser instead.
-        "{% for device_class in ['temperature', 'humidity', 'illuminance'] %}" +
-        "{% for e in visible %}" +
-        "{% if e.startswith('sensor.') and states[e] is not none " +
-            "and state_attr(e, 'device_class') == device_class %}" +
-        "{% set ns.areaSensors = ns.areaSensors + [e] %}" +
-        "{% set ns.sensors = dict(ns.sensors, **{e: dict(" +
-            "state=states(e) | float(none), display_state=states(e, true, true), " +
-            "unit=state_attr(e, 'unit_of_measurement'), device_class=device_class, " +
-            "name=entity_name(e), " +
-            "available=not is_state(e, 'unavailable') and not is_state(e, 'unknown'))}) %}" +
-        "{% endif %}" +
-        "{% endfor %}" +
-        "{% endfor %}" +
-
-        // `| default(none)` includes the area with a null name, where an `{% if %}`
-        // would omit it and take every light and reading in it along. Same for the
-        // floor below: a naming gap should cost a label, not a room.
-        "{% if ns.areaLights or ns.areaSensors %}" +
-        "{% set ns.areasOut = dict(ns.areasOut, **{a: dict(" +
-            "name=area_name(a) | default(none), lights=ns.areaLights, sensors=ns.areaSensors)}) %}" +
-        "{% endif %}" +
-        "{% endfor %}" +
-
-        // On `ns` because a plain `{% set %}` inside a Jinja for-loop is scoped
-        // to the iteration and wouldn't escape.
         "{% for f in floors() %}" +
         "{% set ns.floorsOut = dict(ns.floorsOut, **{f: dict(" +
             "name=floor_name(f) | default(none), order=loop.index0, " +
             "areas=floor_areas(f) | default([]) | list)}) %}" +
         "{% endfor %}" +
-
-        "{% set zone = state_attr('zone.home', 'friendly_name') %}" +
-
-        "{{ dict(zone=zone, lights=ns.lights, sensors=ns.sensors, " +
+        "{{ dict(zone=state_attr('zone.home', 'friendly_name'), " +
             "areas=ns.areasOut, floors=ns.floorsOut) | tojson }}";
 
-    function initialize() {}
+    // Each light carries its own area id and, for a group, its member ids —
+    // the area's own light list is gone, so grouping moves to the parser.
+    private const LIGHTS_TEMPLATE =
+        "{% set ns = namespace(out={}) %}" +
+        "{% for a in areas() %}" +
+        "{% for e in area_entities(a) | reject('is_hidden_entity') | list %}" +
+        "{% if e.startswith('light.') and states[e] is not none %}" +
+        "{% set members = expand(e) | rejectattr('entity_id', 'is_hidden_entity') " +
+            "| map(attribute='entity_id') | list %}" +
+        "{% if state_attr(e, 'entity_id') is none or members | count > 0 %}" +
+        "{% set light = dict(state=is_state(e, 'on'), name=states[e].name, area_id=a, " +
+            "available=not is_state(e, 'unavailable')) %}" +
+        "{% if state_attr(e, 'entity_id') is not none %}" +
+        "{% set light = dict(light, memberIds=members) %}" +
+        "{% endif %}" +
+        "{% set ns.out = dict(ns.out, **{e: light}) %}" +
+        "{% endif %}" +
+        "{% endif %}" +
+        "{% endfor %}" +
+        "{% endfor %}" +
+        "{{ dict(lights=ns.out) | tojson }}";
 
-    function fetchHomeState(callback as Method) as Void {
-        new RecoveryHandler(self, method(:fetch), callback).attempt();
+    // `states(e, true, true)` keeps HA's own display precision and unit as a
+    // string, so the watch never reparses or rounds and can't disagree with
+    // the user's dashboard. Needs HA 2023.3.
+    //
+    // `float(none)`, never `float(0)`: a non-numeric state defaulted to 0 is
+    // indistinguishable from a sensor genuinely reading zero, so an area mean
+    // would silently absorb it — one unavailable sensor plus a real 21.5 °C
+    // shows 10.8 °C. null makes the absence visible to the parser instead.
+    private const SENSORS_TEMPLATE =
+        "{% set ns = namespace(out={}) %}" +
+        "{% for a in areas() %}" +
+        "{% for e in area_entities(a) | reject('is_hidden_entity') | list %}" +
+        "{% if e.startswith('sensor.') and states[e] is not none " +
+            "and state_attr(e, 'device_class') in ['temperature', 'humidity', 'illuminance'] %}" +
+        "{% set ns.out = dict(ns.out, **{e: dict(" +
+            "state=states(e) | float(none), display_state=states(e, true, true), " +
+            "unit=state_attr(e, 'unit_of_measurement'), " +
+            "device_class=state_attr(e, 'device_class'), area_id=a, name=entity_name(e), " +
+            "available=not is_state(e, 'unavailable') and not is_state(e, 'unknown'))}) %}" +
+        "{% endif %}" +
+        "{% endfor %}" +
+        "{% endfor %}" +
+        "{{ dict(sensors=ns.out) | tojson }}";
+
+    // One outstanding request of any kind: exceeding it yields a queue-full
+    // transport error, so a refresh and a service call compete for this one
+    // slot.
+    private var _requestInFlight as Boolean;
+
+    // Whether the request currently in the slot is a change rather than a
+    // fetch target — the narrower question a refresh trigger needs answered,
+    // instead of a general in-flight flag every site would reuse loosely.
+    private var _changeInFlight as Boolean;
+
+    // A tap is a distinct intention and must never be dropped, so it queues
+    // behind whatever currently holds the slot.
+    private var _changeQueue as Array<QueuedChange>;
+
+    // The queued change's own caller, while its request occupies the slot.
+    private var _pendingChangeCallback as Method or Null;
+
+    // Targets still to fetch in the refresh currently running; empty means no
+    // refresh is in progress. A trigger arriving while this is non-empty is
+    // dropped rather than coalesced target-by-target.
+    private var _pendingFetchTargets as Array<Symbol>;
+
+    // The target currently occupying the slot, and the refresh's own caller.
+    private var _currentTarget as Symbol or Null;
+    private var _onRefreshTarget as Method or Null;
+
+    // Cleared per completed refresh: whether every target in that refresh
+    // landed without error, so a partial refresh does not stamp completion.
+    private var _refreshHadFailure as Boolean;
+
+    private var _lastRefreshCompletedAt as Number or Null;
+    private var _lastError as Number or Null;
+
+    function initialize() {
+        _requestInFlight = false;
+        _changeInFlight = false;
+        _changeQueue = [];
+        _pendingChangeCallback = null;
+        _pendingFetchTargets = [];
+        _currentTarget = null;
+        _onRefreshTarget = null;
+        _refreshHadFailure = false;
+        _lastRefreshCompletedAt = null;
+        _lastError = null;
+    }
+
+    function msSinceLastRefresh() as Number or Null {
+        return _lastRefreshCompletedAt == null ? null : System.getTimer() - (_lastRefreshCompletedAt as Number);
+    }
+
+    function lastError() as Number or Null {
+        return _lastError;
+    }
+
+    // A trigger arriving while a refresh is already outstanding is dropped:
+    // once a target has landed it is no longer outstanding, so a fresh
+    // request for it would refetch data already in hand.
+    //
+    // A trigger arriving while a change is outstanding — queued or currently
+    // in the slot — is dropped too: converging against server truth is
+    // pointless when more changes are about to be posted, and the caller
+    // (the coordinator) is expected to ask again once its own reply lands.
+    function refresh(onTarget as Method) as Void {
+        if (_pendingFetchTargets.size() > 0 || _changeQueue.size() > 0 || _changeInFlight) {
+            return;
+        }
+
+        _pendingFetchTargets = REFRESH_TARGETS.slice(0, null) as Array<Symbol>;
+        _refreshHadFailure = false;
+        _onRefreshTarget = onTarget;
+        drainSlot();
+    }
+
+    function queueLightToggle(entityId as String, callback as Method) as Void {
+        queueChange(new ServiceCall(self, "toggle", "entity_id", entityId).method(:call), callback);
+    }
+
+    function queueFloorLights(floorId as String, service as String, callback as Method) as Void {
+        queueChange(new ServiceCall(self, service, "floor_id", floorId).method(:call), callback);
+    }
+
+    // Drops the queue, the last error and the slot together. The rebuild
+    // sequence is the one caller: a settings change discards everything rather
+    // than letting a stale request's reply land against fresh state.
+    function cancelAll() as Void {
+        Communications.cancelAllRequests();
+        _changeQueue = [];
+        _pendingFetchTargets = [];
+        _lastError = null;
+        _requestInFlight = false;
+        _changeInFlight = false;
+    }
+
+    private function queueChange(request as Method, callback as Method) as Void {
+        _changeQueue.add(new QueuedChange(request, callback));
+        drainSlot();
+    }
+
+    // Changes go out before fetches, and a fetch never starts while any
+    // change is queued or in flight — the slot frees here between requests,
+    // which is also where the next change or target is chosen.
+    private function drainSlot() as Void {
+        if (_requestInFlight) {
+            return;
+        }
+
+        if (_changeQueue.size() > 0) {
+            var next = _changeQueue[0];
+            _changeQueue = _changeQueue.slice(1, null) as Array<QueuedChange>;
+            _requestInFlight = true;
+            _changeInFlight = true;
+            _pendingChangeCallback = next.callback;
+            new RetryManager(self, next.request, method(:onChangeSettled)).attempt();
+            return;
+        }
+
+        if (_pendingFetchTargets.size() > 0) {
+            var target = _pendingFetchTargets[0];
+            _pendingFetchTargets = _pendingFetchTargets.slice(1, null) as Array<Symbol>;
+            _requestInFlight = true;
+            _currentTarget = target;
+            new RetryManager(self, new TargetFetch(self, target).method(:request), method(:onTargetSettled))
+                .attempt();
+        }
+    }
+
+    function onChangeSettled(result as Object or Null, error as Number or Null) as Void {
+        _requestInFlight = false;
+        _changeInFlight = false;
+        var callback = _pendingChangeCallback as Method;
+        _pendingChangeCallback = null;
+
+        // A transport failure drains the remaining queued changes only once
+        // RetryManager's own threshold is exhausted, never on the first
+        // failure: one failed reply is a hypothesis, and exhausting the
+        // threshold is what turns it into a verdict that the link is down.
+        if (error != null) {
+            _lastError = error;
+            _changeQueue = [];
+        }
+
+        callback.invoke(result, error);
+
+        // A reply does not start a refresh while further changes are
+        // outstanding: converging against server truth is pointless when
+        // more changes are about to be posted.
+        drainSlot();
+    }
+
+    function onTargetSettled(result as Object or Null, error as Number or Null) as Void {
+        _requestInFlight = false;
+        var target = _currentTarget as Symbol;
+        var onTarget = _onRefreshTarget as Method;
+
+        if (error != null) {
+            _refreshHadFailure = true;
+            _lastError = error;
+        }
+
+        onTarget.invoke(target, result, error);
+
+        if (_pendingFetchTargets.size() == 0 && !_refreshHadFailure) {
+            _lastRefreshCompletedAt = System.getTimer();
+        }
+
+        drainSlot();
+    }
+
+    // Package-visible for TargetFetch, which binds one target to this so a
+    // per-target instance exposes the single-callback-argument shape
+    // RetryManager requires.
+    function fetchTarget(target as Symbol, callback as Method) as Void {
+        postFetchTemplate(templateFor(target), callback);
     }
 
     function register(callback as Method) as Void {
@@ -129,20 +288,87 @@ class HaClient {
             "app_data" => {}
         };
         post("/api/mobile_app/registrations", body,
-             new ResponseHandler(new RegisterCacheHandler(callback).method(:onRegistered), :onRegister));
+             new ResponseHandler(new RegisterCacheHandler(callback).method(:onRegistered), :registration));
+    }
+
+    // fetchHomeState/toggleLight/toggleFloorLights drive today's single-
+    // template app and stay until the coordinator (Phase 3) takes over
+    // fetch policy. They bypass the slot and queue above entirely — the
+    // constraint they share with the new path is the platform's one
+    // outstanding request, which today's app already respects by construction
+    // (one request at a time, next fired only from a reply).
+
+    function fetchHomeState(callback as Method) as Void {
+        new RetryManager(self, method(:fetchLegacyHomeState), new LegacyHomeStateReply(callback).method(:onPayload))
+            .attempt();
+    }
+
+    function fetchLegacyHomeState(callback as Method) as Void {
+        postFetchTemplate(HOME_STATE_TEMPLATE, callback);
     }
 
     function toggleLight(entityId as String, callback as Method) as Void {
-        new RecoveryHandler(self, new ServiceCallHandler(self, entityId).method(:callService), callback).attempt();
+        new RetryManager(self, new ServiceCall(self, "toggle", "entity_id", entityId).method(:call), callback)
+            .attempt();
     }
 
     function toggleFloorLights(floorId as String, service as String, callback as Method) as Void {
-        new RecoveryHandler(self,
-            new FloorServiceCallHandler(self, floorId, service).method(:callFloorService), callback).attempt();
+        new RetryManager(self, new ServiceCall(self, service, "floor_id", floorId).method(:call), callback)
+            .attempt();
     }
 
-    function fetch(callback as Method) as Void {
-        var webhookId = Settings.getWebhookId();
+    private const HOME_STATE_TEMPLATE =
+        "{% set ns = namespace(lights={}, sensors={}, areaLights={}, areaSensors={}, " +
+            "areasOut={}, floorsOut={}) %}" +
+        "{% for a in areas() %}" +
+        "{% set visible = area_entities(a) | reject('is_hidden_entity') | list %}" +
+        "{% set ns.areaLights = [] %}" +
+        "{% set ns.areaSensors = [] %}" +
+        "{% for e in visible %}" +
+        "{% if e.startswith('light.') and states[e] is not none %}" +
+        "{% set isGroup = state_attr(e, 'entity_id') is not none %}" +
+        "{% set visibleMembers = expand(e) | rejectattr('entity_id', 'is_hidden_entity') " +
+            "| list | count if isGroup else 0 %}" +
+        "{% if not isGroup or visibleMembers > 0 %}" +
+        "{% set ns.areaLights = ns.areaLights + [e] %}" +
+        "{% set light = dict(state=is_state(e, 'on'), name=states[e].name, " +
+            "available=not is_state(e, 'unavailable')) %}" +
+        "{% if isGroup %}" +
+        "{% set light = dict(light, memberCount=visibleMembers) %}" +
+        "{% endif %}" +
+        "{% set ns.lights = dict(ns.lights, **{e: light}) %}" +
+        "{% endif %}" +
+        "{% endif %}" +
+        "{% endfor %}" +
+        "{% for device_class in ['temperature', 'humidity', 'illuminance'] %}" +
+        "{% for e in visible %}" +
+        "{% if e.startswith('sensor.') and states[e] is not none " +
+            "and state_attr(e, 'device_class') == device_class %}" +
+        "{% set ns.areaSensors = ns.areaSensors + [e] %}" +
+        "{% set ns.sensors = dict(ns.sensors, **{e: dict(" +
+            "state=states(e) | float(none), display_state=states(e, true, true), " +
+            "unit=state_attr(e, 'unit_of_measurement'), device_class=device_class, " +
+            "name=entity_name(e), " +
+            "available=not is_state(e, 'unavailable') and not is_state(e, 'unknown'))}) %}" +
+        "{% endif %}" +
+        "{% endfor %}" +
+        "{% endfor %}" +
+        "{% if ns.areaLights or ns.areaSensors %}" +
+        "{% set ns.areasOut = dict(ns.areasOut, **{a: dict(" +
+            "name=area_name(a) | default(none), lights=ns.areaLights, sensors=ns.areaSensors)}) %}" +
+        "{% endif %}" +
+        "{% endfor %}" +
+        "{% for f in floors() %}" +
+        "{% set ns.floorsOut = dict(ns.floorsOut, **{f: dict(" +
+            "name=floor_name(f) | default(none), order=loop.index0, " +
+            "areas=floor_areas(f) | default([]) | list)}) %}" +
+        "{% endfor %}" +
+        "{% set zone = state_attr('zone.home', 'friendly_name') %}" +
+        "{{ dict(zone=zone, lights=ns.lights, sensors=ns.sensors, " +
+            "areas=ns.areasOut, floors=ns.floorsOut) | tojson }}";
+
+    private function postFetchTemplate(template as String, callback as Method) as Void {
+        var webhookId = Webhook.getId();
 
         if (webhookId == null) {
             callback.invoke(null, 404);
@@ -153,11 +379,21 @@ class HaClient {
             "type" => "render_template",
             "data" => {
                 "home" => {
-                    "template" => HOME_STATE_TEMPLATE
+                    "template" => template
                 }
             }
         };
-        post("/api/webhook/" + webhookId, body, new ResponseHandler(callback, :onTemplate));
+        post("/api/webhook/" + webhookId, body, new ResponseHandler(callback, :fetch));
+    }
+
+    private function templateFor(target as Symbol) as String {
+        if (target == :structure) {
+            return STRUCTURE_TEMPLATE;
+        }
+        if (target == :lights) {
+            return LIGHTS_TEMPLATE;
+        }
+        return SENSORS_TEMPLATE;
     }
 
     function post(path as String, body as Dictionary, handler as ResponseHandler) as Void {
