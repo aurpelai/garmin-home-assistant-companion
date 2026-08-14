@@ -36,7 +36,7 @@ module HaPayload {
         return new ParsedLights(lights, groupByArea(entries));
     }
 
-    // A sensor with no state object is absent rather than present with nulls:
+    // A sensor with no display_state is absent rather than present with nulls:
     // display_state is the row's only text, so an entry without one cannot be
     // rendered at all.
     function parseSensors(payload as Object or Null) as ParsedSensors {
