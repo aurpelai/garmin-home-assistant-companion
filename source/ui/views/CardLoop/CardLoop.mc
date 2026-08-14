@@ -77,8 +77,6 @@ class CardLoop extends WatchUi.View {
         _pageIndicator.updateIndex(_index);
     }
 
-    // The card that was focused, else the card of the floor it sat under, else
-    // the first one.
     private function indexOf(cardId as String or Null, floorId as String or Null) as Number {
         if (cardId != null) {
             for (var index = 0; index < _model.cards.size(); index++) {

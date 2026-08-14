@@ -26,7 +26,7 @@ module FloorEntityMenuTest {
 }
 
 (:test)
-function aPushMovesTheWholeLightsSwitchWithoutTouchingTheItemSet(logger as Test.Logger) as Boolean {
+function aPushMovesTheWholeLightsSwitchWithoutAddingASecondRow(logger as Test.Logger) as Boolean {
     var menu = FloorEntityMenuTest.menuOf(FloorEntityMenuTest.stateOf({
         "light.a" => { "state" => true, "area_id" => "area.room" }
     }));
@@ -45,8 +45,6 @@ function aPushMovesTheWholeLightsSwitchWithoutTouchingTheItemSet(logger as Test.
 
 (:test)
 function theWholeLightsRowTargetsTheFloorRatherThanItsOwnId(logger as Test.Logger) as Boolean {
-    // A floor row's identity and its service target diverge, so the delegate
-    // cannot read the target off the platform event and asks the menu instead.
     var menu = FloorEntityMenuTest.menuOf(FloorEntityMenuTest.stateOf({
         "light.a" => { "state" => true, "area_id" => "area.room" }
     }));
@@ -73,5 +71,30 @@ function aVanishedFloorReportsItsSubjectGoneRatherThanPushing(logger as Test.Log
     }));
 
     Test.assert(menu.rebuild(new HaState()) == false);
+    return true;
+}
+
+(:test)
+function theWholeLightsRowAppearsWhenItsLightsArriveLate(logger as Test.Logger) as Boolean {
+    // The floor is known from the structure before any light is, so a menu
+    // opened in that window must still gain its row once the lights land.
+    var haState = new HaState();
+    haState.setStructure(HaPayload.parseStructure({
+        "areas" => { "area.room" => { "name" => "Room" } },
+        "floors" => { "floor.up" => { "name" => "Up", "order" => 0, "areas" => ["area.room"] } }
+    }));
+
+    var menu = FloorEntityMenuTest.menuOf(haState);
+    Test.assert(menu.getItem(0) == null);
+
+    haState.setLights(HaPayload.parseLights({
+        "lights" => { "light.a" => { "state" => true, "area_id" => "area.room" } }
+    }));
+    menu.rebuild(haState);
+
+    Test.assert((menu.getItem(0) as WatchUi.ToggleMenuItem).isEnabled());
+    Test.assertEqual(menu.serviceTargetOf((menu.getItem(0) as WatchUi.MenuItem).getId()) as String,
+        "floor.up");
+    Test.assert(menu.getItem(1) == null);
     return true;
 }

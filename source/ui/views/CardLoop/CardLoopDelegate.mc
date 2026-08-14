@@ -22,8 +22,6 @@ class CardLoopDelegate extends WatchUi.BehaviorDelegate {
         return true;
     }
 
-    // Which card is focused is the view's presentation state and reaches the
-    // coordinator no other way, so the delegate reads it and forwards an intent.
     function onSelect() as Boolean {
         var card = _loop.currentCard();
         if (card != null) {

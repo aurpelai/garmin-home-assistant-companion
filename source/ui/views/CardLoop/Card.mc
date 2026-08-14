@@ -60,9 +60,8 @@ class Card {
     function draw(dc as Graphics.Dc) as Void {
     }
 
-    // Which screen selecting this card opens. Declared here for the same reason
-    // as draw, and overridden per type so the choice sits with the type that
-    // knows it rather than in a test against the card's class.
+    // Declared here for the same reason as draw, so selecting a card dispatches
+    // by type rather than testing the card's class.
     function open(coordinator as Coordinator) as Void {
     }
 

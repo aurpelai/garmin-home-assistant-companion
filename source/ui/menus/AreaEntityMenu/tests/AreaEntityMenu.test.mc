@@ -35,9 +35,10 @@ module AreaEntityMenuTest {
 }
 
 (:test)
-function aPushLeavesTheItemSetUntouched(logger as Test.Logger) as Boolean {
-    // The frozen item set is what makes a push unable to lose the row under the
-    // user's finger, so a model gaining and losing entries must move no item.
+function aPushMovesNoRowAlreadyOnScreen(logger as Test.Logger) as Boolean {
+    // What keeps the row under the user's finger where it was: a model losing
+    // an entry removes nothing, and a model gaining one appends rather than
+    // re-sorting the rows around it.
     var menu = AreaEntityMenuTest.menuOf(AreaEntityMenuTest.stateOf({
         "light.a" => { "state" => true, "area_id" => "area.room" },
         "light.b" => { "state" => true, "area_id" => "area.room" }
@@ -54,7 +55,8 @@ function aPushLeavesTheItemSetUntouched(logger as Test.Logger) as Boolean {
 
     Test.assertEqual((menu.getItem(0) as WatchUi.MenuItem).getId() as String, "light.a");
     Test.assertEqual((menu.getItem(1) as WatchUi.MenuItem).getId() as String, "light.b");
-    Test.assert(menu.getItem(2) == null);
+    Test.assertEqual((menu.getItem(2) as WatchUi.MenuItem).getId() as String, "light.c");
+    Test.assert(menu.getItem(3) == null);
     return true;
 }
 
@@ -175,8 +177,8 @@ function rawNonAsciiNamesAndReadingsSurviveTheSeam(logger as Test.Logger) as Boo
 
 (:test)
 function sensorRowsFollowLightRowsAndAreInert(logger as Test.Logger) as Boolean {
-    // A sensor is a plain MenuItem, which is what makes it inert: the delegate
-    // has no toggle to read a target from, so selecting one commands nothing.
+    // Being a plain MenuItem is what makes a sensor row inert, so the ordering
+    // and the row type are one decision rather than two.
     var menu = AreaEntityMenuTest.menuOf(AreaEntityMenuTest.stateOf({
         "light.a" => { "state" => true, "area_id" => "area.room" }
     }, {
@@ -212,5 +214,55 @@ function aVanishedAreaReportsItsSubjectGoneRatherThanPushing(logger as Test.Logg
     }, {} as Dictionary));
 
     Test.assert(menu.rebuild(new HaState()) == false);
+    return true;
+}
+
+
+(:test)
+function aDomainArrivingAfterTheMenuOpenedGetsItsRows(logger as Test.Logger) as Boolean {
+    // A refresh fetches lights and sensors as separate requests, so a menu
+    // opened between the two must still show the domain that was in flight.
+    var haState = new HaState();
+    haState.setStructure(HaPayload.parseStructure({
+        "areas" => { "area.room" => { "name" => "Room" } }
+    }));
+    haState.setLights(HaPayload.parseLights({
+        "lights" => { "light.a" => { "state" => true, "area_id" => "area.room" } }
+    }));
+
+    var menu = AreaEntityMenuTest.menuOf(haState);
+    Test.assert(menu.getItem(1) == null);
+
+    haState.setSensors(HaPayload.parseSensors({
+        "sensors" => { "sensor.t" => { "state" => 21.5, "display_state" => "21.5 °C",
+            "device_class" => "temperature", "area_id" => "area.room" } }
+    }));
+    menu.rebuild(haState);
+
+    Test.assertEqual((menu.getItem(0) as WatchUi.MenuItem).getId() as String, "light.a");
+    Test.assertEqual(AreaEntityMenuTest.itemOf(menu, "sensor.t").getSubLabel() as String, "21.5 °C");
+    return true;
+}
+
+(:test)
+function theEmptyRowGivesWayOnceRealRowsArrive(logger as Test.Logger) as Boolean {
+    // The one row a push may remove: it stands in for having nothing to show,
+    // so leaving it beside real rows would assert something no longer true.
+    var haState = new HaState();
+    haState.setStructure(HaPayload.parseStructure({
+        "areas" => { "area.room" => { "name" => "Room" } }
+    }));
+
+    var menu = AreaEntityMenuTest.menuOf(haState);
+    Test.assertEqual((menu.getItem(0) as WatchUi.MenuItem).getLabel() as String,
+        "No entities in the area");
+
+    haState.setLights(HaPayload.parseLights({
+        "lights" => { "light.a" => { "state" => true, "area_id" => "area.room" } }
+    }));
+    menu.rebuild(haState);
+
+    Test.assertEqual((menu.getItem(0) as WatchUi.MenuItem).getId() as String, "light.a");
+    Test.assert(menu.getItem(1) == null);
     return true;
 }

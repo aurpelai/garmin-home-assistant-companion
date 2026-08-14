@@ -1,8 +1,9 @@
 import Toybox.Lang;
 import Toybox.WatchUi;
 
-// The item set is added once here and never changes while the menu is visible,
-// so a push can neither lose a row nor move the one under the user's finger.
+// A push only ever appends, so every row already on screen keeps its position
+// and the one under the user's finger cannot move or vanish. The whole-lights
+// row arrives late whenever the menu is opened before the lights request lands.
 class FloorEntityMenu extends WatchUi.Menu2 {
     private var _coordinator as Coordinator;
     private var _floorId as String;
@@ -13,14 +14,6 @@ class FloorEntityMenu extends WatchUi.Menu2 {
         _coordinator = coordinator;
         _floorId = floorId;
         _model = model;
-
-        for (var index = 0; index < model.lights.size(); index++) {
-            var row = model.lights[index];
-            addItem(new WatchUi.ToggleMenuItem(
-                WatchUi.loadResource(Rez.Strings.AllLights) as String, null,
-                row.rowId, row.isOn, null));
-        }
-
         setModel(model);
     }
 
@@ -48,9 +41,14 @@ class FloorEntityMenu extends WatchUi.Menu2 {
 
         for (var index = 0; index < model.lights.size(); index++) {
             var row = model.lights[index];
-            var itemIndex = findItemById(row.rowId);
-            if (itemIndex >= 0) {
-                (getItem(itemIndex) as WatchUi.ToggleMenuItem).setEnabled(row.isOn);
+            var item = findItem(row.rowId);
+
+            if (item == null) {
+                addItem(new WatchUi.ToggleMenuItem(
+                    WatchUi.loadResource(Rez.Strings.AllLights) as String, null,
+                    row.rowId, row.isOn, null));
+            } else {
+                (item as WatchUi.ToggleMenuItem).setEnabled(row.isOn);
             }
         }
     }
@@ -66,5 +64,10 @@ class FloorEntityMenu extends WatchUi.Menu2 {
         }
 
         return null;
+    }
+
+    private function findItem(rowId as String) as WatchUi.MenuItem or Null {
+        var index = findItemById(rowId);
+        return index < 0 ? null : getItem(index);
     }
 }
