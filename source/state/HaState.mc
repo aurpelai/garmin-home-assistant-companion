@@ -46,6 +46,10 @@ class HaState {
         _sensorIdsByArea = parsed.sensorIdsByArea;
     }
 
+    function hasEntities() as Boolean {
+        return _lights.size() > 0 || _sensors.size() > 0;
+    }
+
     function getLight(entityId as String) as LightModel or Null {
         return _lights.get(entityId);
     }

@@ -60,6 +60,23 @@ class FakeCoordinatorClient extends HaClient {
     }
 }
 
+// Stands in for a live view: the coordinator only ever asks a view to rebuild,
+// so a stub recording that call is the whole surface it needs.
+(:test)
+class StubScreen {
+    public var rebuildCount as Number = 0;
+    private var _subjectSurvives as Boolean;
+
+    function initialize(subjectSurvives as Boolean) {
+        _subjectSurvives = subjectSurvives;
+    }
+
+    function rebuild(haState as HaState) as Boolean {
+        rebuildCount++;
+        return _subjectSurvives;
+    }
+}
+
 (:test)
 function rebuildDiscardsStateAndRefetchesRatherThanComparingValues(logger as Test.Logger) as Boolean {
     var client = new FakeCoordinatorClient();
@@ -87,8 +104,8 @@ function aStaleHideDoesNotClearAViewAlreadyReplacedAsCurrent(logger as Test.Logg
     var client = new FakeCoordinatorClient();
     client.setMsSinceLastRefresh(0);
     var coordinator = new Coordinator(client);
-    var departing = {};
-    var arriving = {};
+    var departing = new StubScreen(true);
+    var arriving = new StubScreen(true);
 
     coordinator.onViewShown(departing);
     coordinator.onViewShown(arriving);
@@ -307,13 +324,38 @@ function stalenessGovernsTheFetchOnRevealNotNavigationShape(logger as Test.Logge
 
     // Never refreshed: unconditionally stale, so a reveal fetches.
     client.setMsSinceLastRefresh(null);
-    coordinator.onViewShown({});
+    coordinator.onViewShown(new StubScreen(true));
     Test.assertEqual(client.refreshCount, 1);
 
     // Freshly completed: a reveal right after must not fetch again, whether
     // it arrived by push or by reveal — staleness alone decides.
     client.setMsSinceLastRefresh(0);
-    coordinator.onViewShown({});
+    coordinator.onViewShown(new StubScreen(true));
     Test.assertEqual(client.refreshCount, 1);
+    return true;
+}
+
+(:test)
+function resolveErrorMessageMapsAuthCodes(logger as Test.Logger) as Boolean {
+    var coordinator = new Coordinator(new FakeCoordinatorClient());
+
+    Test.assertEqual(coordinator.resolveErrorMessage(401), Rez.Strings.ErrAuth);
+    Test.assertEqual(coordinator.resolveErrorMessage(403), Rez.Strings.ErrAuth);
+    return true;
+}
+
+(:test)
+function resolveErrorMessageMapsNegativeCodesToNetwork(logger as Test.Logger) as Boolean {
+    var coordinator = new Coordinator(new FakeCoordinatorClient());
+
+    Test.assertEqual(coordinator.resolveErrorMessage(-1), Rez.Strings.ErrNetwork);
+    return true;
+}
+
+(:test)
+function resolveErrorMessageMapsOtherCodesToUnknown(logger as Test.Logger) as Boolean {
+    var coordinator = new Coordinator(new FakeCoordinatorClient());
+
+    Test.assertEqual(coordinator.resolveErrorMessage(500), Rez.Strings.ErrUnknown);
     return true;
 }

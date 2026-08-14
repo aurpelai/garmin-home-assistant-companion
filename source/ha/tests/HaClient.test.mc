@@ -39,25 +39,19 @@ class MockHaClient extends HaClient {
     public var toggleCount as Number;
     public var registerCount as Number;
     public var fetchCount as Number;
-    public var floorToggleCount as Number;
-    public var lastFloorService as String?;
 
     function initialize() {
         HaClient.initialize();
         toggleCount = 0;
         registerCount = 0;
         fetchCount = 0;
-        floorToggleCount = 0;
     }
 
-    function fetchHomeState(callback as Method) as Void {
+    // Stands in for any request the retry manager reissues: what those tests
+    // pin is the reissue, not which request happened to be the vehicle.
+    function fetchOnce(callback as Method) as Void {
         _fetchCallback = callback;
         fetchCount++;
-    }
-
-    function toggleLight(entityId as String, callback as Method) as Void {
-        serviceCallbacks.add(callback);
-        toggleCount++;
     }
 
     function register(callback as Method) as Void {
@@ -70,14 +64,8 @@ class MockHaClient extends HaClient {
         toggleCount++;
     }
 
-    function toggleFloorLights(floorId as String, service as String, callback as Method) as Void {
-        serviceCallbacks.add(callback);
-        lastFloorService = service;
-        floorToggleCount++;
-    }
-
-    function fireFetchSuccess(state as HomeState) as Void {
-        (_fetchCallback as Method).invoke(state, null);
+    function fireFetchSuccess(payload as Dictionary) as Void {
+        (_fetchCallback as Method).invoke(payload, null);
     }
 
     function fireFetchFailure() as Void {
@@ -150,8 +138,8 @@ function onResponseNormalizesNon200ToError(logger as Test.Logger) as Boolean {
 (:test)
 function onResponseHandsOutTheRawFetchPayload(logger as Test.Logger) as Boolean {
     // ResponseHandler stays domain-ignorant: a fetch reply is the parsed
-    // dictionary under "home", not a HomeState the transport layer would have
-    // to name.
+    // dictionary under "home", never a domain type the transport layer would
+    // have to name.
     var capture = new ResultCapture();
     var handler = new ResponseHandler(capture.method(:onResult), :fetch);
 
@@ -160,7 +148,6 @@ function onResponseHandsOutTheRawFetchPayload(logger as Test.Logger) as Boolean 
     });
 
     Test.assert(capture.result instanceof Dictionary);
-    Test.assert(!(capture.result instanceof HomeState));
     Test.assertEqual(((capture.result as Dictionary).get("lights") as Dictionary).size(), 1);
     Test.assert(capture.error == null);
     return true;
@@ -204,13 +191,13 @@ function onResponseNormalizesRegistrationFailureToError(logger as Test.Logger) a
 }
 
 (:test)
-function fetchHomeStateRecoversOnceFromInvalidWebhook(logger as Test.Logger) as Boolean {
+function aFetchRecoversOnceFromInvalidWebhook(logger as Test.Logger) as Boolean {
     Application.Storage.clearValues();
     Webhook.setId("stale-id");
     var client = new MockHaClient();
     var capture = new ResultCapture();
 
-    new RetryManager(client, client.method(:fetchHomeState), capture.method(:onResult)).attempt();
+    new RetryManager(client, client.method(:fetchOnce), capture.method(:onResult)).attempt();
     client.fireFetchFailureWithCode(Communications.INVALID_HTTP_BODY_IN_NETWORK_RESPONSE);
     client.fireRegisterSuccess("fresh-id");
     client.fireFetchFailureWithCode(Communications.INVALID_HTTP_BODY_IN_NETWORK_RESPONSE);
@@ -223,23 +210,20 @@ function fetchHomeStateRecoversOnceFromInvalidWebhook(logger as Test.Logger) as 
 }
 
 (:test)
-function fetchHomeStateRecoversFrom404TooAndSucceeds(logger as Test.Logger) as Boolean {
+function aFetchRecoversFrom404TooAndSucceeds(logger as Test.Logger) as Boolean {
     Application.Storage.clearValues();
     Webhook.setId("stale-id");
     var client = new MockHaClient();
     var capture = new ResultCapture();
 
-    new RetryManager(client, client.method(:fetchHomeState), capture.method(:onResult)).attempt();
+    new RetryManager(client, client.method(:fetchOnce), capture.method(:onResult)).attempt();
     client.fireFetchFailureWithCode(404);
     client.fireRegisterSuccess("fresh-id");
-    client.fireFetchSuccess(HomeState.fromTemplateData({
-        "areas" => { "area.room" => { "name" => "Room", "lights" => ["light.a"] } },
-        "lights" => { "light.a" => { "state" => true } }
-    }));
+    client.fireFetchSuccess({ "lights" => { "light.a" => { "state" => true } } });
 
     Test.assertEqual(client.fetchCount, 2);
     Test.assertEqual(client.registerCount, 1);
-    Test.assert(capture.result instanceof HomeState);
+    Test.assert(capture.result instanceof Dictionary);
     Test.assert(capture.error == null);
     return true;
 }
@@ -273,14 +257,14 @@ function retryManagerReissuesOnAnyOtherFailureUpToTheThreshold(logger as Test.Lo
     var client = new MockHaClient();
     var capture = new ResultCapture();
 
-    new RetryManager(client, client.method(:fetchHomeState), capture.method(:onResult)).attempt();
+    new RetryManager(client, client.method(:fetchOnce), capture.method(:onResult)).attempt();
     client.fireFetchFailureWithCode(-1);
     client.fireFetchFailureWithCode(-1);
-    client.fireFetchSuccess(HomeState.fromTemplateData({}));
+    client.fireFetchSuccess({} as Dictionary);
 
     Test.assertEqual(client.fetchCount, 3);
     Test.assertEqual(client.registerCount, 0);
-    Test.assert(capture.result instanceof HomeState);
+    Test.assert(capture.result instanceof Dictionary);
     Test.assert(capture.error == null);
     return true;
 }
@@ -292,7 +276,7 @@ function retryManagerSurfacesTheFailureOnceItsThresholdIsSpent(logger as Test.Lo
     var client = new MockHaClient();
     var capture = new ResultCapture();
 
-    new RetryManager(client, client.method(:fetchHomeState), capture.method(:onResult)).attempt();
+    new RetryManager(client, client.method(:fetchOnce), capture.method(:onResult)).attempt();
     client.fireFetchFailureWithCode(-1);
     client.fireFetchFailureWithCode(-1);
     client.fireFetchFailureWithCode(-1);
