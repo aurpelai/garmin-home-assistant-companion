@@ -37,9 +37,9 @@ class Card {
         :size => FONT_SIZES.get("medium") as Number
     }) as Graphics.VectorFont;
 
-    // The card the loop restores focus to after a push is found by this id, and
-    // failing that by the floor its captured card sat under — null on an area
-    // belonging to no floor.
+    // Public because the loop reads them from outside: it finds the card to
+    // restore focus to by id, and by floorId when that id is gone. Anything only
+    // a card's own drawing needs stays private to the type that draws it.
     public var id as String;
     public var floorId as String or Null;
     public var name as String;
@@ -51,6 +51,13 @@ class Card {
         self.floorId = floorId;
         self.name = name;
         self.readings = readings;
+    }
+
+    // Every card type overrides this with the band that differs. Declared here
+    // because the loop holds cards as this type and calls it through that: the
+    // language has no abstract method, so the base states the contract with an
+    // empty body rather than leaving callers to cast per type.
+    function draw(dc as Graphics.Dc) as Void {
     }
 
     // The title, its subtitle and the sensor boxes, which every card type shares.
