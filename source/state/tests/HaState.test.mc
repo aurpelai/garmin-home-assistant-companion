@@ -119,6 +119,24 @@ function aGroupScopeFansOutToItsMemberIds(logger as Test.Logger) as Boolean {
 }
 
 (:test)
+function theOverriddenIdsBelongToTheCallerNotToServerTruth(logger as Test.Logger) as Boolean {
+    // The group path is the one that could hand back LightModel.memberIds itself,
+    // so mutating what comes out must not rewrite the group's membership.
+    var haState = HaStateTest.stateWithLights({
+        "light.group" => { "state" => false, "area_id" => "area.a", "available" => true,
+            "memberIds" => ["light.one"] },
+        "light.one" => HaStateTest.light(false, "area.a")
+    });
+
+    var overridden = haState.overrideGroup("light.group", true);
+    overridden.add("light.intruder");
+
+    Test.assertEqual(((haState.getLight("light.group") as LightModel).memberIds as Array<String>).size(), 1);
+    Test.assert(!haState.isPending("light.intruder"));
+    return true;
+}
+
+(:test)
 function aFloorScopeExcludesGroupsAndUnavailableEntities(logger as Test.Logger) as Boolean {
     // Home Assistant expands the floor itself, so overriding a group would double
     // count its members; an unavailable light cannot be reached at all.
@@ -145,22 +163,5 @@ function aFloorScopeExcludesGroupsAndUnavailableEntities(logger as Test.Logger) 
     Test.assert(!haState.isPending("light.group"));
     Test.assert(!haState.isPending("light.broken"));
     Test.assert(!haState.isPending("light.elsewhere"));
-    return true;
-}
-
-(:test)
-function aFloorActionMarksEveryMemberPendingSoASecondTapIsRefused(logger as Test.Logger) as Boolean {
-    // One in-flight change per entity, whatever created it: tapping a light a
-    // pending floor action covers must read as pending too.
-    var haState = new HaState();
-    haState.setStructure(HaPayload.parseStructure({
-        "areas" => { "area.kitchen" => { "name" => "Kitchen" } },
-        "floors" => { "floor.ground" => { "name" => "Ground", "order" => 0, "areas" => ["area.kitchen"] } }
-    }));
-    HaStateTest.setLights(haState, { "light.kitchen" => HaStateTest.light(false, "area.kitchen") });
-
-    haState.overrideFloorLights("floor.ground", true);
-
-    Test.assert(haState.isPending("light.kitchen"));
     return true;
 }

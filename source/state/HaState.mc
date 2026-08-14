@@ -105,8 +105,7 @@ class HaState {
     }
 
     function override(entityId as String, isOn as Boolean) as Array<String> {
-        _overrides.put(entityId, isOn);
-        return [entityId];
+        return overrideAll([entityId], isOn);
     }
 
     // The members are the group's own, as the payload reported them — a display
@@ -133,12 +132,17 @@ class HaState {
         }
     }
 
+    // Returns its own array rather than the one passed in: a caller receiving
+    // LightModel.memberIds could rewrite a group's server-truth membership.
     private function overrideAll(entityIds as Array<String>, isOn as Boolean) as Array<String> {
+        var overridden = [] as Array<String>;
+
         for (var index = 0; index < entityIds.size(); index++) {
             _overrides.put(entityIds[index], isOn);
+            overridden.add(entityIds[index]);
         }
 
-        return entityIds;
+        return overridden;
     }
 
     private function commandableFloorLightIds(floorId as String) as Array<String> {
@@ -179,9 +183,15 @@ class HaState {
 
         for (var index = 0; index < entityIds.size(); index++) {
             var entityId = entityIds[index] as String;
-            if (!_lights.hasKey(entityId)) {
+            if (!isKnownEntity(entityId)) {
                 _overrides.remove(entityId);
             }
         }
+    }
+
+    // Every overridable domain must be asked, or the domain that is missing here
+    // loses its overrides on every other domain's refresh.
+    private function isKnownEntity(entityId as String) as Boolean {
+        return _lights.hasKey(entityId);
     }
 }
