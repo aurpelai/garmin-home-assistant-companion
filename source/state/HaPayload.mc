@@ -110,7 +110,7 @@ module HaPayload {
             var id = ids[index] as String;
             var entry = entries.get(id) as Dictionary;
 
-            insertByOrder(out, new FloorModel(
+            insertFloorByOrder(out, new FloorModel(
                 id,
                 asStringOrNull(entry.get("name")),
                 asOrder(entry.get("order")),
@@ -120,7 +120,7 @@ module HaPayload {
         return out;
     }
 
-    function insertByOrder(floors as Array<FloorModel>, floor as FloorModel) as Void {
+    function insertFloorByOrder(floors as Array<FloorModel>, floor as FloorModel) as Void {
         var position = floors.size();
         floors.add(floor);
 
