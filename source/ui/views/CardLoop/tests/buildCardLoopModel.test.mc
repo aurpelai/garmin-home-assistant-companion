@@ -69,10 +69,10 @@ function eachFloorHeadsItsOwnAreasAndUnflooredAreasTrailEveryFloor(logger as Tes
             "floor.ground" => { "name" => "Ground", "order" => 0, "areas" => ["area.kitchen"] }
         }
     }, {
-        "light.bedroom" => { "state" => false, "area_id" => "area.bedroom" },
-        "light.kitchen" => { "state" => false, "area_id" => "area.kitchen" },
-        "light.attic" => { "state" => false, "area_id" => "area.attic" },
-        "light.garage" => { "state" => false, "area_id" => "area.garage" }
+        "light.bedroom" => CardLoopModelTest.light(false, "area.bedroom"),
+        "light.kitchen" => CardLoopModelTest.light(false, "area.kitchen"),
+        "light.attic" => CardLoopModelTest.light(false, "area.attic"),
+        "light.garage" => CardLoopModelTest.light(false, "area.garage")
     }, {} as Dictionary);
 
     Test.assertEqual(
