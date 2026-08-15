@@ -8,15 +8,11 @@ import Toybox.Lang;
 module HaPayload {
 
     function parseZone(payload as Object or Null) as String or Null {
-        return asStringOrNull(sectionOf(payload, "zone"));
-    }
-
-    function sectionOf(payload as Object or Null, key as String) as Object or Null {
-        return payload instanceof Dictionary ? payload.get(key) : null;
+        return asStringOrNull(payload instanceof Dictionary ? payload.get("zone") : null);
     }
 
     function parseLights(payload as Object or Null) as Dictionary<String, LightModel> {
-        var entries = entriesOf(payload, "lights");
+        var entries = readEntries(payload, "lights");
         var lights = {} as Dictionary<String, LightModel>;
         var entityIds = entries.keys();
 
@@ -38,7 +34,7 @@ module HaPayload {
     // display_state is the row's only text, so an entry without one cannot be
     // rendered at all.
     function parseSensors(payload as Object or Null) as Dictionary<String, SensorModel> {
-        var entries = entriesOf(payload, "sensors");
+        var entries = readEntries(payload, "sensors");
         var sensors = {} as Dictionary<String, SensorModel>;
         var entityIds = entries.keys();
 
@@ -63,7 +59,7 @@ module HaPayload {
         return sensors;
     }
 
-    function entriesOf(payload as Object or Null, key as String) as Dictionary<String, Dictionary> {
+    function readEntries(payload as Object or Null, key as String) as Dictionary<String, Dictionary> {
         var out = {} as Dictionary<String, Dictionary>;
         if (!(payload instanceof Dictionary)) {
             return out;
@@ -89,19 +85,14 @@ module HaPayload {
     // An unnamed area survives with a null name: a naming gap costs a label, not
     // a room.
     function parseAreas(payload as Object or Null) as Dictionary<String, AreaModel> {
-        var raw = sectionOf(payload, "areas");
+        var entries = readEntries(payload, "areas");
         var out = {} as Dictionary<String, AreaModel>;
-        if (!(raw instanceof Dictionary)) {
-            return out;
-        }
+        var ids = entries.keys();
 
-        var ids = raw.keys();
         for (var index = 0; index < ids.size(); index++) {
-            var id = ids[index];
-            var entry = raw.get(id);
-            if (id instanceof String && entry instanceof Dictionary) {
-                out.put(id, new AreaModel(asStringOrNull(entry.get("name"))));
-            }
+            var id = ids[index] as String;
+            var entry = entries.get(id) as Dictionary;
+            out.put(id, new AreaModel(asStringOrNull(entry.get("name"))));
         }
 
         return out;
@@ -111,19 +102,13 @@ module HaPayload {
     // floors() order; Dictionary.keys() is hash order. The insertion is stable,
     // so equal orders keep parse order.
     function parseFloors(payload as Object or Null) as Array<FloorModel> {
-        var raw = sectionOf(payload, "floors");
+        var entries = readEntries(payload, "floors");
         var out = [] as Array<FloorModel>;
-        if (!(raw instanceof Dictionary)) {
-            return out;
-        }
+        var ids = entries.keys();
 
-        var ids = raw.keys();
         for (var index = 0; index < ids.size(); index++) {
-            var id = ids[index];
-            var entry = raw.get(id);
-            if (!(id instanceof String) || !(entry instanceof Dictionary)) {
-                continue;
-            }
+            var id = ids[index] as String;
+            var entry = entries.get(id) as Dictionary;
 
             insertByOrder(out, new FloorModel(
                 id,
