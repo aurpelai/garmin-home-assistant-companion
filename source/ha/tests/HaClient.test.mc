@@ -229,7 +229,7 @@ function aFetchRecoversOnceFromInvalidWebhook(logger as Test.Logger) as Boolean 
     var client = new MockHaClient();
     var capture = new ResultCapture();
 
-    new RetryManager(client, client.method(:fetchOnce), capture.method(:onResult), :fetch).attempt();
+    new RetryManager(client, client.method(:fetchOnce), capture.method(:onResult), :request).attempt();
     client.fireFetchFailureWithCode(Communications.INVALID_HTTP_BODY_IN_NETWORK_RESPONSE);
     client.fireRegisterSuccess("fresh-id");
     client.fireFetchFailureWithCode(Communications.INVALID_HTTP_BODY_IN_NETWORK_RESPONSE);
@@ -242,7 +242,7 @@ function aFetchRecoversOnceFromInvalidWebhook(logger as Test.Logger) as Boolean 
     // succeeded, so the fetch behind it owns this failure.
     var error = capture.error as RequestError;
     Test.assertEqual(error.reason as Number, Communications.INVALID_HTTP_BODY_IN_NETWORK_RESPONSE);
-    Test.assertEqual(error.requestType, :fetch);
+    Test.assertEqual(error.requestType, :request);
     return true;
 }
 
@@ -253,7 +253,7 @@ function aFetchRecoversFrom404TooAndSucceeds(logger as Test.Logger) as Boolean {
     var client = new MockHaClient();
     var capture = new ResultCapture();
 
-    new RetryManager(client, client.method(:fetchOnce), capture.method(:onResult), :fetch).attempt();
+    new RetryManager(client, client.method(:fetchOnce), capture.method(:onResult), :request).attempt();
     client.fireFetchFailureWithCode(404);
     client.fireRegisterSuccess("fresh-id");
     client.fireFetchSuccess({ "lights" => { "light.a" => { "state" => true } } });
@@ -273,7 +273,7 @@ function toggleLightRecoversOnceFromInvalidWebhook(logger as Test.Logger) as Boo
     var capture = new ResultCapture();
 
     new RetryManager(client, new ServiceCall(client, "toggle", "entity_id", "light.a").method(:call),
-        capture.method(:onResult), :serviceCall).attempt();
+        capture.method(:onResult), :request).attempt();
     client.fireServiceFailureAt(0, Communications.INVALID_HTTP_BODY_IN_NETWORK_RESPONSE);
     client.fireRegisterSuccess("fresh-id");
     client.fireServiceSuccessAt(1);
@@ -294,7 +294,7 @@ function retryManagerReissuesOnAnyOtherFailureUpToTheThreshold(logger as Test.Lo
     var client = new MockHaClient();
     var capture = new ResultCapture();
 
-    new RetryManager(client, client.method(:fetchOnce), capture.method(:onResult), :fetch).attempt();
+    new RetryManager(client, client.method(:fetchOnce), capture.method(:onResult), :request).attempt();
     client.fireFetchFailureWithCode(-1);
     client.fireFetchFailureWithCode(-1);
     client.fireFetchSuccess({} as Dictionary);
@@ -313,7 +313,7 @@ function retryManagerSurfacesTheFailureOnceItsThresholdIsSpent(logger as Test.Lo
     var client = new MockHaClient();
     var capture = new ResultCapture();
 
-    new RetryManager(client, client.method(:fetchOnce), capture.method(:onResult), :fetch).attempt();
+    new RetryManager(client, client.method(:fetchOnce), capture.method(:onResult), :request).attempt();
     client.fireFetchFailureWithCode(-1);
     client.fireFetchFailureWithCode(-1);
     client.fireFetchFailureWithCode(-1);
@@ -325,7 +325,7 @@ function retryManagerSurfacesTheFailureOnceItsThresholdIsSpent(logger as Test.Lo
     // carries the identity of the request that spent it.
     var error = capture.error as RequestError;
     Test.assertEqual(error.reason as Number, -1);
-    Test.assertEqual(error.requestType, :fetch);
+    Test.assertEqual(error.requestType, :request);
     return true;
 }
 
@@ -340,7 +340,7 @@ function aRegistrationFailureInsideFetchRecoveryStaysARegistrationFailure(logger
     var client = new MockHaClient();
     var capture = new ResultCapture();
 
-    new RetryManager(client, client.method(:fetchOnce), capture.method(:onResult), :fetch).attempt();
+    new RetryManager(client, client.method(:fetchOnce), capture.method(:onResult), :request).attempt();
     client.fireFetchFailureWithCode(404);
     client.fireRegisterFailureWithCode(400);
 

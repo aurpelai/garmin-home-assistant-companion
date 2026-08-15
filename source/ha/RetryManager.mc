@@ -7,8 +7,8 @@ import Toybox.Lang;
 //
 // Re-registration is the one place two request types interleave, and a failure
 // there stays :registration — a bad request against our registration body means
-// our own body is malformed, where the same code on a fetch means a template
-// error on the Home Assistant side.
+// our own body is malformed, where the same code on a :request means Home
+// Assistant could not do what we asked.
 class RetryManager {
     private const REQUEST_RETRIES = 3;
     private const REGISTRATION_RETRIES = 1;
