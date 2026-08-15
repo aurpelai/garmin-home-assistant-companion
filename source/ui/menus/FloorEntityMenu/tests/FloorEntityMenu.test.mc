@@ -51,8 +51,8 @@ function theWholeLightsRowTargetsTheFloorRatherThanItsOwnId(logger as Test.Logge
     var rowId = (menu.getItem(0) as WatchUi.MenuItem).getId();
 
     Test.assertEqual(rowId as String, FloorEntityMenuModel.LIGHTS_ROW_ID);
-    Test.assertEqual(menu.serviceTargetOf(rowId) as String, "floor.up");
-    Test.assert(menu.serviceTargetOf("light.a") == null);
+    Test.assertEqual(menu.toServiceTarget(rowId) as String, "floor.up");
+    Test.assert(menu.toServiceTarget("light.a") == null);
     return true;
 }
 

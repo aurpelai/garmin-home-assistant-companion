@@ -73,7 +73,7 @@ class Coordinator {
     // what created that override: one in-flight change per entity, and a group's
     // scope reaches its members.
     function toggleEntity(entityId as String) as Void {
-        if (_haState.anyPending(_haState.entityScope(entityId))) {
+        if (_haState.hasAnyPending(_haState.entityScope(entityId))) {
             return;
         }
 
@@ -84,11 +84,11 @@ class Coordinator {
 
     function toggleFloorLights(floorId as String) as Void {
         var lightIds = _haState.getLightIdsInFloor(floorId);
-        if (lightIds.size() == 0 || _haState.anyPending(lightIds)) {
+        if (lightIds.size() == 0 || _haState.hasAnyPending(lightIds)) {
             return;
         }
 
-        var targetState = !_haState.anyOn(lightIds);
+        var targetState = !_haState.hasAnyOn(lightIds);
         var overriddenIds = _haState.overrideFloorLights(floorId, targetState);
         var service = targetState ? "turn_on" : "turn_off";
 

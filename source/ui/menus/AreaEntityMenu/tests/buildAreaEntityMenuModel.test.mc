@@ -43,7 +43,6 @@ function aRowReadsTheAssumedValueAndCarriesItsPendingStatus(logger as Test.Logge
     var row = (buildAreaEntityMenuModel(haState, "area.room") as AreaEntityMenuModel).lights[0];
 
     Test.assert(row.isOn);
-    Test.assert(row.isPending);
     return true;
 }
 

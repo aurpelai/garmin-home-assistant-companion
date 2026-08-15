@@ -22,12 +22,10 @@ function buildAreaEntityMenuModel(haState as HaState, areaId as String) as AreaE
 
         lights.add(new LightRowModel(
             entityId,
-            entityId,
             light.name,
             haState.isOn(entityId),
             light.available,
-            light.memberIds == null ? null : (light.memberIds as Array<String>).size(),
-            haState.isPending(entityId)));
+            light.memberIds == null ? null : (light.memberIds as Array<String>).size()));
     }
 
     var sensorIds = DisplayOrder.groupSensorIdsByDeviceClass(haState, haState.getSensorIdsInArea(areaId));

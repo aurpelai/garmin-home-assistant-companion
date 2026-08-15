@@ -16,7 +16,6 @@
     <string id="GroupLightCountOne">Group • 1 Light</string>
     <string id="GroupUnavailable">Group unavailable</string>
     <string id="Loading">Loading</string>
-    <string id="NoEntitiesInAnyArea">No entities in any area</string>
     <string id="NoEntitiesInArea">No entities in the area</string>
     <string id="NothingFound">No supported entities found</string>
     <string id="RetryHint">Press select to retry</string>

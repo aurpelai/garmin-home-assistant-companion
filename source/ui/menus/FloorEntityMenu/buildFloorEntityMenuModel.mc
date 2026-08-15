@@ -31,6 +31,6 @@ function buildFloorLightRows(haState as HaState, floorId as String) as Array<Lig
         return [] as Array<LightRowModel>;
     }
 
-    return [new LightRowModel(FloorEntityMenuModel.LIGHTS_ROW_ID, floorId, null,
-        haState.anyOn(lightIds), true, null, haState.anyPending(lightIds))] as Array<LightRowModel>;
+    return [new LightRowModel(FloorEntityMenuModel.LIGHTS_ROW_ID, null,
+        haState.hasAnyOn(lightIds), true, null)] as Array<LightRowModel>;
 }

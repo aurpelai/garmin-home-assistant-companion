@@ -57,7 +57,7 @@ class FloorEntityMenu extends WatchUi.Menu2 {
 
     // A floor row's identity and its service target diverge, so the delegate
     // cannot read the target off the platform event and asks here instead.
-    function serviceTargetOf(rowId as Object or Null) as String or Null {
+    function toServiceTarget(rowId as Object or Null) as String or Null {
         return FloorEntityMenuModel.LIGHTS_ROW_ID.equals(rowId) ? _floorId : null;
     }
 

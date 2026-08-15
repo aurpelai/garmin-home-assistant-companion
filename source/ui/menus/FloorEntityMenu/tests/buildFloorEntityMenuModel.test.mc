@@ -49,21 +49,6 @@ function aFloorWithNoLightsCarriesNoRowWhileOneWithOnlyDeadOnesDoes(logger as Te
 }
 
 (:test)
-function theFloorRowTargetsTheFloorRatherThanItsOwnRowId(logger as Test.Logger) as Boolean {
-    // Row identity and service target coincide on an entity row and diverge
-    // here: Home Assistant expands the floor id server-side.
-    var haState = FloorEntityMenuModelTest.stateOf(
-        FloorEntityMenuModelTest.oneFloorWith(["area.room"]), {
-            "light.a" => { "state" => false, "area_id" => "area.room", "available" => true }
-        });
-    var row = (buildFloorEntityMenuModel(haState, "floor.g") as FloorEntityMenuModel).lights[0];
-
-    Test.assertEqual(row.serviceTarget, "floor.g");
-    Test.assert(!row.rowId.equals(row.serviceTarget));
-    return true;
-}
-
-(:test)
 function theFloorRowReadsOnWhenAnyLightInTheFloorIsOn(logger as Test.Logger) as Boolean {
     // Read over exactly the scope a tap commands — every light in the floor — so
     // the row cannot claim a state its own action would not produce.
@@ -81,20 +66,3 @@ function theFloorRowReadsOnWhenAnyLightInTheFloorIsOn(logger as Test.Logger) as 
     return true;
 }
 
-(:test)
-function theFloorRowIsPendingWhileAnyMemberOfItsScopeIs(logger as Test.Logger) as Boolean {
-    // A floor action creates one override per member, so the row's status has to
-    // read the same scope: whatever created the override, the row is covered.
-    var haState = FloorEntityMenuModelTest.stateOf(
-        FloorEntityMenuModelTest.oneFloorWith(["area.room"]), {
-            "light.a" => { "state" => false, "area_id" => "area.room", "available" => true },
-            "light.b" => { "state" => false, "area_id" => "area.room", "available" => true }
-        });
-
-    Test.assert(!(buildFloorEntityMenuModel(haState, "floor.g") as FloorEntityMenuModel).lights[0].isPending);
-
-    haState.override("light.b", true);
-
-    Test.assert((buildFloorEntityMenuModel(haState, "floor.g") as FloorEntityMenuModel).lights[0].isPending);
-    return true;
-}

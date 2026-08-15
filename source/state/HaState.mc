@@ -129,7 +129,7 @@ class HaState {
         return scope;
     }
 
-    function anyOn(entityIds as Array<String>) as Boolean {
+    function hasAnyOn(entityIds as Array<String>) as Boolean {
         for (var index = 0; index < entityIds.size(); index++) {
             if (isOn(entityIds[index])) {
                 return true;
@@ -139,7 +139,7 @@ class HaState {
         return false;
     }
 
-    function anyPending(entityIds as Array<String>) as Boolean {
+    function hasAnyPending(entityIds as Array<String>) as Boolean {
         for (var index = 0; index < entityIds.size(); index++) {
             if (isPending(entityIds[index])) {
                 return true;

@@ -12,7 +12,7 @@ class FloorEntityMenuDelegate extends WatchUi.Menu2InputDelegate {
     }
 
     function onSelect(item as WatchUi.MenuItem) as Void {
-        var floorId = _menu.serviceTargetOf(item.getId());
+        var floorId = _menu.toServiceTarget(item.getId());
         if (floorId != null) {
             _coordinator.toggleFloorLights(floorId as String);
         }

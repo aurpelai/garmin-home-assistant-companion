@@ -100,7 +100,7 @@ function aPushMovesTheSwitchToTheModelsState(logger as Test.Logger) as Boolean {
 function aLightSublabelPicksUnavailableOverAGroupCount(logger as Test.Logger) as Boolean {
     // An unavailable group would otherwise read as a member count, hiding that
     // nothing in it can be reached.
-    var group = new LightRowModel("light.grp", "light.grp", "Group", false, false, 3, false);
+    var group = new LightRowModel("light.grp", "Group", false, false, 3);
 
     Test.assertEqual(AreaEntityMenu.lightSubLabel(group) as String, "Group unavailable");
     return true;
@@ -108,8 +108,8 @@ function aLightSublabelPicksUnavailableOverAGroupCount(logger as Test.Logger) as
 
 (:test)
 function anAvailableGroupShowsItsMemberCount(logger as Test.Logger) as Boolean {
-    var one = new LightRowModel("light.one", "light.one", "One", true, true, 1, false);
-    var many = new LightRowModel("light.many", "light.many", "Many", true, true, 4, false);
+    var one = new LightRowModel("light.one", "One", true, true, 1);
+    var many = new LightRowModel("light.many", "Many", true, true, 4);
 
     Test.assertEqual(AreaEntityMenu.lightSubLabel(one) as String, "Group • 1 Light");
     Test.assertEqual(AreaEntityMenu.lightSubLabel(many) as String, "Group • 4 Lights");
@@ -118,7 +118,7 @@ function anAvailableGroupShowsItsMemberCount(logger as Test.Logger) as Boolean {
 
 (:test)
 function anAvailablePlainLightShowsNoSublabel(logger as Test.Logger) as Boolean {
-    var plain = new LightRowModel("light.plain", "light.plain", "Plain", true, true, null, false);
+    var plain = new LightRowModel("light.plain", "Plain", true, true, null);
 
     Test.assert(AreaEntityMenu.lightSubLabel(plain) == null);
     return true;
@@ -126,7 +126,7 @@ function anAvailablePlainLightShowsNoSublabel(logger as Test.Logger) as Boolean 
 
 (:test)
 function anUnavailablePlainLightSaysSoRatherThanNothing(logger as Test.Logger) as Boolean {
-    var plain = new LightRowModel("light.plain", "light.plain", "Plain", false, false, null, false);
+    var plain = new LightRowModel("light.plain", "Plain", false, false, null);
 
     Test.assertEqual(AreaEntityMenu.lightSubLabel(plain) as String, "Unavailable");
     return true;
