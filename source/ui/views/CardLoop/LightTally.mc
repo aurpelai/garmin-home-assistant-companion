@@ -1,14 +1,12 @@
 import Toybox.Lang;
 
-// A scope's physical lights counted the three ways a card's dot row draws them.
 // Groups are excluded so a group and its members are not both counted, and an
-// unavailable light is counted apart from the on/off split rather than within it,
-// the card drawing it as an outline rather than claiming it is off.
+// unavailable light is counted apart from the on/off split rather than claimed
+// to be off.
 //
 // Presentation rather than a domain fact, which is why it sits beside the cards
 // rather than in HaState: change the card to two dot styles and this changes
-// while nothing in the house moves. It reads state through the argument it is
-// handed, exactly as the builders do, and keeps no reference to it.
+// while nothing in the house moves.
 class LightTally {
     public var on as Number;
     public var available as Number;

@@ -205,7 +205,7 @@ class HaClient {
             _requestInFlight = true;
             _changeInFlight = true;
             _pendingChangeCallback = next.callback;
-            new RetryManager(self, next.request, method(:onChangeSettled), :serviceCall, null).attempt();
+            new RetryManager(self, next.request, method(:onChangeSettled), :serviceCall).attempt();
             return;
         }
 
@@ -215,7 +215,7 @@ class HaClient {
             _requestInFlight = true;
             _currentTarget = target;
             new RetryManager(self, new TargetFetch(self, target).method(:request), method(:onTargetSettled),
-                             :fetch, target).attempt();
+                             :fetch).attempt();
         }
     }
 

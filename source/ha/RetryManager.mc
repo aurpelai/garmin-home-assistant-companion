@@ -24,17 +24,15 @@ class RetryManager {
     private var _request as Method;
     private var _callback as Method;
     private var _requestType as Symbol;
-    private var _target as Symbol or Null;
     private var _attemptsLeft as Number;
     private var _registrationsLeft as Number;
 
     function initialize(client as HaClient, request as Method, callback as Method,
-                        requestType as Symbol, target as Symbol or Null) {
+                        requestType as Symbol) {
         _client = client;
         _request = request;
         _callback = callback;
         _requestType = requestType;
-        _target = target;
         _attemptsLeft = REQUEST_RETRIES;
         _registrationsLeft = REGISTRATION_RETRIES;
     }
@@ -55,7 +53,7 @@ class RetryManager {
             // cannot fix by repeating itself, so it surfaces rather than
             // falling through to the generic reissue below.
             if (_registrationsLeft <= 0) {
-                surface(reason, _requestType, _target);
+                surface(reason, _requestType);
                 return;
             }
 
@@ -66,7 +64,7 @@ class RetryManager {
         }
 
         if (_attemptsLeft <= 0) {
-            surface(reason, _requestType, _target);
+            surface(reason, _requestType);
             return;
         }
 
@@ -76,7 +74,7 @@ class RetryManager {
 
     function onRegistered(webhookId as String or Null, reason as Object or Null) as Void {
         if (reason != null) {
-            surface(reason, :registration, null);
+            surface(reason, :registration);
             return;
         }
 
@@ -95,7 +93,7 @@ class RetryManager {
         return false;
     }
 
-    private function surface(reason as Object, requestType as Symbol, target as Symbol or Null) as Void {
-        _callback.invoke(null, new RequestError(reason, requestType, target));
+    private function surface(reason as Object, requestType as Symbol) as Void {
+        _callback.invoke(null, new RequestError(reason, requestType));
     }
 }

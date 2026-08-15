@@ -1,6 +1,5 @@
 import Toybox.Lang;
 
-// One device class's reading as a card shows it, with the text already composed:
 // Home Assistant's own formatting for a lone sensor, or a mean over several.
 class CardReading {
     public var deviceClass as String;
@@ -11,13 +10,9 @@ class CardReading {
         self.text = text;
     }
 
-    // One card's readings, one per device class in display order, over whichever
-    // of the given sensors carry a usable value. A device class with none is
-    // absent rather than shown as a blank box.
-    //
-    // Several sensors of one device class average, whether they sit in one area or
-    // across a floor's areas: no one of them speaks for the scope, and picking one
-    // would make the card show whichever the walk reached first.
+    // Several sensors of one device class average, in an area or across a floor:
+    // no one of them speaks for the scope, and picking one would show whichever
+    // the walk reached first.
     static function forSensors(haState as HaState, entityIds as Array<String>) as Array<CardReading> {
         var readings = [] as Array<CardReading>;
 

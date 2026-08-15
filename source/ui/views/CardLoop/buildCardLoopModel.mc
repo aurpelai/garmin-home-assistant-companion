@@ -2,13 +2,10 @@ import Toybox.Lang;
 
 // Pure: touches no WatchUi, fetches nothing, and mutates no HaState.
 //
-// Unlike the per-screen builders this one has no subject to look up, so it takes
-// the whole of HaState and always returns a model — an empty home yields an empty
-// sequence, which is a finding for the caller rather than an absence.
-//
-// Each floor heads the run of its own area cards, in Home Assistant's floor
-// order. Areas belonging to no floor trail every floor, with no card of their own
-// to mark where they begin.
+// Alone among the builders it has no subject to look up, so it never returns
+// null — an empty home yields an empty sequence, a finding rather than an
+// absence. Areas belonging to no floor trail every floor, with no card marking
+// where they begin.
 function buildCardLoopModel(haState as HaState) as CardLoopModel {
     var cards = [] as Array<Card>;
     var floors = haState.getFloors();

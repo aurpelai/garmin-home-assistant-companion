@@ -200,7 +200,7 @@ function toggleRecordsAnOverrideFiresAndTheReplyClearsExactlyThoseIds(logger as 
     // server truth was never overwritten.
     coordinator.toggleEntity("light.b");
     client.fireToggleFailureAt(client.toggledEntityIds.size() - 1,
-        new RequestError(-1, :serviceCall, null));
+        new RequestError(-1, :serviceCall));
     coordinator.toggleEntity("light.b");
     Test.assertEqual(client.toggledEntityIds.size(), 4);
     return true;
@@ -416,7 +416,7 @@ function aFailedStartupFetchLeavesTheLoadingScreenRatherThanHoldingIt(logger as 
     coordinator.onViewShown(loading);
     Test.assert(coordinator.currentView() == loading);
 
-    client.fireTarget(:structure, null, new RequestError(401, :fetch, :structure));
+    client.fireTarget(:structure, null, new RequestError(401, :fetch));
 
     // Nothing loaded and a spent threshold: the failure itself is the screen,
     // and the info screen is not a Screen to push into.
@@ -491,7 +491,7 @@ function aStructureFailureStaysOnTheInfoScreenEvenAfterASiblingTargetLands(
     var coordinator = new Coordinator(client);
 
     coordinator.onViewShown(new StubScreen(true));
-    client.fireTarget(:structure, null, new RequestError(401, :fetch, :structure));
+    client.fireTarget(:structure, null, new RequestError(401, :fetch));
     Test.assert(coordinator.currentView() == null);
 
     client.fireTarget(:lights, {
@@ -527,7 +527,7 @@ function aFailedTargetKeepsDataOnScreenRatherThanReplacingItWithTheFailure(logge
     }, null);
 
     var rebuildsBeforeFailure = view.rebuildCount;
-    client.fireTarget(:sensors, null, new RequestError(-1, :fetch, :sensors));
+    client.fireTarget(:sensors, null, new RequestError(-1, :fetch));
 
     Test.assert(coordinator.currentView() == view);
     Test.assertEqual(view.rebuildCount, rebuildsBeforeFailure + 1);
@@ -558,7 +558,7 @@ function aFailedToggleDoesNotTakeTheScreenAway(logger as Test.Logger) as Boolean
     coordinator.toggleEntity("light.a");
     Test.assert(coordinator.haState().isPending("light.a"));
 
-    client.fireToggleFailureAt(0, new RequestError(-1, :serviceCall, null));
+    client.fireToggleFailureAt(0, new RequestError(-1, :serviceCall));
 
     Test.assert(coordinator.currentView() == view);
     Test.assert(!coordinator.haState().isPending("light.a"));

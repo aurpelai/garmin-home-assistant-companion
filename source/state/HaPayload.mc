@@ -1,12 +1,10 @@
 import Toybox.Lang;
 
-// Payload dictionary in, one target's worth of parsed state out. Knows the
-// transport's key names and nothing else; HaState knows entities, not that
-// lights arrive under a "lights" key from a webhook render.
+// Knows the transport's key names so HaState does not: it holds entities, not
+// the fact that lights arrive under a "lights" key from a webhook render.
 //
-// Every section parses independently: non-conforming input yields an empty
-// result rather than throwing, so a bad payload degrades to an empty target
-// instead of crashing the watch.
+// Non-conforming input yields an empty result rather than throwing, so a bad
+// payload costs one target rather than crashing the watch.
 module HaPayload {
 
     function parseStructure(payload as Object or Null) as ParsedStructure {
