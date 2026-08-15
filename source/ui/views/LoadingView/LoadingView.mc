@@ -25,7 +25,7 @@ class LoadingView extends WatchUi.View {
     }
 
     function onShow() as Void {
-        _coordinator.onLaunch(self);
+        _coordinator.onViewShown(self);
     }
 
     function onHide() as Void {

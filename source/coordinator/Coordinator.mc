@@ -6,8 +6,6 @@ import Toybox.WatchUi;
 // HaClient, and on reply tells HaState to clear exactly the ids the override
 // created. Retains no models — that is a view's job.
 class Coordinator {
-    // How long a completed refresh may be trusted before a view reveal
-    // triggers another one.
     private const STALE_AFTER_MS = 60 * 1000;
 
     private var _client as HaClient;
@@ -24,21 +22,6 @@ class Coordinator {
         refresh();
     }
 
-    // The loading screen's own reveal. Configuration is checked here rather than
-    // on every reveal because only a settings change can alter it, and that
-    // rebuilds from the loading screen anyway.
-    function onLaunch(view as Screen) as Void {
-        if (!Settings.isConfigured()) {
-            showInfo(Rez.Strings.ErrNoConfig, null);
-            return;
-        }
-
-        onViewShown(view);
-    }
-
-    // Called on a view reveal; fetches only when the last completed refresh
-    // is older than the staleness window, never because of what kind of
-    // navigation revealed the view.
     function onViewShown(view as Screen) as Void {
         _currentView = view;
 
@@ -60,9 +43,6 @@ class Coordinator {
         return _currentView;
     }
 
-    // What the builders read. Handing the state out rather than proxying every
-    // question keeps them plain functions; the coordinator stays the only writer,
-    // since the rebuild sequence replaces this field wholesale.
     function haState() as HaState {
         return _haState;
     }
@@ -116,29 +96,22 @@ class Coordinator {
         updateDisplay();
     }
 
-    // A toggle reply is one of the three refresh triggers: every terminal
-    // outcome clears its own override, then a refresh reconverges with
-    // whatever Home Assistant actually did.
-    //
-    // A failure signals whatever is on screen, rather than deferring to the
-    // grid: the override clears either way, so the row snaps back, and without
-    // a signal that looks exactly like the app ignoring the tap.
+    // A failure signals here rather than deferring to the destination below:
+    // the override clears either way, so the row snaps back, and without a
+    // signal that looks exactly like the app ignoring the tap.
     function onToggleSettled(overriddenIds as Array<String>, error as RequestError or Null) as Void {
         _haState.clearOverrides(overriddenIds);
 
         if (error != null) {
-            signal(error);
+            toast(resolveMessage(error));
         }
 
         updateDisplay();
         refresh();
     }
 
-    // The rebuild sequence: cancel everything in flight, discard HaState, and
-    // start over from empty. No comparison against the previous URL or token —
-    // a settings change is disqualifying on its own, and a token change is as
-    // disqualifying as a URL change, since Home Assistant's visibility is
-    // per-user.
+    // A token change is as disqualifying as a URL change: Home Assistant's
+    // visibility is per-user, so the entities behind a new token may differ.
     function onSettingsChanged() as Void {
         _client.cancelAll();
         _haState = new HaState();
@@ -184,10 +157,8 @@ class Coordinator {
         }
     }
 
-    // The one navigation gate: the screen follows from three facts and no
-    // stored status value. Reached only from a reply, so a signal here
-    // reports the failure that just settled rather than re-announcing an old
-    // one.
+    // The one navigation gate, reached once a refresh has settled so the three
+    // facts it reads are final rather than mid-flight.
     private function showDestination() as Void {
         var error = _client.lastError();
 
@@ -197,7 +168,7 @@ class Coordinator {
             }
 
             if (_client.lastRefreshFailed()) {
-                WatchUi.showToast(WatchUi.loadResource(Rez.Strings.ErrRefresh) as String, null);
+                toast(Rez.Strings.ErrRefresh);
             }
 
             return;
@@ -213,19 +184,12 @@ class Coordinator {
         }
     }
 
-    // Names the missing part where there is one, since the request type is
-    // :fetch for all three targets and cannot say which failed.
-    private function signal(error as RequestError) as Void {
-        WatchUi.showToast(WatchUi.loadResource(resolveMessage(error)) as String, null);
+    private function toast(id as ResourceId) as Void {
+        WatchUi.showToast(WatchUi.loadResource(id) as String, null);
     }
 
-    // The one push site. A live screen that is still the right one keeps the
-    // display, which is what stops a refresh moving a menu out from under the
-    // user. Anything else — nothing live, or a screen whose subject is gone —
-    // falls back to the card loop, the one screen no deletion can empty.
-    // Pushes fresh state into whatever the user is looking at. A screen whose
-    // subject is gone says so, and the card loop is where that leaves them: it
-    // builds from the whole of HaState, so no deletion can empty it.
+    // A view reporting its subject gone lands on the card loop, which builds
+    // from the whole of HaState and so is the one screen no deletion can empty.
     private function updateDisplay() as Void {
         var view = _currentView;
 

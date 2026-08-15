@@ -3,8 +3,12 @@ import Toybox.Lang;
 import Toybox.System;
 
 // The only object that talks to Home Assistant, and the only one that decides
-// when. Knows no domain types: a fetch reply hands out a raw payload, and the
-// caller (eventually the coordinator) parses it.
+// when. Knows no domain types: a fetch reply hands out a raw payload for the
+// caller to parse.
+//
+// Connect IQ allows one outstanding request of any kind — exceeding it yields a
+// queue-full transport error — so everything below serialises through a single
+// slot that a refresh and a service call compete for.
 class HaClient {
     // The device can't introspect its real model/OS, so every install registers
     // under these same constants.
@@ -98,35 +102,15 @@ class HaClient {
         "{% endfor %}" +
         "{{ dict(sensors=ns.out) | tojson }}";
 
-    // One outstanding request of any kind: exceeding it yields a queue-full
-    // transport error, so a refresh and a service call compete for this one
-    // slot.
     private var _requestInFlight as Boolean;
-
-    // Whether the request currently in the slot is a change rather than a
-    // fetch target — the narrower question a refresh trigger needs answered,
-    // instead of a general in-flight flag every site would reuse loosely.
     private var _changeInFlight as Boolean;
-
     private var _changeQueue as Array<QueuedChange>;
     private var _pendingChangeCallback as Method or Null;
-
-    // Targets still to fetch in the refresh currently running; empty means no
-    // refresh is in progress. A trigger arriving while this is non-empty is
-    // dropped rather than coalesced target-by-target.
     private var _pendingFetchTargets as Array<Symbol>;
-
     private var _currentTarget as Symbol or Null;
     private var _onRefreshTarget as Method or Null;
-
     private var _refreshHadFailure as Boolean;
-
     private var _lastRefreshCompletedAt as Number or Null;
-
-    // The failure the last settled request ended on, cleared by any success so
-    // it means a current failure rather than a historical high-water mark. Only
-    // set once a threshold is spent: a failure with attempts left is still being
-    // retried.
     private var _lastError as RequestError or Null;
 
     function initialize() {
@@ -142,6 +126,14 @@ class HaClient {
         _lastError = null;
     }
 
+    function isRefreshing() as Boolean {
+        return _pendingFetchTargets.size() > 0;
+    }
+
+    function hasOutstandingChanges() as Boolean {
+        return _changeQueue.size() > 0 || _changeInFlight;
+    }
+
     function msSinceLastRefresh() as Number or Null {
         return _lastRefreshCompletedAt == null ? null : System.getTimer() - (_lastRefreshCompletedAt as Number);
     }
@@ -150,9 +142,6 @@ class HaClient {
         return _lastError;
     }
 
-    // Distinct from the staleness question msSinceLastRefresh answers: a cold
-    // start before any reply is loading, while a completed refresh that returned
-    // nothing is a finding.
     function hasCompletedARefresh() as Boolean {
         return _lastRefreshCompletedAt != null;
     }
@@ -164,16 +153,10 @@ class HaClient {
         return _refreshHadFailure;
     }
 
-    // A trigger arriving while a refresh is already outstanding is dropped:
-    // once a target has landed it is no longer outstanding, so a fresh
-    // request for it would refetch data already in hand.
-    //
-    // A trigger arriving while a change is outstanding — queued or currently
-    // in the slot — is dropped too: converging against server truth is
-    // pointless when more changes are about to be posted, and the caller
-    // (the coordinator) is expected to ask again once its own reply lands.
+    // Dropped rather than queued, so a caller whose trigger is refused must ask
+    // again once whatever was outstanding has settled.
     function refresh(onTarget as Method) as Void {
-        if (_pendingFetchTargets.size() > 0 || _changeQueue.size() > 0 || _changeInFlight) {
+        if (isRefreshing() || hasOutstandingChanges()) {
             return;
         }
 
@@ -191,9 +174,9 @@ class HaClient {
         queueChange(new ServiceCall(self, service, "floor_id", floorId).method(:call), callback);
     }
 
-    // Drops the queue, the last error and the slot together. The rebuild
-    // sequence is the one caller: a settings change discards everything rather
-    // than letting a stale request's reply land against fresh state.
+    // Connect IQ still delivers a cancelled request's reply, so nulling the
+    // callbacks is what makes it harmless: the settle methods find nothing to
+    // notify and return.
     function cancelAll() as Void {
         Communications.cancelAllRequests();
         _changeQueue = [];
@@ -211,9 +194,6 @@ class HaClient {
         drainSlot();
     }
 
-    // Changes go out before fetches, and a fetch never starts while any
-    // change is queued or in flight — this is where the next change or
-    // target is chosen, once the slot is free.
     private function drainSlot() as Void {
         if (_requestInFlight) {
             return;
@@ -239,44 +219,32 @@ class HaClient {
         }
     }
 
-    function onChangeSettled(result as Object or Null, error as RequestError or Null) as Void {
+    // The error arrives only once RetryManager's threshold is spent, so it is a
+    // verdict that the link is down rather than one failed reply — which is what
+    // makes discarding the user's queued taps justified here.
+    function onChangeSettled(result as Object or Null, spentError as RequestError or Null) as Void {
         _requestInFlight = false;
         _changeInFlight = false;
 
-        // A cancelled request's reply can still arrive: cancelAll already
-        // nulled this, and there is nothing left to notify or converge.
         if (_pendingChangeCallback == null) {
             return;
         }
 
         var callback = _pendingChangeCallback as Method;
         _pendingChangeCallback = null;
+        _lastError = spentError;
 
-        // A transport failure drains the remaining queued changes only once
-        // RetryManager's own threshold is exhausted, never on the first
-        // failure: one failed reply is a hypothesis, and exhausting the
-        // threshold is what turns it into a verdict that the link is down.
-        if (error != null) {
-            _lastError = error;
+        if (spentError != null) {
             _changeQueue = [];
-        } else {
-            _lastError = null;
         }
 
-        callback.invoke(result, error);
-
-        // A reply does not start a refresh while further changes are
-        // outstanding: converging against server truth is pointless when
-        // more changes are about to be posted.
+        callback.invoke(result, spentError);
         drainSlot();
     }
 
-    function onTargetSettled(result as Object or Null, error as RequestError or Null) as Void {
+    function onTargetSettled(result as Object or Null, spentError as RequestError or Null) as Void {
         _requestInFlight = false;
 
-        // A cancelled request's reply can still arrive: cancelAll already
-        // nulled these, and pushing a cancelled target's payload into
-        // whatever state now exists would be wrong.
         if (_currentTarget == null || _onRefreshTarget == null) {
             return;
         }
@@ -284,21 +252,16 @@ class HaClient {
         var target = _currentTarget as Symbol;
         var onTarget = _onRefreshTarget as Method;
 
-        if (error != null) {
-            _refreshHadFailure = true;
-            _lastError = error;
-        } else {
-            _lastError = null;
-        }
+        _lastError = spentError;
+        _refreshHadFailure = _refreshHadFailure || spentError != null;
 
-        var isLastTarget = _pendingFetchTargets.size() == 0;
+        var isLastTarget = !isRefreshing();
 
         if (isLastTarget && !_refreshHadFailure) {
             _lastRefreshCompletedAt = System.getTimer();
         }
 
         onTarget.invoke(target, result, isLastTarget);
-
         drainSlot();
     }
 
