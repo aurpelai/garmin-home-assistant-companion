@@ -37,9 +37,8 @@ class Card {
         :size => FONT_SIZES.get("medium") as Number
     }) as Graphics.VectorFont;
 
-    // Public because the loop reads them from outside: it finds the card to
-    // restore focus to by id, and by floorId when that id is gone. Anything only
-    // a card's own drawing needs stays private to the type that draws it.
+    // Read from outside by the loop, which restores focus by id and falls back
+    // to floorId; anything only a card's own drawing needs stays private.
     public var id as String;
     public var floorId as String or Null;
     public var name as String;
@@ -60,13 +59,9 @@ class Card {
     function draw(dc as Graphics.Dc) as Void {
     }
 
-    // Declared here for the same reason as draw, so selecting a card dispatches
-    // by type rather than testing the card's class.
     function open(coordinator as Coordinator) as Void {
     }
 
-    // The title, its subtitle and the sensor boxes, which every card type shares.
-    // The subtitle is skipped when null: an unfloored area has no floor to name.
     hidden function drawFrame(dc as Graphics.Dc, subtitle as String or Null) as Void {
         var centerX = dc.getWidth() / 2;
 
@@ -88,8 +83,6 @@ class Card {
             Graphics.TEXT_JUSTIFY_CENTER);
     }
 
-    // Tally in, dots out: one per physical light, filled yellow while on, filled
-    // grey while off, outlined while unavailable.
     hidden function drawLightIndicators(dc as Graphics.Dc, lights as LightTally) as Void {
         var totalCount = lights.available + lights.unavailable;
         var firstX = dc.getWidth() / 2 - (totalCount - 1) * LIGHT_INDICATOR_SIZE / 2;

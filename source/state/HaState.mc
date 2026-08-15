@@ -3,9 +3,6 @@ import Toybox.Lang;
 // What Home Assistant reported, plus the values the user's taps assumed. Server
 // truth is never overwritten by a tap: an override sits over it, so reverting is
 // deletion rather than restoration and a refresh is a plain replacement.
-//
-// Knows entities, not transport: HaPayload turns a payload into the shapes set
-// here. Holds no client and knows nothing of views.
 class HaState {
     private var _lights as Dictionary<String, LightModel>;
     private var _sensors as Dictionary<String, SensorModel>;
@@ -27,8 +24,6 @@ class HaState {
         _overrides = {};
     }
 
-    // One setter per target, so a write covers exactly one target's worth of
-    // state and a caller cannot pair a target with another's data.
     function setStructure(structure as ParsedStructure) as Void {
         _zone = structure.zone;
         _areas = structure.areas;
@@ -93,7 +88,6 @@ class HaState {
         return out;
     }
 
-    // Resolves rather than reads: the assumed value wins while one exists.
     function isOn(entityId as String) as Boolean {
         var assumed = _overrides.get(entityId);
         if (assumed != null) {
@@ -120,11 +114,6 @@ class HaState {
         return overrideAll(getLightIdsInFloor(floorId), isOn);
     }
 
-    // What a toggle of this entity covers: itself and, when it is a group,
-    // everything it stands for. A group needs both — its own row is the one the
-    // user tapped, and its members are the rows beneath it, so moving either alone
-    // leaves the menu half-updated.
-    //
     // The members are the group's own, as the payload reported them — a display
     // claim, not a correctness claim: Home Assistant's own expansion can differ,
     // and the refresh after the reply is what makes them converge.
@@ -140,8 +129,6 @@ class HaState {
         return scope;
     }
 
-    // Both resolve over a scope, so a floor's own row, the direction its tap picks
-    // and the guard that refuses a second tap all read the same two questions.
     function anyOn(entityIds as Array<String>) as Boolean {
         for (var index = 0; index < entityIds.size(); index++) {
             if (isOn(entityIds[index])) {

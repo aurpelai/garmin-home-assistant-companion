@@ -1,16 +1,14 @@
 import Toybox.Lang;
 
-// Wraps one request with a bounded reissue loop: every failure reason is
-// retried, and nothing classifies them — the retry itself is the test, since
-// *would this kind recover* is a guess we would otherwise have to maintain a
-// table for. The cost is that an auth failure or a template error burns the
-// full threshold before it surfaces, which is why it is kept small.
+// Every failure reason is retried and none is classified: the retry itself is
+// the test, where *would this kind recover* would be a guess needing a table to
+// maintain. The cost is that an auth failure burns the full threshold before it
+// surfaces, which is why the threshold is small.
 //
-// Carries the wrapped request's identity, so a spent threshold surfaces as a
-// RequestError rather than a bare reason. Re-registration is the one place two
-// request types interleave, and a failure there stays :registration: a bad
-// request against our registration body means our own body is malformed, while
-// the same code on a fetch means a template error on the Home Assistant side.
+// Re-registration is the one place two request types interleave, and a failure
+// there stays :registration — a bad request against our registration body means
+// our own body is malformed, where the same code on a fetch means a template
+// error on the Home Assistant side.
 class RetryManager {
     private const REQUEST_RETRIES = 3;
     private const REGISTRATION_RETRIES = 1;

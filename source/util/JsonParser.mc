@@ -98,7 +98,6 @@ class JsonParser {
         return consumeClose(0x7D) ? out : null; // }
     }
 
-    // Reads one "key": value pair into out; false on any malformed part.
     private function parseMember(out as Dictionary) as Boolean {
         skipWhitespace();
         if (_pos >= _len || _chars[_pos] != 0x22) { // "
@@ -139,8 +138,6 @@ class JsonParser {
         return consumeClose(0x5D) ? out : null; // ]
     }
 
-    // Consumes a closing bracket at the current position (past whitespace),
-    // reporting whether the container ended here.
     private function consumeClose(bracket as Number) as Boolean {
         skipWhitespace();
         if (_pos < _len && _chars[_pos] == bracket) {
@@ -150,7 +147,6 @@ class JsonParser {
         return false;
     }
 
-    // Consumes a separating comma, reporting whether another element follows.
     private function consumeComma() as Boolean {
         skipWhitespace();
         if (_pos < _len && _chars[_pos] == 0x2C) { // ,
@@ -295,14 +291,12 @@ class JsonParser {
             var c = _chars[_pos];
             var isExp = false;
             if (c >= 0x30 && c <= 0x39) {
-                // digit always allowed
             } else if (c == 0x2E && !hasDot && !hasExp) { // .
                 hasDot = true;
             } else if ((c == 0x65 || c == 0x45) && !hasExp) { // e E
                 hasExp = true;
                 isExp = true;
             } else if ((c == 0x2B || c == 0x2D) && prevWasExp) { // + -
-                // sign only immediately after the exponent marker
             } else {
                 break;
             }
