@@ -125,7 +125,7 @@ function rebuildDiscardsStateAndRefetchesRatherThanComparingValues(logger as Tes
     var coordinator = new Coordinator(client);
 
     coordinator.onActivate();
-    client.fireTarget(:lights, { "lights" => { "light.a" => { "state" => false, "area_id" => "area.x" } } }, null);
+    client.fireTarget(FetchTarget.LIGHTS, { "lights" => { "light.a" => { "state" => false, "area_id" => "area.x" } } }, null);
     coordinator.toggleEntity("light.a");
 
     // light.a now has an override, still unanswered: were the old HaState
@@ -169,7 +169,7 @@ function toggleRecordsAnOverrideFiresAndTheReplyClearsExactlyThoseIds(logger as 
     var coordinator = new Coordinator(client);
 
     coordinator.onActivate();
-    client.fireTarget(:lights, {
+    client.fireTarget(FetchTarget.LIGHTS, {
         "lights" => {
             "light.a" => { "state" => false, "area_id" => "area.x" },
             "light.b" => { "state" => false, "area_id" => "area.x" }
@@ -200,7 +200,7 @@ function toggleRecordsAnOverrideFiresAndTheReplyClearsExactlyThoseIds(logger as 
     // server truth was never overwritten.
     coordinator.toggleEntity("light.b");
     client.fireToggleFailureAt(client.toggledEntityIds.size() - 1,
-        new RequestError(-1, :request));
+        new RequestError(-1, RequestType.REQUEST));
     coordinator.toggleEntity("light.b");
     Test.assertEqual(client.toggledEntityIds.size(), 4);
     return true;
@@ -215,7 +215,7 @@ function aGroupTapMovesItsMembersAndIsBlockedByOneOfThemBeingPending(logger as T
     var coordinator = new Coordinator(client);
 
     coordinator.onActivate();
-    client.fireTarget(:lights, {
+    client.fireTarget(FetchTarget.LIGHTS, {
         "lights" => {
             "light.grp" => { "state" => false, "area_id" => "area.x",
                 "memberIds" => ["light.one", "light.two"] },
@@ -253,10 +253,10 @@ function toggleFloorLightsFlipsToOnWhenAllAreOffAndQueuesTheFloorTarget(logger a
     var coordinator = new Coordinator(client);
 
     coordinator.onActivate();
-    client.fireTarget(:structure, {
+    client.fireTarget(FetchTarget.STRUCTURE, {
         "floors" => { "floor.up" => { "name" => "Up", "order" => 0, "areas" => ["area.x"] } }
     }, null);
-    client.fireTarget(:lights, {
+    client.fireTarget(FetchTarget.LIGHTS, {
         "lights" => { "light.a" => { "state" => false, "area_id" => "area.x" } }
     }, null);
 
@@ -278,10 +278,10 @@ function everyLightInTheFloorDecidesTheFlipDirection(logger as Test.Logger) as B
     var coordinator = new Coordinator(client);
 
     coordinator.onActivate();
-    client.fireTarget(:structure, {
+    client.fireTarget(FetchTarget.STRUCTURE, {
         "floors" => { "floor.up" => { "name" => "Up", "order" => 0, "areas" => ["area.x"] } }
     }, null);
-    client.fireTarget(:lights, {
+    client.fireTarget(FetchTarget.LIGHTS, {
         "lights" => {
             "light.off" => { "state" => false, "area_id" => "area.x", "available" => true },
             "light.dead" => { "state" => false, "area_id" => "area.x", "available" => false },
@@ -302,7 +302,7 @@ function toggleFloorLightsWithNoLightsQueuesNothing(logger as Test.Logger) as Bo
     var coordinator = new Coordinator(client);
 
     coordinator.onActivate();
-    client.fireTarget(:structure, {
+    client.fireTarget(FetchTarget.STRUCTURE, {
         "floors" => { "floor.up" => { "name" => "Up", "order" => 0, "areas" => ["area.x"] } }
     }, null);
 
@@ -348,7 +348,7 @@ function theInfoScreenLeavesNothingLiveToPushInto(logger as Test.Logger) as Bool
 
     Test.assert(coordinator.currentView() == null);
 
-    client.fireTarget(:lights, {
+    client.fireTarget(FetchTarget.LIGHTS, {
         "lights" => { "light.a" => { "state" => true, "area_id" => "area.x" } }
     }, null);
     Test.assertEqual(view.rebuildCount, 0);
@@ -367,7 +367,7 @@ function aFailedStartupFetchLeavesTheLoadingScreenRatherThanHoldingIt(logger as 
     coordinator.onViewShown(loading);
     Test.assert(coordinator.currentView() == loading);
 
-    client.fireTarget(:structure, null, new RequestError(401, :request));
+    client.fireTarget(FetchTarget.STRUCTURE, null, new RequestError(401, RequestType.REQUEST));
 
     // Nothing loaded and a spent threshold: the failure itself is the screen,
     // and the info screen is not a Screen to push into.
@@ -386,7 +386,7 @@ function aSuccessWithNoAreasAndNoErrorLeavesTheLoadingScreenUp(logger as Test.Lo
     var loading = new StubScreen(true);
 
     coordinator.onViewShown(loading);
-    client.fireMidRefreshTarget(:sensors, { "sensors" => {} });
+    client.fireMidRefreshTarget(FetchTarget.SENSORS, { "sensors" => {} });
 
     // The reply reaches the screen, so partial data is visible while the rest
     // is still in flight — but where the user belongs is not decided until the
@@ -407,7 +407,7 @@ function aCompletedRefreshWithNoAreasIsAFindingNotLoading(logger as Test.Logger)
     var loading = new StubScreen(true);
 
     coordinator.onViewShown(loading);
-    client.fireTarget(:structure, { "areas" => {} }, null);
+    client.fireTarget(FetchTarget.STRUCTURE, { "areas" => {} }, null);
 
     Test.assert(coordinator.currentView() == null);
     return true;
@@ -422,7 +422,7 @@ function anAreaWithNoErrorGoesToTheRealViewRatherThanTheInfoScreen(logger as Tes
     var view = new StubScreen(true);
 
     coordinator.onViewShown(view);
-    client.fireTarget(:structure, {
+    client.fireTarget(FetchTarget.STRUCTURE, {
         "areas" => { "area.x" => { "name" => "Kitchen" } }
     }, null);
 
@@ -442,10 +442,10 @@ function aStructureFailureStaysOnTheInfoScreenEvenAfterASiblingTargetLands(
     var coordinator = new Coordinator(client);
 
     coordinator.onViewShown(new StubScreen(true));
-    client.fireTarget(:structure, null, new RequestError(401, :request));
+    client.fireTarget(FetchTarget.STRUCTURE, null, new RequestError(401, RequestType.REQUEST));
     Test.assert(coordinator.currentView() == null);
 
-    client.fireTarget(:lights, {
+    client.fireTarget(FetchTarget.LIGHTS, {
         "lights" => { "light.a" => { "state" => true, "area_id" => "area.x" } }
     }, null);
 
@@ -470,15 +470,15 @@ function aFailedTargetKeepsDataOnScreenRatherThanReplacingItWithTheFailure(logge
     var view = new StubScreen(true);
 
     coordinator.onViewShown(view);
-    client.fireTarget(:structure, {
+    client.fireTarget(FetchTarget.STRUCTURE, {
         "areas" => { "area.x" => { "name" => "Kitchen" } }
     }, null);
-    client.fireTarget(:lights, {
+    client.fireTarget(FetchTarget.LIGHTS, {
         "lights" => { "light.a" => { "state" => true, "area_id" => "area.x" } }
     }, null);
 
     var rebuildsBeforeFailure = view.rebuildCount;
-    client.fireTarget(:sensors, null, new RequestError(-1, :request));
+    client.fireTarget(FetchTarget.SENSORS, null, new RequestError(-1, RequestType.REQUEST));
 
     Test.assert(coordinator.currentView() == view);
     Test.assertEqual(view.rebuildCount, rebuildsBeforeFailure + 1);
@@ -501,7 +501,7 @@ function aFailedToggleDoesNotTakeTheScreenAway(logger as Test.Logger) as Boolean
     var view = new StubScreen(true);
 
     coordinator.onActivate();
-    client.fireTarget(:lights, {
+    client.fireTarget(FetchTarget.LIGHTS, {
         "lights" => { "light.a" => { "state" => false, "area_id" => "area.x" } }
     }, null);
     coordinator.onViewShown(view);
@@ -509,7 +509,7 @@ function aFailedToggleDoesNotTakeTheScreenAway(logger as Test.Logger) as Boolean
     coordinator.toggleEntity("light.a");
     Test.assert(coordinator.haState().isPending("light.a"));
 
-    client.fireToggleFailureAt(0, new RequestError(-1, :request));
+    client.fireToggleFailureAt(0, new RequestError(-1, RequestType.REQUEST));
 
     Test.assert(coordinator.currentView() == view);
     Test.assert(!coordinator.haState().isPending("light.a"));

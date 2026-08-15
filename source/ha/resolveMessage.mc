@@ -19,12 +19,12 @@ function resolveMessage(error as RequestError) as ResourceId {
         return Rez.Strings.ErrAuth;
     }
 
-    if (reason == 404 && error.requestType == :registration) {
+    if (reason == 404 && error.requestType == RequestType.REGISTRATION) {
         return Rez.Strings.ErrRegistrationGone;
     }
 
     if (reason == 400) {
-        return error.requestType == :registration
+        return error.requestType == RequestType.REGISTRATION
             ? Rez.Strings.ErrRegistrationRejected
             : Rez.Strings.ErrTemplate;
     }

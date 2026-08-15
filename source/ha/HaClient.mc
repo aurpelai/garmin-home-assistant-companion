@@ -24,7 +24,7 @@ class HaClient {
 
     // Fired in this order on every refresh; either arrival order is tolerated
     // downstream, so the order here is just the one chosen.
-    private const REFRESH_TARGETS = [:structure, :lights, :sensors];
+    private const REFRESH_TARGETS = [FetchTarget.STRUCTURE, FetchTarget.LIGHTS, FetchTarget.SENSORS];
 
     // Piped through `| tojson`: the render_template webhook returns the rendered
     // value as a string, so without it the payload is a Python repr (single
@@ -205,7 +205,7 @@ class HaClient {
             _requestInFlight = true;
             _changeInFlight = true;
             _pendingChangeCallback = next.callback;
-            new RetryManager(self, next.request, method(:onChangeSettled), :request).attempt();
+            new RetryManager(self, next.request, method(:onChangeSettled), RequestType.REQUEST).attempt();
             return;
         }
 
@@ -215,7 +215,7 @@ class HaClient {
             _requestInFlight = true;
             _currentTarget = target;
             new RetryManager(self, new TargetFetch(self, target).method(:request), method(:onTargetSettled),
-                             :request).attempt();
+                             RequestType.REQUEST).attempt();
         }
     }
 
@@ -287,7 +287,8 @@ class HaClient {
             "app_data" => {}
         };
         post("/api/mobile_app/registrations", body,
-             new ResponseHandler(new RegisterCacheHandler(callback).method(:onRegistered), :registration));
+             new ResponseHandler(new RegisterCacheHandler(callback).method(:onRegistered),
+                                 ResponseType.REGISTRATION));
     }
 
     private function postFetchTemplate(template as String, callback as Method) as Void {
@@ -306,14 +307,14 @@ class HaClient {
                 }
             }
         };
-        post("/api/webhook/" + webhookId, body, new ResponseHandler(callback, :fetch));
+        post("/api/webhook/" + webhookId, body, new ResponseHandler(callback, ResponseType.FETCH));
     }
 
     private function templateFor(target as Symbol) as String {
-        if (target == :structure) {
+        if (target == FetchTarget.STRUCTURE) {
             return STRUCTURE_TEMPLATE;
         }
-        if (target == :lights) {
+        if (target == FetchTarget.LIGHTS) {
             return LIGHTS_TEMPLATE;
         }
         return SENSORS_TEMPLATE;

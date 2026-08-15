@@ -6,9 +6,7 @@ import Toybox.Lang;
 // surfaces, which is why the threshold is small.
 //
 // Re-registration is the one place two request types interleave, and a failure
-// there stays :registration — a bad request against our registration body means
-// our own body is malformed, where the same code on a :request means Home
-// Assistant could not do what we asked.
+// there keeps the registration type rather than inheriting the caller's.
 class RetryManager {
     private const REQUEST_RETRIES = 3;
     private const REGISTRATION_RETRIES = 1;
@@ -74,7 +72,7 @@ class RetryManager {
 
     function onRegistered(webhookId as String or Null, reason as Object or Null) as Void {
         if (reason != null) {
-            surface(reason, :registration);
+            surface(reason, RequestType.REGISTRATION);
             return;
         }
 

@@ -141,13 +141,13 @@ class Coordinator {
     // one reply — so it waits for the last one.
     function onFetchTarget(target as Symbol, result as Object or Null, isLastTarget as Boolean) as Void {
         if (result != null) {
-            if (target == :structure) {
+            if (target == FetchTarget.STRUCTURE) {
                 _haState.setZone(HaPayload.parseZone(result));
                 _haState.setAreas(HaPayload.parseAreas(result));
                 _haState.setFloors(HaPayload.parseFloors(result));
-            } else if (target == :lights) {
+            } else if (target == FetchTarget.LIGHTS) {
                 _haState.setLights(HaPayload.parseLights(result));
-            } else if (target == :sensors) {
+            } else if (target == FetchTarget.SENSORS) {
                 _haState.setSensors(HaPayload.parseSensors(result));
             }
         }

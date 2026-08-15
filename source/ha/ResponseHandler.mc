@@ -16,7 +16,7 @@ class ResponseHandler {
             return;
         }
         switch (_responseType) {
-            case :fetch:
+            case ResponseType.FETCH:
                 var rendered = (data instanceof Dictionary) ? data.get("home") : null;
                 // The render_template webhook returns the rendered value as a
                 // string, so the payload arrives JSON-encoded a second time.
@@ -27,7 +27,7 @@ class ResponseHandler {
                     _callback.invoke(home, null);
                 }
                 break;
-            case :registration:
+            case ResponseType.REGISTRATION:
                 var webhookId = (data instanceof Dictionary) ? data.get("webhook_id") : null;
                 if (webhookId instanceof Lang.String) {
                     _callback.invoke(webhookId, null);
@@ -37,7 +37,7 @@ class ResponseHandler {
                     _callback.invoke(null, Communications.INVALID_HTTP_BODY_IN_NETWORK_RESPONSE);
                 }
                 break;
-            case :serviceCall:
+            case ResponseType.SERVICE_CALL:
                 _callback.invoke(true, null);
                 break;
         }

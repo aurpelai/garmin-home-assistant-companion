@@ -36,7 +36,8 @@ class ServiceCall {
             }
         };
 
-        _client.post("/api/webhook/" + webhookId, body, new ResponseHandler(callback, :serviceCall));
+        _client.post("/api/webhook/" + webhookId, body,
+                     new ResponseHandler(callback, ResponseType.SERVICE_CALL));
     }
 
 }
