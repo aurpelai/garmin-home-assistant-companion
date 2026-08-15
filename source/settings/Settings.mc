@@ -24,8 +24,6 @@ module Settings {
     }
 
     function trimTrailingSlash(url as String) as String {
-        // substring is null only for an out-of-range index; the length guard
-        // keeps the range valid, so the cast can't hit null.
         while (url.length() > 0 && (url.substring(url.length() - 1, url.length()) as String).equals("/")) {
             url = url.substring(0, url.length() - 1) as String;
         }

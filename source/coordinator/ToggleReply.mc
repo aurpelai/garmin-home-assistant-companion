@@ -12,8 +12,6 @@ class ToggleReply {
         _overriddenIds = overriddenIds;
     }
 
-    // Every terminal outcome reaches here: success, failure, or cancellation
-    // alike, since with no request outstanding the override is a lie either way.
     function onSettled(result as Object or Null, error as RequestError or Null) as Void {
         _coordinator.onToggleSettled(_overriddenIds, error);
     }
