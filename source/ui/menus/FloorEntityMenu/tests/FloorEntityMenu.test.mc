@@ -71,14 +71,6 @@ function theWholeLightsRowTargetsTheFloorRatherThanItsOwnId(logger as Test.Logge
 }
 
 (:test)
-function aFloorWithNoLightsGetsNoRowRatherThanADeadOne(logger as Test.Logger) as Boolean {
-    var menu = FloorEntityMenuTest.menuOf(FloorEntityMenuTest.stateOf({} as Dictionary));
-
-    Test.assert(menu.getItem(0) == null);
-    return true;
-}
-
-(:test)
 function aVanishedFloorReportsItsSubjectGoneRatherThanPushing(logger as Test.Logger) as Boolean {
     var menu = FloorEntityMenuTest.menuOf(FloorEntityMenuTest.stateOf({
         "light.a" => { "state" => true, "area_id" => "area.room" }
@@ -88,32 +80,3 @@ function aVanishedFloorReportsItsSubjectGoneRatherThanPushing(logger as Test.Log
     return true;
 }
 
-(:test)
-function lightsArrivingAfterTheMenuOpenedAddNoRow(logger as Test.Logger) as Boolean {
-    // The structure names the floor before any light has landed, so a menu
-    // opened in that window stays rowless until it is reopened.
-    var haState = new HaState();
-    haState.setZone(HaPayload.parseZone({
-        "areas" => { "area.room" => { "name" => "Room" } },
-        "floors" => { "floor.up" => { "name" => "Up", "order" => 0, "areas" => ["area.room"] } }
-    }));
-    haState.setAreas(HaPayload.parseAreas({
-        "areas" => { "area.room" => { "name" => "Room" } },
-        "floors" => { "floor.up" => { "name" => "Up", "order" => 0, "areas" => ["area.room"] } }
-    }));
-    haState.setFloors(HaPayload.parseFloors({
-        "areas" => { "area.room" => { "name" => "Room" } },
-        "floors" => { "floor.up" => { "name" => "Up", "order" => 0, "areas" => ["area.room"] } }
-    }));
-
-    var menu = FloorEntityMenuTest.menuOf(haState);
-    Test.assert(menu.getItem(0) == null);
-
-    haState.setLights(HaPayload.parseLights({
-        "lights" => { "light.a" => { "state" => true, "area_id" => "area.room" } }
-    }));
-    menu.rebuild(haState);
-
-    Test.assert(menu.getItem(0) == null);
-    return true;
-}

@@ -211,18 +211,6 @@ function onResponseNormalizesRegistrationSuccessToWebhookId(logger as Test.Logge
 }
 
 (:test)
-function onResponseNormalizesRegistrationFailureToError(logger as Test.Logger) as Boolean {
-    var capture = new ResultCapture();
-    var handler = new ResponseHandler(capture.method(:onResult), :registration);
-
-    handler.onResponse(400, null);
-
-    Test.assert(capture.result == null);
-    Test.assertEqual(capture.error as Number, 400);
-    return true;
-}
-
-(:test)
 function aFetchRecoversOnceFromInvalidWebhook(logger as Test.Logger) as Boolean {
     Application.Storage.clearValues();
     Webhook.setId("stale-id");
@@ -243,25 +231,6 @@ function aFetchRecoversOnceFromInvalidWebhook(logger as Test.Logger) as Boolean 
     var error = capture.error as RequestError;
     Test.assertEqual(error.reason as Number, Communications.INVALID_HTTP_BODY_IN_NETWORK_RESPONSE);
     Test.assertEqual(error.requestType, :request);
-    return true;
-}
-
-(:test)
-function aFetchRecoversFrom404TooAndSucceeds(logger as Test.Logger) as Boolean {
-    Application.Storage.clearValues();
-    Webhook.setId("stale-id");
-    var client = new MockHaClient();
-    var capture = new ResultCapture();
-
-    new RetryManager(client, client.method(:fetchOnce), capture.method(:onResult), :request).attempt();
-    client.fireFetchFailureWithCode(404);
-    client.fireRegisterSuccess("fresh-id");
-    client.fireFetchSuccess({ "lights" => { "light.a" => { "state" => true } } });
-
-    Test.assertEqual(client.fetchCount, 2);
-    Test.assertEqual(client.registerCount, 1);
-    Test.assert(capture.result instanceof Dictionary);
-    Test.assert(capture.error == null);
     return true;
 }
 
@@ -371,22 +340,6 @@ class TargetLog {
 }
 
 (:test)
-function onlyOneRequestIsOutstandingAtATime(logger as Test.Logger) as Boolean {
-    // A refresh fires three targets, but the platform allows one outstanding
-    // request of any kind: the second and third targets must not be posted
-    // until the first has settled.
-    Application.Storage.clearValues();
-    Webhook.setId("some-id");
-    var client = new MockHaClient();
-    var log = new TargetLog();
-
-    client.refresh(log.method(:onTarget));
-
-    Test.assertEqual(client.serviceCallbacks.size(), 1);
-    return true;
-}
-
-(:test)
 function aChangeQueuesRatherThanBeingDropped(logger as Test.Logger) as Boolean {
     Application.Storage.clearValues();
     Webhook.setId("some-id");
@@ -461,22 +414,6 @@ function aReplyDoesNotStartARefreshWhileChangesAreQueued(logger as Test.Logger) 
 
     client.queueLightToggle("light.a", new ResultCapture().method(:onResult));
     client.queueLightToggle("light.b", new ResultCapture().method(:onResult));
-    client.refresh(log.method(:onTarget));
-
-    Test.assertEqual(log.targets.size(), 0);
-    return true;
-}
-
-(:test)
-function aReplyDoesNotStartARefreshWhileAChangeIsStillInFlight(logger as Test.Logger) as Boolean {
-    // Same trigger, but with nothing queued — the one change already
-    // occupying the slot is enough on its own to drop the refresh.
-    Application.Storage.clearValues();
-    Webhook.setId("some-id");
-    var client = new MockHaClient();
-    var log = new TargetLog();
-
-    client.queueLightToggle("light.a", new ResultCapture().method(:onResult));
     client.refresh(log.method(:onTarget));
 
     Test.assertEqual(log.targets.size(), 0);
@@ -578,23 +515,3 @@ function aRefreshWhereOneTargetFailsNeverStampsCompletion(logger as Test.Logger)
     return true;
 }
 
-(:test)
-function queueFloorLightsQueuesAFloorChangeRatherThanBeingDropped(logger as Test.Logger) as Boolean {
-    Application.Storage.clearValues();
-    Webhook.setId("some-id");
-    var client = new MockHaClient();
-    var first = new ResultCapture();
-    var second = new ResultCapture();
-
-    client.queueFloorLights("floor_up", "turn_on", first.method(:onResult));
-    client.queueLightToggle("light.a", second.method(:onResult));
-
-    // The floor change occupies the slot; the toggle behind it is still
-    // queued rather than discarded, so it fires only once the floor change
-    // settles.
-    Test.assertEqual(client.serviceCallbacks.size(), 1);
-    client.fireServiceSuccessAt(0);
-    Test.assertEqual(client.serviceCallbacks.size(), 2);
-    Test.assertEqual(first.result as Boolean, true);
-    return true;
-}

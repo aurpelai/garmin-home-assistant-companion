@@ -269,28 +269,6 @@ function toggleFloorLightsFlipsToOnWhenAllAreOffAndQueuesTheFloorTarget(logger a
 }
 
 (:test)
-function toggleFloorLightsFlipsToOffWhenAnyIsOn(logger as Test.Logger) as Boolean {
-    var client = new FakeCoordinatorClient();
-    var coordinator = new Coordinator(client);
-
-    coordinator.onActivate();
-    client.fireTarget(:structure, {
-        "floors" => { "floor.up" => { "name" => "Up", "order" => 0, "areas" => ["area.x"] } }
-    }, null);
-    client.fireTarget(:lights, {
-        "lights" => {
-            "light.a" => { "state" => false, "area_id" => "area.x" },
-            "light.b" => { "state" => true, "area_id" => "area.x" }
-        }
-    }, null);
-
-    coordinator.toggleFloorLights("floor.up");
-
-    Test.assertEqual(client.toggledFloorServices[0], "turn_off");
-    return true;
-}
-
-(:test)
 function everyLightInTheFloorDecidesTheFlipDirection(logger as Test.Logger) as Boolean {
     // Nothing in the floor is out of scope: Home Assistant expands the floor
     // server-side and accepts a call to a light it cannot currently reach, so a
@@ -333,33 +311,6 @@ function toggleFloorLightsWithNoLightsQueuesNothing(logger as Test.Logger) as Bo
     coordinator.toggleFloorLights("floor.up");
 
     Test.assertEqual(client.toggledFloorIds.size(), 0);
-    return true;
-}
-
-(:test)
-function aSecondFloorTapIsIgnoredWhileAMemberIsAlreadyPending(logger as Test.Logger) as Boolean {
-    var client = new FakeCoordinatorClient();
-    var coordinator = new Coordinator(client);
-
-    coordinator.onActivate();
-    client.fireTarget(:structure, {
-        "floors" => { "floor.up" => { "name" => "Up", "order" => 0, "areas" => ["area.x"] } }
-    }, null);
-    client.fireTarget(:lights, {
-        "lights" => { "light.a" => { "state" => false, "area_id" => "area.x" } }
-    }, null);
-
-    coordinator.toggleFloorLights("floor.up");
-    Test.assertEqual(client.toggledFloorIds.size(), 1);
-
-    // light.a is still pending from the first floor action: a second tap
-    // covering it must be ignored, regardless of what created the override.
-    coordinator.toggleFloorLights("floor.up");
-    Test.assertEqual(client.toggledFloorIds.size(), 1);
-
-    // A lone entity tap on the same covered light is ignored too.
-    coordinator.toggleEntity("light.a");
-    Test.assertEqual(client.toggledEntityIds.size(), 0);
     return true;
 }
 

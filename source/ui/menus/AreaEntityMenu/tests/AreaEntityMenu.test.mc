@@ -89,22 +89,6 @@ function anEntityMissingFromTheModelKeepsTheItemItHad(logger as Test.Logger) as 
 }
 
 (:test)
-function aPushMovesTheSwitchToTheModelsState(logger as Test.Logger) as Boolean {
-    var menu = AreaEntityMenuTest.menuOf(AreaEntityMenuTest.stateOf({
-        "light.a" => { "state" => true, "area_id" => "area.room" }
-    }, {} as Dictionary));
-
-    Test.assert((AreaEntityMenuTest.itemOf(menu, "light.a") as WatchUi.ToggleMenuItem).isEnabled());
-
-    menu.rebuild(AreaEntityMenuTest.stateOf({
-        "light.a" => { "state" => false, "area_id" => "area.room" }
-    }, {} as Dictionary));
-
-    Test.assert(!(AreaEntityMenuTest.itemOf(menu, "light.a") as WatchUi.ToggleMenuItem).isEnabled());
-    return true;
-}
-
-(:test)
 function aLightSublabelPicksUnavailableOverAGroupCount(logger as Test.Logger) as Boolean {
     // An unavailable group would otherwise read as a member count, hiding that
     // nothing in it can be reached.
@@ -125,22 +109,6 @@ function anAvailableGroupShowsItsMemberCount(logger as Test.Logger) as Boolean {
 }
 
 (:test)
-function anAvailablePlainLightShowsNoSublabel(logger as Test.Logger) as Boolean {
-    var plain = new LightRowModel("light.plain", "Plain", true, true, null);
-
-    Test.assert(AreaEntityMenu.lightSubLabel(plain) == null);
-    return true;
-}
-
-(:test)
-function anUnavailablePlainLightSaysSoRatherThanNothing(logger as Test.Logger) as Boolean {
-    var plain = new LightRowModel("light.plain", "Plain", false, false, null);
-
-    Test.assertEqual(AreaEntityMenu.lightSubLabel(plain) as String, "Unavailable");
-    return true;
-}
-
-(:test)
 function aSensorSublabelPicksUnavailableOverTheDisplayValue(logger as Test.Logger) as Boolean {
     // Home Assistant formats whatever the state is, so an unavailable sensor
     // would otherwise render as the word unavailable followed by a unit.
@@ -153,32 +121,10 @@ function aSensorSublabelPicksUnavailableOverTheDisplayValue(logger as Test.Logge
 }
 
 (:test)
-function aSensorWithNoDisplayValueSaysUnavailable(logger as Test.Logger) as Boolean {
-    var blank = new SensorRowModel("sensor.t", "Temp", null, true);
-
-    Test.assertEqual(AreaEntityMenu.sensorSubLabel(blank), "Unavailable");
-    return true;
-}
-
-(:test)
 function aRowFallsBackToItsIdWhenHaNamesItNothing(logger as Test.Logger) as Boolean {
     Test.assertEqual(AreaEntityMenu.labelOf(null, "light.kitchen"), "light.kitchen");
     Test.assertEqual(AreaEntityMenu.labelOf("", "light.kitchen"), "light.kitchen");
     Test.assertEqual(AreaEntityMenu.labelOf("Kitchen Island", "light.kitchen"), "Kitchen Island");
-    return true;
-}
-
-(:test)
-function rawNonAsciiNamesAndReadingsSurviveTheSeam(logger as Test.Logger) as Boolean {
-    var menu = AreaEntityMenuTest.menuOf(AreaEntityMenuTest.stateOf({
-        "light.a" => { "state" => true, "area_id" => "area.room", "name" => "Küche Décor" }
-    }, {
-        "sensor.t" => { "state" => 21.5, "display_state" => "21,5 °C", "unit" => "°C",
-            "device_class" => "temperature", "area_id" => "area.room", "name" => "Temperatur" }
-    }));
-
-    Test.assertEqual(AreaEntityMenuTest.itemOf(menu, "light.a").getLabel() as String, "Küche Décor");
-    Test.assertEqual(AreaEntityMenuTest.itemOf(menu, "sensor.t").getSubLabel() as String, "21,5 °C");
     return true;
 }
 

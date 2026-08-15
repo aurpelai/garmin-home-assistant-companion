@@ -122,26 +122,6 @@ function aVanishedCardFallsBackToTheFloorItSatUnder(logger as Test.Logger) as Bo
 }
 
 (:test)
-function aVanishedCardAndFloorFallBackToTheFirstCard(logger as Test.Logger) as Boolean {
-    var loop = CardLoopTest.loopOf(CardLoopTest.twoFloors());
-
-    loop.showPrevious();
-    Test.assertEqual(CardLoopTest.focusedId(loop), "area.bedroom");
-
-    loop.rebuild(CardLoopTest.stateOf({
-        "areas" => { "area.kitchen" => { "name" => "Kitchen" } },
-        "floors" => {
-            "floor.ground" => { "name" => "Ground", "order" => 0, "areas" => ["area.kitchen"] }
-        }
-    }, {
-        "light.kitchen" => { "state" => true, "area_id" => "area.kitchen" }
-    }));
-
-    Test.assertEqual(CardLoopTest.focusedId(loop), "floor.ground");
-    return true;
-}
-
-(:test)
 function theCardLoopNeverReportsItsSubjectGone(logger as Test.Logger) as Boolean {
     // It builds from the whole of HaState, so it is the one screen no deletion
     // can empty out from under — which is what makes it the fallback

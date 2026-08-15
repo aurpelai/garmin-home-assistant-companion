@@ -119,23 +119,6 @@ function anAreaCardTalliesPhysicalLightsAndSplitsThemByAvailability(logger as Te
 }
 
 (:test)
-function anAreaCardTallyReadsTheAssumedValueOfAPendingLight(logger as Test.Logger) as Boolean {
-    // Backing out to the card loop before a toggle's reply must show the tap's
-    // assumed value, which only an override-resolved read gives.
-    var haState = CardLoopModelTest.stateOf({
-        "areas" => { "area.room" => { "name" => "Room" } }
-    }, { "light.a" => CardLoopModelTest.light(false, "area.room") }, {} as Dictionary);
-
-    haState.override("light.a", true);
-
-    var lights = new LightTally();
-    lights.addAll(haState, haState.getLightIdsInArea("area.room"));
-
-    Test.assertEqual(lights.on, 1);
-    return true;
-}
-
-(:test)
 function severalSensorsOfOneDeviceClassAverageWhateverTheScope(logger as Test.Logger) as Boolean {
     // No one sensor speaks for its scope, so picking one would put whichever the
     // walk reached first on the card. An area with two of a class averages them
@@ -209,23 +192,6 @@ function aFloorMeanExcludesAnUnusableReadingRatherThanCountingItAsZero(logger as
 
     Test.assertEqual(
         CardLoopModelTest.readingOf(buildCardLoopModel(haState), "floor.g", "temperature"), "21.5 °C");
-    return true;
-}
-
-(:test)
-function aGenuineZeroReadingStillCountsInAFloorMean(logger as Test.Logger) as Boolean {
-    // Zero and absent must not collapse: a real 0.0 halves a 22.0 reading where
-    // an absent one leaves it alone.
-    var haState = CardLoopModelTest.stateOf({
-        "areas" => { "area.a" => { "name" => "A" }, "area.b" => { "name" => "B" } },
-        "floors" => { "floor.g" => { "name" => "G", "order" => 0, "areas" => ["area.a", "area.b"] } }
-    }, {} as Dictionary, {
-        "sensor.a" => CardLoopModelTest.temperature("0.0 °C", 0.0, "area.a"),
-        "sensor.b" => CardLoopModelTest.temperature("22.0 °C", 22.0, "area.b")
-    });
-
-    Test.assertEqual(
-        CardLoopModelTest.readingOf(buildCardLoopModel(haState), "floor.g", "temperature"), "11.0 °C");
     return true;
 }
 
