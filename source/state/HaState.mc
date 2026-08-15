@@ -24,21 +24,40 @@ class HaState {
         _overrides = {};
     }
 
-    function setStructure(structure as ParsedStructure) as Void {
-        _zone = structure.zone;
-        _areas = structure.areas;
-        _floors = structure.floors;
+    function setZone(zone as String or Null) as Void {
+        _zone = zone;
     }
 
-    function setLights(parsed as ParsedLights) as Void {
-        _lights = parsed.lights;
-        _lightIdsByArea = parsed.lightIdsByArea;
+    function setAreas(areas as Dictionary<String, AreaModel>) as Void {
+        _areas = areas;
+    }
+
+    function setFloors(floors as Array<FloorModel>) as Void {
+        _floors = floors;
+    }
+
+    function setLights(lights as Dictionary<String, LightModel>) as Void {
+        _lights = lights;
+        _lightIdsByArea = {};
+
+        var entityIds = lights.keys();
+        for (var index = 0; index < entityIds.size(); index++) {
+            var entityId = entityIds[index] as String;
+            indexByArea(_lightIdsByArea, entityId, (lights.get(entityId) as LightModel).areaId);
+        }
+
         dropOrphanedOverrides();
     }
 
-    function setSensors(parsed as ParsedSensors) as Void {
-        _sensors = parsed.sensors;
-        _sensorIdsByArea = parsed.sensorIdsByArea;
+    function setSensors(sensors as Dictionary<String, SensorModel>) as Void {
+        _sensors = sensors;
+        _sensorIdsByArea = {};
+
+        var entityIds = sensors.keys();
+        for (var index = 0; index < entityIds.size(); index++) {
+            var entityId = entityIds[index] as String;
+            indexByArea(_sensorIdsByArea, entityId, (sensors.get(entityId) as SensorModel).areaId);
+        }
     }
 
     function hasAreas() as Boolean {
@@ -178,6 +197,21 @@ class HaState {
         }
 
         return [] as Array<String>;
+    }
+
+    private function indexByArea(index as Dictionary<String, Array<String>>, entityId as String,
+                                 areaId as String or Null) as Void {
+        if (areaId == null) {
+            return;
+        }
+
+        var members = index.get(areaId);
+        if (members == null) {
+            members = [] as Array<String>;
+            index.put(areaId, members);
+        }
+
+        members.add(entityId);
     }
 
     private function idsInArea(idsByArea as Dictionary<String, Array<String>>,

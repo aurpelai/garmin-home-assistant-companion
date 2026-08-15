@@ -142,7 +142,9 @@ class Coordinator {
     function onFetchTarget(target as Symbol, result as Object or Null, isLastTarget as Boolean) as Void {
         if (result != null) {
             if (target == :structure) {
-                _haState.setStructure(HaPayload.parseStructure(result));
+                _haState.setZone(HaPayload.parseZone(result));
+                _haState.setAreas(HaPayload.parseAreas(result));
+                _haState.setFloors(HaPayload.parseFloors(result));
             } else if (target == :lights) {
                 _haState.setLights(HaPayload.parseLights(result));
             } else if (target == :sensors) {

@@ -60,7 +60,21 @@ function areasOrderByNameAndDropAnIdTheStructureNeverReported(logger as Test.Log
     // ordering is by the label on screen rather than by the id behind it. An
     // unnamed area falls back to its id, which is what a reader sees.
     var haState = new HaState();
-    haState.setStructure(HaPayload.parseStructure({
+    haState.setZone(HaPayload.parseZone({
+        "areas" => {
+            "area.zulu" => { "name" => "Alcove" },
+            "area.alpha" => { "name" => "Ülkerum" },
+            "area.nameless" => {} as Dictionary
+        }
+    }));
+    haState.setAreas(HaPayload.parseAreas({
+        "areas" => {
+            "area.zulu" => { "name" => "Alcove" },
+            "area.alpha" => { "name" => "Ülkerum" },
+            "area.nameless" => {} as Dictionary
+        }
+    }));
+    haState.setFloors(HaPayload.parseFloors({
         "areas" => {
             "area.zulu" => { "name" => "Alcove" },
             "area.alpha" => { "name" => "Ülkerum" },

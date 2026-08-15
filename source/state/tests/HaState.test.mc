@@ -157,7 +157,17 @@ function aFloorScopeCoversEveryLightInItsAreasAndNothingOutside(logger as Test.L
     // — anything narrower would claim less than the action does. Only the floor's
     // own areas bound it.
     var haState = new HaState();
-    haState.setStructure(HaPayload.parseStructure({
+    haState.setZone(HaPayload.parseZone({
+        "areas" => { "area.kitchen" => { "name" => "Küche" }, "area.hall" => { "name" => "Hall" } },
+        "floors" => { "floor.ground" => { "name" => "Ground", "order" => 0,
+            "areas" => ["area.kitchen", "area.hall"] } }
+    }));
+    haState.setAreas(HaPayload.parseAreas({
+        "areas" => { "area.kitchen" => { "name" => "Küche" }, "area.hall" => { "name" => "Hall" } },
+        "floors" => { "floor.ground" => { "name" => "Ground", "order" => 0,
+            "areas" => ["area.kitchen", "area.hall"] } }
+    }));
+    haState.setFloors(HaPayload.parseFloors({
         "areas" => { "area.kitchen" => { "name" => "Küche" }, "area.hall" => { "name" => "Hall" } },
         "floors" => { "floor.ground" => { "name" => "Ground", "order" => 0,
             "areas" => ["area.kitchen", "area.hall"] } }
@@ -179,5 +189,22 @@ function aFloorScopeCoversEveryLightInItsAreasAndNothingOutside(logger as Test.L
     Test.assert(haState.isOn("light.broken"));
     Test.assert(haState.isOn("light.hall"));
     Test.assert(!haState.isPending("light.elsewhere"));
+    return true;
+}
+
+(:test)
+function areaMembershipIsIndexedFromEachEntitysOwnAreaId(logger as Test.Logger) as Boolean {
+    // The payload carries an area per entity rather than an entity list per
+    // area, so the index every area screen reads is built on the write.
+    var haState = new HaState();
+    HaStateTest.setLights(haState, {
+        "light.kitchen_ceiling" => HaStateTest.light(true, "area.kitchen"),
+        "light.kitchen_counter" => HaStateTest.light(false, "area.kitchen"),
+        "light.bedroom" => HaStateTest.light(false, "area.bedroom")
+    });
+
+    Test.assertEqual(haState.getLightIdsInArea("area.kitchen").size(), 2);
+    Test.assertEqual(haState.getLightIdsInArea("area.bedroom").size(), 1);
+    Test.assertEqual(haState.getLightIdsInArea("area.bedroom")[0], "light.bedroom");
     return true;
 }

@@ -15,7 +15,15 @@ module AreaEntityMenuTest {
     function stateOf(lights as Dictionary, sensors as Dictionary) as HaState {
         var haState = new HaState();
 
-        haState.setStructure(HaPayload.parseStructure({
+        haState.setZone(HaPayload.parseZone({
+            "areas" => { "area.room" => { "name" => "Room" } }
+        }));
+
+        haState.setAreas(HaPayload.parseAreas({
+            "areas" => { "area.room" => { "name" => "Room" } }
+        }));
+
+        haState.setFloors(HaPayload.parseFloors({
             "areas" => { "area.room" => { "name" => "Room" } }
         }));
         haState.setLights(HaPayload.parseLights({ "lights" => lights }));
@@ -222,7 +230,13 @@ function aDomainArrivingAfterTheMenuOpenedAddsNoRow(logger as Test.Logger) as Bo
     // opened between the two shows only what had landed. The accepted cost of
     // the freeze: reopening the menu is what reveals the rest.
     var haState = new HaState();
-    haState.setStructure(HaPayload.parseStructure({
+    haState.setZone(HaPayload.parseZone({
+        "areas" => { "area.room" => { "name" => "Room" } }
+    }));
+    haState.setAreas(HaPayload.parseAreas({
+        "areas" => { "area.room" => { "name" => "Room" } }
+    }));
+    haState.setFloors(HaPayload.parseFloors({
         "areas" => { "area.room" => { "name" => "Room" } }
     }));
     haState.setLights(HaPayload.parseLights({
@@ -249,7 +263,13 @@ function theEmptyRowOutlivesTheEntitiesArriving(logger as Test.Logger) as Boolea
     // be the item set changing under an open menu, which is the one thing the
     // freeze forbids.
     var haState = new HaState();
-    haState.setStructure(HaPayload.parseStructure({
+    haState.setZone(HaPayload.parseZone({
+        "areas" => { "area.room" => { "name" => "Room" } }
+    }));
+    haState.setAreas(HaPayload.parseAreas({
+        "areas" => { "area.room" => { "name" => "Room" } }
+    }));
+    haState.setFloors(HaPayload.parseFloors({
         "areas" => { "area.room" => { "name" => "Room" } }
     }));
 

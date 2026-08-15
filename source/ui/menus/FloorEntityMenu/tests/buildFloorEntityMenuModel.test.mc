@@ -6,7 +6,9 @@ module FloorEntityMenuModelTest {
 
     function stateOf(structure as Dictionary, lights as Dictionary) as HaState {
         var haState = new HaState();
-        haState.setStructure(HaPayload.parseStructure(structure));
+        haState.setZone(HaPayload.parseZone(structure));
+        haState.setAreas(HaPayload.parseAreas(structure));
+        haState.setFloors(HaPayload.parseFloors(structure));
         haState.setLights(HaPayload.parseLights({ "lights" => lights }));
         return haState;
     }

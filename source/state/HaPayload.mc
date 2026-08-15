@@ -7,16 +7,15 @@ import Toybox.Lang;
 // payload costs one target rather than crashing the watch.
 module HaPayload {
 
-    function parseStructure(payload as Object or Null) as ParsedStructure {
-        var data = payload instanceof Dictionary ? payload : {};
-
-        return new ParsedStructure(
-            asStringOrNull(data.get("zone")),
-            parseAreas(data.get("areas")),
-            parseFloors(data.get("floors")));
+    function parseZone(payload as Object or Null) as String or Null {
+        return asStringOrNull(sectionOf(payload, "zone"));
     }
 
-    function parseLights(payload as Object or Null) as ParsedLights {
+    function sectionOf(payload as Object or Null, key as String) as Object or Null {
+        return payload instanceof Dictionary ? payload.get(key) : null;
+    }
+
+    function parseLights(payload as Object or Null) as Dictionary<String, LightModel> {
         var entries = entriesOf(payload, "lights");
         var lights = {} as Dictionary<String, LightModel>;
         var entityIds = entries.keys();
@@ -28,19 +27,19 @@ module HaPayload {
                 entry.get("state") instanceof Boolean ? entry.get("state") as Boolean : false,
                 asStringOrNull(entry.get("name")),
                 asAvailable(entry.get("available")),
+                asStringOrNull(entry.get("area_id")),
                 asMemberIds(entry.get("memberIds"))));
         }
 
-        return new ParsedLights(lights, groupByArea(entries));
+        return lights;
     }
 
     // A sensor with no display_state is absent rather than present with nulls:
     // display_state is the row's only text, so an entry without one cannot be
     // rendered at all.
-    function parseSensors(payload as Object or Null) as ParsedSensors {
+    function parseSensors(payload as Object or Null) as Dictionary<String, SensorModel> {
         var entries = entriesOf(payload, "sensors");
         var sensors = {} as Dictionary<String, SensorModel>;
-        var readable = {} as Dictionary<String, Dictionary>;
         var entityIds = entries.keys();
 
         for (var index = 0; index < entityIds.size(); index++) {
@@ -57,11 +56,11 @@ module HaPayload {
                 asStringOrNull(entry.get("unit")),
                 asStringOrNull(entry.get("device_class")),
                 asStringOrNull(entry.get("name")),
-                asAvailable(entry.get("available"))));
-            readable.put(entityId, entry);
+                asAvailable(entry.get("available")),
+                asStringOrNull(entry.get("area_id"))));
         }
 
-        return new ParsedSensors(sensors, groupByArea(readable));
+        return sensors;
     }
 
     function entriesOf(payload as Object or Null, key as String) as Dictionary<String, Dictionary> {
@@ -87,31 +86,10 @@ module HaPayload {
         return out;
     }
 
-    function groupByArea(entries as Dictionary<String, Dictionary>) as Dictionary<String, Array<String>> {
-        var out = {} as Dictionary<String, Array<String>>;
-        var entityIds = entries.keys();
-
-        for (var index = 0; index < entityIds.size(); index++) {
-            var entityId = entityIds[index] as String;
-            var areaId = asStringOrNull((entries.get(entityId) as Dictionary).get("area_id"));
-            if (areaId == null) {
-                continue;
-            }
-
-            var members = out.get(areaId);
-            if (members == null) {
-                members = [] as Array<String>;
-                out.put(areaId, members);
-            }
-            members.add(entityId);
-        }
-
-        return out;
-    }
-
     // An unnamed area survives with a null name: a naming gap costs a label, not
     // a room.
-    function parseAreas(raw as Object or Null) as Dictionary<String, AreaModel> {
+    function parseAreas(payload as Object or Null) as Dictionary<String, AreaModel> {
+        var raw = sectionOf(payload, "areas");
         var out = {} as Dictionary<String, AreaModel>;
         if (!(raw instanceof Dictionary)) {
             return out;
@@ -132,7 +110,8 @@ module HaPayload {
     // Ordered ascending by each floor's `order`, which is Home Assistant's own
     // floors() order; Dictionary.keys() is hash order. The insertion is stable,
     // so equal orders keep parse order.
-    function parseFloors(raw as Object or Null) as Array<FloorModel> {
+    function parseFloors(payload as Object or Null) as Array<FloorModel> {
+        var raw = sectionOf(payload, "floors");
         var out = [] as Array<FloorModel>;
         if (!(raw instanceof Dictionary)) {
             return out;

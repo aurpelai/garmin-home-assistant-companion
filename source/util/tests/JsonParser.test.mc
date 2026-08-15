@@ -129,7 +129,7 @@ function jsonFeedsHaStateEndToEndWithRawNonAscii(logger as Test.Logger) as Boole
             "\"name\": \"Café Sensor\", \"available\": true}}}";
 
     var haState = new HaState();
-    haState.setStructure(HaPayload.parseStructure(JsonParser.parse(structure)));
+    HaPayloadTest.applyStructure(haState, JsonParser.parse(structure) as Dictionary);
     haState.setSensors(HaPayload.parseSensors(JsonParser.parse(sensors)));
 
     var sensor = haState.getSensor("sensor.temp") as SensorModel;

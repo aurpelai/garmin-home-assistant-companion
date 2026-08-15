@@ -8,6 +8,13 @@ module HaPayloadTest {
         return { "lights" => entries };
     }
 
+    // The three writes the structure target makes, as the coordinator makes them.
+    function applyStructure(haState as HaState, payload as Dictionary) as Void {
+        haState.setZone(HaPayload.parseZone(payload));
+        haState.setAreas(HaPayload.parseAreas(payload));
+        haState.setFloors(HaPayload.parseFloors(payload));
+    }
+
     function sensorsPayload(entries as Dictionary) as Dictionary {
         return { "sensors" => entries };
     }
@@ -32,8 +39,8 @@ function nonNumericSensorValueIsAbsentRatherThanZero(logger as Test.Logger) as B
         "sensor.warm" => HaPayloadTest.reading(21.5, "21.5 °C", "area.kitchen")
     }));
 
-    Test.assert((parsed.sensors.get("sensor.broken") as SensorModel).value == null);
-    Test.assertEqual((parsed.sensors.get("sensor.warm") as SensorModel).value as Float, 21.5);
+    Test.assert((parsed.get("sensor.broken") as SensorModel).value == null);
+    Test.assertEqual((parsed.get("sensor.warm") as SensorModel).value as Float, 21.5);
     return true;
 }
 
@@ -45,8 +52,7 @@ function sensorWithoutDisplayValueIsAbsent(logger as Test.Logger) as Boolean {
         "sensor.mute" => HaPayloadTest.reading(21.5, null, "area.kitchen")
     }));
 
-    Test.assert(parsed.sensors.get("sensor.mute") == null);
-    Test.assert(parsed.sensorIdsByArea.get("area.kitchen") == null);
+    Test.assert(parsed.get("sensor.mute") == null);
     return true;
 }
 
@@ -54,30 +60,18 @@ function sensorWithoutDisplayValueIsAbsent(logger as Test.Logger) as Boolean {
 function unnamedAreaAndFloorSurviveWithNullNames(logger as Test.Logger) as Boolean {
     // A naming gap costs a label, not a room: dropping the entry would lose every
     // entity in it.
-    var parsed = HaPayload.parseStructure({
+    var payload = {
         "areas" => { "area.nameless" => { "name" => null } },
         "floors" => { "floor.nameless" => { "name" => null, "order" => 0, "areas" => ["area.nameless"] } }
-    });
+    };
+    var areas = HaPayload.parseAreas(payload);
+    var floors = HaPayload.parseFloors(payload);
 
-    Test.assert(parsed.areas.hasKey("area.nameless"));
-    Test.assert((parsed.areas.get("area.nameless") as AreaModel).name == null);
-    Test.assertEqual(parsed.floors.size(), 1);
-    Test.assert(parsed.floors[0].name == null);
-    Test.assertEqual(parsed.floors[0].id, "floor.nameless");
-    return true;
-}
-
-(:test)
-function areaMembershipIsGroupedFromEachEntitysOwnAreaId(logger as Test.Logger) as Boolean {
-    var parsed = HaPayload.parseLights(HaPayloadTest.lightsPayload({
-        "light.kitchen_ceiling" => { "state" => true, "area_id" => "area.kitchen" },
-        "light.kitchen_counter" => { "state" => false, "area_id" => "area.kitchen" },
-        "light.bedroom" => { "state" => false, "area_id" => "area.bedroom" }
-    }));
-
-    Test.assertEqual((parsed.lightIdsByArea.get("area.kitchen") as Array<String>).size(), 2);
-    Test.assertEqual((parsed.lightIdsByArea.get("area.bedroom") as Array<String>).size(), 1);
-    Test.assertEqual((parsed.lightIdsByArea.get("area.bedroom") as Array<String>)[0], "light.bedroom");
+    Test.assert(areas.hasKey("area.nameless"));
+    Test.assert((areas.get("area.nameless") as AreaModel).name == null);
+    Test.assertEqual(floors.size(), 1);
+    Test.assert(floors[0].name == null);
+    Test.assertEqual(floors[0].id, "floor.nameless");
     return true;
 }
 
@@ -85,7 +79,7 @@ function areaMembershipIsGroupedFromEachEntitysOwnAreaId(logger as Test.Logger) 
 function floorsAreOrderedAsHomeAssistantReportedThem(logger as Test.Logger) as Boolean {
     // Dictionary key order is hash order, so only the reported `order` can say
     // which floor comes first.
-    var parsed = HaPayload.parseStructure({
+    var floors = HaPayload.parseFloors({
         "floors" => {
             "floor.attic" => { "name" => "Attic", "order" => 2, "areas" => [] as Array<String> },
             "floor.cellar" => { "name" => "Cellar", "order" => 0, "areas" => [] as Array<String> },
@@ -93,10 +87,10 @@ function floorsAreOrderedAsHomeAssistantReportedThem(logger as Test.Logger) as B
         }
     });
 
-    Test.assertEqual(parsed.floors.size(), 3);
-    Test.assertEqual(parsed.floors[0].id, "floor.cellar");
-    Test.assertEqual(parsed.floors[1].name as String, "Rez-de-chaussée");
-    Test.assertEqual(parsed.floors[2].id, "floor.attic");
+    Test.assertEqual(floors.size(), 3);
+    Test.assertEqual(floors[0].id, "floor.cellar");
+    Test.assertEqual(floors[1].name as String, "Rez-de-chaussée");
+    Test.assertEqual(floors[2].id, "floor.attic");
     return true;
 }
 
@@ -108,8 +102,8 @@ function memberIdsArePresentOnGroupsOnly(logger as Test.Logger) as Boolean {
         "light.plain" => { "state" => false, "area_id" => "area.a" }
     }));
 
-    Test.assertEqual(((parsed.lights.get("light.group") as LightModel).memberIds as Array<String>).size(), 2);
-    Test.assert((parsed.lights.get("light.plain") as LightModel).memberIds == null);
+    Test.assertEqual(((parsed.get("light.group") as LightModel).memberIds as Array<String>).size(), 2);
+    Test.assert((parsed.get("light.plain") as LightModel).memberIds == null);
     return true;
 }
 
@@ -123,12 +117,12 @@ function eitherArrivalOrderOfTheTargetsProducesTheSameState(logger as Test.Logge
     });
 
     var structureFirst = new HaState();
-    structureFirst.setStructure(HaPayload.parseStructure(structure));
+    HaPayloadTest.applyStructure(structureFirst, structure);
     structureFirst.setLights(HaPayload.parseLights(lights));
 
     var lightsFirst = new HaState();
     lightsFirst.setLights(HaPayload.parseLights(lights));
-    lightsFirst.setStructure(HaPayload.parseStructure(structure));
+    HaPayloadTest.applyStructure(lightsFirst, structure);
 
     Test.assertEqual(structureFirst.getZone() as String, lightsFirst.getZone() as String);
     Test.assertEqual((structureFirst.getArea("area.kitchen") as AreaModel).name as String,
@@ -143,9 +137,9 @@ function eitherArrivalOrderOfTheTargetsProducesTheSameState(logger as Test.Logge
 function unusableInputParsesToAnEmptyTargetRatherThanThrowing(logger as Test.Logger) as Boolean {
     // The webhook can hand back anything; an empty target keeps the watch running
     // where a throw would not.
-    Test.assertEqual(HaPayload.parseLights(null).lights.size(), 0);
-    Test.assertEqual(HaPayload.parseSensors("not a payload").sensors.size(), 0);
-    Test.assertEqual(HaPayload.parseStructure({ "areas" => "not a map" }).areas.size(), 0);
-    Test.assert(HaPayload.parseStructure(null).zone == null);
+    Test.assertEqual(HaPayload.parseLights(null).size(), 0);
+    Test.assertEqual(HaPayload.parseSensors("not a payload").size(), 0);
+    Test.assertEqual(HaPayload.parseAreas({ "areas" => "not a map" }).size(), 0);
+    Test.assert(HaPayload.parseZone(null) == null);
     return true;
 }

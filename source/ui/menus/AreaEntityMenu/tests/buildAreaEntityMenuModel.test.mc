@@ -7,7 +7,9 @@ module AreaEntityMenuModelTest {
     function stateOf(structure as Dictionary, lights as Dictionary,
                      sensors as Dictionary) as HaState {
         var haState = new HaState();
-        haState.setStructure(HaPayload.parseStructure(structure));
+        haState.setZone(HaPayload.parseZone(structure));
+        haState.setAreas(HaPayload.parseAreas(structure));
+        haState.setFloors(HaPayload.parseFloors(structure));
         haState.setLights(HaPayload.parseLights({ "lights" => lights }));
         haState.setSensors(HaPayload.parseSensors({ "sensors" => sensors }));
         return haState;

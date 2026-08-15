@@ -8,7 +8,21 @@ module FloorEntityMenuTest {
     function stateOf(lights as Dictionary) as HaState {
         var haState = new HaState();
 
-        haState.setStructure(HaPayload.parseStructure({
+        haState.setZone(HaPayload.parseZone({
+            "areas" => { "area.room" => { "name" => "Room" } },
+            "floors" => {
+                "floor.up" => { "name" => "Up", "order" => 0, "areas" => ["area.room"] }
+            }
+        }));
+
+        haState.setAreas(HaPayload.parseAreas({
+            "areas" => { "area.room" => { "name" => "Room" } },
+            "floors" => {
+                "floor.up" => { "name" => "Up", "order" => 0, "areas" => ["area.room"] }
+            }
+        }));
+
+        haState.setFloors(HaPayload.parseFloors({
             "areas" => { "area.room" => { "name" => "Room" } },
             "floors" => {
                 "floor.up" => { "name" => "Up", "order" => 0, "areas" => ["area.room"] }
@@ -79,7 +93,15 @@ function lightsArrivingAfterTheMenuOpenedAddNoRow(logger as Test.Logger) as Bool
     // The structure names the floor before any light has landed, so a menu
     // opened in that window stays rowless until it is reopened.
     var haState = new HaState();
-    haState.setStructure(HaPayload.parseStructure({
+    haState.setZone(HaPayload.parseZone({
+        "areas" => { "area.room" => { "name" => "Room" } },
+        "floors" => { "floor.up" => { "name" => "Up", "order" => 0, "areas" => ["area.room"] } }
+    }));
+    haState.setAreas(HaPayload.parseAreas({
+        "areas" => { "area.room" => { "name" => "Room" } },
+        "floors" => { "floor.up" => { "name" => "Up", "order" => 0, "areas" => ["area.room"] } }
+    }));
+    haState.setFloors(HaPayload.parseFloors({
         "areas" => { "area.room" => { "name" => "Room" } },
         "floors" => { "floor.up" => { "name" => "Up", "order" => 0, "areas" => ["area.room"] } }
     }));
