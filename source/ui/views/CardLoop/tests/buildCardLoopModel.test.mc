@@ -68,7 +68,12 @@ function eachFloorHeadsItsOwnAreasAndUnflooredAreasTrailEveryFloor(logger as Tes
             "floor.upstairs" => { "name" => "Upstairs", "order" => 1, "areas" => ["area.bedroom", "area.attic"] },
             "floor.ground" => { "name" => "Ground", "order" => 0, "areas" => ["area.kitchen"] }
         }
-    }, {} as Dictionary, {} as Dictionary);
+    }, {
+        "light.bedroom" => { "state" => false, "area_id" => "area.bedroom" },
+        "light.kitchen" => { "state" => false, "area_id" => "area.kitchen" },
+        "light.attic" => { "state" => false, "area_id" => "area.attic" },
+        "light.garage" => { "state" => false, "area_id" => "area.garage" }
+    }, {} as Dictionary);
 
     Test.assertEqual(
         CardLoopModelTest.cardIds(buildCardLoopModel(haState)).toString(),

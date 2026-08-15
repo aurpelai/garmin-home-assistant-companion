@@ -157,6 +157,13 @@ class HaClient {
         return _lastRefreshCompletedAt != null;
     }
 
+    // Whether any target in the refresh just finished failed, which lastError
+    // cannot answer: a later target succeeding clears it, so a refresh that lost
+    // one part would look clean by the time it settled.
+    function lastRefreshFailed() as Boolean {
+        return _refreshHadFailure;
+    }
+
     // A trigger arriving while a refresh is already outstanding is dropped:
     // once a target has landed it is no longer outstanding, so a fresh
     // request for it would refetch data already in hand.
@@ -284,11 +291,13 @@ class HaClient {
             _lastError = null;
         }
 
-        onTarget.invoke(target, result, error);
+        var isLastTarget = _pendingFetchTargets.size() == 0;
 
-        if (_pendingFetchTargets.size() == 0 && !_refreshHadFailure) {
+        if (isLastTarget && !_refreshHadFailure) {
             _lastRefreshCompletedAt = System.getTimer();
         }
+
+        onTarget.invoke(target, result, isLastTarget);
 
         drainSlot();
     }

@@ -35,23 +35,3 @@ function resolveMessage(error as RequestError) as ResourceId {
 
     return Rez.Strings.ErrUnknown;
 }
-
-// What a fetch failure cost, for a signal that fires over data already on
-// screen: the request type is :fetch for all three targets, so only the target
-// can name the missing part. Null on anything without a target, leaving the
-// reason's own message to stand alone.
-function resolveMissingPart(error as RequestError) as ResourceId or Null {
-    if (error.target == :structure) {
-        return Rez.Strings.PartStructure;
-    }
-
-    if (error.target == :lights) {
-        return Rez.Strings.PartLights;
-    }
-
-    if (error.target == :sensors) {
-        return Rez.Strings.PartSensors;
-    }
-
-    return null;
-}

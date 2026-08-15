@@ -16,6 +16,7 @@ class FakeCoordinatorClient extends HaClient {
     private var _msSinceLastRefresh as Number or Null = null;
     private var _lastError as RequestError or Null = null;
     private var _hasCompletedARefresh as Boolean = false;
+    private var _lastRefreshFailed as Boolean = false;
 
     function initialize() {
         HaClient.initialize();
@@ -24,6 +25,11 @@ class FakeCoordinatorClient extends HaClient {
     function refresh(onTarget as Method) as Void {
         refreshCount++;
         _onTarget = onTarget;
+        _lastRefreshFailed = false;
+    }
+
+    function lastRefreshFailed() as Boolean {
+        return _lastRefreshFailed;
     }
 
     function queueLightToggle(entityId as String, callback as Method) as Void {
@@ -67,11 +73,13 @@ class FakeCoordinatorClient extends HaClient {
     function fireTarget(target as Symbol, result as Object or Null, error as RequestError or Null) as Void {
         _lastError = error;
 
-        if (error == null) {
+        if (error != null) {
+            _lastRefreshFailed = true;
+        } else {
             _hasCompletedARefresh = true;
         }
 
-        (_onTarget as Method).invoke(target, result, error);
+        (_onTarget as Method).invoke(target, result, true);
     }
 
     // Unlike fireTarget, this does not stamp completion on success — for the
@@ -80,7 +88,7 @@ class FakeCoordinatorClient extends HaClient {
     // either.
     function fireMidRefreshTarget(target as Symbol, result as Object or Null) as Void {
         _lastError = null;
-        (_onTarget as Method).invoke(target, result, null);
+        (_onTarget as Method).invoke(target, result, false);
     }
 
     function fireToggleSuccessAt(index as Number) as Void {
@@ -429,11 +437,11 @@ function aSuccessWithNoAreasAndNoErrorLeavesTheLoadingScreenUp(logger as Test.Lo
     coordinator.onViewShown(loading);
     client.fireMidRefreshTarget(:sensors, { "sensors" => {} });
 
-    // Neither branch that would move the app on touches the loading screen:
-    // showInfo would have cleared currentView, and a live view would have
-    // been asked to rebuild.
+    // The reply reaches the screen, so partial data is visible while the rest
+    // is still in flight — but where the user belongs is not decided until the
+    // refresh settles, so the loading screen keeps the display.
     Test.assert(coordinator.currentView() == loading);
-    Test.assertEqual(loading.rebuildCount, 0);
+    Test.assertEqual(loading.rebuildCount, 1);
     return true;
 }
 

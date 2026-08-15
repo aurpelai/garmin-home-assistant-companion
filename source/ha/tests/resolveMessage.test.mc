@@ -46,18 +46,3 @@ function anUnreadableBodyIsItsOwnReasonNotACode(logger as Test.Logger) as Boolea
     return true;
 }
 
-(:test)
-function onlyAFetchNamesAMissingPart(logger as Test.Logger) as Boolean {
-    // The request type is :fetch for all three targets, so the target is the
-    // only thing that can say which part a partial refresh lost. A service call
-    // and a registration have no target and name nothing.
-    Test.assertEqual(resolveMissingPart(new RequestError(-1, :fetch, :lights)) as ResourceId,
-        Rez.Strings.PartLights);
-    Test.assertEqual(resolveMissingPart(new RequestError(-1, :fetch, :sensors)) as ResourceId,
-        Rez.Strings.PartSensors);
-    Test.assertEqual(resolveMissingPart(new RequestError(-1, :fetch, :structure)) as ResourceId,
-        Rez.Strings.PartStructure);
-    Test.assert(resolveMissingPart(new RequestError(-1, :serviceCall, null)) == null);
-    Test.assert(resolveMissingPart(new RequestError(-1, :registration, null)) == null);
-    return true;
-}

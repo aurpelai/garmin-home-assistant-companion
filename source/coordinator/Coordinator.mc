@@ -99,7 +99,7 @@ class Coordinator {
 
         var overriddenIds = _haState.override(entityId, !_haState.isOn(entityId));
         _client.queueLightToggle(entityId, new ToggleReply(self, overriddenIds).method(:onSettled));
-        showState();
+        updateDisplay();
     }
 
     function toggleFloorLights(floorId as String) as Void {
@@ -113,7 +113,7 @@ class Coordinator {
         var service = targetState ? "turn_on" : "turn_off";
 
         _client.queueFloorLights(floorId, service, new ToggleReply(self, overriddenIds).method(:onSettled));
-        showState();
+        updateDisplay();
     }
 
     // A toggle reply is one of the three refresh triggers: every terminal
@@ -130,7 +130,7 @@ class Coordinator {
             signal(error);
         }
 
-        showState();
+        updateDisplay();
         refresh();
     }
 
@@ -162,11 +162,12 @@ class Coordinator {
         _client.refresh(method(:onFetchTarget));
     }
 
-    // Every reply lands here, failures included: nothing else would prompt a
-    // look at the client's last error, so a failure with nothing loaded would
-    // leave the loading screen up forever.
-    function onFetchTarget(target as Symbol, result as Object or Null, error as RequestError or Null) as Void {
-        if (error == null) {
+    // Every reply lands here, failures included. Each target reaches the screen
+    // as it lands, so partial data is visible while the rest is in flight, but
+    // where the user belongs is a question about the refresh rather than about
+    // one reply — so it waits for the last one.
+    function onFetchTarget(target as Symbol, result as Object or Null, isLastTarget as Boolean) as Void {
+        if (result != null) {
             if (target == :structure) {
                 _haState.setStructure(HaPayload.parseStructure(result));
             } else if (target == :lights) {
@@ -176,7 +177,11 @@ class Coordinator {
             }
         }
 
-        showDestination();
+        updateDisplay();
+
+        if (isLastTarget) {
+            showDestination();
+        }
     }
 
     // The one navigation gate: the screen follows from three facts and no
@@ -187,10 +192,12 @@ class Coordinator {
         var error = _client.lastError();
 
         if (_haState.hasAreas()) {
-            showState();
+            if (_currentView == null) {
+                showCardLoop();
+            }
 
-            if (error != null) {
-                signal(error);
+            if (_client.lastRefreshFailed()) {
+                WatchUi.showToast(WatchUi.loadResource(Rez.Strings.ErrRefresh) as String, null);
             }
 
             return;
@@ -209,25 +216,24 @@ class Coordinator {
     // Names the missing part where there is one, since the request type is
     // :fetch for all three targets and cannot say which failed.
     private function signal(error as RequestError) as Void {
-        var message = WatchUi.loadResource(resolveMessage(error)) as String;
-        var part = resolveMissingPart(error);
-
-        if (part != null) {
-            message = Lang.format(WatchUi.loadResource(Rez.Strings.ErrPart) as String,
-                                  [WatchUi.loadResource(part), message]);
-        }
-
-        WatchUi.showToast(message, null);
+        WatchUi.showToast(WatchUi.loadResource(resolveMessage(error)) as String, null);
     }
 
     // The one push site. A live screen that is still the right one keeps the
     // display, which is what stops a refresh moving a menu out from under the
     // user. Anything else — nothing live, or a screen whose subject is gone —
     // falls back to the card loop, the one screen no deletion can empty.
-    private function showState() as Void {
+    // Pushes fresh state into whatever the user is looking at. A screen whose
+    // subject is gone says so, and the card loop is where that leaves them: it
+    // builds from the whole of HaState, so no deletion can empty it.
+    private function updateDisplay() as Void {
         var view = _currentView;
 
-        if (view != null && view.rebuild(_haState)) {
+        if (view == null) {
+            return;
+        }
+
+        if (view.rebuild(_haState)) {
             WatchUi.requestUpdate();
             return;
         }
