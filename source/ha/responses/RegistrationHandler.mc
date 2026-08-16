@@ -1,6 +1,6 @@
 import Toybox.Lang;
 
-class RegisterCacheHandler {
+class RegistrationHandler {
     private var _callback as Method;
 
     function initialize(callback as Method) {

@@ -61,7 +61,7 @@ class MockHaClient extends HaClient {
     }
 
     function register(callback as Method) as Void {
-        _registerCallback = new RegisterCacheHandler(callback).method(:onRegistered);
+        _registerCallback = new RegistrationHandler(callback).method(:onRegistered);
         registerCount++;
     }
 

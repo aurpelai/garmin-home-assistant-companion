@@ -4,9 +4,6 @@ import Toybox.Lang;
 // the test, where *would this kind recover* would be a guess needing a table to
 // maintain. The cost is that an auth failure burns the full threshold before it
 // surfaces, which is why the threshold is small.
-//
-// Re-registration is the one place two request types interleave, and a failure
-// there keeps the registration type rather than inheriting the caller's.
 class RetryManager {
     private const REQUEST_RETRIES = 3;
     private const REGISTRATION_RETRIES = 1;
@@ -46,10 +43,6 @@ class RetryManager {
         }
 
         if (reason instanceof Number && isInvalidWebhookCode(reason)) {
-            // A webhook id that is invalid again after REGISTRATION_RETRIES
-            // fresh registrations is a Home Assistant-side condition this loop
-            // cannot fix by repeating itself, so it surfaces rather than
-            // falling through to the generic reissue below.
             if (_registrationsLeft <= 0) {
                 reportFailure(reason, _requestType);
                 return;

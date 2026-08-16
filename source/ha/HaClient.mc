@@ -214,8 +214,8 @@ class HaClient {
             _pendingFetchTargets = _pendingFetchTargets.slice(1, null) as Array<Symbol>;
             _requestInFlight = true;
             _currentTarget = target;
-            new RetryManager(self, new TargetFetch(self, target).method(:attempt), method(:onTargetSettled),
-                             RequestType.REQUEST).attempt();
+            new RetryManager(self, new TemplateRender(self, resolveTemplate(target)).method(:attempt),
+                             method(:onTargetSettled), RequestType.REQUEST).attempt();
         }
     }
 
@@ -265,13 +265,6 @@ class HaClient {
         startNextRequest();
     }
 
-    // Package-visible for TargetFetch, which binds one target to this so a
-    // per-target instance exposes the single-callback-argument shape
-    // RetryManager requires.
-    function fetchTarget(target as Symbol, callback as Method) as Void {
-        postFetchTemplate(templateFor(target), callback);
-    }
-
     function register(callback as Method) as Void {
         var body = {
             "device_id" => DEVICE_ID,
@@ -287,11 +280,11 @@ class HaClient {
             "app_data" => {}
         };
         post("/api/mobile_app/registrations", body,
-             new ResponseHandler(new RegisterCacheHandler(callback).method(:onRegistered),
+             new ResponseHandler(new RegistrationHandler(callback).method(:onRegistered),
                                  ResponseType.REGISTRATION));
     }
 
-    private function postFetchTemplate(template as String, callback as Method) as Void {
+    function postTemplate(template as String, callback as Method) as Void {
         var webhookId = Webhook.getId();
 
         if (webhookId == null) {
@@ -310,7 +303,7 @@ class HaClient {
         post("/api/webhook/" + webhookId, body, new ResponseHandler(callback, ResponseType.FETCH));
     }
 
-    private function templateFor(target as Symbol) as String {
+    private function resolveTemplate(target as Symbol) as String {
         if (target == FetchTarget.STRUCTURE) {
             return STRUCTURE_TEMPLATE;
         }
