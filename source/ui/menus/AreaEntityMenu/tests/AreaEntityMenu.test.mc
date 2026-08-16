@@ -94,7 +94,7 @@ function aLightSublabelPicksUnavailableOverAGroupCount(logger as Test.Logger) as
     // nothing in it can be reached.
     var group = new LightRowModel("light.grp", "Group", false, false, 3);
 
-    Test.assertEqual(AreaEntityMenu.lightSubLabel(group) as String, "Group unavailable");
+    Test.assertEqual(AreaEntityMenu.toLightSubLabel(group) as String, "Group unavailable");
     return true;
 }
 
@@ -103,8 +103,8 @@ function anAvailableGroupShowsItsMemberCount(logger as Test.Logger) as Boolean {
     var one = new LightRowModel("light.one", "One", true, true, 1);
     var many = new LightRowModel("light.many", "Many", true, true, 4);
 
-    Test.assertEqual(AreaEntityMenu.lightSubLabel(one) as String, "Group • 1 Light");
-    Test.assertEqual(AreaEntityMenu.lightSubLabel(many) as String, "Group • 4 Lights");
+    Test.assertEqual(AreaEntityMenu.toLightSubLabel(one) as String, "Group • 1 Light");
+    Test.assertEqual(AreaEntityMenu.toLightSubLabel(many) as String, "Group • 4 Lights");
     return true;
 }
 
@@ -115,16 +115,16 @@ function aSensorSublabelPicksUnavailableOverTheDisplayValue(logger as Test.Logge
     var dead = new SensorRowModel("sensor.t", "Temp", "unavailable °C", false);
     var live = new SensorRowModel("sensor.t", "Temp", "21.5 °C", true);
 
-    Test.assertEqual(AreaEntityMenu.sensorSubLabel(dead), "Unavailable");
-    Test.assertEqual(AreaEntityMenu.sensorSubLabel(live), "21.5 °C");
+    Test.assertEqual(AreaEntityMenu.toSensorSubLabel(dead), "Unavailable");
+    Test.assertEqual(AreaEntityMenu.toSensorSubLabel(live), "21.5 °C");
     return true;
 }
 
 (:test)
 function aRowFallsBackToItsIdWhenHaNamesItNothing(logger as Test.Logger) as Boolean {
-    Test.assertEqual(AreaEntityMenu.labelOf(null, "light.kitchen"), "light.kitchen");
-    Test.assertEqual(AreaEntityMenu.labelOf("", "light.kitchen"), "light.kitchen");
-    Test.assertEqual(AreaEntityMenu.labelOf("Kitchen Island", "light.kitchen"), "Kitchen Island");
+    Test.assertEqual(AreaEntityMenu.resolveLabel(null, "light.kitchen"), "light.kitchen");
+    Test.assertEqual(AreaEntityMenu.resolveLabel("", "light.kitchen"), "light.kitchen");
+    Test.assertEqual(AreaEntityMenu.resolveLabel("Kitchen Island", "light.kitchen"), "Kitchen Island");
     return true;
 }
 

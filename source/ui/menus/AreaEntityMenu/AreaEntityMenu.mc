@@ -18,13 +18,13 @@ class AreaEntityMenu extends WatchUi.Menu2 {
         for (var index = 0; index < model.lights.size(); index++) {
             var row = model.lights[index];
             addItem(new WatchUi.ToggleMenuItem(
-                labelOf(row.name, row.rowId), lightSubLabel(row), row.rowId, row.isOn, null));
+                resolveLabel(row.name, row.rowId), toLightSubLabel(row), row.rowId, row.isOn, null));
         }
 
         for (var index = 0; index < model.sensors.size(); index++) {
             var row = model.sensors[index];
             addItem(new WatchUi.MenuItem(
-                labelOf(row.name, row.rowId), sensorSubLabel(row), row.rowId, null));
+                resolveLabel(row.name, row.rowId), toSensorSubLabel(row), row.rowId, null));
         }
 
         if (model.lights.size() == 0 && model.sensors.size() == 0) {
@@ -62,7 +62,7 @@ class AreaEntityMenu extends WatchUi.Menu2 {
 
             if (item != null) {
                 (item as WatchUi.ToggleMenuItem).setEnabled(row.isOn);
-                item.setSubLabel(lightSubLabel(row));
+                item.setSubLabel(toLightSubLabel(row));
             }
         }
 
@@ -71,7 +71,7 @@ class AreaEntityMenu extends WatchUi.Menu2 {
             var item = findItem(row.rowId);
 
             if (item != null) {
-                item.setSubLabel(sensorSubLabel(row));
+                item.setSubLabel(toSensorSubLabel(row));
             }
         }
     }
@@ -81,11 +81,11 @@ class AreaEntityMenu extends WatchUi.Menu2 {
         return index < 0 ? null : getItem(index);
     }
 
-    static function labelOf(name as String or Null, rowId as String) as String {
+    static function resolveLabel(name as String or Null, rowId as String) as String {
         return name == null || (name as String).length() == 0 ? rowId : name as String;
     }
 
-    static function lightSubLabel(row as LightRowModel) as String or Null {
+    static function toLightSubLabel(row as LightRowModel) as String or Null {
         var memberCount = row.memberCount;
 
         if (!row.isAvailable) {
@@ -104,7 +104,7 @@ class AreaEntityMenu extends WatchUi.Menu2 {
         return Lang.format(WatchUi.loadResource(Rez.Strings.GroupLightCount) as String, [memberCount]);
     }
 
-    static function sensorSubLabel(row as SensorRowModel) as String {
+    static function toSensorSubLabel(row as SensorRowModel) as String {
         var displayValue = row.displayValue;
 
         if (!row.isAvailable || displayValue == null) {
