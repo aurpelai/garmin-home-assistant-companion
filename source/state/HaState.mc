@@ -132,7 +132,7 @@ class HaState {
     }
 
     function override(entityId as String, isOn as Boolean) as Array<String> {
-        return overrideAll(entityScope(entityId), isOn);
+        return overrideAll(getToggleTargets(entityId), isOn);
     }
 
     // Every light in the floor, groups and unavailable ones included: Home
@@ -146,16 +146,16 @@ class HaState {
     // The members are the group's own, as the payload reported them — a display
     // claim, not a correctness claim: Home Assistant's own expansion can differ,
     // and the refresh after the reply is what makes them converge.
-    function entityScope(entityId as String) as Array<String> {
+    function getToggleTargets(entityId as String) as Array<String> {
         var light = _lights.get(entityId);
         var memberIds = light == null ? null : light.memberIds;
-        var scope = [entityId] as Array<String>;
+        var targets = [entityId] as Array<String>;
 
         if (memberIds != null) {
-            scope.addAll(memberIds);
+            targets.addAll(memberIds);
         }
 
-        return scope;
+        return targets;
     }
 
     function hasAnyOn(entityIds as Array<String>) as Boolean {

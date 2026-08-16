@@ -73,7 +73,7 @@ class Coordinator {
     // what created that override: one in-flight change per entity, and a group's
     // scope reaches its members.
     function toggleEntity(entityId as String) as Void {
-        if (_haState.hasAnyPending(_haState.entityScope(entityId))) {
+        if (_haState.hasAnyPending(_haState.getToggleTargets(entityId))) {
             return;
         }
 
