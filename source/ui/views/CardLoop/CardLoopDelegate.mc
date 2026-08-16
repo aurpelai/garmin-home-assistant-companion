@@ -31,8 +31,6 @@ class CardLoopDelegate extends WatchUi.BehaviorDelegate {
         return true;
     }
 
-    // Root of the navigation stack: back has nowhere to return to, so it exits,
-    // matching the other root-view delegates.
     function onBack() as Boolean {
         System.exit();
     }

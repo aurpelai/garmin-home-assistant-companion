@@ -1,6 +1,5 @@
 import Toybox.Lang;
 
-// One typed array per domain, so the view's push loop is branch-free per domain.
 class AreaEntityMenuModel {
     public var title as String;
     public var lights as Array<LightRowModel>;

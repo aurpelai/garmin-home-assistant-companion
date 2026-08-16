@@ -1,7 +1,6 @@
 import Toybox.Communications;
 import Toybox.Lang;
 
-// The one place a failure becomes words.
 module ErrorMessage {
 
     // The request type participates because the same code means different things

@@ -9,8 +9,6 @@ class AreaEntityMenuDelegate extends WatchUi.Menu2InputDelegate {
         _coordinator = coordinator;
     }
 
-    // A sensor row and the no-entities row are plain items, which is what makes
-    // them inert: there is no toggle to read a target from.
     function onSelect(item as WatchUi.MenuItem) as Void {
         if (!(item instanceof WatchUi.ToggleMenuItem)) {
             return;

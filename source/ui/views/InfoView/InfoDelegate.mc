@@ -17,7 +17,6 @@ class InfoDelegate extends WatchUi.BehaviorDelegate {
     }
 
     function onBack() as Boolean {
-        // System.exit() does not return, so no explicit return is reachable.
         System.exit();
     }
 }

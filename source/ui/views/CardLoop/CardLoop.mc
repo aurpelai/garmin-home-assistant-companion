@@ -3,9 +3,6 @@ import Toybox.Graphics;
 import Toybox.Lang;
 import Toybox.WatchUi;
 
-// Holds the focused card's id and its floor id, both captured before a push
-// replaces the model: a vanished area cannot be looked up afterwards to find
-// which floor it sat under, that reference being what disappeared.
 class CardLoop extends WatchUi.View {
     private var _coordinator as Coordinator;
     private var _model as CardLoopModel;

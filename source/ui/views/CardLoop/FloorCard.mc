@@ -2,9 +2,6 @@ import Toybox.Graphics;
 import Toybox.Lang;
 import Toybox.WatchUi;
 
-// One floor, heading the run of area cards beneath it. Its middle band is a
-// sentence about the floor's lights rather than a dot per light, there being too
-// many across a whole floor to count at a glance.
 class FloorCard extends Card {
     private var _zone as String or Null;
     private var _lights as LightTally;

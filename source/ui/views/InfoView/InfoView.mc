@@ -3,9 +3,6 @@ import Toybox.Graphics;
 import Toybox.Lang;
 import Toybox.WatchUi;
 
-// A message and the offer to retry, whether the message is neutral or a
-// failure: the same screen serves a healthy instance with no supported entities,
-// so a name asserting an error would accuse a correctly-configured user.
 class InfoView extends WatchUi.View {
     hidden var textArea as WatchUi.TextArea;
 

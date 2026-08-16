@@ -52,10 +52,6 @@ class Card {
         self.readings = readings;
     }
 
-    // Every card type overrides this with the band that differs. Declared here
-    // because the loop holds cards as this type and calls it through that: the
-    // language has no abstract method, so the base states the contract with an
-    // empty body rather than leaving callers to cast per type.
     function draw(dc as Graphics.Dc) as Void {
     }
 
@@ -107,8 +103,6 @@ class Card {
         }
     }
 
-    // Where a card type's own band sits, the same slot in every layout so the
-    // loop does not shift vertically as it pages between types.
     private function middleBandY(dc as Graphics.Dc) as Number {
         return dc.getHeight() / 2 - LIGHT_INDICATOR_RADIUS;
     }
@@ -138,8 +132,6 @@ class Card {
         dc.drawCircle(x, y, LIGHT_INDICATOR_RADIUS);
     }
 
-    // Each device class has its own fixed slot, so a card with only humidity
-    // still shows it on the right rather than sliding it left.
     private function drawReadings(dc as Graphics.Dc) as Void {
         for (var index = 0; index < readings.size(); index++) {
             var reading = readings[index];

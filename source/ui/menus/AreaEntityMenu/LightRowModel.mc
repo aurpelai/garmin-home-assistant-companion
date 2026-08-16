@@ -1,7 +1,5 @@
 import Toybox.Lang;
 
-// One light row's facts. The sublabel that picks between unavailable, a group
-// count and nothing is composed by the view, so no display text is stored here.
 class LightRowModel {
     public var rowId as String;
     public var name as String or Null;
