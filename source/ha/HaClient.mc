@@ -163,7 +163,7 @@ class HaClient {
         _pendingFetchTargets = REFRESH_TARGETS.slice(0, null) as Array<Symbol>;
         _refreshHadFailure = false;
         _onRefreshTarget = onTarget;
-        drainSlot();
+        startNextRequest();
     }
 
     function queueLightToggle(entityId as String, callback as Method) as Void {
@@ -191,10 +191,10 @@ class HaClient {
 
     private function queueChange(request as Method, callback as Method) as Void {
         _changeQueue.add(new QueuedChange(request, callback));
-        drainSlot();
+        startNextRequest();
     }
 
-    private function drainSlot() as Void {
+    private function startNextRequest() as Void {
         if (_requestInFlight) {
             return;
         }
@@ -239,7 +239,7 @@ class HaClient {
         }
 
         callback.invoke(result, spentError);
-        drainSlot();
+        startNextRequest();
     }
 
     function onTargetSettled(result as Object or Null, spentError as RequestError or Null) as Void {
@@ -262,7 +262,7 @@ class HaClient {
         }
 
         onTarget.invoke(target, result, isLastTarget);
-        drainSlot();
+        startNextRequest();
     }
 
     // Package-visible for TargetFetch, which binds one target to this so a
