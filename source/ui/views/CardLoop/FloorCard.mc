@@ -22,8 +22,6 @@ class FloorCard extends Card {
         coordinator.showFloor(id);
     }
 
-    // "No lights available" covers both a floor with no lights and one whose
-    // lights are all unavailable.
     private function lightStatus() as String {
         if (_lights.available == 0) {
             return WatchUi.loadResource(Rez.Strings.FloorLightsNone) as String;
