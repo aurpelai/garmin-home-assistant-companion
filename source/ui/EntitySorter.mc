@@ -1,15 +1,9 @@
 import Toybox.Lang;
 
-// Sorts entities into the order they appear in on screen, which is ours rather
-// than Home Assistant's: renaming a light changes its place in this list while
-// nothing in the house moves. Floor and area order is the home's own and stays
-// in HaState.
 module EntitySorter {
 
     const SENSOR_DEVICE_CLASSES = ["temperature", "humidity", "illuminance"] as Array<String>;
 
-    // By name, dropping any id the structure does not know: a floor's area list
-    // can name an area the areas section never reported.
     function sortAreas(haState as HaState, areaIds as Array<String>) as Array<String> {
         var known = [] as Array<String>;
         var labels = [] as Array<String>;
@@ -27,8 +21,6 @@ module EntitySorter {
         return sortByLabel(known, labels);
     }
 
-    // Available first, then groups, then by name. Groups lead because they
-    // aggregate several lights, so they read as the area's primary controls.
     function sortLights(haState as HaState, entityIds as Array<String>) as Array<String> {
         var available = [] as Array<String>;
         var unavailable = [] as Array<String>;
@@ -47,8 +39,6 @@ module EntitySorter {
         return sorted;
     }
 
-    // Same device class contiguous, following the class list above; a class not
-    // listed trails, keeping its input sequence.
     function groupSensorsByDeviceClass(haState as HaState, entityIds as Array<String>) as Array<String> {
         var grouped = [] as Array<String>;
         var claimed = {} as Dictionary<String, Boolean>;
@@ -103,26 +93,17 @@ module EntitySorter {
         return sortByLabel(entityIds, labels);
     }
 
-    // Sort key is `lowercased-label \n id`: the newline sorts below any printable
-    // character, so equal labels fall back to the unique id. toLower is ASCII-only,
-    // so non-Latin labels order by code point rather than locale collation.
+    // toLower is ASCII-only, so non-Latin labels order by code point rather than
+    // locale collation.
     function sortByLabel(ids as Array<String>, labels as Array<String>) as Array<String> {
-        var idForKey = {} as Dictionary<String, String>;
-        var keys = [] as Array<String>;
+        var labelById = {} as Dictionary<String, String>;
 
         for (var index = 0; index < ids.size(); index++) {
-            var key = labels[index].toLower() + "\n" + ids[index];
-            idForKey.put(key, ids[index]);
-            keys.add(key);
+            labelById.put(ids[index], labels[index].toLower());
         }
 
-        keys.sort(null);
-
-        var sorted = [] as Array<String>;
-        for (var index = 0; index < keys.size(); index++) {
-            sorted.add(idForKey.get(keys[index]) as String);
-        }
-
+        var sorted = ids.slice(0, null) as Array<String>;
+        sorted.sort(new LabelComparator(labelById));
         return sorted;
     }
 }
