@@ -74,7 +74,7 @@ module CardLoopBuilder {
             floorId,
             area == null || area.name == null ? areaId : area.name as String,
             floorName,
-            CardReading.forSensors(haState, haState.getSensorIdsInArea(areaId)),
+            SensorReading.buildFromSensors(haState, haState.getSensorIdsInArea(areaId)),
             lights);
     }
 
@@ -92,7 +92,7 @@ module CardLoopBuilder {
             floorId,
             floorName,
             haState.getZone(),
-            CardReading.forSensors(haState, sensorIds),
+            SensorReading.buildFromSensors(haState, sensorIds),
             lights);
     }
 }

@@ -8,7 +8,7 @@ class AreaCard extends Card {
     private var _lights as LightTally;
 
     function initialize(id as String, floorId as String or Null, name as String,
-                        floorName as String or Null, readings as Array<CardReading>,
+                        floorName as String or Null, readings as Array<SensorReading>,
                         lights as LightTally) {
         Card.initialize(id, floorId, name, readings);
         _floorName = floorName;

@@ -10,7 +10,7 @@ class FloorCard extends Card {
     private var _lights as LightTally;
 
     function initialize(id as String, name as String, zone as String or Null,
-                        readings as Array<CardReading>, lights as LightTally) {
+                        readings as Array<SensorReading>, lights as LightTally) {
         Card.initialize(id, id, name, readings);
         _zone = zone;
         _lights = lights;

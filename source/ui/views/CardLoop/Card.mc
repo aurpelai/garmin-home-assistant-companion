@@ -42,10 +42,10 @@ class Card {
     public var id as String;
     public var floorId as String or Null;
     public var name as String;
-    public var readings as Array<CardReading>;
+    public var readings as Array<SensorReading>;
 
     function initialize(id as String, floorId as String or Null, name as String,
-                        readings as Array<CardReading>) {
+                        readings as Array<SensorReading>) {
         self.id = id;
         self.floorId = floorId;
         self.name = name;

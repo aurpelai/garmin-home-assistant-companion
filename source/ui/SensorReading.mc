@@ -1,7 +1,6 @@
 import Toybox.Lang;
 
-// Home Assistant's own formatting for a lone sensor, or a mean over several.
-class CardReading {
+class SensorReading {
     public var deviceClass as String;
     public var text as String;
 
@@ -13,8 +12,8 @@ class CardReading {
     // Several sensors of one device class average, in an area or across a floor:
     // no one of them speaks for the scope, and picking one would show whichever
     // the walk reached first.
-    static function forSensors(haState as HaState, entityIds as Array<String>) as Array<CardReading> {
-        var readings = [] as Array<CardReading>;
+    static function buildFromSensors(haState as HaState, entityIds as Array<String>) as Array<SensorReading> {
+        var readings = [] as Array<SensorReading>;
 
         for (var classIndex = 0; classIndex < EntitySorter.SENSOR_DEVICE_CLASSES.size(); classIndex++) {
             var deviceClass = EntitySorter.SENSOR_DEVICE_CLASSES[classIndex];
@@ -29,7 +28,7 @@ class CardReading {
             }
 
             if (sensors.size() > 0) {
-                readings.add(new CardReading(deviceClass, meanOf(sensors)));
+                readings.add(new SensorReading(deviceClass, formatMean(sensors)));
             }
         }
 
@@ -39,17 +38,17 @@ class CardReading {
     // A lone reading is echoed as Home Assistant sent it. Averaging several
     // rounds to the fewest decimals any of them carried: a mean is no more
     // precise than its coarsest input, so "21.5 °C" with "22 °C" reads "22 °C".
-    private static function meanOf(sensors as Array<SensorModel>) as String {
+    private static function formatMean(sensors as Array<SensorModel>) as String {
         if (sensors.size() == 1) {
             return sensors[0].displayValue as String;
         }
 
         var sum = 0.0;
-        var decimals = decimalsOf(sensors[0]);
+        var decimals = countDecimals(sensors[0]);
 
         for (var index = 0; index < sensors.size(); index++) {
             sum += sensors[index].value as Float;
-            var own = decimalsOf(sensors[index]);
+            var own = countDecimals(sensors[index]);
             decimals = own < decimals ? own : decimals;
         }
 
@@ -65,8 +64,8 @@ class CardReading {
 
     // The unit is stripped off the display value by value rather than guessed at
     // a separator, leaving the numeric part to measure.
-    private static function decimalsOf(sensor as SensorModel) as Number {
-        var number = withoutSuffix(sensor.displayValue as String, sensor.unit);
+    private static function countDecimals(sensor as SensorModel) as Number {
+        var number = stripSuffix(sensor.displayValue as String, sensor.unit);
         var dot = number.find(".");
 
         if (dot == null) {
@@ -78,7 +77,7 @@ class CardReading {
         return fraction == null ? 0 : countDigits(fraction as String);
     }
 
-    private static function withoutSuffix(text as String, suffix as String or Null) as String {
+    private static function stripSuffix(text as String, suffix as String or Null) as String {
         if (suffix == null || (suffix as String).length() == 0
                 || (suffix as String).length() > text.length()) {
             return text;
