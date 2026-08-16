@@ -18,7 +18,7 @@ module EntitySorterTest {
 }
 
 (:test)
-function lightsOrderAvailableFirstThenGroupsThenByName(logger as Test.Logger) as Boolean {
+function lightsAreSortedAvailableFirstThenGroupsThenByName(logger as Test.Logger) as Boolean {
     // Each rank must beat the next: the unavailable group outranks nothing, and
     // the group named last still leads the plain lights.
     var haState = EntitySorterTest.stateWith({
@@ -41,7 +41,7 @@ function lightsOrderAvailableFirstThenGroupsThenByName(logger as Test.Logger) as
 }
 
 (:test)
-function lightsWithEqualNamesOrderByIdRatherThanArbitrarily(logger as Test.Logger) as Boolean {
+function lightsWithEqualNamesAreSortedByIdRatherThanArbitrarily(logger as Test.Logger) as Boolean {
     var haState = EntitySorterTest.stateWith({
         "light.b" => { "state" => false, "name" => "Lampe", "available" => true },
         "light.a" => { "state" => false, "name" => "Lampe", "available" => true }
@@ -55,10 +55,7 @@ function lightsWithEqualNamesOrderByIdRatherThanArbitrarily(logger as Test.Logge
 }
 
 (:test)
-function areasOrderByNameAndDropAnIdTheStructureNeverReported(logger as Test.Logger) as Boolean {
-    // A floor's area list can name an area the areas section never carried, and
-    // ordering is by the label on screen rather than by the id behind it. An
-    // unnamed area falls back to its id, which is what a reader sees.
+function areasAreSortedByLabelWithUnknownIdsDropped(logger as Test.Logger) as Boolean {
     var haState = new HaState();
     haState.setZone(HaPayload.parseZone({
         "areas" => {
@@ -93,7 +90,7 @@ function areasOrderByNameAndDropAnIdTheStructureNeverReported(logger as Test.Log
 }
 
 (:test)
-function sensorsGroupByDeviceClassInTheOrderTheTemplateUsedTo(logger as Test.Logger) as Boolean {
+function sensorsAreGroupedByDeviceClass(logger as Test.Logger) as Boolean {
     var haState = EntitySorterTest.stateWith({}, {
         "sensor.lux" => EntitySorterTest.reading("illuminance"),
         "sensor.temp" => EntitySorterTest.reading("temperature"),
