@@ -167,11 +167,11 @@ class HaClient {
     }
 
     function queueLightToggle(entityId as String, callback as Method) as Void {
-        queueChange(new ServiceCall(self, "toggle", "entity_id", entityId).method(:call), callback);
+        queueChange(new ServiceCall(self, "toggle", "entity_id", entityId).method(:attempt), callback);
     }
 
     function queueFloorLights(floorId as String, service as String, callback as Method) as Void {
-        queueChange(new ServiceCall(self, service, "floor_id", floorId).method(:call), callback);
+        queueChange(new ServiceCall(self, service, "floor_id", floorId).method(:attempt), callback);
     }
 
     // Connect IQ still delivers a cancelled request's reply, so nulling the
@@ -214,7 +214,7 @@ class HaClient {
             _pendingFetchTargets = _pendingFetchTargets.slice(1, null) as Array<Symbol>;
             _requestInFlight = true;
             _currentTarget = target;
-            new RetryManager(self, new TargetFetch(self, target).method(:request), method(:onTargetSettled),
+            new RetryManager(self, new TargetFetch(self, target).method(:attempt), method(:onTargetSettled),
                              RequestType.REQUEST).attempt();
         }
     }

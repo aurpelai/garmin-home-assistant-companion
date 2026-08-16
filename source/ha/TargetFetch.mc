@@ -13,7 +13,7 @@ class TargetFetch {
         _target = target;
     }
 
-    function request(callback as Method) as Void {
+    function attempt(callback as Method) as Void {
         _client.fetchTarget(_target, callback);
     }
 }

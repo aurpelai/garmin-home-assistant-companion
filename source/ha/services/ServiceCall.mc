@@ -17,7 +17,7 @@ class ServiceCall {
         _targetId = targetId;
     }
 
-    function call(callback as Method) as Void {
+    function attempt(callback as Method) as Void {
         var webhookId = Webhook.getId();
 
         if (webhookId == null) {

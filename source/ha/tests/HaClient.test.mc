@@ -241,7 +241,7 @@ function toggleLightRecoversOnceFromInvalidWebhook(logger as Test.Logger) as Boo
     var client = new MockHaClient();
     var capture = new ResultCapture();
 
-    new RetryManager(client, new ServiceCall(client, "toggle", "entity_id", "light.a").method(:call),
+    new RetryManager(client, new ServiceCall(client, "toggle", "entity_id", "light.a").method(:attempt),
         capture.method(:onResult), RequestType.REQUEST).attempt();
     client.fireServiceFailureAt(0, Communications.INVALID_HTTP_BODY_IN_NETWORK_RESPONSE);
     client.fireRegisterSuccess("fresh-id");

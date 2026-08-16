@@ -51,7 +51,7 @@ class RetryManager {
             // cannot fix by repeating itself, so it surfaces rather than
             // falling through to the generic reissue below.
             if (_registrationsLeft <= 0) {
-                surface(reason, _requestType);
+                reportFailure(reason, _requestType);
                 return;
             }
 
@@ -62,7 +62,7 @@ class RetryManager {
         }
 
         if (_attemptsLeft <= 0) {
-            surface(reason, _requestType);
+            reportFailure(reason, _requestType);
             return;
         }
 
@@ -72,7 +72,7 @@ class RetryManager {
 
     function onRegistered(webhookId as String or Null, reason as Object or Null) as Void {
         if (reason != null) {
-            surface(reason, RequestType.REGISTRATION);
+            reportFailure(reason, RequestType.REGISTRATION);
             return;
         }
 
@@ -91,7 +91,7 @@ class RetryManager {
         return false;
     }
 
-    private function surface(reason as Object, requestType as Symbol) as Void {
+    private function reportFailure(reason as Object, requestType as Symbol) as Void {
         _callback.invoke(null, new RequestError(reason, requestType));
     }
 }
