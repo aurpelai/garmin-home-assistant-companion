@@ -38,26 +38,13 @@ class HaState {
 
     function setLights(lights as Dictionary<String, LightModel>) as Void {
         _lights = lights;
-        _lightIdsByArea = {};
-
-        var entityIds = lights.keys();
-        for (var index = 0; index < entityIds.size(); index++) {
-            var entityId = entityIds[index] as String;
-            indexByArea(_lightIdsByArea, entityId, (lights.get(entityId) as LightModel).areaId);
-        }
-
+        _lightIdsByArea = groupLightIdsByArea(lights);
         dropOrphanedOverrides();
     }
 
     function setSensors(sensors as Dictionary<String, SensorModel>) as Void {
         _sensors = sensors;
-        _sensorIdsByArea = {};
-
-        var entityIds = sensors.keys();
-        for (var index = 0; index < entityIds.size(); index++) {
-            var entityId = entityIds[index] as String;
-            indexByArea(_sensorIdsByArea, entityId, (sensors.get(entityId) as SensorModel).areaId);
-        }
+        _sensorIdsByArea = groupSensorIdsByArea(sensors);
     }
 
     function hasAreas() as Boolean {
@@ -99,22 +86,28 @@ class HaState {
     }
 
     function getLightIdsInArea(areaId as String) as Array<String> {
-        return idsInArea(_lightIdsByArea, areaId);
+        var lightIds = _lightIdsByArea.get(areaId);
+        return lightIds == null ? [] as Array<String> : lightIds;
     }
 
     function getSensorIdsInArea(areaId as String) as Array<String> {
-        return idsInArea(_sensorIdsByArea, areaId);
+        var sensorIds = _sensorIdsByArea.get(areaId);
+        return sensorIds == null ? [] as Array<String> : sensorIds;
     }
 
     function getLightIdsInFloor(floorId as String) as Array<String> {
-        var out = [] as Array<String>;
-        var areaIds = areaIdsInFloor(floorId);
+        var floor = getFloor(floorId);
+        var lightIds = [] as Array<String>;
 
-        for (var index = 0; index < areaIds.size(); index++) {
-            out.addAll(getLightIdsInArea(areaIds[index]));
+        if (floor == null) {
+            return lightIds;
         }
 
-        return out;
+        for (var index = 0; index < floor.areas.size(); index++) {
+            lightIds.addAll(getLightIdsInArea(floor.areas[index]));
+        }
+
+        return lightIds;
     }
 
     function isOn(entityId as String) as Boolean {
@@ -135,17 +128,10 @@ class HaState {
         return overrideAll(getToggleTargets(entityId), isOn);
     }
 
-    // Every light in the floor, groups and unavailable ones included: Home
-    // Assistant expands the floor server-side and accepts a call to a light that
-    // is currently unreachable, so anything narrower would model a smaller scope
-    // than the action actually has.
     function overrideFloorLights(floorId as String, isOn as Boolean) as Array<String> {
         return overrideAll(getLightIdsInFloor(floorId), isOn);
     }
 
-    // The members are the group's own, as the payload reported them — a display
-    // claim, not a correctness claim: Home Assistant's own expansion can differ,
-    // and the refresh after the reply is what makes them converge.
     function getToggleTargets(entityId as String) as Array<String> {
         var light = _lights.get(entityId);
         var memberIds = light == null ? null : light.memberIds;
@@ -186,8 +172,6 @@ class HaState {
         }
     }
 
-    // Returns its own array rather than the one passed in, so what the caller
-    // holds onto can never alias anything HaState reads back.
     private function overrideAll(entityIds as Array<String>, isOn as Boolean) as Array<String> {
         var overridden = [] as Array<String>;
 
@@ -199,35 +183,50 @@ class HaState {
         return overridden;
     }
 
-    private function areaIdsInFloor(floorId as String) as Array<String> {
-        var floor = getFloor(floorId);
-        return floor == null ? [] as Array<String> : floor.areas;
-    }
+    private function groupLightIdsByArea(lights as Dictionary<String, LightModel>)
+            as Dictionary<String, Array<String>> {
+        var idsByArea = {} as Dictionary<String, Array<String>>;
+        var entityIds = lights.keys();
 
-    private function indexByArea(index as Dictionary<String, Array<String>>, entityId as String,
-                                 areaId as String or Null) as Void {
-        if (areaId == null) {
-            return;
+        for (var index = 0; index < entityIds.size(); index++) {
+            var entityId = entityIds[index] as String;
+            var areaId = (lights.get(entityId) as LightModel).areaId;
+
+            if (areaId != null) {
+                var inArea = idsByArea.get(areaId);
+                if (inArea == null) {
+                    inArea = [] as Array<String>;
+                    idsByArea.put(areaId, inArea);
+                }
+                inArea.add(entityId);
+            }
         }
 
-        var members = index.get(areaId);
-        if (members == null) {
-            members = [] as Array<String>;
-            index.put(areaId, members);
+        return idsByArea;
+    }
+
+    private function groupSensorIdsByArea(sensors as Dictionary<String, SensorModel>)
+            as Dictionary<String, Array<String>> {
+        var idsByArea = {} as Dictionary<String, Array<String>>;
+        var entityIds = sensors.keys();
+
+        for (var index = 0; index < entityIds.size(); index++) {
+            var entityId = entityIds[index] as String;
+            var areaId = (sensors.get(entityId) as SensorModel).areaId;
+
+            if (areaId != null) {
+                var inArea = idsByArea.get(areaId);
+                if (inArea == null) {
+                    inArea = [] as Array<String>;
+                    idsByArea.put(areaId, inArea);
+                }
+                inArea.add(entityId);
+            }
         }
 
-        members.add(entityId);
+        return idsByArea;
     }
 
-    private function idsInArea(idsByArea as Dictionary<String, Array<String>>,
-                               areaId as String) as Array<String> {
-        var ids = idsByArea.get(areaId);
-        return ids == null ? [] as Array<String> : ids;
-    }
-
-    // A refresh sets fresh server truth and clears nothing, so an override
-    // outlives it — unless its entity is gone, which leaves the entry with
-    // nothing to sit over.
     private function dropOrphanedOverrides() as Void {
         var entityIds = _overrides.keys();
 
