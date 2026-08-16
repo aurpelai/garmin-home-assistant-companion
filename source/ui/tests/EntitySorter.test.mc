@@ -2,7 +2,7 @@ import Toybox.Lang;
 import Toybox.Test;
 
 (:test)
-module DisplayOrderTest {
+module EntitySorterTest {
 
     function stateWith(lights as Dictionary, sensors as Dictionary) as HaState {
         var haState = new HaState();
@@ -21,7 +21,7 @@ module DisplayOrderTest {
 function lightsOrderAvailableFirstThenGroupsThenByName(logger as Test.Logger) as Boolean {
     // Each rank must beat the next: the unavailable group outranks nothing, and
     // the group named last still leads the plain lights.
-    var haState = DisplayOrderTest.stateWith({
+    var haState = EntitySorterTest.stateWith({
         "light.zzz_group" => { "state" => false, "name" => "Zzz", "available" => true,
             "memberIds" => ["light.aaa"] },
         "light.aaa" => { "state" => false, "name" => "Aaa", "available" => true },
@@ -29,7 +29,7 @@ function lightsOrderAvailableFirstThenGroupsThenByName(logger as Test.Logger) as
         "light.dark" => { "state" => false, "name" => "Aaa Broken", "available" => false }
     }, {});
 
-    var ordered = DisplayOrder.orderLightIds(haState,
+    var ordered = EntitySorter.sortLights(haState,
         ["light.dark", "light.aaa", "light.mid", "light.zzz_group"]);
 
     Test.assertEqual(ordered.size(), 4);
@@ -42,12 +42,12 @@ function lightsOrderAvailableFirstThenGroupsThenByName(logger as Test.Logger) as
 
 (:test)
 function lightsWithEqualNamesOrderByIdRatherThanArbitrarily(logger as Test.Logger) as Boolean {
-    var haState = DisplayOrderTest.stateWith({
+    var haState = EntitySorterTest.stateWith({
         "light.b" => { "state" => false, "name" => "Lampe", "available" => true },
         "light.a" => { "state" => false, "name" => "Lampe", "available" => true }
     }, {});
 
-    var ordered = DisplayOrder.orderLightIds(haState, ["light.b", "light.a"]);
+    var ordered = EntitySorter.sortLights(haState, ["light.b", "light.a"]);
 
     Test.assertEqual(ordered[0], "light.a");
     Test.assertEqual(ordered[1], "light.b");
@@ -82,7 +82,7 @@ function areasOrderByNameAndDropAnIdTheStructureNeverReported(logger as Test.Log
         }
     }));
 
-    var ordered = DisplayOrder.orderAreaIds(haState,
+    var ordered = EntitySorter.sortAreas(haState,
         ["area.alpha", "area.ghost", "area.nameless", "area.zulu"]);
 
     Test.assertEqual(ordered.size(), 3);
@@ -94,14 +94,14 @@ function areasOrderByNameAndDropAnIdTheStructureNeverReported(logger as Test.Log
 
 (:test)
 function sensorsGroupByDeviceClassInTheOrderTheTemplateUsedTo(logger as Test.Logger) as Boolean {
-    var haState = DisplayOrderTest.stateWith({}, {
-        "sensor.lux" => DisplayOrderTest.reading("illuminance"),
-        "sensor.temp" => DisplayOrderTest.reading("temperature"),
-        "sensor.rh" => DisplayOrderTest.reading("humidity"),
-        "sensor.odd" => DisplayOrderTest.reading("pressure")
+    var haState = EntitySorterTest.stateWith({}, {
+        "sensor.lux" => EntitySorterTest.reading("illuminance"),
+        "sensor.temp" => EntitySorterTest.reading("temperature"),
+        "sensor.rh" => EntitySorterTest.reading("humidity"),
+        "sensor.odd" => EntitySorterTest.reading("pressure")
     });
 
-    var ordered = DisplayOrder.groupSensorIdsByDeviceClass(haState,
+    var ordered = EntitySorter.groupSensorsByDeviceClass(haState,
         ["sensor.lux", "sensor.odd", "sensor.rh", "sensor.temp"]);
 
     Test.assertEqual(ordered.size(), 4);

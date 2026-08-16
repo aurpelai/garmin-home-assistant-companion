@@ -12,7 +12,7 @@ module AreaEntityMenuBuilder {
             return null;
         }
 
-        var lightIds = DisplayOrder.orderLightIds(haState, haState.getLightIdsInArea(areaId));
+        var lightIds = EntitySorter.sortLights(haState, haState.getLightIdsInArea(areaId));
         var lights = [] as Array<LightRowModel>;
 
         for (var index = 0; index < lightIds.size(); index++) {
@@ -30,7 +30,7 @@ module AreaEntityMenuBuilder {
                 light.memberIds == null ? null : (light.memberIds as Array<String>).size()));
         }
 
-        var sensorIds = DisplayOrder.groupSensorIdsByDeviceClass(haState, haState.getSensorIdsInArea(areaId));
+        var sensorIds = EntitySorter.groupSensorsByDeviceClass(haState, haState.getSensorIdsInArea(areaId));
         var sensors = [] as Array<SensorRowModel>;
 
         for (var index = 0; index < sensorIds.size(); index++) {

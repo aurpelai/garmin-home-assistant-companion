@@ -16,8 +16,8 @@ class CardReading {
     static function forSensors(haState as HaState, entityIds as Array<String>) as Array<CardReading> {
         var readings = [] as Array<CardReading>;
 
-        for (var classIndex = 0; classIndex < DisplayOrder.SENSOR_DEVICE_CLASSES.size(); classIndex++) {
-            var deviceClass = DisplayOrder.SENSOR_DEVICE_CLASSES[classIndex];
+        for (var classIndex = 0; classIndex < EntitySorter.SENSOR_DEVICE_CLASSES.size(); classIndex++) {
+            var deviceClass = EntitySorter.SENSOR_DEVICE_CLASSES[classIndex];
             var sensors = [] as Array<SensorModel>;
 
             for (var index = 0; index < entityIds.size(); index++) {

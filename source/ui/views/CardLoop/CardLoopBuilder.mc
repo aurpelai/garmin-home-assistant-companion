@@ -14,7 +14,7 @@ module CardLoopBuilder {
 
         for (var index = 0; index < floors.size(); index++) {
             var floor = floors[index];
-            var areaIds = DisplayOrder.orderAreaIds(haState, occupiedAreaIds(haState, floor.areas));
+            var areaIds = EntitySorter.sortAreas(haState, occupiedAreaIds(haState, floor.areas));
             if (areaIds.size() == 0) {
                 continue;
             }
@@ -37,7 +37,7 @@ module CardLoopBuilder {
             }
         }
 
-        var orderedUnfloored = DisplayOrder.orderAreaIds(haState, occupiedAreaIds(haState, unfloored));
+        var orderedUnfloored = EntitySorter.sortAreas(haState, occupiedAreaIds(haState, unfloored));
 
         for (var index = 0; index < orderedUnfloored.size(); index++) {
             cards.add(buildAreaCard(haState, orderedUnfloored[index], null, null));
