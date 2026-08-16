@@ -42,15 +42,15 @@ module EntitySorter {
             }
         }
 
-        var ordered = sortGroupsFirst(haState, available);
-        ordered.addAll(sortGroupsFirst(haState, unavailable));
-        return ordered;
+        var sorted = sortGroupsFirst(haState, available);
+        sorted.addAll(sortGroupsFirst(haState, unavailable));
+        return sorted;
     }
 
-    // Same device class contiguous, in the order the classes are listed above;
-    // a class not listed trails, keeping its input order.
+    // Same device class contiguous, following the class list above; a class not
+    // listed trails, keeping its input sequence.
     function groupSensorsByDeviceClass(haState as HaState, entityIds as Array<String>) as Array<String> {
-        var ordered = [] as Array<String>;
+        var grouped = [] as Array<String>;
         var claimed = {} as Dictionary<String, Boolean>;
 
         for (var classIndex = 0; classIndex < SENSOR_DEVICE_CLASSES.size(); classIndex++) {
@@ -59,7 +59,7 @@ module EntitySorter {
             for (var index = 0; index < entityIds.size(); index++) {
                 var sensor = haState.getSensor(entityIds[index]);
                 if (sensor != null && deviceClass.equals(sensor.deviceClass)) {
-                    ordered.add(entityIds[index]);
+                    grouped.add(entityIds[index]);
                     claimed.put(entityIds[index], true);
                 }
             }
@@ -67,11 +67,11 @@ module EntitySorter {
 
         for (var index = 0; index < entityIds.size(); index++) {
             if (!claimed.hasKey(entityIds[index])) {
-                ordered.add(entityIds[index]);
+                grouped.add(entityIds[index]);
             }
         }
 
-        return ordered;
+        return grouped;
     }
 
     function sortGroupsFirst(haState as HaState, entityIds as Array<String>) as Array<String> {
@@ -87,9 +87,9 @@ module EntitySorter {
             }
         }
 
-        var ordered = sortByLightName(haState, groups);
-        ordered.addAll(sortByLightName(haState, plain));
-        return ordered;
+        var sorted = sortByLightName(haState, groups);
+        sorted.addAll(sortByLightName(haState, plain));
+        return sorted;
     }
 
     function sortByLightName(haState as HaState, entityIds as Array<String>) as Array<String> {
@@ -118,11 +118,11 @@ module EntitySorter {
 
         keys.sort(null);
 
-        var ordered = [] as Array<String>;
+        var sorted = [] as Array<String>;
         for (var index = 0; index < keys.size(); index++) {
-            ordered.add(idForKey.get(keys[index]) as String);
+            sorted.add(idForKey.get(keys[index]) as String);
         }
 
-        return ordered;
+        return sorted;
     }
 }

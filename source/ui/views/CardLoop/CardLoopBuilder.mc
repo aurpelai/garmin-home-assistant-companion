@@ -37,10 +37,10 @@ module CardLoopBuilder {
             }
         }
 
-        var orderedUnfloored = EntitySorter.sortAreas(haState, occupiedAreaIds(haState, unfloored));
+        var sortedUnfloored = EntitySorter.sortAreas(haState, occupiedAreaIds(haState, unfloored));
 
-        for (var index = 0; index < orderedUnfloored.size(); index++) {
-            cards.add(buildAreaCard(haState, orderedUnfloored[index], null, null));
+        for (var index = 0; index < sortedUnfloored.size(); index++) {
+            cards.add(buildAreaCard(haState, sortedUnfloored[index], null, null));
         }
 
         return new CardLoopModel(cards);

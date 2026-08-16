@@ -29,14 +29,14 @@ function lightsOrderAvailableFirstThenGroupsThenByName(logger as Test.Logger) as
         "light.dark" => { "state" => false, "name" => "Aaa Broken", "available" => false }
     }, {});
 
-    var ordered = EntitySorter.sortLights(haState,
+    var sorted = EntitySorter.sortLights(haState,
         ["light.dark", "light.aaa", "light.mid", "light.zzz_group"]);
 
-    Test.assertEqual(ordered.size(), 4);
-    Test.assertEqual(ordered[0], "light.zzz_group");
-    Test.assertEqual(ordered[1], "light.aaa");
-    Test.assertEqual(ordered[2], "light.mid");
-    Test.assertEqual(ordered[3], "light.dark");
+    Test.assertEqual(sorted.size(), 4);
+    Test.assertEqual(sorted[0], "light.zzz_group");
+    Test.assertEqual(sorted[1], "light.aaa");
+    Test.assertEqual(sorted[2], "light.mid");
+    Test.assertEqual(sorted[3], "light.dark");
     return true;
 }
 
@@ -47,10 +47,10 @@ function lightsWithEqualNamesOrderByIdRatherThanArbitrarily(logger as Test.Logge
         "light.a" => { "state" => false, "name" => "Lampe", "available" => true }
     }, {});
 
-    var ordered = EntitySorter.sortLights(haState, ["light.b", "light.a"]);
+    var sorted = EntitySorter.sortLights(haState, ["light.b", "light.a"]);
 
-    Test.assertEqual(ordered[0], "light.a");
-    Test.assertEqual(ordered[1], "light.b");
+    Test.assertEqual(sorted[0], "light.a");
+    Test.assertEqual(sorted[1], "light.b");
     return true;
 }
 
@@ -82,13 +82,13 @@ function areasOrderByNameAndDropAnIdTheStructureNeverReported(logger as Test.Log
         }
     }));
 
-    var ordered = EntitySorter.sortAreas(haState,
+    var sorted = EntitySorter.sortAreas(haState,
         ["area.alpha", "area.ghost", "area.nameless", "area.zulu"]);
 
-    Test.assertEqual(ordered.size(), 3);
-    Test.assertEqual(ordered[0], "area.zulu");
-    Test.assertEqual(ordered[1], "area.nameless");
-    Test.assertEqual(ordered[2], "area.alpha");
+    Test.assertEqual(sorted.size(), 3);
+    Test.assertEqual(sorted[0], "area.zulu");
+    Test.assertEqual(sorted[1], "area.nameless");
+    Test.assertEqual(sorted[2], "area.alpha");
     return true;
 }
 
@@ -101,13 +101,13 @@ function sensorsGroupByDeviceClassInTheOrderTheTemplateUsedTo(logger as Test.Log
         "sensor.odd" => EntitySorterTest.reading("pressure")
     });
 
-    var ordered = EntitySorter.groupSensorsByDeviceClass(haState,
+    var grouped = EntitySorter.groupSensorsByDeviceClass(haState,
         ["sensor.lux", "sensor.odd", "sensor.rh", "sensor.temp"]);
 
-    Test.assertEqual(ordered.size(), 4);
-    Test.assertEqual(ordered[0], "sensor.temp");
-    Test.assertEqual(ordered[1], "sensor.rh");
-    Test.assertEqual(ordered[2], "sensor.lux");
-    Test.assertEqual(ordered[3], "sensor.odd");
+    Test.assertEqual(grouped.size(), 4);
+    Test.assertEqual(grouped[0], "sensor.temp");
+    Test.assertEqual(grouped[1], "sensor.rh");
+    Test.assertEqual(grouped[2], "sensor.lux");
+    Test.assertEqual(grouped[3], "sensor.odd");
     return true;
 }
