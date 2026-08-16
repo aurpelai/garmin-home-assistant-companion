@@ -19,7 +19,7 @@ class FloorCard extends Card {
     }
 
     function open(coordinator as Coordinator) as Void {
-        coordinator.showFloor(id);
+        coordinator.showFloorMenu(id);
     }
 
     private function lightStatus() as String {

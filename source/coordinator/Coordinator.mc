@@ -49,7 +49,7 @@ class Coordinator {
 
     // A subject gone between the card being drawn and the tap landing leaves
     // nothing to open, so the tap is dropped rather than opening an empty menu.
-    function showArea(areaId as String) as Void {
+    function showAreaMenu(areaId as String) as Void {
         var model = AreaEntityMenuBuilder.build(_haState, areaId);
         if (model == null) {
             return;
@@ -59,7 +59,7 @@ class Coordinator {
         WatchUi.pushView(menu, new AreaEntityMenuDelegate(self), WatchUi.SLIDE_LEFT);
     }
 
-    function showFloor(floorId as String) as Void {
+    function showFloorMenu(floorId as String) as Void {
         var model = FloorEntityMenuBuilder.build(_haState, floorId);
         if (model == null) {
             return;
@@ -69,9 +69,6 @@ class Coordinator {
         WatchUi.pushView(menu, new FloorEntityMenuDelegate(menu, self), WatchUi.SLIDE_LEFT);
     }
 
-    // Ignored while anything the tap would cover is already pending, regardless of
-    // what created that override: one in-flight change per entity, and a group's
-    // scope reaches its members.
     function toggleEntity(entityId as String) as Void {
         if (_haState.hasAnyPending(_haState.getToggleTargets(entityId))) {
             return;

@@ -24,6 +24,6 @@ class AreaCard extends Card {
     }
 
     function open(coordinator as Coordinator) as Void {
-        coordinator.showArea(id);
+        coordinator.showAreaMenu(id);
     }
 }
