@@ -26,8 +26,8 @@ function aFloorGoneFromTheStructureYieldsNoModel(logger as Test.Logger) as Boole
     var haState = FloorEntityMenuModelTest.stateOf(
         FloorEntityMenuModelTest.oneFloorWith(["area.room"]), {} as Dictionary);
 
-    Test.assert(buildFloorEntityMenuModel(haState, "floor.deleted") == null);
-    Test.assert(buildFloorEntityMenuModel(haState, "floor.g") != null);
+    Test.assert(FloorEntityMenuBuilder.build(haState, "floor.deleted") == null);
+    Test.assert(FloorEntityMenuBuilder.build(haState, "floor.g") != null);
     return true;
 }
 
@@ -44,9 +44,9 @@ function aFloorWithNoLightsCarriesNoRowWhileOneWithOnlyDeadOnesDoes(logger as Te
         });
 
     Test.assertEqual(
-        (buildFloorEntityMenuModel(empty, "floor.g") as FloorEntityMenuModel).lights.size(), 0);
+        (FloorEntityMenuBuilder.build(empty, "floor.g") as FloorEntityMenuModel).lights.size(), 0);
     Test.assertEqual(
-        (buildFloorEntityMenuModel(onlyDead, "floor.g") as FloorEntityMenuModel).lights.size(), 1);
+        (FloorEntityMenuBuilder.build(onlyDead, "floor.g") as FloorEntityMenuModel).lights.size(), 1);
     return true;
 }
 
@@ -60,11 +60,11 @@ function theFloorRowReadsOnWhenAnyLightInTheFloorIsOn(logger as Test.Logger) as 
             "light.dead" => { "state" => false, "area_id" => "area.room", "available" => false }
         });
 
-    Test.assert(!(buildFloorEntityMenuModel(haState, "floor.g") as FloorEntityMenuModel).lights[0].isOn);
+    Test.assert(!(FloorEntityMenuBuilder.build(haState, "floor.g") as FloorEntityMenuModel).lights[0].isOn);
 
     haState.override("light.off", true);
 
-    Test.assert((buildFloorEntityMenuModel(haState, "floor.g") as FloorEntityMenuModel).lights[0].isOn);
+    Test.assert((FloorEntityMenuBuilder.build(haState, "floor.g") as FloorEntityMenuModel).lights[0].isOn);
     return true;
 }
 

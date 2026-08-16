@@ -78,7 +78,7 @@ function eachFloorHeadsItsOwnAreasAndUnflooredAreasTrailEveryFloor(logger as Tes
     }, {} as Dictionary);
 
     Test.assertEqual(
-        CardLoopModelTest.cardIds(buildCardLoopModel(haState)).toString(),
+        CardLoopModelTest.cardIds(CardLoopBuilder.build(haState)).toString(),
         ["floor.ground", "area.kitchen", "floor.upstairs", "area.attic", "area.bedroom", "area.garage"].toString());
     return true;
 }
@@ -88,7 +88,7 @@ function anEmptyHomeYieldsAModelWithNoCardsRatherThanNull(logger as Test.Logger)
     // The card loop's builder has no subject to look up, so it cannot report
     // absence the way the per-screen builders do: an empty home is a finding
     // for the caller to act on, not a missing model.
-    var model = buildCardLoopModel(new HaState());
+    var model = CardLoopBuilder.build(new HaState());
 
     Test.assertEqual(model.cards.size(), 0);
     return true;
@@ -135,7 +135,7 @@ function severalSensorsOfOneDeviceClassAverageWhateverTheScope(logger as Test.Lo
         "sensor.kitchen_far" => CardLoopModelTest.temperature("20.0 °C", 20.0, "area.kitchen"),
         "sensor.bedroom" => CardLoopModelTest.temperature("23.0 °C", 23.0, "area.bedroom")
     });
-    var model = buildCardLoopModel(haState);
+    var model = CardLoopBuilder.build(haState);
 
     Test.assertEqual(CardLoopModelTest.readingOf(model, "area.kitchen", "temperature"), "19.0 °C");
     Test.assertEqual(CardLoopModelTest.readingOf(model, "floor.ground", "temperature"), "20.3 °C");
@@ -155,7 +155,7 @@ function aLoneReadingIsEchoedAsHomeAssistantSentIt(logger as Test.Logger) as Boo
     });
 
     Test.assertEqual(
-        CardLoopModelTest.readingOf(buildCardLoopModel(haState), "area.attic", "illuminance"),
+        CardLoopModelTest.readingOf(CardLoopBuilder.build(haState), "area.attic", "illuminance"),
         "1,024 lx");
     return true;
 }
@@ -174,7 +174,7 @@ function aFloorMeanTakesTheFewestDecimalsItsInputsCarried(logger as Test.Logger)
     });
 
     Test.assertEqual(
-        CardLoopModelTest.readingOf(buildCardLoopModel(haState), "floor.g", "temperature"), "22 °C");
+        CardLoopModelTest.readingOf(CardLoopBuilder.build(haState), "floor.g", "temperature"), "22 °C");
     return true;
 }
 
@@ -191,7 +191,7 @@ function aFloorMeanExcludesAnUnusableReadingRatherThanCountingItAsZero(logger as
     });
 
     Test.assertEqual(
-        CardLoopModelTest.readingOf(buildCardLoopModel(haState), "floor.g", "temperature"), "21.5 °C");
+        CardLoopModelTest.readingOf(CardLoopBuilder.build(haState), "floor.g", "temperature"), "21.5 °C");
     return true;
 }
 
@@ -204,7 +204,7 @@ function aDeviceClassWhoseOnlySensorIsUnusableIsAbsentRatherThanBlank(logger as 
         "sensor.humid" => { "state" => 41.0, "display_state" => "41 %", "unit" => "%",
             "device_class" => "humidity", "area_id" => "area.room", "available" => true }
     });
-    var model = buildCardLoopModel(haState);
+    var model = CardLoopBuilder.build(haState);
 
     Test.assertEqual(model.cards[0].readings.size(), 1);
     Test.assertEqual(CardLoopModelTest.readingOf(model, "area.room", "humidity"), "41 %");

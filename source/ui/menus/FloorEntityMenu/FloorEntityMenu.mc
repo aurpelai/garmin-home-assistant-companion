@@ -33,7 +33,7 @@ class FloorEntityMenu extends WatchUi.Menu2 {
     }
 
     function rebuild(haState as HaState) as Boolean {
-        var model = buildFloorEntityMenuModel(haState, _floorId);
+        var model = FloorEntityMenuBuilder.build(haState, _floorId);
         if (model == null) {
             return false;
         }

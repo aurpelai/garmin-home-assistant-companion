@@ -44,7 +44,7 @@ class AreaEntityMenu extends WatchUi.Menu2 {
     }
 
     function rebuild(haState as HaState) as Boolean {
-        var model = buildAreaEntityMenuModel(haState, _areaId);
+        var model = AreaEntityMenuBuilder.build(haState, _areaId);
         if (model == null) {
             return false;
         }

@@ -5,9 +5,9 @@ import Toybox.Test;
 function anAuthFailureReadsTheSameWhateverTheRequestType(logger as Test.Logger) as Boolean {
     // The request type participates in the mapping, but not here: a rejected
     // token is a rejected token whichever request carried it.
-    Test.assertEqual(resolveMessage(new RequestError(401, RequestType.REQUEST)), Rez.Strings.ErrAuth);
-    Test.assertEqual(resolveMessage(new RequestError(403, RequestType.REQUEST)), Rez.Strings.ErrAuth);
-    Test.assertEqual(resolveMessage(new RequestError(401, RequestType.REGISTRATION)), Rez.Strings.ErrAuth);
+    Test.assertEqual(ErrorMessage.resolve(new RequestError(401, RequestType.REQUEST)), Rez.Strings.ErrAuth);
+    Test.assertEqual(ErrorMessage.resolve(new RequestError(403, RequestType.REQUEST)), Rez.Strings.ErrAuth);
+    Test.assertEqual(ErrorMessage.resolve(new RequestError(401, RequestType.REGISTRATION)), Rez.Strings.ErrAuth);
     return true;
 }
 
@@ -16,15 +16,15 @@ function aBadRequestReadsDifferentlyPerRequestType(logger as Test.Logger) as Boo
     // Why the value carries a request type at all: the same code accuses
     // different parties. On our own registration body it is our bug; on a fetch
     // the template failed on the Home Assistant side.
-    Test.assertEqual(resolveMessage(new RequestError(400, RequestType.REGISTRATION)),
+    Test.assertEqual(ErrorMessage.resolve(new RequestError(400, RequestType.REGISTRATION)),
         Rez.Strings.ErrRegistrationRejected);
-    Test.assertEqual(resolveMessage(new RequestError(400, RequestType.REQUEST)), Rez.Strings.ErrTemplate);
+    Test.assertEqual(ErrorMessage.resolve(new RequestError(400, RequestType.REQUEST)), Rez.Strings.ErrTemplate);
     return true;
 }
 
 (:test)
 function aNotFoundOnARegistrationMeansTheWebhookIdIsGone(logger as Test.Logger) as Boolean {
-    Test.assertEqual(resolveMessage(new RequestError(404, RequestType.REGISTRATION)),
+    Test.assertEqual(ErrorMessage.resolve(new RequestError(404, RequestType.REGISTRATION)),
         Rez.Strings.ErrRegistrationGone);
     return true;
 }
@@ -32,7 +32,7 @@ function aNotFoundOnARegistrationMeansTheWebhookIdIsGone(logger as Test.Logger) 
 (:test)
 function aNegativeReasonMeansTheTransportFellOver(logger as Test.Logger) as Boolean {
     // Connect IQ's own failures are negative; an HTTP status never is.
-    Test.assertEqual(resolveMessage(new RequestError(-1, RequestType.REQUEST)), Rez.Strings.ErrNetwork);
+    Test.assertEqual(ErrorMessage.resolve(new RequestError(-1, RequestType.REQUEST)), Rez.Strings.ErrNetwork);
     return true;
 }
 
@@ -41,7 +41,7 @@ function anUnreadableBodyIsItsOwnReasonNotACode(logger as Test.Logger) as Boolea
     // A body-level symbol, not a transport code: on a sideloaded build the
     // error surface is the only diagnostic channel, so it must say that the
     // reply arrived and could not be read.
-    Test.assertEqual(resolveMessage(new RequestError(RequestError.UNREADABLE_BODY, RequestType.REQUEST)),
+    Test.assertEqual(ErrorMessage.resolve(new RequestError(RequestError.UNREADABLE_BODY, RequestType.REQUEST)),
         Rez.Strings.ErrUnreadableBody);
     return true;
 }

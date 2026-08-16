@@ -50,7 +50,7 @@ class Coordinator {
     // A subject gone between the card being drawn and the tap landing leaves
     // nothing to open, so the tap is dropped rather than opening an empty menu.
     function showArea(areaId as String) as Void {
-        var model = buildAreaEntityMenuModel(_haState, areaId);
+        var model = AreaEntityMenuBuilder.build(_haState, areaId);
         if (model == null) {
             return;
         }
@@ -60,7 +60,7 @@ class Coordinator {
     }
 
     function showFloor(floorId as String) as Void {
-        var model = buildFloorEntityMenuModel(_haState, floorId);
+        var model = FloorEntityMenuBuilder.build(_haState, floorId);
         if (model == null) {
             return;
         }
@@ -103,7 +103,7 @@ class Coordinator {
         _haState.clearOverrides(overriddenIds);
 
         if (error != null) {
-            toast(resolveMessage(error));
+            toast(ErrorMessage.resolve(error));
         }
 
         updateDisplay();
@@ -177,7 +177,7 @@ class Coordinator {
         }
 
         if (error != null) {
-            showInfo(resolveMessage(error), error.reason);
+            showInfo(ErrorMessage.resolve(error), error.reason);
             return;
         }
 
@@ -208,7 +208,7 @@ class Coordinator {
     }
 
     private function showCardLoop() as Void {
-        var loop = new CardLoop(self, buildCardLoopModel(_haState));
+        var loop = new CardLoop(self, CardLoopBuilder.build(_haState));
         WatchUi.switchToView(loop, new CardLoopDelegate(loop, self), WatchUi.SLIDE_IMMEDIATE);
     }
 }

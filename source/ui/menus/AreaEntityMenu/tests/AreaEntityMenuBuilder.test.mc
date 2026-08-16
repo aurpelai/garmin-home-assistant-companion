@@ -25,8 +25,8 @@ function anAreaGoneFromTheStructureYieldsNoModel(logger as Test.Logger) as Boole
         "areas" => { "area.kept" => { "name" => "Kept" } }
     }, {} as Dictionary, {} as Dictionary);
 
-    Test.assert(buildAreaEntityMenuModel(haState, "area.deleted") == null);
-    Test.assert(buildAreaEntityMenuModel(haState, "area.kept") != null);
+    Test.assert(AreaEntityMenuBuilder.build(haState, "area.deleted") == null);
+    Test.assert(AreaEntityMenuBuilder.build(haState, "area.kept") != null);
     return true;
 }
 
@@ -42,7 +42,7 @@ function aRowReadsTheAssumedValueAndCarriesItsPendingStatus(logger as Test.Logge
 
     haState.override("light.a", true);
 
-    var row = (buildAreaEntityMenuModel(haState, "area.room") as AreaEntityMenuModel).lights[0];
+    var row = (AreaEntityMenuBuilder.build(haState, "area.room") as AreaEntityMenuModel).lights[0];
 
     Test.assert(row.isOn);
     return true;
@@ -55,7 +55,7 @@ function anUnnamedAreaTitlesItselfWithItsIdRatherThanGoingBlank(logger as Test.L
     }, {} as Dictionary, {} as Dictionary);
 
     Test.assertEqual(
-        (buildAreaEntityMenuModel(haState, "area.nameless") as AreaEntityMenuModel).title,
+        (AreaEntityMenuBuilder.build(haState, "area.nameless") as AreaEntityMenuModel).title,
         "area.nameless");
     return true;
 }
@@ -71,7 +71,7 @@ function aSensorRowKeepsAvailabilityApartFromHaFormatting(logger as Test.Logger)
         "sensor.dead" => { "state" => null, "display_state" => "unavailable °C", "unit" => "°C",
             "device_class" => "temperature", "area_id" => "area.room", "available" => false }
     });
-    var row = (buildAreaEntityMenuModel(haState, "area.room") as AreaEntityMenuModel).sensors[0];
+    var row = (AreaEntityMenuBuilder.build(haState, "area.room") as AreaEntityMenuModel).sensors[0];
 
     Test.assert(!row.isAvailable);
     Test.assertEqual(row.displayValue as String, "unavailable °C");
@@ -90,7 +90,7 @@ function aGroupRowCarriesItsMemberCountWhileAPlainRowCarriesNone(logger as Test.
             "memberIds" => ["light.a", "light.b", "light.c"] },
         "light.a" => { "state" => true, "area_id" => "area.room", "available" => true }
     }, {} as Dictionary);
-    var lights = (buildAreaEntityMenuModel(haState, "area.room") as AreaEntityMenuModel).lights;
+    var lights = (AreaEntityMenuBuilder.build(haState, "area.room") as AreaEntityMenuModel).lights;
 
     // Groups lead their area's rows, so the group is first.
     Test.assertEqual(lights[0].memberCount as Number, 3);

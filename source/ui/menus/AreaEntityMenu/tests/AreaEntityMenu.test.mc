@@ -33,7 +33,7 @@ module AreaEntityMenuTest {
     }
 
     function menuOf(haState as HaState) as AreaEntityMenu {
-        var model = buildAreaEntityMenuModel(haState, "area.room") as AreaEntityMenuModel;
+        var model = AreaEntityMenuBuilder.build(haState, "area.room") as AreaEntityMenuModel;
         return new AreaEntityMenu(new Coordinator(new HaClient()), "area.room", model);
     }
 

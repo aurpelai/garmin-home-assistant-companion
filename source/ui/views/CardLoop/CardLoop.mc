@@ -22,7 +22,7 @@ class CardLoop extends WatchUi.View {
     }
 
     function rebuild(haState as HaState) as Boolean {
-        setModel(buildCardLoopModel(haState));
+        setModel(CardLoopBuilder.build(haState));
         return true;
     }
 

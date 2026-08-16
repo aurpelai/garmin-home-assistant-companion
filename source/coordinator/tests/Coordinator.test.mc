@@ -461,8 +461,8 @@ function aFailedTargetKeepsDataOnScreenRatherThanReplacingItWithTheFailure(logge
     // being torn down for the info screen.
     //
     // Whether the failure also reaches the user as a toast is not asserted
-    // here: resolveMessage and resolveMissingPart already pin what the toast
-    // would say, and observing that WatchUi.showToast itself fired would mean
+    // here: ErrorMessage already pins what the toast would say, and observing
+    // that WatchUi.showToast itself fired would mean
     // widening the coordinator's visibility for the test alone, which this
     // codebase does not do.
     var client = new FakeCoordinatorClient();
@@ -493,7 +493,7 @@ function aFailedToggleDoesNotTakeTheScreenAway(logger as Test.Logger) as Boolean
     // the info screen.
     //
     // Whether a toast explains the snap-back is not asserted here, for the
-    // same reason as the partial-refresh signal: resolveMessage's own tests
+    // same reason as the partial-refresh signal: ErrorMessage's own tests
     // pin the wording, and the coordinator has no accessor for "did I toast"
     // that exists for a production reason.
     var client = new FakeCoordinatorClient();
