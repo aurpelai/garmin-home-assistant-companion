@@ -32,7 +32,7 @@ class CardLoop extends WatchUi.View {
         var floorId = focused == null ? null : focused.floorId;
 
         _model = model;
-        _index = indexOf(cardId, floorId);
+        _index = resolveIndex(cardId, floorId);
         _pageIndicator.setPageCount(model.cards.size(), _index);
     }
 
@@ -77,17 +77,23 @@ class CardLoop extends WatchUi.View {
         _pageIndicator.updateIndex(_index);
     }
 
-    private function indexOf(cardId as String or Null, floorId as String or Null) as Number {
-        var found = cardIndexOf(cardId);
+    private function resolveIndex(cardId as String or Null, floorId as String or Null) as Number {
+        var cardIndex = indexOf(cardId);
 
-        if (found < 0) {
-            found = cardIndexOf(floorId);
+        if (cardIndex >= 0) {
+            return cardIndex;
         }
 
-        return found < 0 ? 0 : found;
+        var floorIndex = indexOf(floorId);
+
+        if (floorIndex >= 0) {
+            return floorIndex;
+        }
+
+        return 0;
     }
 
-    private function cardIndexOf(cardId as String or Null) as Number {
+    private function indexOf(cardId as String or Null) as Number {
         if (cardId == null) {
             return -1;
         }
