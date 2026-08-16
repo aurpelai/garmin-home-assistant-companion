@@ -190,8 +190,8 @@ class Coordinator {
         WatchUi.showToast(WatchUi.loadResource(id) as String, null);
     }
 
-    // A view reporting its subject gone lands on the card loop, which builds
-    // from the whole of HaState and so is the one screen no deletion can empty.
+    // An obsolete view lands on the card loop, which builds from the whole of
+    // HaState and so is the one screen no deletion can empty.
     private function updateDisplay() as Void {
         var view = _currentView;
 
@@ -199,12 +199,13 @@ class Coordinator {
             return;
         }
 
-        if (view.rebuild(_haState)) {
-            WatchUi.requestUpdate();
+        if (view.isObsolete(_haState)) {
+            showCardLoop();
             return;
         }
 
-        showCardLoop();
+        view.rebuild(_haState);
+        WatchUi.requestUpdate();
     }
 
     private function showCardLoop() as Void {

@@ -18,9 +18,12 @@ class CardLoop extends WatchUi.View {
         setModel(model);
     }
 
-    function rebuild(haState as HaState) as Boolean {
+    function isObsolete(haState as HaState) as Boolean {
+        return false;
+    }
+
+    function rebuild(haState as HaState) as Void {
         setModel(CardLoopBuilder.build(haState));
-        return true;
     }
 
     function setModel(model as CardLoopModel) as Void {

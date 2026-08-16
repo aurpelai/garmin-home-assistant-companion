@@ -159,14 +159,12 @@ function anAreaWithNothingInItShowsOneInertRow(logger as Test.Logger) as Boolean
 }
 
 (:test)
-function aVanishedAreaReportsItsSubjectGoneRatherThanPushing(logger as Test.Logger) as Boolean {
-    // What tells the coordinator to navigate: the view neither decides the
-    // destination nor renders a screen whose subject no longer exists.
+function aVanishedAreaMakesItsMenuObsolete(logger as Test.Logger) as Boolean {
     var menu = AreaEntityMenuTest.menuOf(AreaEntityMenuTest.stateOf({
         "light.a" => { "state" => true, "area_id" => "area.room" }
     }, {} as Dictionary));
 
-    Test.assert(menu.rebuild(new HaState()) == false);
+    Test.assert(menu.isObsolete(new HaState()));
     return true;
 }
 

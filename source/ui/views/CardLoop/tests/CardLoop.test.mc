@@ -122,12 +122,11 @@ function aVanishedCardFallsBackToTheFloorItSatUnder(logger as Test.Logger) as Bo
 }
 
 (:test)
-function theCardLoopNeverReportsItsSubjectGone(logger as Test.Logger) as Boolean {
-    // It builds from the whole of HaState, so it is the one screen no deletion
-    // can empty out from under — which is what makes it the fallback
-    // destination for every other screen's subject vanishing.
+function theCardLoopIsNeverObsolete(logger as Test.Logger) as Boolean {
+    // It is the fallback destination for every other screen going obsolete, so
+    // it must never send the coordinator anywhere itself.
     var loop = CardLoopTest.loopOf(CardLoopTest.twoFloors());
 
-    Test.assert(loop.rebuild(new HaState()));
+    Test.assert(!loop.isObsolete(new HaState()));
     return true;
 }

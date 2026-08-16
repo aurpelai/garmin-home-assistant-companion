@@ -84,6 +84,16 @@ class HaState {
         return _floors;
     }
 
+    function getFloor(floorId as String) as FloorModel or Null {
+        for (var index = 0; index < _floors.size(); index++) {
+            if (_floors[index].id.equals(floorId)) {
+                return _floors[index];
+            }
+        }
+
+        return null;
+    }
+
     function getZone() as String or Null {
         return _zone;
     }
@@ -190,13 +200,8 @@ class HaState {
     }
 
     private function areaIdsInFloor(floorId as String) as Array<String> {
-        for (var index = 0; index < _floors.size(); index++) {
-            if (_floors[index].id.equals(floorId)) {
-                return _floors[index].areas;
-            }
-        }
-
-        return [] as Array<String>;
+        var floor = getFloor(floorId);
+        return floor == null ? [] as Array<String> : floor.areas;
     }
 
     private function indexByArea(index as Dictionary<String, Array<String>>, entityId as String,

@@ -32,14 +32,15 @@ class FloorEntityMenu extends WatchUi.Menu2 {
         _coordinator.onViewHidden(self);
     }
 
-    function rebuild(haState as HaState) as Boolean {
-        var model = FloorEntityMenuBuilder.build(haState, _floorId);
-        if (model == null) {
-            return false;
-        }
+    function isObsolete(haState as HaState) as Boolean {
+        return haState.getFloor(_floorId) == null;
+    }
 
-        setModel(model);
-        return true;
+    function rebuild(haState as HaState) as Void {
+        var model = FloorEntityMenuBuilder.build(haState, _floorId);
+        if (model != null) {
+            setModel(model);
+        }
     }
 
     function setModel(model as FloorEntityMenuModel) as Void {

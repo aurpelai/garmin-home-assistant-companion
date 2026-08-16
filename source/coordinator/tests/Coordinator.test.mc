@@ -102,20 +102,21 @@ class FakeCoordinatorClient extends HaClient {
     }
 }
 
-// Stands in for a live view: the coordinator only ever asks a view to rebuild,
-// so a stub recording that call is the whole surface it needs.
 (:test)
 class StubScreen {
     public var rebuildCount as Number = 0;
-    private var _subjectSurvives as Boolean;
+    private var _isObsolete as Boolean;
 
-    function initialize(subjectSurvives as Boolean) {
-        _subjectSurvives = subjectSurvives;
+    function initialize(isObsolete as Boolean) {
+        _isObsolete = isObsolete;
     }
 
-    function rebuild(haState as HaState) as Boolean {
+    function isObsolete(haState as HaState) as Boolean {
+        return _isObsolete;
+    }
+
+    function rebuild(haState as HaState) as Void {
         rebuildCount++;
-        return _subjectSurvives;
     }
 }
 
@@ -146,8 +147,8 @@ function aStaleHideDoesNotClearAViewAlreadyReplacedAsCurrent(logger as Test.Logg
     var client = new FakeCoordinatorClient();
     client.setMsSinceLastRefresh(0);
     var coordinator = new Coordinator(client);
-    var departing = new StubScreen(true);
-    var arriving = new StubScreen(true);
+    var departing = new StubScreen(false);
+    var arriving = new StubScreen(false);
 
     coordinator.onViewShown(departing);
     coordinator.onViewShown(arriving);
@@ -177,7 +178,7 @@ function toggleRecordsAnOverrideFiresAndTheReplyClearsExactlyThoseIds(logger as 
     }, null);
 
     // A tap only ever arrives from a screen the user is looking at.
-    coordinator.onViewShown(new StubScreen(true));
+    coordinator.onViewShown(new StubScreen(false));
 
     coordinator.toggleEntity("light.a");
 
@@ -321,13 +322,13 @@ function stalenessGovernsTheFetchOnRevealNotNavigationShape(logger as Test.Logge
 
     // Never refreshed: unconditionally stale, so a reveal fetches.
     client.setMsSinceLastRefresh(null);
-    coordinator.onViewShown(new StubScreen(true));
+    coordinator.onViewShown(new StubScreen(false));
     Test.assertEqual(client.refreshCount, 1);
 
     // Freshly completed: a reveal right after must not fetch again, whether
     // it arrived by push or by reveal — staleness alone decides.
     client.setMsSinceLastRefresh(0);
-    coordinator.onViewShown(new StubScreen(true));
+    coordinator.onViewShown(new StubScreen(false));
     Test.assertEqual(client.refreshCount, 1);
     return true;
 }
@@ -339,7 +340,7 @@ function theInfoScreenLeavesNothingLiveToPushInto(logger as Test.Logger) as Bool
     // navigate out from under the screen that replaced it.
     var client = new FakeCoordinatorClient();
     var coordinator = new Coordinator(client);
-    var view = new StubScreen(true);
+    var view = new StubScreen(false);
 
     coordinator.onViewShown(view);
     Test.assert(coordinator.currentView() == view);
@@ -362,7 +363,7 @@ function aFailedStartupFetchLeavesTheLoadingScreenRatherThanHoldingIt(logger as 
     // must navigate, which the info screen taking over shows.
     var client = new FakeCoordinatorClient();
     var coordinator = new Coordinator(client);
-    var loading = new StubScreen(true);
+    var loading = new StubScreen(false);
 
     coordinator.onViewShown(loading);
     Test.assert(coordinator.currentView() == loading);
@@ -383,7 +384,7 @@ function aSuccessWithNoAreasAndNoErrorLeavesTheLoadingScreenUp(logger as Test.Lo
     // a finding to report.
     var client = new FakeCoordinatorClient();
     var coordinator = new Coordinator(client);
-    var loading = new StubScreen(true);
+    var loading = new StubScreen(false);
 
     coordinator.onViewShown(loading);
     client.fireMidRefreshTarget(FetchTarget.SENSORS, { "sensors" => {} });
@@ -404,7 +405,7 @@ function aCompletedRefreshWithNoAreasIsAFindingNotLoading(logger as Test.Logger)
     // not cause.
     var client = new FakeCoordinatorClient();
     var coordinator = new Coordinator(client);
-    var loading = new StubScreen(true);
+    var loading = new StubScreen(false);
 
     coordinator.onViewShown(loading);
     client.fireTarget(FetchTarget.STRUCTURE, { "areas" => {} }, null);
@@ -419,7 +420,7 @@ function anAreaWithNoErrorGoesToTheRealViewRatherThanTheInfoScreen(logger as Tes
     // screen — the live view simply rebuilds with the data.
     var client = new FakeCoordinatorClient();
     var coordinator = new Coordinator(client);
-    var view = new StubScreen(true);
+    var view = new StubScreen(false);
 
     coordinator.onViewShown(view);
     client.fireTarget(FetchTarget.STRUCTURE, {
@@ -441,7 +442,7 @@ function aStructureFailureStaysOnTheInfoScreenEvenAfterASiblingTargetLands(
     var client = new FakeCoordinatorClient();
     var coordinator = new Coordinator(client);
 
-    coordinator.onViewShown(new StubScreen(true));
+    coordinator.onViewShown(new StubScreen(false));
     client.fireTarget(FetchTarget.STRUCTURE, null, new RequestError(401, RequestType.REQUEST));
     Test.assert(coordinator.currentView() == null);
 
@@ -467,7 +468,7 @@ function aFailedTargetKeepsDataOnScreenRatherThanReplacingItWithTheFailure(logge
     // codebase does not do.
     var client = new FakeCoordinatorClient();
     var coordinator = new Coordinator(client);
-    var view = new StubScreen(true);
+    var view = new StubScreen(false);
 
     coordinator.onViewShown(view);
     client.fireTarget(FetchTarget.STRUCTURE, {
@@ -498,7 +499,7 @@ function aFailedToggleDoesNotTakeTheScreenAway(logger as Test.Logger) as Boolean
     // that exists for a production reason.
     var client = new FakeCoordinatorClient();
     var coordinator = new Coordinator(client);
-    var view = new StubScreen(true);
+    var view = new StubScreen(false);
 
     coordinator.onActivate();
     client.fireTarget(FetchTarget.LIGHTS, {

@@ -43,14 +43,15 @@ class AreaEntityMenu extends WatchUi.Menu2 {
         _coordinator.onViewHidden(self);
     }
 
-    function rebuild(haState as HaState) as Boolean {
-        var model = AreaEntityMenuBuilder.build(haState, _areaId);
-        if (model == null) {
-            return false;
-        }
+    function isObsolete(haState as HaState) as Boolean {
+        return haState.getArea(_areaId) == null;
+    }
 
-        setModel(model);
-        return true;
+    function rebuild(haState as HaState) as Void {
+        var model = AreaEntityMenuBuilder.build(haState, _areaId);
+        if (model != null) {
+            setModel(model);
+        }
     }
 
     function setModel(model as AreaEntityMenuModel) as Void {

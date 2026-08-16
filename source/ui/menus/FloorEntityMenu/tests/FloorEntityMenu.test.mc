@@ -71,12 +71,12 @@ function theWholeLightsRowTargetsTheFloorRatherThanItsOwnId(logger as Test.Logge
 }
 
 (:test)
-function aVanishedFloorReportsItsSubjectGoneRatherThanPushing(logger as Test.Logger) as Boolean {
+function aVanishedFloorMakesItsMenuObsolete(logger as Test.Logger) as Boolean {
     var menu = FloorEntityMenuTest.menuOf(FloorEntityMenuTest.stateOf({
         "light.a" => { "state" => true, "area_id" => "area.room" }
     }));
 
-    Test.assert(menu.rebuild(new HaState()) == false);
+    Test.assert(menu.isObsolete(new HaState()));
     return true;
 }
 

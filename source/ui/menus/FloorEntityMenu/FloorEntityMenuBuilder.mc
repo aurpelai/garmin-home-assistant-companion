@@ -3,21 +3,16 @@ import Toybox.Lang;
 // Pure: touches no WatchUi, fetches nothing, and mutates no HaState.
 module FloorEntityMenuBuilder {
 
-    // Takes the floor id and looks the floor up, so absence is discovered and
-    // answered here. Returns null when the floor is gone.
     function build(haState as HaState, floorId as String) as FloorEntityMenuModel or Null {
-        var floors = haState.getFloors();
+        var floor = haState.getFloor(floorId);
 
-        for (var index = 0; index < floors.size(); index++) {
-            var floor = floors[index];
-            if (floor.id.equals(floorId)) {
-                return new FloorEntityMenuModel(
-                    floor.name == null ? floorId : floor.name as String,
-                    buildLightRows(haState, floorId));
-            }
+        if (floor == null) {
+            return null;
         }
 
-        return null;
+        return new FloorEntityMenuModel(
+            floor.name == null ? floorId : floor.name as String,
+            buildLightRows(haState, floorId));
     }
 
     // One row per domain present on the floor, so a floor with no lights gets no
