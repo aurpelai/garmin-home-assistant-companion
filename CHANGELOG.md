@@ -5,6 +5,17 @@ All notable changes to this project are documented here.
 This file is compiled from change fragments by [changie](https://changie.dev);
 do not edit it by hand. Add a fragment with `changie new` in your PR instead.
 
+## [v0.5.0] - 2026-08-17
+
+### ✨ Improved
+
+- **Area cards, floor cards and their menus stay consistent with each other** — toggles reach every light in scope, areas showing several sensors of one type report their mean, and empty areas are hidden.
+
+### 🔧 Fixed
+
+- **An unavailable or non-numeric sensor no longer corrupts an area's mean reading, and an undefined value no longer discards the whole payload** — per-value template guards replace the single float(0) default.
+- **The page indicator follows the cards across a refresh** — a rebuild that adds or removes cards updates the dot count, and drops the indicator once too few pages remain.
+
 ## [v0.4.0] - 2026-08-09
 
 ### ✨ Improved

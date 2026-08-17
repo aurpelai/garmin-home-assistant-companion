@@ -1,3 +1,0 @@
-kind: 🔧 Fixed
-body: '**The page indicator follows the cards across a refresh** — a rebuild that adds or removes cards updates the dot count, and drops the indicator once too few pages remain.'
-time: 2026-08-14T12:00:00.000000000+03:00
