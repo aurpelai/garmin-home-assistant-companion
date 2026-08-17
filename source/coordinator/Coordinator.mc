@@ -129,6 +129,11 @@ class Coordinator {
     }
 
     private function refresh() as Void {
+        if (!Settings.isConfigured()) {
+            showInfo(Rez.Strings.ErrNoConfig, null);
+            return;
+        }
+
         _client.refresh(method(:onFetchTarget));
     }
 

@@ -19,8 +19,14 @@ module Settings {
             : value;
     }
 
+    (:production)
     function isConfigured() as Boolean {
         return !getBaseUrl().equals("") && !getToken().equals("");
+    }
+
+    (:mock)
+    function isConfigured() as Boolean {
+        return true;
     }
 
     function trimTrailingSlash(url as String) as String {

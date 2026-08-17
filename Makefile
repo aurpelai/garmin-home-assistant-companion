@@ -5,9 +5,13 @@
 # A developer key is needed to sign builds:
 #   make key            # generate developer_key.der (once)
 
-DEVICE ?= venu3
+DEVICE ?= fenix8solar51mm
 KEY    ?= developer_key.der
 JUNGLE ?= monkey.jungle
+
+# The unit-test build layers test.jungle on top to swap in mock settings; app
+# builds use the production jungle alone.
+TEST_JUNGLE ?= $(JUNGLE);test.jungle
 
 # Type-check level. 3 = strictest (errors on type mismatches). This is the
 # project standard — CI also compiles at -l 3.
@@ -45,7 +49,7 @@ lint: ## Compile with -l 3 -w and fail on any warning
 
 test: ## Build + run unit tests in the simulator (must be running: make sim)
 	@mkdir -p bin
-	"$(MONKEYC)" -f $(JUNGLE) -d $(DEVICE) --unit-test -o bin/test.prg -y $(KEY) $(STRICT)
+	"$(MONKEYC)" -f "$(TEST_JUNGLE)" -d $(DEVICE) --unit-test -o bin/test.prg -y $(KEY) $(STRICT)
 	"$(MONKEYDO)" bin/test.prg $(DEVICE) -t
 
 sim: ## Launch the Connect IQ simulator (opens it, then returns)
