@@ -61,7 +61,7 @@ class Card {
     hidden function drawFrame(dc as Graphics.Dc, subtitle as String or Null) as Void {
         var centerX = dc.getWidth() / 2;
 
-        useAntiAlias(dc, true);
+        Rendering.useAntiAlias(dc, true);
 
         if (subtitle != null) {
             drawSubtitle(dc, centerX, dc.getHeight() * 2 / COLUMN_COUNT, subtitle as String);
@@ -73,7 +73,7 @@ class Card {
     }
 
     hidden function drawLightStatus(dc as Graphics.Dc, text as String) as Void {
-        useAntiAlias(dc, true);
+        Rendering.useAntiAlias(dc, true);
         dc.setColor(Graphics.COLOR_LT_GRAY, system_color_dark__text.background);
         dc.drawText(dc.getWidth() / 2, middleBandY(dc), SUBTITLE_FONT, text,
             Graphics.TEXT_JUSTIFY_CENTER);
@@ -97,37 +97,31 @@ class Card {
         }
     }
 
-    hidden function useAntiAlias(dc as Graphics.Dc, enabled as Boolean) as Void {
-        if (dc has :setAntiAlias) {
-            dc.setAntiAlias(enabled);
-        }
-    }
-
     private function middleBandY(dc as Graphics.Dc) as Number {
         return dc.getHeight() / 2 - LIGHT_INDICATOR_RADIUS;
     }
 
     private function drawTitle(dc as Graphics.Dc, x as Number, y as Number, text as String) as Void {
-        useAntiAlias(dc, true);
+        Rendering.useAntiAlias(dc, true);
         dc.setColor(system_color_dark__text.color, system_color_dark__text.background);
         dc.drawText(x, y, TITLE_FONT, text, Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     private function drawSubtitle(dc as Graphics.Dc, x as Number, y as Number, text as String) as Void {
-        useAntiAlias(dc, false);
+        Rendering.useAntiAlias(dc, false);
         dc.setColor(Graphics.COLOR_DK_GRAY, system_color_dark__text.background);
         dc.drawText(x, y, SUBTITLE_FONT, text, Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     private function drawFilledLightIndicator(dc as Graphics.Dc, x as Number, y as Number,
                                               color as Number) as Void {
-        useAntiAlias(dc, true);
+        Rendering.useAntiAlias(dc, true);
         dc.setColor(color, system_color_dark__background.background);
         dc.fillCircle(x, y, LIGHT_INDICATOR_RADIUS);
     }
 
     private function drawOutlinedLightIndicator(dc as Graphics.Dc, x as Number, y as Number) as Void {
-        useAntiAlias(dc, false);
+        Rendering.useAntiAlias(dc, false);
         dc.setColor(Graphics.COLOR_DK_GRAY, system_color_dark__background.background);
         dc.drawCircle(x, y, LIGHT_INDICATOR_RADIUS);
     }
@@ -153,7 +147,7 @@ class Card {
         var textWidth = dc.getTextWidthInPixels(text, LABEL_FONT);
         var textHeight = dc.getFontHeight(LABEL_FONT);
 
-        useAntiAlias(dc, false);
+        Rendering.useAntiAlias(dc, false);
         dc.setColor(Graphics.COLOR_DK_GRAY, system_color_dark__text.background);
         dc.drawRoundedRectangle(
             x - BOX_HORIZONTAL_PADDING - textWidth / 2,
@@ -162,13 +156,13 @@ class Card {
             textHeight + 2 * BOX_VERTICAL_PADDING,
             BOX_BORDER_RADIUS);
 
-        useAntiAlias(dc, true);
+        Rendering.useAntiAlias(dc, true);
         dc.setColor(Graphics.COLOR_LT_GRAY, system_color_dark__text.background);
         dc.drawText(x, y, LABEL_FONT, text, Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     private function drawSelectHint(dc as Graphics.Dc) as Void {
-        useAntiAlias(dc, true);
+        Rendering.useAntiAlias(dc, true);
         dc.drawBitmap(
             system_loc__hint_button_right_top.x,
             system_loc__hint_button_right_top.y,

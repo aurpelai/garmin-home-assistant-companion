@@ -25,6 +25,8 @@ class PageIndicator {
     private const INACTIVE_INDICATOR_COLOR_CHANNEL = 0;
     private const INACTIVE_INDICATOR_STROKE_COLOR = Graphics.COLOR_LT_GRAY;
 
+    private const OVERFLOW_INDICATOR_STROKE_COLOR = Graphics.COLOR_DK_GRAY;
+
     private var _pageIndicatorRadius as Number;
     private var _pageOverflowRadius as Number;
     private var _pageIndicatorSpacing as Number;
@@ -161,19 +163,16 @@ class PageIndicator {
         var y = point[1];
 
         if (page == _currentPage) {
-            if (dc has :setAntiAlias) {
-                dc.setAntiAlias(true);
-            }
+            Rendering.useAntiAlias(dc, true);
 
             var color = Graphics.createColor(255, ACTIVE_INDICATOR_COLOR_CHANNEL, ACTIVE_INDICATOR_COLOR_CHANNEL, ACTIVE_INDICATOR_COLOR_CHANNEL);
             dc.setColor(color, system_color_dark__background.background);
             dc.fillCircle(x, y, _pageIndicatorRadius);
+
             return;
         }
 
-        if (dc has :setAntiAlias) {
-            dc.setAntiAlias(false);
-        }
+        Rendering.useAntiAlias(dc, false);
 
         if (page == _previousPage) {
             var color = Graphics.createColor(255, _inactiveIndicatorColorChannel, _inactiveIndicatorColorChannel, _inactiveIndicatorColorChannel);
@@ -187,12 +186,13 @@ class PageIndicator {
 
     private function drawOverflowIndicator(dc as Graphics.Dc, angle as Float, centerX as Number,
                                            centerY as Number, radius as Float) as Void {
-        var color = Graphics.createColor(255, INACTIVE_INDICATOR_COLOR_CHANNEL, INACTIVE_INDICATOR_COLOR_CHANNEL, INACTIVE_INDICATOR_COLOR_CHANNEL);
         var point = calculatePointOnCircle(angle, centerX, centerY, radius);
         var x = point[0];
         var y = point[1];
 
-        dc.setColor(color, system_color_dark__background.background);
+        Rendering.useAntiAlias(dc, false);
+
+        dc.setColor(OVERFLOW_INDICATOR_STROKE_COLOR, system_color_dark__background.background);
         dc.fillCircle(x, y, _pageOverflowRadius);
     }
 
