@@ -141,6 +141,10 @@ jobs:
             -y developer_key.der \
             -t -l 3
 
+          # Connect IQ reads the device files from root's home, which GitHub
+          # overrides. Without this the simulator never becomes ready and the
+          # job hangs to its timeout instead of failing.
+          export HOME=/root
           export DISPLAY=:1
 
           # Xvfb and the simulator outlive the step otherwise, leaving the job
