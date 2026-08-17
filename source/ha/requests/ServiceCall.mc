@@ -21,7 +21,7 @@ class ServiceCall {
         var webhookId = Webhook.getId();
 
         if (webhookId == null) {
-            callback.invoke(null, 404);
+            callback.invoke(null, RequestError.HTTP_NOT_FOUND);
             return;
         }
 
@@ -37,7 +37,8 @@ class ServiceCall {
         };
 
         _client.post("/api/webhook/" + webhookId, body,
-                     new ResponseHandler(callback, ResponseType.SERVICE_CALL));
+                     new ResponseHandler(callback, ResponseType.SERVICE_CALL),
+                     Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON);
     }
 
 }

@@ -21,7 +21,7 @@ module ErrorMessage {
             return Rez.Strings.ErrAuth;
         }
 
-        if (reason == 404 && error.requestType == RequestType.REGISTRATION) {
+        if (reason == RequestError.HTTP_NOT_FOUND && error.requestType == RequestType.REGISTRATION) {
             return Rez.Strings.ErrRegistrationGone;
         }
 
@@ -29,6 +29,31 @@ module ErrorMessage {
             return error.requestType == RequestType.REGISTRATION
                 ? Rez.Strings.ErrRegistrationRejected
                 : Rez.Strings.ErrTemplate;
+        }
+
+        if (reason == Communications.BLE_ERROR
+                || reason == Communications.BLE_HOST_TIMEOUT
+                || reason == Communications.BLE_SERVER_TIMEOUT
+                || reason == Communications.BLE_NO_DATA
+                || reason == Communications.BLE_CONNECTION_UNAVAILABLE
+                || reason == Communications.REQUEST_CONNECTION_DROPPED) {
+            return Rez.Strings.ErrNoPhone;
+        }
+
+        if (reason == Communications.BLE_QUEUE_FULL) {
+            return Rez.Strings.ErrTooManyRequests;
+        }
+
+        if (reason == Communications.NETWORK_REQUEST_TIMED_OUT) {
+            return Rez.Strings.ErrTimeout;
+        }
+
+        if (reason == Communications.SECURE_CONNECTION_REQUIRED) {
+            return Rez.Strings.ErrInsecureUrl;
+        }
+
+        if (reason == Communications.INVALID_HTTP_BODY_IN_NETWORK_RESPONSE) {
+            return Rez.Strings.ErrBadResponse;
         }
 
         if (reason instanceof Number && reason < 0) {

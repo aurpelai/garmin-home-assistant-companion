@@ -117,20 +117,24 @@ class Coordinator {
 
     // The info screen shows no Home Assistant data, so it is not a Screen and
     // nothing is live to push into while it is up.
-    function showInfo(id as ResourceId, code as Object or Null) as Void {
-        var message = WatchUi.loadResource(id) as String;
-
-        if (code instanceof Number) {
-            message = Lang.format(WatchUi.loadResource(Rez.Strings.ErrCode) as String, [code]) + ":\n" + message;
-        }
+    function showError(error as RequestError) as Void {
+        var message = WatchUi.loadResource(ErrorMessage.resolve(error)) as String;
 
         _currentView = null;
-        WatchUi.switchToView(new InfoView(message, true), new InfoDelegate(self), WatchUi.SLIDE_IMMEDIATE);
+        WatchUi.switchToView(new InfoView(message, true, error.toDiagnosticCode()),
+            new InfoDelegate(self), WatchUi.SLIDE_IMMEDIATE);
+    }
+
+    function showMessage(id as ResourceId) as Void {
+        var message = WatchUi.loadResource(id) as String;
+
+        _currentView = null;
+        WatchUi.switchToView(new InfoView(message, true, null), new InfoDelegate(self), WatchUi.SLIDE_IMMEDIATE);
     }
 
     private function refresh() as Void {
         if (!Settings.isConfigured()) {
-            showInfo(Rez.Strings.ErrNoConfig, null);
+            showMessage(Rez.Strings.ErrNoConfig);
             return;
         }
 
@@ -179,12 +183,12 @@ class Coordinator {
         }
 
         if (error != null) {
-            showInfo(ErrorMessage.resolve(error), error.reason);
+            showError(error);
             return;
         }
 
         if (_client.hasCompletedARefresh()) {
-            showInfo(Rez.Strings.NothingFound, null);
+            showMessage(Rez.Strings.NothingFound);
         }
     }
 

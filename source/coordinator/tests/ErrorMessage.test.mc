@@ -1,3 +1,4 @@
+import Toybox.Communications;
 import Toybox.Lang;
 import Toybox.Test;
 
@@ -24,15 +25,18 @@ function aBadRequestReadsDifferentlyPerRequestType(logger as Test.Logger) as Boo
 
 (:test)
 function aNotFoundOnARegistrationMeansTheWebhookIdIsGone(logger as Test.Logger) as Boolean {
-    Test.assertEqual(ErrorMessage.resolve(new RequestError(404, RequestType.REGISTRATION)),
+    Test.assertEqual(ErrorMessage.resolve(new RequestError(RequestError.HTTP_NOT_FOUND, RequestType.REGISTRATION)),
         Rez.Strings.ErrRegistrationGone);
     return true;
 }
 
 (:test)
 function aNegativeReasonMeansTheTransportFellOver(logger as Test.Logger) as Boolean {
-    // Connect IQ's own failures are negative; an HTTP status never is.
-    Test.assertEqual(ErrorMessage.resolve(new RequestError(-1, RequestType.REQUEST)), Rez.Strings.ErrNetwork);
+    // An unclassified negative falls to the generic transport message; the
+    // specific negatives above it carry their own. Connect IQ's own failures are
+    // negative, an HTTP status never is.
+    Test.assertEqual(ErrorMessage.resolve(new RequestError(Communications.BLE_REQUEST_TOO_LARGE, RequestType.REQUEST)),
+        Rez.Strings.ErrNetwork);
     return true;
 }
 

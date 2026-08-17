@@ -65,7 +65,8 @@ class MockHaClient extends HaClient {
         registerCount++;
     }
 
-    function post(path as String, body as Dictionary, handler as ResponseHandler) as Void {
+    function post(path as String, body as Dictionary, handler as ResponseHandler,
+                  responseContentType as Communications.HttpResponseContentType) as Void {
         serviceCallbacks.add(new PostedRequest(handler).method(:respond));
         toggleCount++;
     }
@@ -131,7 +132,7 @@ class ResultCapture {
 (:test)
 function onResponseNormalizesNon200ToError(logger as Test.Logger) as Boolean {
     var capture = new ResultCapture();
-    var handler = new ResponseHandler(capture.method(:onResult), ResponseType.FETCH);
+    var handler = new ResponseHandler(capture.method(:onResult), ResponseType.TEMPLATE_RENDER);
 
     handler.onResponse(401, null);
 
@@ -146,7 +147,7 @@ function onResponseHandsOutTheRawFetchPayload(logger as Test.Logger) as Boolean 
     // dictionary under "home", never a domain type the transport layer would
     // have to name.
     var capture = new ResultCapture();
-    var handler = new ResponseHandler(capture.method(:onResult), ResponseType.FETCH);
+    var handler = new ResponseHandler(capture.method(:onResult), ResponseType.TEMPLATE_RENDER);
 
     handler.onResponse(200, {
         "home" => { "lights" => { "light.a" => { "state" => true } } }
@@ -164,13 +165,13 @@ function aFetchBodyThatCannotBeReadIsAFailureNotAnEmptyHome(logger as Test.Logge
     // home with nothing in it both yield no entities, so passing this off as a
     // success would tell a broken instance it is merely empty.
     var missingSection = new ResultCapture();
-    new ResponseHandler(missingSection.method(:onResult), ResponseType.FETCH).onResponse(200, {});
+    new ResponseHandler(missingSection.method(:onResult), ResponseType.TEMPLATE_RENDER).onResponse(200, {});
 
     Test.assert(missingSection.result == null);
     Test.assertEqual(missingSection.error as Symbol, RequestError.UNREADABLE_BODY);
 
     var unparsable = new ResultCapture();
-    new ResponseHandler(unparsable.method(:onResult), ResponseType.FETCH).onResponse(200, { "home" => "{not json" });
+    new ResponseHandler(unparsable.method(:onResult), ResponseType.TEMPLATE_RENDER).onResponse(200, { "home" => "{not json" });
 
     Test.assert(unparsable.result == null);
     Test.assertEqual(unparsable.error as Symbol, RequestError.UNREADABLE_BODY);
@@ -178,10 +179,23 @@ function aFetchBodyThatCannotBeReadIsAFailureNotAnEmptyHome(logger as Test.Logge
     // A home that genuinely rendered empty still reads as a success: emptiness
     // is the info view's finding, not the error path's.
     var empty = new ResultCapture();
-    new ResponseHandler(empty.method(:onResult), ResponseType.FETCH).onResponse(200, { "home" => "{}" });
+    new ResponseHandler(empty.method(:onResult), ResponseType.TEMPLATE_RENDER).onResponse(200, { "home" => "{}" });
 
     Test.assert(empty.result instanceof Dictionary);
     Test.assert(empty.error == null);
+    return true;
+}
+
+(:test)
+function aDeadWebhookAnswersEmptyAndAsksToReregister(logger as Test.Logger) as Boolean {
+    // A gone webhook answers 200 with an empty body, so the reply is not the
+    // rendered envelope at all. That is the id being gone rather than a render
+    // that could not be read, so it reports the code the recovery path re-registers on.
+    var capture = new ResultCapture();
+    new ResponseHandler(capture.method(:onResult), ResponseType.TEMPLATE_RENDER).onResponse(200, null);
+
+    Test.assert(capture.result == null);
+    Test.assertEqual(capture.error as Number, RequestError.HTTP_NOT_FOUND);
     return true;
 }
 
@@ -218,9 +232,9 @@ function aFetchRecoversOnceFromInvalidWebhook(logger as Test.Logger) as Boolean 
     var capture = new ResultCapture();
 
     new RetryManager(client, client.method(:fetchOnce), capture.method(:onResult), RequestType.REQUEST).attempt();
-    client.fireFetchFailureWithCode(Communications.INVALID_HTTP_BODY_IN_NETWORK_RESPONSE);
+    client.fireFetchFailureWithCode(RequestError.HTTP_NOT_FOUND);
     client.fireRegisterSuccess("fresh-id");
-    client.fireFetchFailureWithCode(Communications.INVALID_HTTP_BODY_IN_NETWORK_RESPONSE);
+    client.fireFetchFailureWithCode(RequestError.HTTP_NOT_FOUND);
 
     Test.assertEqual(client.fetchCount, 2);
     Test.assertEqual(client.registerCount, 1);
@@ -229,7 +243,7 @@ function aFetchRecoversOnceFromInvalidWebhook(logger as Test.Logger) as Boolean 
     // The request that failed is what the error names: the re-registration
     // succeeded, so the fetch behind it owns this failure.
     var error = capture.error as RequestError;
-    Test.assertEqual(error.reason as Number, Communications.INVALID_HTTP_BODY_IN_NETWORK_RESPONSE);
+    Test.assertEqual(error.reason as Number, RequestError.HTTP_NOT_FOUND);
     Test.assertEqual(error.requestType, RequestType.REQUEST);
     return true;
 }
@@ -243,7 +257,7 @@ function toggleLightRecoversOnceFromInvalidWebhook(logger as Test.Logger) as Boo
 
     new RetryManager(client, new ServiceCall(client, "toggle", "entity_id", "light.a").method(:attempt),
         capture.method(:onResult), RequestType.REQUEST).attempt();
-    client.fireServiceFailureAt(0, Communications.INVALID_HTTP_BODY_IN_NETWORK_RESPONSE);
+    client.fireServiceFailureAt(0, RequestError.HTTP_NOT_FOUND);
     client.fireRegisterSuccess("fresh-id");
     client.fireServiceSuccessAt(1);
 
@@ -310,7 +324,7 @@ function aRegistrationFailureInsideFetchRecoveryStaysARegistrationFailure(logger
     var capture = new ResultCapture();
 
     new RetryManager(client, client.method(:fetchOnce), capture.method(:onResult), RequestType.REQUEST).attempt();
-    client.fireFetchFailureWithCode(404);
+    client.fireFetchFailureWithCode(RequestError.HTTP_NOT_FOUND);
     client.fireRegisterFailureWithCode(400);
 
     var error = capture.error as RequestError;

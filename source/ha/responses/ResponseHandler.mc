@@ -16,10 +16,18 @@ class ResponseHandler {
             return;
         }
         switch (_responseType) {
-            case ResponseType.FETCH:
-                var rendered = (data instanceof Dictionary) ? data.get("home") : null;
+            case ResponseType.TEMPLATE_RENDER:
+                // A dead webhook answers 200 with an empty body, so the render
+                // never arrives as the expected envelope. That is the id being
+                // gone, not an unreadable render, so it re-registers like a 404.
+                if (!(data instanceof Dictionary)) {
+                    _callback.invoke(null, RequestError.HTTP_NOT_FOUND);
+                    return;
+                }
+
                 // The render_template webhook returns the rendered value as a
                 // string, so the payload arrives JSON-encoded a second time.
+                var rendered = data.get("home");
                 var home = (rendered instanceof Lang.String) ? JsonParser.parse(rendered) : rendered;
                 if (home == null) {
                     _callback.invoke(null, RequestError.UNREADABLE_BODY);

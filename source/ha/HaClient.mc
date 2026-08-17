@@ -281,14 +281,15 @@ class HaClient {
         };
         post("/api/mobile_app/registrations", body,
              new ResponseHandler(new RegistrationHandler(callback).method(:onRegistered),
-                                 ResponseType.REGISTRATION));
+                                 ResponseType.REGISTRATION),
+             Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON);
     }
 
     function postTemplate(template as String, callback as Method) as Void {
         var webhookId = Webhook.getId();
 
         if (webhookId == null) {
-            callback.invoke(null, 404);
+            callback.invoke(null, RequestError.HTTP_NOT_FOUND);
             return;
         }
 
@@ -300,7 +301,11 @@ class HaClient {
                 }
             }
         };
-        post("/api/webhook/" + webhookId, body, new ResponseHandler(callback, ResponseType.FETCH));
+        // The webhook answers a JSON object of the named renders it was sent —
+        // ours under `home` — so the response is application/json, not the
+        // rendered string alone.
+        post("/api/webhook/" + webhookId, body, new ResponseHandler(callback, ResponseType.TEMPLATE_RENDER),
+             Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON);
     }
 
     private function resolveTemplate(target as Symbol) as String {
@@ -313,14 +318,15 @@ class HaClient {
         return SENSORS_TEMPLATE;
     }
 
-    function post(path as String, body as Dictionary, handler as ResponseHandler) as Void {
+    function post(path as String, body as Dictionary, handler as ResponseHandler,
+                  responseContentType as Communications.HttpResponseContentType) as Void {
         var options = {
             :method => Communications.HTTP_REQUEST_METHOD_POST,
             :headers => {
                 "Authorization" => "Bearer " + Settings.getToken(),
                 "Content-Type" => Communications.REQUEST_CONTENT_TYPE_JSON
             },
-            :responseType => Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON
+            :responseType => responseContentType
         };
 
         Communications.makeWebRequest(

@@ -345,7 +345,7 @@ function theInfoScreenLeavesNothingLiveToPushInto(logger as Test.Logger) as Bool
     coordinator.onViewShown(view);
     Test.assert(coordinator.currentView() == view);
 
-    coordinator.showInfo(Rez.Strings.ErrNoConfig, null);
+    coordinator.showMessage(Rez.Strings.ErrNoConfig);
 
     Test.assert(coordinator.currentView() == null);
 

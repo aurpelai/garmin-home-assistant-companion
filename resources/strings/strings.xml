@@ -23,13 +23,17 @@
 
     <!-- Errors -->
     <string id="ErrAuth">Auth failed — check your token</string>
+    <string id="ErrBadResponse">Bad response</string>
+    <string id="ErrInsecureUrl">URL needs https</string>
     <string id="ErrNetwork">Network error</string>
     <string id="ErrNoConfig">Set URL and token in the app settings</string>
+    <string id="ErrNoPhone">Phone not reachable</string>
     <string id="ErrRefresh">Couldn't fetch updated data</string>
     <string id="ErrRegistrationGone">Registration expired — retry to re-register</string>
     <string id="ErrRegistrationRejected">HA rejected this watch's registration</string>
     <string id="ErrTemplate">HA couldn't render the request</string>
+    <string id="ErrTimeout">No response</string>
+    <string id="ErrTooManyRequests">Too many requests</string>
     <string id="ErrUnknown">Something went wrong</string>
     <string id="ErrUnreadableBody">HA's response couldn't be read</string>
-    <string id="ErrCode">Error $1$</string>
 </strings>

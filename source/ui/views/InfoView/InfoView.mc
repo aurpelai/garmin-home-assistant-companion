@@ -6,10 +6,12 @@ import Toybox.WatchUi;
 class InfoView extends WatchUi.View {
     hidden var textArea as WatchUi.TextArea;
     hidden var selectable as Boolean;
+    hidden var detail as String or Null;
 
-    function initialize(message as String, selectable as Boolean) {
+    function initialize(message as String, selectable as Boolean, detail as String or Null) {
         View.initialize();
         self.selectable = selectable;
+        self.detail = detail;
 
         var text = selectable
             ? message + "\n\n" + (WatchUi.loadResource(Rez.Strings.RetryHint) as String)
@@ -33,6 +35,13 @@ class InfoView extends WatchUi.View {
         textArea.setLocation(width * 0.2, height * 0.2);
         textArea.setSize(width * 0.6, height * 0.6);
         textArea.draw(dc);
+
+        if (detail != null) {
+            Rendering.useAntiAlias(dc, true);
+            dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_BLACK);
+            dc.drawText(width / 2, height * 0.85, Graphics.FONT_XTINY, detail as String,
+                Graphics.TEXT_JUSTIFY_CENTER);
+        }
 
         if (selectable) {
             Rendering.useAntiAlias(dc, true);
