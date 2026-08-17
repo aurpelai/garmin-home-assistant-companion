@@ -129,6 +129,7 @@ jobs:
         # monkeydo exits nonzero even when every test passes, so the last line
         # is the verdict. A simulator that never ran leaves no summary at all,
         # which fails the same check rather than reading as clean.
+        shell: bash
         run: |
           mkdir -p bin
 
