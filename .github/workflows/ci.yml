@@ -3,13 +3,10 @@ name: CI
 # Two verification gates, both surfacing a check on the PR:
 #   test-build — type-checks production sources + the (:test) suite with the
 #     Monkey C compiler at strict level (-l 3 -w, warnings = failure) across
-#     every device targeted by manifest.xml. Runs the compiler directly inside
-#     the matco/connectiq-tester image (bundles the SDK + credential-gated
-#     device files), which is safe under container: + run:.
+#     every device targeted by manifest.xml. The matco/connectiq-tester image
+#     supplies the SDK and the credential-gated device files.
 #   test-run   — runs the (:test) suite in the headless simulator to catch
-#     wrong expected values a compile can't. Uses matco's ACTION, not a
-#     container step: the simulator is a GUI process needing the entrypoint's
-#     Xvfb + startup sequence, so it hangs under container: + run:.
+#     wrong expected values a compile can't.
 
 on:
   push:
@@ -100,7 +97,7 @@ jobs:
 
           out=$(monkeyc \
             -d ${{ matrix.device }} \
-            -f monkey.jungle \
+            -f "monkey.jungle;test.jungle" \
             -o bin/test_${{ matrix.device }}.prg \
             -y developer_key.der \
             -l 3 -w --unit-test 2>&1)
@@ -113,37 +110,65 @@ jobs:
           fi
 
   test-run:
-    name: Run tests (venu3)
+    name: Run tests (fenix8solar51mm)
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    container:
+      # matco's action is unusable here: its compile step hardcodes
+      # `-f monkey.jungle`, so test.jungle can never be layered on.
+      image: ghcr.io/matco/connectiq-tester@sha256:7a6f586cb0e0393ff288da09cf27b6dad40a0058a346c529b99fd0fc19858f0f
     steps:
       - name: Checkout
         uses: actions/checkout@v7
 
-      - name: Run tests in the simulator
-        # matco/action-connectiq-tester (pinned to its commit SHA). The action
-        # runs the tester image through its entrypoint: compiles with -t, starts
-        # Xvfb + the simulator, runs `monkeydo -t`, and derives pass/fail from the
-        # PASSED/FAILED summary line (monkeydo exits nonzero even on success).
-        # venu3: the suite is device-agnostic pure logic; test-build covers the
-        # rest of the device matrix.
-        uses: matco/action-connectiq-tester@60fd2e8179994e075d3a58c6250f32aa20e2b37b
-        with:
-          device: venu3
+      - name: Generate ephemeral developer key
+        # Test builds are never shipped, so a throwaway key is sufficient.
+        run: openssl genrsa -out developer_key.pem 4096 && openssl pkcs8 -topk8 -inform PEM -outform DER -in developer_key.pem -out developer_key.der -nocrypt
+
+      - name: Run the suite in the headless simulator
+        # monkeydo exits nonzero even when every test passes, so its status is
+        # discarded and the last line it prints is the verdict. A simulator that
+        # never ran leaves no summary, failing the same check rather than
+        # reading as clean.
+        shell: bash
+        run: |
+          mkdir -p bin
+
+          monkeyc \
+            -f "monkey.jungle;test.jungle" \
+            -d fenix8solar51mm \
+            -o bin/test.prg \
+            -y developer_key.der \
+            -t -l 3
+
+          # Connect IQ reads the device files from root's home, which GitHub
+          # overrides. Without this the simulator never becomes ready and the
+          # job hangs to its timeout instead of failing.
+          export HOME=/root
+          export DISPLAY=:1
+
+          # Xvfb and the simulator outlive the step otherwise, leaving the job
+          # to stall on orphaned children rather than finishing.
+          trap 'kill $(jobs -p)' EXIT
+
+          Xvfb "$DISPLAY" -screen 0 1280x1024x24 &
+          simulator > /dev/null 2>&1 &
+
+          sleep 5
+
+          monkeydo bin/test.prg fenix8solar51mm -t > /tmp/result.txt || true
+          cat /tmp/result.txt
+
+          [[ "$(tail -1 /tmp/result.txt)" == PASSED* ]]
 
   boot-smoke:
     name: Boot smoke (fenix8solar51mm)
     runs-on: ubuntu-latest
     # A whole-job cap so a wedged simulator fails fast instead of stalling to
-    # the runner default. An earlier bare container: + run: sim launch (see the
-    # header comment) hung for minutes; this job supplies its own Xvfb, as the
-    # image's own entrypoint does, on the expectation that the missing display
-    # was the cause. Whether that fully settles it is confirmed by this job
-    # completing quickly on CI rather than hitting this cap.
+    # the runner default.
     timeout-minutes: 5
     container:
-      # Same pinned image as test-build. Driven directly with container: + run:
-      # rather than matco's action, because that action is hardwired to the
-      # unit-test suite (-t) and can't launch a plain app.
+      # matco's action only runs the unit-test suite (-t) and can't boot an app.
       image: ghcr.io/matco/connectiq-tester@sha256:7a6f586cb0e0393ff288da09cf27b6dad40a0058a346c529b99fd0fc19858f0f
     steps:
       - name: Checkout

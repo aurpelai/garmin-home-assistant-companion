@@ -3,21 +3,18 @@ import Toybox.WatchUi;
 
 class FloorEntityMenuDelegate extends WatchUi.Menu2InputDelegate {
     private var _menu as FloorEntityMenu;
-    private var _session as HomeSession;
+    private var _coordinator as Coordinator;
 
-    function initialize(menu as FloorEntityMenu, session as HomeSession) {
+    function initialize(menu as FloorEntityMenu, coordinator as Coordinator) {
         Menu2InputDelegate.initialize();
         _menu = menu;
-        _session = session;
+        _coordinator = coordinator;
     }
 
     function onSelect(item as WatchUi.MenuItem) as Void {
-        _session.toggleFloorLights(_menu.floorId, method(:onToggleComplete));
-    }
-
-    // Holds no per-tap state, so overlapping taps cannot cross their snaps.
-    function onToggleComplete() as Void {
-        _menu.draw();
-        _session.refreshState(_menu.method(:draw));
+        var floorId = _menu.toServiceTarget(item.getId());
+        if (floorId != null) {
+            _coordinator.toggleFloorLights(floorId as String);
+        }
     }
 }

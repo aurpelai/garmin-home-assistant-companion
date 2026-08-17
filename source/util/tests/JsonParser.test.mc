@@ -100,62 +100,42 @@ function jsonRejectsTrailingContent(logger as Test.Logger) as Boolean {
 }
 
 // Escapes appear as HA's `| tojson` delivers them, so the fixture exercises the
-// real wire shape end to end into HomeState.
+// real wire shape end to end into HaState.
 (:test)
-function jsonFeedsHomeStateEndToEnd(logger as Test.Logger) as Boolean {
-    var payload = "{\"areas\": {\"area.bedroom\": {\"name\": \"Bedroom\", " +
-            "\"lights\": [\"light.bedroom_lights\"], \"sensors\": [\"sensor.bedroom_temperature\"]}}, " +
-        "\"lights\": {\"light.bedroom_lights\": {\"state\": false, \"name\": \"Bedroom Lights\", " +
-            "\"available\": true, \"memberCount\": 3}}, " +
-        "\"sensors\": {\"sensor.bedroom_temperature\": {\"state\": 24.2, " +
-            "\"display_state\": \"24.2 \\u00b0C\", \"unit\": \"\\u00b0C\", " +
-            "\"device_class\": \"temperature\", \"name\": \"Temperature\", \"available\": true}}, " +
-        "\"floors\": {\"floor.apartment\": {\"name\": \"Apartment\", \"areas\": [\"area.bedroom\"]}}}";
+function jsonFeedsHaStateEndToEnd(logger as Test.Logger) as Boolean {
+    var payload = "{\"lights\": {\"light.bedroom_lights\": {\"state\": false, " +
+            "\"name\": \"Bedroom Lights\", \"area_id\": \"area.bedroom\", " +
+            "\"available\": true, \"memberIds\": [\"light.a\", \"light.b\", \"light.c\"]}}}";
 
-    var parsed = JsonParser.parse(payload);
-    var home = HomeState.fromTemplateData(parsed as Dictionary or String or Null);
+    var haState = new HaState();
+    haState.setLights(HaPayload.parseLights(JsonParser.parse(payload)));
 
-    Test.assert(!home.isEmpty());
-    Test.assertEqual(home.getName("light.bedroom_lights"), "Bedroom Lights");
-    Test.assertEqual(home.isOn("light.bedroom_lights"), false);
-    Test.assertEqual(home.isGroup("light.bedroom_lights"), true);
-    Test.assertEqual(home.getMemberCount("light.bedroom_lights"), 3);
-    Test.assertEqual(home.getReading("sensor.bedroom_temperature") as String, "24.2 °C");
-    Test.assertEqual(home.getDeviceClass("sensor.bedroom_temperature") as String, "temperature");
+    var light = haState.getLight("light.bedroom_lights") as LightModel;
+    Test.assertEqual(light.name as String, "Bedroom Lights");
+    Test.assertEqual(light.state, false);
+    Test.assertEqual((light.memberIds as Array<String>).size(), 3);
+    Test.assertEqual(haState.getLightIdsInArea("area.bedroom").size(), 1);
     return true;
 }
 
-// A raw (unescaped) multi-byte character surviving a full parse-into-model
+// A raw (unescaped) multi-byte character surviving a full parse-into-state
 // round trip, not just the bare JsonParser call above.
 (:test)
-function jsonFeedsHomeStateEndToEndWithRawNonAscii(logger as Test.Logger) as Boolean {
-    var payload = "{\"areas\": {\"area.kitchen\": {\"name\": \"Küche\", \"sensors\": [\"sensor.temp\"]}}, " +
-        "\"sensors\": {\"sensor.temp\": {\"state\": 21.5, \"display_state\": \"21.5 °C\", " +
-            "\"unit\": \"°C\", \"device_class\": \"temperature\", \"name\": \"Café Sensor\"}}}";
+function jsonFeedsHaStateEndToEndWithRawNonAscii(logger as Test.Logger) as Boolean {
+    var structure = "{\"areas\": {\"area.kitchen\": {\"name\": \"Küche\"}}}";
+    var sensors = "{\"sensors\": {\"sensor.temp\": {\"state\": 21.5, " +
+            "\"display_state\": \"21.5 °C\", \"unit\": \"°C\", " +
+            "\"device_class\": \"temperature\", \"area_id\": \"area.kitchen\", " +
+            "\"name\": \"Café Sensor\", \"available\": true}}}";
 
-    var parsed = JsonParser.parse(payload);
-    var home = HomeState.fromTemplateData(parsed as Dictionary or String or Null);
+    var haState = new HaState();
+    HaPayloadTest.applyStructure(haState, JsonParser.parse(structure) as Dictionary);
+    haState.setSensors(HaPayload.parseSensors(JsonParser.parse(sensors)));
 
-    Test.assertEqual(home.getAreaName("area.kitchen"), "Küche");
-    Test.assertEqual(home.getName("sensor.temp"), "Café Sensor");
-    Test.assertEqual(home.getReading("sensor.temp") as String, "21.5 °C");
-    return true;
-}
-
-// The parse must not fail the whole payload just because one entity id present
-// in an area's list has no corresponding lights-section entry.
-(:test)
-function jsonFeedsHomeStateEndToEndWithAStateLessEntityDropped(logger as Test.Logger) as Boolean {
-    var payload = "{\"areas\": {\"area.hall\": {\"name\": \"Hall\", " +
-            "\"lights\": [\"light.ok\", \"light.stateless\"]}}, " +
-        "\"lights\": {\"light.ok\": {\"state\": true, \"name\": \"Ok\", \"available\": true}}}";
-
-    var parsed = JsonParser.parse(payload);
-    var home = HomeState.fromTemplateData(parsed as Dictionary or String or Null);
-
-    Test.assert(!home.isEmpty());
-    Test.assert(home.isOn("light.ok"));
-    // Absent from "lights": isOn degrades to false, never throws.
-    Test.assert(!home.isOn("light.stateless"));
+    var sensor = haState.getSensor("sensor.temp") as SensorModel;
+    Test.assertEqual((haState.getArea("area.kitchen") as AreaModel).name as String, "Küche");
+    Test.assertEqual(sensor.name as String, "Café Sensor");
+    Test.assertEqual(sensor.displayValue as String, "21.5 °C");
+    Test.assertEqual(sensor.unit as String, "°C");
     return true;
 }

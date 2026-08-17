@@ -1,34 +1,69 @@
-import Toybox.Application;
 import Toybox.Lang;
 import Toybox.WatchUi;
 
+// The item set is built once here and frozen for the life of the menu: a push
+// updates toggle states and nothing else. A floor gaining or losing its lights
+// while the menu is open therefore changes no row, and seeing a changed set
+// means reopening the menu.
 class FloorEntityMenu extends WatchUi.Menu2 {
-    public var floorId as String;
+    private var _coordinator as Coordinator;
+    private var _floorId as String;
 
-    private var _session as HomeSession;
+    function initialize(coordinator as Coordinator, floorId as String, model as FloorEntityMenuModel) {
+        Menu2.initialize({ :title => model.title });
+        _coordinator = coordinator;
+        _floorId = floorId;
 
-    function initialize(session as HomeSession, floorId as String, floorName as String) {
-        Menu2.initialize({ :title => floorName });
-        self.floorId = floorId;
-        _session = session;
+        for (var index = 0; index < model.lights.size(); index++) {
+            var row = model.lights[index];
+            addItem(new WatchUi.ToggleMenuItem(
+                WatchUi.loadResource(Rez.Strings.AllLights) as String, null,
+                row.rowId, row.isOn, null));
+        }
 
-        addItem(new WatchUi.ToggleMenuItem(
-            WatchUi.loadResource(Rez.Strings.AllLights) as String, null,
-            :allLights, session.areFloorLightsOn(floorId), null));
+        setModel(model);
     }
 
     function onShow() as Void {
-        (Application.getApp() as HaCompanionApp).setCurrentView(self);
-        _session.refreshState(method(:draw));
+        _coordinator.onViewShown(self);
     }
 
-    function draw() as Void {
-        var index = findItemById(:allLights);
-        if (index < 0) {
-            return;
-        }
+    function onHide() as Void {
+        _coordinator.onViewHidden(self);
+    }
 
-        (getItem(index) as WatchUi.ToggleMenuItem).setEnabled(_session.areFloorLightsOn(floorId));
-        WatchUi.requestUpdate();
+    function isObsolete(haState as HaState) as Boolean {
+        return haState.getFloor(_floorId) == null;
+    }
+
+    function rebuild(haState as HaState) as Void {
+        var model = FloorEntityMenuBuilder.build(haState, _floorId);
+        if (model != null) {
+            setModel(model);
+        }
+    }
+
+    function setModel(model as FloorEntityMenuModel) as Void {
+        setTitle(model.title);
+
+        for (var index = 0; index < model.lights.size(); index++) {
+            var row = model.lights[index];
+            var item = findItem(row.rowId);
+
+            if (item != null) {
+                (item as WatchUi.ToggleMenuItem).setEnabled(row.isOn);
+            }
+        }
+    }
+
+    // A floor row's identity and its service target diverge, so the delegate
+    // cannot read the target off the platform event and asks here instead.
+    function toServiceTarget(rowId as Object or Null) as String or Null {
+        return FloorEntityMenuModel.LIGHTS_ROW_ID.equals(rowId) ? _floorId : null;
+    }
+
+    private function findItem(rowId as String) as WatchUi.MenuItem or Null {
+        var index = findItemById(rowId);
+        return index < 0 ? null : getItem(index);
     }
 }

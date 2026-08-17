@@ -5,13 +5,12 @@ import Toybox.StringUtil;
 //
 // HA's render_template webhook returns the rendered template as a STRING inside
 // the JSON envelope, so Connect IQ decodes the envelope but hands the payload
-// back as an unparsed String (double-encoded). This turns that inner string
-// back into the Dictionary shape HomeState.fromTemplateData consumes.
+// back as an unparsed String (double-encoded). This decodes that inner string.
 //
 // One pass over a char-code array, no backtracking, minimal allocation: the
 // payload grows with home size and an on-device parse that runs too long trips
-// the "code took too long to run" watchdog. Malformed input yields null (never
-// throws), so a bad payload degrades to an empty HomeState.
+// the "code took too long to run" watchdog. Malformed input yields null rather
+// than throwing.
 class JsonParser {
     private var _str as String;
     // Char units, not bytes: _pos indexes both this and _str.substring, which is
@@ -99,7 +98,6 @@ class JsonParser {
         return consumeClose(0x7D) ? out : null; // }
     }
 
-    // Reads one "key": value pair into out; false on any malformed part.
     private function parseMember(out as Dictionary) as Boolean {
         skipWhitespace();
         if (_pos >= _len || _chars[_pos] != 0x22) { // "
@@ -140,8 +138,6 @@ class JsonParser {
         return consumeClose(0x5D) ? out : null; // ]
     }
 
-    // Consumes a closing bracket at the current position (past whitespace),
-    // reporting whether the container ended here.
     private function consumeClose(bracket as Number) as Boolean {
         skipWhitespace();
         if (_pos < _len && _chars[_pos] == bracket) {
@@ -151,7 +147,6 @@ class JsonParser {
         return false;
     }
 
-    // Consumes a separating comma, reporting whether another element follows.
     private function consumeComma() as Boolean {
         skipWhitespace();
         if (_pos < _len && _chars[_pos] == 0x2C) { // ,
@@ -296,14 +291,12 @@ class JsonParser {
             var c = _chars[_pos];
             var isExp = false;
             if (c >= 0x30 && c <= 0x39) {
-                // digit always allowed
             } else if (c == 0x2E && !hasDot && !hasExp) { // .
                 hasDot = true;
             } else if ((c == 0x65 || c == 0x45) && !hasExp) { // e E
                 hasExp = true;
                 isExp = true;
             } else if ((c == 0x2B || c == 0x2D) && prevWasExp) { // + -
-                // sign only immediately after the exponent marker
             } else {
                 break;
             }

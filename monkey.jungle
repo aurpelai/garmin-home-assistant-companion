@@ -53,3 +53,7 @@ fenix8pro47mm.resourcePath    = $(fenix8pro47mm.resourcePath);$(launcher65)
 # 70 px
 venu3.resourcePath            = $(venu3.resourcePath);$(launcher70)
 venu3s.resourcePath           = $(venu3s.resourcePath);$(launcher70)
+
+# The production build. test.jungle layers on top for the unit-test build,
+# swapping the mock in where a test would otherwise reach real user settings.
+base.excludeAnnotations = mock

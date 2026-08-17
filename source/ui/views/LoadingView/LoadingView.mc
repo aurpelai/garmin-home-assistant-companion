@@ -1,16 +1,16 @@
-import Toybox.Application;
 import Toybox.Graphics;
 import Toybox.Lang;
 import Toybox.WatchUi;
 
-// First screen and startup orchestrator: it runs the initial fetch and swaps
-// itself for the card loop (or an error screen) once it completes.
+// The first screen, held until there is something to show. Reporting its
+// subject as gone once entities arrive is what moves the user on, so the
+// coordinator navigates and this view does not.
 class LoadingView extends WatchUi.View {
-    private var _app as HaCompanionApp;
+    private var _coordinator as Coordinator;
 
-    function initialize() {
+    function initialize(coordinator as Coordinator) {
         View.initialize();
-        _app = Application.getApp() as HaCompanionApp;
+        _coordinator = coordinator;
     }
 
     function onLayout(dc as Graphics.Dc) as Void {
@@ -25,11 +25,17 @@ class LoadingView extends WatchUi.View {
     }
 
     function onShow() as Void {
-        if (!Settings.isConfigured()) {
-            _app.showRetryScreen(Rez.Strings.ErrNoConfig, null);
-            return;
-        }
+        _coordinator.onViewShown(self);
+    }
 
-        _app.fetchHomeState();
+    function onHide() as Void {
+        _coordinator.onViewHidden(self);
+    }
+
+    function isObsolete(haState as HaState) as Boolean {
+        return haState.hasAreas();
+    }
+
+    function rebuild(haState as HaState) as Void {
     }
 }
