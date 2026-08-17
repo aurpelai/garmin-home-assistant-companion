@@ -33,7 +33,10 @@ else
   CONNECTIQ := connectiq
 endif
 
-.PHONY: build test lint sim run key clean
+CLIENT  ?= source/ha/HaClient.mc
+CHANGIE ?= npx changie@1.25.2
+
+.PHONY: build test lint sim run key clean release
 
 build: ## Compile a debug build for $(DEVICE)
 	@mkdir -p bin
@@ -66,3 +69,18 @@ key: ## Generate a developer signing key (once)
 
 clean: ## Remove build output
 	rm -rf bin
+
+# Local, network-free release: changie compiles the fragments and picks the bump
+# from their kinds, APP_VERSION is synced to the batched number, and everything
+# lands in one `Release vX.Y.Z` commit + tag. Push it yourself with
+# `git push origin main --follow-tags`; the tag push cuts the GitHub Release.
+release: ## Batch changelog, sync APP_VERSION, commit + tag (then push manually)
+	@test -z "$$(git status --porcelain)" || { echo "FAIL: working tree not clean; commit or stash first"; exit 1; }
+	$(CHANGIE) batch auto
+	$(CHANGIE) merge
+	@version=$$($(CHANGIE) latest); \
+	perl -i -pe 'BEGIN{$$v=shift} s/(const APP_VERSION = ")[^"]*(")/$${1}$$v$${2}/' "$${version#v}" "$(CLIENT)"; \
+	git add CHANGELOG.md .changes "$(CLIENT)"; \
+	git commit -m "Release $$version"; \
+	git tag "$$version"; \
+	echo "Tagged $$version. Push with: git push origin main --follow-tags"

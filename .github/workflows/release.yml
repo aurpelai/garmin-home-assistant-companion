@@ -1,30 +1,16 @@
 name: Release
 
-# Manual, human-gated release. You pick the bump; changie compiles the changelog
-# entry, the workflow tags it and cuts a GitHub Release. The Connect IQ Store
-# assigns the app's version at upload time (you type the tag's version there), so
-# nothing here injects a version into the build.
+# The release itself is cut locally with `make release` (changie batch + merge,
+# APP_VERSION sync, one `Release vX.Y.Z` commit + tag) and pushed by hand. This
+# workflow does the one step that must touch GitHub: turning the pushed tag into
+# a GitHub Release, with the body taken from changie's per-version notes file.
 
 on:
-  workflow_dispatch:
-    inputs:
-      bump:
-        description: "Version bump"
-        required: true
-        default: patch
-        type: choice
-        options: [patch, minor, major, auto]
-      headline:
-        description: "Optional release headline (one short user-facing paragraph, shown above the sections). Leave blank to omit."
-        required: false
-        type: string
+  push:
+    tags: ["v*"]
 
 permissions:
   contents: write
-
-concurrency:
-  group: release
-  cancel-in-progress: false
 
 jobs:
   release:
@@ -32,61 +18,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-
-      # Optional release headline → a version-header file inside the unreleased
-      # dir, passed to batch via --header-path (a path relative to that dir).
-      # changie renders it under the version header, above the sections, then
-      # consumes it with the fragments. No headline → no file, no flag.
-      - name: Stage optional release headline
-        id: headline
-        if: inputs.headline != ''
-        env:
-          HEADLINE: ${{ inputs.headline }}
-        run: |
-          printf '%s\n' "$HEADLINE" > .changes/unreleased/version-header.md
-          echo "flag=--header-path version-header.md" >> "$GITHUB_OUTPUT"
-
-      - name: Batch fragments into a version file
-        uses: miniscruff/changie-action@v3
-        with:
-          version: latest
-          # Fail loudly if there are no unreleased fragments to release.
-          args: batch ${{ inputs.bump }} ${{ steps.headline.outputs.flag }}
-
-      - name: Compile CHANGELOG.md
-        uses: miniscruff/changie-action@v3
-        with:
-          version: latest
-          args: merge
-
-      # `changie latest` returns the version prefixed (v0.2.0), matching the git
-      # tag, the version filename and the CHANGELOG.md header verbatim. The
-      # Connect IQ Store wants the bare number — drop the `v` when you type it.
-      - name: Read the batched version
-        id: version
-        uses: miniscruff/changie-action@v3
-        with:
-          version: latest
-          args: latest
-
-      - name: Commit changelog and tag the release
-        env:
-          VERSION: ${{ steps.version.outputs.output }}
-        run: |
-          git config user.name  "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add CHANGELOG.md .changes
-          git commit -m "Release $VERSION"
-          git tag "$VERSION"
-          git push origin HEAD --follow-tags
 
       - name: Create the GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ steps.version.outputs.output }}
         run: |
-          gh release create "$VERSION" \
-            --title "$VERSION" \
-            --notes-file ".changes/${VERSION}.md"
+          gh release create "$GITHUB_REF_NAME" \
+            --title "$GITHUB_REF_NAME" \
+            --notes-file ".changes/${GITHUB_REF_NAME}.md"
