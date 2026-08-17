@@ -139,7 +139,15 @@ jobs:
             -y developer_key.der \
             -t -l 3
 
+          # The simulator needs the device files in root's home, which GitHub
+          # overrides for Docker actions but not for container: steps.
+          export HOME=/root
           export DISPLAY=:1
+
+          # Xvfb and the simulator outlive the step otherwise, leaving the job
+          # to stall on orphaned children rather than finishing.
+          trap 'kill $(jobs -p)' EXIT
+
           Xvfb "$DISPLAY" -screen 0 1280x1024x24 &
           simulator > /dev/null 2>&1 &
 
