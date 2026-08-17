@@ -125,7 +125,7 @@ class Coordinator {
         }
 
         _currentView = null;
-        WatchUi.switchToView(new InfoView(message), new InfoDelegate(self), WatchUi.SLIDE_IMMEDIATE);
+        WatchUi.switchToView(new InfoView(message, true), new InfoDelegate(self), WatchUi.SLIDE_IMMEDIATE);
     }
 
     private function refresh() as Void {

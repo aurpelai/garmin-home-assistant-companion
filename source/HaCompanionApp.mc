@@ -34,7 +34,7 @@ class HaCompanionApp extends Application.AppBase {
 
     function getInitialView() as [WatchUi.Views] or [WatchUi.Views, WatchUi.InputDelegates] {
         if (!Settings.isConfigured()) {
-            return [new InfoView(WatchUi.loadResource(Rez.Strings.ErrNoConfig) as String),
+            return [new InfoView(WatchUi.loadResource(Rez.Strings.ErrNoConfig) as String, true),
                     new InfoDelegate(_coordinator)];
         }
 
