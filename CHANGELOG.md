@@ -5,6 +5,14 @@ All notable changes to this project are documented here.
 This file is compiled from change fragments by [changie](https://changie.dev);
 do not edit it by hand. Add a fragment with `changie new` in your PR instead.
 
+## [v0.5.1] - 2026-08-18
+
+### 🔧 Fixed
+
+- The page indicator's more-pages markers are visible again — they were drawn in a colour that blended into the background.
+- The error screen shows its select-to-retry button hint again, so retrying is discoverable.
+- The app now recovers on its own after a Home Assistant restart.
+
 ## [v0.5.0] - 2026-08-17
 
 ### ✨ Improved
