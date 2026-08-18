@@ -116,16 +116,16 @@ class Coordinator {
     }
 
     function showError(error as RequestError) as Void {
-        show(WatchUi.loadResource(ErrorMessage.resolve(error)) as String, error.toDiagnosticCode());
+        showInfoView(WatchUi.loadResource(ErrorMessage.resolve(error)) as String, error.toDiagnosticCode());
     }
 
     function showMessage(id as ResourceId) as Void {
-        show(WatchUi.loadResource(id) as String, null);
+        showInfoView(WatchUi.loadResource(id) as String, null);
     }
 
     // The info screen shows no Home Assistant data, so it is not a Screen and
     // nothing is live to push into while it is up.
-    private function show(message as String, detail as String or Null) as Void {
+    private function showInfoView(message as String, detail as String or Null) as Void {
         _currentView = null;
         WatchUi.switchToView(new InfoView(message, true, detail), new InfoDelegate(self), WatchUi.SLIDE_IMMEDIATE);
     }
