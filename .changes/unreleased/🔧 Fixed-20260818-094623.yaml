@@ -1,3 +1,3 @@
 kind: "\U0001F527 Fixed"
-body: The app now re-registers itself when its Home Assistant webhook goes stale, instead of failing until reinstalled.
+body: The app now recovers on its own after a Home Assistant restart.
 time: 2026-08-18T09:46:23.532551+03:00
