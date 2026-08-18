@@ -1,19 +1,8 @@
 import Toybox.Lang;
 
-// Every failure reason is retried and none is classified: the retry itself is
-// the test, where *would this kind recover* would be a guess needing a table to
-// maintain. The cost is that an auth failure burns the full threshold before it
-// surfaces, which is why the threshold is small.
 class RetryManager {
     private const REQUEST_RETRIES = 3;
     private const REGISTRATION_RETRIES = 1;
-
-    // A dead webhook_id shows up as one of these: -400 because HA sends no body
-    // (Connect IQ reports that as invalid-http-body), or 404 when the id is gone.
-    private const INVALID_WEBHOOK_CODES = [
-        Communications.INVALID_HTTP_BODY_IN_NETWORK_RESPONSE,
-        404
-    ];
 
     private var _client as HaClient;
     private var _request as Method;
@@ -42,7 +31,7 @@ class RetryManager {
             return;
         }
 
-        if (reason instanceof Number && isInvalidWebhookCode(reason)) {
+        if (reason == RequestError.HTTP_NOT_FOUND) {
             if (_registrationsLeft <= 0) {
                 reportFailure(reason, _requestType);
                 return;
@@ -73,15 +62,6 @@ class RetryManager {
         // recovered, so the original failure counted for nothing.
         _attemptsLeft = REQUEST_RETRIES;
         _request.invoke(method(:onAttempt));
-    }
-
-    function isInvalidWebhookCode(code as Number) as Boolean {
-        for (var index = 0; index < INVALID_WEBHOOK_CODES.size(); index++) {
-            if (INVALID_WEBHOOK_CODES[index] == code) {
-                return true;
-            }
-        }
-        return false;
     }
 
     private function reportFailure(reason as Object, requestType as Symbol) as Void {

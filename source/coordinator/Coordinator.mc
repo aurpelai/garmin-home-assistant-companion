@@ -115,22 +115,24 @@ class Coordinator {
         refresh();
     }
 
+    function showError(error as RequestError) as Void {
+        showInfoView(WatchUi.loadResource(ErrorMessage.resolve(error)) as String, error.toDiagnosticCode());
+    }
+
+    function showMessage(id as ResourceId) as Void {
+        showInfoView(WatchUi.loadResource(id) as String, null);
+    }
+
     // The info screen shows no Home Assistant data, so it is not a Screen and
     // nothing is live to push into while it is up.
-    function showInfo(id as ResourceId, code as Object or Null) as Void {
-        var message = WatchUi.loadResource(id) as String;
-
-        if (code instanceof Number) {
-            message = Lang.format(WatchUi.loadResource(Rez.Strings.ErrCode) as String, [code]) + ":\n" + message;
-        }
-
+    private function showInfoView(message as String, detail as String or Null) as Void {
         _currentView = null;
-        WatchUi.switchToView(new InfoView(message, true), new InfoDelegate(self), WatchUi.SLIDE_IMMEDIATE);
+        WatchUi.switchToView(new InfoView(message, true, detail), new InfoDelegate(self), WatchUi.SLIDE_IMMEDIATE);
     }
 
     private function refresh() as Void {
         if (!Settings.isConfigured()) {
-            showInfo(Rez.Strings.ErrNoConfig, null);
+            showMessage(Rez.Strings.ErrNoConfig);
             return;
         }
 
@@ -179,12 +181,12 @@ class Coordinator {
         }
 
         if (error != null) {
-            showInfo(ErrorMessage.resolve(error), error.reason);
+            showError(error);
             return;
         }
 
         if (_client.hasCompletedARefresh()) {
-            showInfo(Rez.Strings.NothingFound, null);
+            showMessage(Rez.Strings.NothingFound);
         }
     }
 
