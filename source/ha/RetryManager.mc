@@ -1,9 +1,5 @@
 import Toybox.Lang;
 
-// Every failure reason is retried and none is classified: the retry itself is
-// the test, where *would this kind recover* would be a guess needing a table to
-// maintain. The cost is that an auth failure burns the full threshold before it
-// surfaces, which is why the threshold is small.
 class RetryManager {
     private const REQUEST_RETRIES = 3;
     private const REGISTRATION_RETRIES = 1;
