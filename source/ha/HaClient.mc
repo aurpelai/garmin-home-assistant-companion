@@ -296,7 +296,7 @@ class HaClient {
         var body = {
             "type" => "render_template",
             "data" => {
-                "home" => {
+                ResponseType.TEMPLATE_RENDER_ROOT_KEY => {
                     "template" => template
                 }
             }

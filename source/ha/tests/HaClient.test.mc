@@ -11,7 +11,7 @@ import Toybox.Test;
 // the same shape serves both request types the mock posts.
 (:test)
 class PostedRequest {
-    private const RENDERED_EMPTY_HOME = { "home" => "{}" };
+    private const RENDERED_EMPTY_HOME = { ResponseType.TEMPLATE_RENDER_ROOT_KEY => "{}" };
 
     private var _handler as ResponseHandler;
 
@@ -150,7 +150,7 @@ function onResponseHandsOutTheRawFetchPayload(logger as Test.Logger) as Boolean 
     var handler = new ResponseHandler(capture.method(:onResult), ResponseType.TEMPLATE_RENDER);
 
     handler.onResponse(200, {
-        "home" => { "lights" => { "light.a" => { "state" => true } } }
+        ResponseType.TEMPLATE_RENDER_ROOT_KEY => { "lights" => { "light.a" => { "state" => true } } }
     });
 
     Test.assert(capture.result instanceof Dictionary);
@@ -171,7 +171,7 @@ function aFetchBodyThatCannotBeReadIsAFailureNotAnEmptyHome(logger as Test.Logge
     Test.assertEqual(missingSection.error as Symbol, RequestError.UNREADABLE_BODY);
 
     var unparsable = new ResultCapture();
-    new ResponseHandler(unparsable.method(:onResult), ResponseType.TEMPLATE_RENDER).onResponse(200, { "home" => "{not json" });
+    new ResponseHandler(unparsable.method(:onResult), ResponseType.TEMPLATE_RENDER).onResponse(200, { ResponseType.TEMPLATE_RENDER_ROOT_KEY => "{not json" });
 
     Test.assert(unparsable.result == null);
     Test.assertEqual(unparsable.error as Symbol, RequestError.UNREADABLE_BODY);
@@ -179,7 +179,7 @@ function aFetchBodyThatCannotBeReadIsAFailureNotAnEmptyHome(logger as Test.Logge
     // A home that genuinely rendered empty still reads as a success: emptiness
     // is the info view's finding, not the error path's.
     var empty = new ResultCapture();
-    new ResponseHandler(empty.method(:onResult), ResponseType.TEMPLATE_RENDER).onResponse(200, { "home" => "{}" });
+    new ResponseHandler(empty.method(:onResult), ResponseType.TEMPLATE_RENDER).onResponse(200, { ResponseType.TEMPLATE_RENDER_ROOT_KEY => "{}" });
 
     Test.assert(empty.result instanceof Dictionary);
     Test.assert(empty.error == null);
