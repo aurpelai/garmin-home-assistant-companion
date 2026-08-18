@@ -21,8 +21,10 @@ module ErrorMessage {
             return Rez.Strings.ErrAuth;
         }
 
-        if (reason == RequestError.HTTP_NOT_FOUND && error.requestType == RequestType.REGISTRATION) {
-            return Rez.Strings.ErrRegistrationGone;
+        if (reason == RequestError.HTTP_NOT_FOUND) {
+            return error.requestType == RequestType.REGISTRATION
+                ? Rez.Strings.ErrRegistrationFailed
+                : Rez.Strings.ErrNotFound;
         }
 
         if (reason == 400) {

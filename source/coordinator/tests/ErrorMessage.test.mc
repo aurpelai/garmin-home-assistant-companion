@@ -24,9 +24,9 @@ function aBadRequestReadsDifferentlyPerRequestType(logger as Test.Logger) as Boo
 }
 
 (:test)
-function aNotFoundOnARegistrationMeansTheWebhookIdIsGone(logger as Test.Logger) as Boolean {
+function aNotFoundOnARegistrationReadsAsSetupFailure(logger as Test.Logger) as Boolean {
     Test.assertEqual(ErrorMessage.resolve(new RequestError(RequestError.HTTP_NOT_FOUND, RequestType.REGISTRATION)),
-        Rez.Strings.ErrRegistrationGone);
+        Rez.Strings.ErrRegistrationFailed);
     return true;
 }
 
