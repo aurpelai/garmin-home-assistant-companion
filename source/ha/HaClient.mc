@@ -301,9 +301,8 @@ class HaClient {
                 }
             }
         };
-        // The webhook answers a JSON object of the named renders it was sent —
-        // ours under `home` — so the response is application/json, not the
-        // rendered string alone.
+        // The webhook answers a JSON object of the named renders it was sent, so
+        // the response is application/json, not the rendered string alone.
         post("/api/webhook/" + webhookId, body, new ResponseHandler(callback, ResponseType.TEMPLATE_RENDER),
              Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON);
     }
