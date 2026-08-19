@@ -110,7 +110,7 @@ class HaClient {
     private var _changeQueue as Array<QueuedChange>;
     private var _pendingChangeCallback as Method or Null;
     private var _registrationCallback as Method or Null;
-    private var _registrationGeneration as Number;
+    private var _registrationEpoch as Number;
     private var _pendingFetchTargets as Array<Symbol>;
     private var _currentTarget as Symbol or Null;
     private var _onRefreshTarget as Method or Null;
@@ -124,7 +124,7 @@ class HaClient {
         _changeQueue = [];
         _pendingChangeCallback = null;
         _registrationCallback = null;
-        _registrationGeneration = 0;
+        _registrationEpoch = 0;
         _pendingFetchTargets = [];
         _currentTarget = null;
         _onRefreshTarget = null;
@@ -193,7 +193,7 @@ class HaClient {
         _changeInFlight = false;
         _pendingChangeCallback = null;
         _registrationCallback = null;
-        _registrationGeneration++;
+        _registrationEpoch++;
         _currentTarget = null;
         _onRefreshTarget = null;
     }
@@ -289,9 +289,9 @@ class HaClient {
             "app_data" => {}
         };
         _registrationCallback = callback;
-        _registrationGeneration++;
+        _registrationEpoch++;
         post("/api/mobile_app/registrations", body,
-             new ResponseHandler(new RegistrationReply(self, _registrationGeneration).method(:onReply),
+             new ResponseHandler(new RegistrationReply(self, _registrationEpoch).method(:onReply),
                                  ResponseType.REGISTRATION),
              Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON);
     }
@@ -300,9 +300,9 @@ class HaClient {
     // refills the callback slot within the same call stack, so the slot alone
     // cannot tell a superseded registration from the live one. Storing the id
     // before that check would persist the abandoned instance's registration.
-    function onRegistrationReply(generation as Number, webhookId as String or Null,
+    function onRegistrationReply(epoch as Number, webhookId as String or Null,
                                  error as Number or Null) as Void {
-        if (generation != _registrationGeneration || _registrationCallback == null) {
+        if (epoch != _registrationEpoch || _registrationCallback == null) {
             return;
         }
 
@@ -321,11 +321,6 @@ class HaClient {
 
     private function setRegistration(webhookId as String) as Void {
         Application.Storage.setValue(REGISTRATION_KEY, webhookId);
-    }
-
-    (:mock)
-    function seedRegistration(webhookId as String) as Void {
-        setRegistration(webhookId);
     }
 
     function postTemplate(template as String, callback as Method) as Void {

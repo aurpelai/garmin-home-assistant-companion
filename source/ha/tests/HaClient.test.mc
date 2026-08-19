@@ -29,6 +29,17 @@ class PostedRequest {
     }
 }
 
+// Mirrors the key HaClient keeps its registration under, so that key stays
+// private to the client rather than gaining a setter only tests would call.
+// A class, not a bare function: the test runner collects annotated functions
+// as test cases.
+(:test)
+class Registration {
+    static function seed(webhookId as String) as Void {
+        Application.Storage.setValue("webhookId", webhookId);
+    }
+}
+
 // Captures each entry point's callback instead of making a web request, so a
 // test can fire success or failure synchronously.
 (:test)
@@ -90,7 +101,7 @@ class MockHaClient extends HaClient {
     // Persists the fresh id as the real client's registration reply does, since
     // the request reissued behind this reply reads it back from storage.
     function fireRegisterSuccess(webhookId as String) as Void {
-        seedRegistration(webhookId);
+        Registration.seed(webhookId);
         (_registerCallback as Method).invoke(webhookId, null);
     }
 
@@ -287,7 +298,7 @@ function aSupersededRegistrationsReplyStoresNothing(logger as Test.Logger) as Bo
     client.cancelAll();
 
     // The lazy re-register refills the callback slot, so the abandoned reply
-    // below arrives to a live-looking client: without the generation it would
+    // below arrives to a live-looking client: without the epoch it would
     // persist the id the cancelled registration was issued for.
     client.register(new ResultCapture().method(:onResult));
     client.fireRegistrationResponseAt(0, 201, { "webhook_id" => "abandoned-id" });
@@ -324,7 +335,7 @@ function aFailedRegistrationLeavesNoIdBehind(logger as Test.Logger) as Boolean {
 function aFetchRecoversOnceFromInvalidWebhook(logger as Test.Logger) as Boolean {
     Application.Storage.clearValues();
     var client = new MockHaClient();
-    client.seedRegistration("stale-id");
+    Registration.seed("stale-id");
     var capture = new ResultCapture();
 
     new RetryManager(client, client.method(:fetchOnce), capture.method(:onResult), RequestType.REQUEST).attempt();
@@ -348,7 +359,7 @@ function aFetchRecoversOnceFromInvalidWebhook(logger as Test.Logger) as Boolean 
 function toggleLightRecoversOnceFromInvalidWebhook(logger as Test.Logger) as Boolean {
     Application.Storage.clearValues();
     var client = new MockHaClient();
-    client.seedRegistration("stale-id");
+    Registration.seed("stale-id");
     var capture = new ResultCapture();
 
     new RetryManager(client, new ServiceCall(client, "toggle", "entity_id", "light.a").method(:attempt),
@@ -370,7 +381,7 @@ function retryManagerReissuesOnAnyOtherFailureUpToTheThreshold(logger as Test.Lo
     // classifies a failure, so an ordinary transport error is reissued too.
     Application.Storage.clearValues();
     var client = new MockHaClient();
-    client.seedRegistration("some-id");
+    Registration.seed("some-id");
     var capture = new ResultCapture();
 
     new RetryManager(client, client.method(:fetchOnce), capture.method(:onResult), RequestType.REQUEST).attempt();
@@ -389,7 +400,7 @@ function retryManagerReissuesOnAnyOtherFailureUpToTheThreshold(logger as Test.Lo
 function retryManagerSurfacesTheFailureOnceItsThresholdIsSpent(logger as Test.Logger) as Boolean {
     Application.Storage.clearValues();
     var client = new MockHaClient();
-    client.seedRegistration("some-id");
+    Registration.seed("some-id");
     var capture = new ResultCapture();
 
     new RetryManager(client, client.method(:fetchOnce), capture.method(:onResult), RequestType.REQUEST).attempt();
@@ -416,7 +427,7 @@ function aRegistrationFailureInsideFetchRecoveryStaysARegistrationFailure(logger
     // template error on the Home Assistant side.
     Application.Storage.clearValues();
     var client = new MockHaClient();
-    client.seedRegistration("stale-id");
+    Registration.seed("stale-id");
     var capture = new ResultCapture();
 
     new RetryManager(client, client.method(:fetchOnce), capture.method(:onResult), RequestType.REQUEST).attempt();
@@ -453,7 +464,7 @@ class TargetLog {
 function aChangeQueuesRatherThanBeingDropped(logger as Test.Logger) as Boolean {
     Application.Storage.clearValues();
     var client = new MockHaClient();
-    client.seedRegistration("some-id");
+    Registration.seed("some-id");
     var first = new ResultCapture();
     var second = new ResultCapture();
 
@@ -472,7 +483,7 @@ function aChangeQueuesRatherThanBeingDropped(logger as Test.Logger) as Boolean {
 function changesGoOutBeforeFetches(logger as Test.Logger) as Boolean {
     Application.Storage.clearValues();
     var client = new MockHaClient();
-    client.seedRegistration("some-id");
+    Registration.seed("some-id");
     var log = new TargetLog();
 
     client.refresh(log.method(:onTarget));
@@ -496,7 +507,7 @@ function aRefreshTriggeredWhileOneIsIncompleteIsDropped(logger as Test.Logger) a
     // total would be 6 rather than 3.
     Application.Storage.clearValues();
     var client = new MockHaClient();
-    client.seedRegistration("some-id");
+    Registration.seed("some-id");
     var log = new TargetLog();
 
     client.refresh(log.method(:onTarget));
@@ -519,7 +530,7 @@ function aReplyDoesNotStartARefreshWhileChangesAreQueued(logger as Test.Logger) 
     // pointless when more changes are about to be posted.
     Application.Storage.clearValues();
     var client = new MockHaClient();
-    client.seedRegistration("some-id");
+    Registration.seed("some-id");
     var log = new TargetLog();
 
     client.queueLightToggle("light.a", new ResultCapture().method(:onResult));
@@ -534,7 +545,7 @@ function aReplyDoesNotStartARefreshWhileChangesAreQueued(logger as Test.Logger) 
 function theQueueDrainsOnlyOnceTheThresholdIsExhausted(logger as Test.Logger) as Boolean {
     Application.Storage.clearValues();
     var client = new MockHaClient();
-    client.seedRegistration("some-id");
+    Registration.seed("some-id");
     var first = new ResultCapture();
     var second = new ResultCapture();
 
@@ -574,7 +585,7 @@ function cancellingClearsTheQueueTheErrorAndTheSlotTogether(logger as Test.Logge
     // free slot that arrived on their own from an already-exhausted run.
     Application.Storage.clearValues();
     var client = new MockHaClient();
-    client.seedRegistration("some-id");
+    Registration.seed("some-id");
     var second = new ResultCapture();
 
     client.queueLightToggle("light.a", new ResultCapture().method(:onResult));
@@ -609,7 +620,7 @@ function aRefreshWhereOneTargetFailsNeverStampsCompletion(logger as Test.Logger)
     // refresh.
     Application.Storage.clearValues();
     var client = new MockHaClient();
-    client.seedRegistration("some-id");
+    Registration.seed("some-id");
     var log = new TargetLog();
 
     client.refresh(log.method(:onTarget));

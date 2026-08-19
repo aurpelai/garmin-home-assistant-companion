@@ -149,8 +149,6 @@ function rebuildDiscardsStateAndRefetchesRatherThanComparingValues(logger as Tes
 
 (:test)
 function aConfigChangeDiscardsTheWebhookRegistrationRatherThanReusingIt(logger as Test.Logger) as Boolean {
-    // A webhook id is bound to the instance and user it was registered against,
-    // so carrying it across a URL or token change would address the old one.
     var client = new FakeCoordinatorClient();
     var coordinator = new Coordinator(client);
 
