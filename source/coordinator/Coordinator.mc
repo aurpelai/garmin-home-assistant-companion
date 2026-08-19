@@ -109,8 +109,9 @@ class Coordinator {
 
     // A token change is as disqualifying as a URL change: Home Assistant's
     // visibility is per-user, so the entities behind a new token may differ.
-    function onSettingsChanged() as Void {
+    function discardRegistration() as Void {
         _client.cancelAll();
+        _client.discardRegistration();
         _haState = new HaState();
         refresh();
     }

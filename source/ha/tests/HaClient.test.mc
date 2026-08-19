@@ -61,7 +61,7 @@ class MockHaClient extends HaClient {
     }
 
     function register(callback as Method) as Void {
-        _registerCallback = new RegistrationHandler(callback).method(:onRegistered);
+        _registerCallback = callback;
         registerCount++;
     }
 
@@ -87,12 +87,38 @@ class MockHaClient extends HaClient {
         serviceCallbacks[index].invoke(null, code);
     }
 
+    // Persists the fresh id as the real client's registration reply does, since
+    // the request reissued behind this reply reads it back from storage.
     function fireRegisterSuccess(webhookId as String) as Void {
+        seedRegistration(webhookId);
         (_registerCallback as Method).invoke(webhookId, null);
     }
 
     function fireRegisterFailureWithCode(code as Number) as Void {
         (_registerCallback as Method).invoke(null, code);
+    }
+}
+
+// Overrides only the transport, so register() and onRegistrationReply() run
+// for real: what these tests pin is HaClient's own store-on-success,
+// leave-storage-alone-on-failure decision, not a mock's imitation of it.
+(:test)
+class RegisteringHaClient extends HaClient {
+    public var postCount as Number = 0;
+    private var _postedHandler as ResponseHandler?;
+
+    function initialize() {
+        HaClient.initialize();
+    }
+
+    function post(path as String, body as Dictionary, handler as ResponseHandler,
+                  responseContentType as Communications.HttpResponseContentType) as Void {
+        _postedHandler = handler;
+        postCount++;
+    }
+
+    function fireRegistrationResponse(code as Number, body as Dictionary or String or Null) as Void {
+        (_postedHandler as ResponseHandler).onResponse(code, body);
     }
 }
 
@@ -225,10 +251,48 @@ function onResponseNormalizesRegistrationSuccessToWebhookId(logger as Test.Logge
 }
 
 (:test)
+function aSuccessfulRegistrationPersistsTheIdForLaterRequests(logger as Test.Logger) as Boolean {
+    Application.Storage.clearValues();
+    var client = new RegisteringHaClient();
+    var capture = new ResultCapture();
+
+    client.register(capture.method(:onResult));
+    client.fireRegistrationResponse(201, { "webhook_id" => "fresh-id" });
+
+    Test.assertEqual(capture.result as String, "fresh-id");
+
+    // The stored id is what postTemplate reads back: a second post reaching
+    // the transport, rather than the local 404 an absent id would produce,
+    // is what proves onRegistrationReply actually persisted it.
+    client.postTemplate("{{ 1 }}", new ResultCapture().method(:onResult));
+    Test.assertEqual(client.postCount, 2);
+    return true;
+}
+
+(:test)
+function aFailedRegistrationLeavesNoIdBehind(logger as Test.Logger) as Boolean {
+    Application.Storage.clearValues();
+    var client = new RegisteringHaClient();
+    var capture = new ResultCapture();
+
+    client.register(capture.method(:onResult));
+    client.fireRegistrationResponse(400, null);
+
+    Test.assertEqual(capture.error as Number, 400);
+
+    var templateCapture = new ResultCapture();
+    client.postTemplate("{{ 1 }}", templateCapture.method(:onResult));
+
+    Test.assertEqual(templateCapture.error as Number, RequestError.HTTP_NOT_FOUND);
+    Test.assertEqual(client.postCount, 1);
+    return true;
+}
+
+(:test)
 function aFetchRecoversOnceFromInvalidWebhook(logger as Test.Logger) as Boolean {
     Application.Storage.clearValues();
-    Webhook.setId("stale-id");
     var client = new MockHaClient();
+    client.seedRegistration("stale-id");
     var capture = new ResultCapture();
 
     new RetryManager(client, client.method(:fetchOnce), capture.method(:onResult), RequestType.REQUEST).attempt();
@@ -251,8 +315,8 @@ function aFetchRecoversOnceFromInvalidWebhook(logger as Test.Logger) as Boolean 
 (:test)
 function toggleLightRecoversOnceFromInvalidWebhook(logger as Test.Logger) as Boolean {
     Application.Storage.clearValues();
-    Webhook.setId("stale-id");
     var client = new MockHaClient();
+    client.seedRegistration("stale-id");
     var capture = new ResultCapture();
 
     new RetryManager(client, new ServiceCall(client, "toggle", "entity_id", "light.a").method(:attempt),
@@ -273,8 +337,8 @@ function retryManagerReissuesOnAnyOtherFailureUpToTheThreshold(logger as Test.Lo
     // Every reason is retried, not just an invalid webhook id: nothing
     // classifies a failure, so an ordinary transport error is reissued too.
     Application.Storage.clearValues();
-    Webhook.setId("some-id");
     var client = new MockHaClient();
+    client.seedRegistration("some-id");
     var capture = new ResultCapture();
 
     new RetryManager(client, client.method(:fetchOnce), capture.method(:onResult), RequestType.REQUEST).attempt();
@@ -292,8 +356,8 @@ function retryManagerReissuesOnAnyOtherFailureUpToTheThreshold(logger as Test.Lo
 (:test)
 function retryManagerSurfacesTheFailureOnceItsThresholdIsSpent(logger as Test.Logger) as Boolean {
     Application.Storage.clearValues();
-    Webhook.setId("some-id");
     var client = new MockHaClient();
+    client.seedRegistration("some-id");
     var capture = new ResultCapture();
 
     new RetryManager(client, client.method(:fetchOnce), capture.method(:onResult), RequestType.REQUEST).attempt();
@@ -319,8 +383,8 @@ function aRegistrationFailureInsideFetchRecoveryStaysARegistrationFailure(logger
     // means our own body is malformed, while the same code on a fetch means a
     // template error on the Home Assistant side.
     Application.Storage.clearValues();
-    Webhook.setId("stale-id");
     var client = new MockHaClient();
+    client.seedRegistration("stale-id");
     var capture = new ResultCapture();
 
     new RetryManager(client, client.method(:fetchOnce), capture.method(:onResult), RequestType.REQUEST).attempt();
@@ -337,7 +401,7 @@ function aRegistrationFailureInsideFetchRecoveryStaysARegistrationFailure(logger
 // target and a queued change end up posted through the same mocked post(),
 // so serviceCallbacks/toggleCount (the shared "request reached transport"
 // seam) is what every assertion below reads, whichever kind fired it.
-// Webhook.setId is called first so a target's own request does not itself
+// A registration is seeded first so a target's own request does not itself
 // fail with the "unregistered" 404 the client returns for a missing id.
 
 (:test)
@@ -356,8 +420,8 @@ class TargetLog {
 (:test)
 function aChangeQueuesRatherThanBeingDropped(logger as Test.Logger) as Boolean {
     Application.Storage.clearValues();
-    Webhook.setId("some-id");
     var client = new MockHaClient();
+    client.seedRegistration("some-id");
     var first = new ResultCapture();
     var second = new ResultCapture();
 
@@ -375,8 +439,8 @@ function aChangeQueuesRatherThanBeingDropped(logger as Test.Logger) as Boolean {
 (:test)
 function changesGoOutBeforeFetches(logger as Test.Logger) as Boolean {
     Application.Storage.clearValues();
-    Webhook.setId("some-id");
     var client = new MockHaClient();
+    client.seedRegistration("some-id");
     var log = new TargetLog();
 
     client.refresh(log.method(:onTarget));
@@ -399,8 +463,8 @@ function aRefreshTriggeredWhileOneIsIncompleteIsDropped(logger as Test.Logger) a
     // targets would still fire once the first refresh finished, and the
     // total would be 6 rather than 3.
     Application.Storage.clearValues();
-    Webhook.setId("some-id");
     var client = new MockHaClient();
+    client.seedRegistration("some-id");
     var log = new TargetLog();
 
     client.refresh(log.method(:onTarget));
@@ -422,8 +486,8 @@ function aReplyDoesNotStartARefreshWhileChangesAreQueued(logger as Test.Logger) 
     // trigger must be dropped, since converging against server truth is
     // pointless when more changes are about to be posted.
     Application.Storage.clearValues();
-    Webhook.setId("some-id");
     var client = new MockHaClient();
+    client.seedRegistration("some-id");
     var log = new TargetLog();
 
     client.queueLightToggle("light.a", new ResultCapture().method(:onResult));
@@ -437,8 +501,8 @@ function aReplyDoesNotStartARefreshWhileChangesAreQueued(logger as Test.Logger) 
 (:test)
 function theQueueDrainsOnlyOnceTheThresholdIsExhausted(logger as Test.Logger) as Boolean {
     Application.Storage.clearValues();
-    Webhook.setId("some-id");
     var client = new MockHaClient();
+    client.seedRegistration("some-id");
     var first = new ResultCapture();
     var second = new ResultCapture();
 
@@ -477,8 +541,8 @@ function cancellingClearsTheQueueTheErrorAndTheSlotTogether(logger as Test.Logge
     // as free) and another genuinely still queued — not an empty queue and a
     // free slot that arrived on their own from an already-exhausted run.
     Application.Storage.clearValues();
-    Webhook.setId("some-id");
     var client = new MockHaClient();
+    client.seedRegistration("some-id");
     var second = new ResultCapture();
 
     client.queueLightToggle("light.a", new ResultCapture().method(:onResult));
@@ -512,8 +576,8 @@ function aRefreshWhereOneTargetFailsNeverStampsCompletion(logger as Test.Logger)
     // lights landing while sensors failed must not look like an up-to-date
     // refresh.
     Application.Storage.clearValues();
-    Webhook.setId("some-id");
     var client = new MockHaClient();
+    client.seedRegistration("some-id");
     var log = new TargetLog();
 
     client.refresh(log.method(:onTarget));

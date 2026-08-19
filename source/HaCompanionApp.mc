@@ -29,7 +29,7 @@ class HaCompanionApp extends Application.AppBase {
     }
 
     function onSettingsChanged() as Void {
-        _coordinator.onSettingsChanged();
+        _coordinator.discardRegistration();
     }
 
     function getInitialView() as [WatchUi.Views] or [WatchUi.Views, WatchUi.InputDelegates] {

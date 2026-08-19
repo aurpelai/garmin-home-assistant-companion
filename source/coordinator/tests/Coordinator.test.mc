@@ -8,6 +8,7 @@ import Toybox.Test;
 class FakeCoordinatorClient extends HaClient {
     public var refreshCount as Number = 0;
     public var cancelCount as Number = 0;
+    public var discardCount as Number = 0;
     public var toggledEntityIds as Array<String> = [];
     public var toggledFloorIds as Array<String> = [];
     public var toggledFloorServices as Array<String> = [];
@@ -45,6 +46,10 @@ class FakeCoordinatorClient extends HaClient {
 
     function cancelAll() as Void {
         cancelCount++;
+    }
+
+    function discardRegistration() as Void {
+        discardCount++;
     }
 
     function msSinceLastRefresh() as Number or Null {
@@ -132,13 +137,26 @@ function rebuildDiscardsStateAndRefetchesRatherThanComparingValues(logger as Tes
     // light.a now has an override, still unanswered: were the old HaState
     // merely reconciled rather than thrown away, this override would carry
     // over and the tap below would still read as pending and be ignored.
-    coordinator.onSettingsChanged();
+    coordinator.discardRegistration();
 
     Test.assertEqual(client.cancelCount, 1);
     Test.assertEqual(client.refreshCount, 2);
 
     coordinator.toggleEntity("light.a");
     Test.assertEqual(client.toggledEntityIds.size(), 2);
+    return true;
+}
+
+(:test)
+function aConfigChangeDiscardsTheWebhookRegistrationRatherThanReusingIt(logger as Test.Logger) as Boolean {
+    // A webhook id is bound to the instance and user it was registered against,
+    // so carrying it across a URL or token change would address the old one.
+    var client = new FakeCoordinatorClient();
+    var coordinator = new Coordinator(client);
+
+    coordinator.discardRegistration();
+
+    Test.assertEqual(client.discardCount, 1);
     return true;
 }
 

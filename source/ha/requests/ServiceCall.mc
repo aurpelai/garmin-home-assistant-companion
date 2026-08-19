@@ -18,13 +18,6 @@ class ServiceCall {
     }
 
     function attempt(callback as Method) as Void {
-        var webhookId = Webhook.getId();
-
-        if (webhookId == null) {
-            callback.invoke(null, RequestError.HTTP_NOT_FOUND);
-            return;
-        }
-
         var body = {
             "type" => "call_service",
             "data" => {
@@ -36,9 +29,8 @@ class ServiceCall {
             }
         };
 
-        _client.post("/api/webhook/" + webhookId, body,
-                     new ResponseHandler(callback, ResponseType.SERVICE_CALL),
-                     Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON);
+        _client.postToWebhook(body, callback, ResponseType.SERVICE_CALL,
+                              Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON);
     }
 
 }
