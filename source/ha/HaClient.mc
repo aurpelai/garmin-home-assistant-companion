@@ -1,3 +1,4 @@
+import Toybox.Application;
 import Toybox.Communications;
 import Toybox.Lang;
 import Toybox.System;
@@ -10,6 +11,8 @@ import Toybox.System;
 // queue-full transport error — so everything below serialises through a single
 // slot that a refresh and a service call compete for.
 class HaClient {
+    private const REGISTRATION_KEY = "webhookId";
+
     // The device can't introspect its real model/OS, so every install registers
     // under these same constants.
     private const DEVICE_ID = "companion_for_home_assistant";
@@ -106,6 +109,8 @@ class HaClient {
     private var _changeInFlight as Boolean;
     private var _changeQueue as Array<QueuedChange>;
     private var _pendingChangeCallback as Method or Null;
+    private var _registrationCallback as Method or Null;
+    private var _registrationEpoch as Number;
     private var _pendingFetchTargets as Array<Symbol>;
     private var _currentTarget as Symbol or Null;
     private var _onRefreshTarget as Method or Null;
@@ -118,6 +123,8 @@ class HaClient {
         _changeInFlight = false;
         _changeQueue = [];
         _pendingChangeCallback = null;
+        _registrationCallback = null;
+        _registrationEpoch = 0;
         _pendingFetchTargets = [];
         _currentTarget = null;
         _onRefreshTarget = null;
@@ -185,6 +192,8 @@ class HaClient {
         _requestInFlight = false;
         _changeInFlight = false;
         _pendingChangeCallback = null;
+        _registrationCallback = null;
+        _registrationEpoch++;
         _currentTarget = null;
         _onRefreshTarget = null;
     }
@@ -279,20 +288,42 @@ class HaClient {
             "supports_encryption" => false,
             "app_data" => {}
         };
+        _registrationCallback = callback;
+        _registrationEpoch++;
         post("/api/mobile_app/registrations", body,
-             new ResponseHandler(new RegistrationHandler(callback).method(:onRegistered),
+             new ResponseHandler(new RegistrationReply(self, _registrationEpoch).method(:onReply),
                                  ResponseType.REGISTRATION),
              Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON);
     }
 
-    function postTemplate(template as String, callback as Method) as Void {
-        var webhookId = Webhook.getId();
-
-        if (webhookId == null) {
-            callback.invoke(null, RequestError.HTTP_NOT_FOUND);
+    // A cancelled request's reply is still delivered, and the lazy re-register
+    // refills the callback slot within the same call stack, so the slot alone
+    // cannot tell a superseded registration from the live one. Storing the id
+    // before that check would persist the abandoned instance's registration.
+    function onRegistrationReply(epoch as Number, webhookId as String or Null,
+                                 error as Number or Null) as Void {
+        if (epoch != _registrationEpoch || _registrationCallback == null) {
             return;
         }
 
+        if (error == null) {
+            setRegistration(webhookId as String);
+        }
+
+        var callback = _registrationCallback as Method;
+        _registrationCallback = null;
+        callback.invoke(webhookId, error);
+    }
+
+    function discardRegistration() as Void {
+        Application.Storage.deleteValue(REGISTRATION_KEY);
+    }
+
+    private function setRegistration(webhookId as String) as Void {
+        Application.Storage.setValue(REGISTRATION_KEY, webhookId);
+    }
+
+    function postTemplate(template as String, callback as Method) as Void {
         var body = {
             "type" => "render_template",
             "data" => {
@@ -303,8 +334,21 @@ class HaClient {
         };
         // The webhook answers a JSON object of the named renders it was sent, so
         // the response is application/json, not the rendered string alone.
-        post("/api/webhook/" + webhookId, body, new ResponseHandler(callback, ResponseType.TEMPLATE_RENDER),
-             Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON);
+        postToWebhook(body, callback, ResponseType.TEMPLATE_RENDER,
+                      Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON);
+    }
+
+    function postToWebhook(body as Dictionary, callback as Method, responseType as Symbol,
+                           responseContentType as Communications.HttpResponseContentType) as Void {
+        var webhookId = Application.Storage.getValue(REGISTRATION_KEY) as String or Null;
+
+        if (webhookId == null) {
+            callback.invoke(null, RequestError.HTTP_NOT_FOUND);
+            return;
+        }
+
+        post("/api/webhook/" + webhookId, body, new ResponseHandler(callback, responseType),
+             responseContentType);
     }
 
     private function resolveTemplate(target as Symbol) as String {

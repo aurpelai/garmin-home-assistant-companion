@@ -1,0 +1,3 @@
+kind: "\U0001F527 Fixed"
+body: The app now re-registers with Home Assistant when the address or token changes.
+time: 2026-08-19T12:00:00.000000+03:00

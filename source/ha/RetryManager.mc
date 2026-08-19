@@ -38,7 +38,7 @@ class RetryManager {
             }
 
             _registrationsLeft--;
-            Webhook.clearId();
+            _client.discardRegistration();
             _client.register(method(:onRegistered));
             return;
         }
