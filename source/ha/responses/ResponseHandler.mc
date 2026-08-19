@@ -19,9 +19,9 @@ class ResponseHandler {
             case ResponseType.TEMPLATE_RENDER:
                 // A dead webhook answers 200 with an empty body, so the render
                 // never arrives as the expected envelope. That is the id being
-                // gone, not an unreadable render, so it re-registers like a 404.
+                // gone rather than an unreadable render.
                 if (!(data instanceof Dictionary)) {
-                    _callback.invoke(null, RequestError.HTTP_NOT_FOUND);
+                    _callback.invoke(null, RequestError.UNUSABLE_WEBHOOK);
                     return;
                 }
 

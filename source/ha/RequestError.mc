@@ -5,7 +5,7 @@ import Toybox.Lang;
 // request means Home Assistant could not do what we asked.
 class RequestError {
     static const UNREADABLE_BODY = :unreadableBody;
-    static const HTTP_NOT_FOUND = 404;
+    static const UNUSABLE_WEBHOOK = :unusableWebhook;
 
     var reason as Object;
     var requestType as Symbol;
@@ -21,6 +21,10 @@ class RequestError {
     function toDiagnosticCode() as String {
         if (reason == UNREADABLE_BODY) {
             return "unreadableBody";
+        }
+
+        if (reason == UNUSABLE_WEBHOOK) {
+            return "unusableWebhook";
         }
 
         return reason.toString();

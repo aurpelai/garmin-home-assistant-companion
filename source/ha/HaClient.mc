@@ -288,6 +288,7 @@ class HaClient {
             "supports_encryption" => false,
             "app_data" => {}
         };
+        discardRegistration();
         _registrationCallback = callback;
         _registrationEpoch++;
         post("/api/mobile_app/registrations", body,
@@ -343,7 +344,7 @@ class HaClient {
         var webhookId = Application.Storage.getValue(REGISTRATION_KEY) as String or Null;
 
         if (webhookId == null) {
-            callback.invoke(null, RequestError.HTTP_NOT_FOUND);
+            callback.invoke(null, RequestError.UNUSABLE_WEBHOOK);
             return;
         }
 

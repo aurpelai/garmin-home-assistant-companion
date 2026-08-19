@@ -4,11 +4,13 @@ import Toybox.Test;
 
 (:test)
 function anAuthFailureReadsTheSameWhateverTheRequestType(logger as Test.Logger) as Boolean {
-    // The request type participates in the mapping, but not here: a rejected
-    // token is a rejected token whichever request carried it.
-    Test.assertEqual(ErrorMessage.resolve(new RequestError(401, RequestType.REQUEST)), Rez.Strings.ErrAuth);
-    Test.assertEqual(ErrorMessage.resolve(new RequestError(403, RequestType.REQUEST)), Rez.Strings.ErrAuth);
-    Test.assertEqual(ErrorMessage.resolve(new RequestError(401, RequestType.REGISTRATION)), Rez.Strings.ErrAuth);
+    // A rejected token is a rejected token whichever request carried it.
+    Test.assertEqual(ErrorMessage.resolve(new RequestError(HttpStatus.UNAUTHORIZED, RequestType.REQUEST)),
+        Rez.Strings.ErrAuth);
+    Test.assertEqual(ErrorMessage.resolve(new RequestError(HttpStatus.FORBIDDEN, RequestType.REQUEST)),
+        Rez.Strings.ErrAuth);
+    Test.assertEqual(ErrorMessage.resolve(new RequestError(HttpStatus.UNAUTHORIZED, RequestType.REGISTRATION)),
+        Rez.Strings.ErrAuth);
     return true;
 }
 
@@ -17,15 +19,31 @@ function aBadRequestReadsDifferentlyPerRequestType(logger as Test.Logger) as Boo
     // Why the value carries a request type at all: the same code accuses
     // different parties. On our own registration body it is our bug; on a fetch
     // the template failed on the Home Assistant side.
-    Test.assertEqual(ErrorMessage.resolve(new RequestError(400, RequestType.REGISTRATION)),
+    Test.assertEqual(ErrorMessage.resolve(new RequestError(HttpStatus.BAD_REQUEST, RequestType.REGISTRATION)),
         Rez.Strings.ErrRegistrationRejected);
-    Test.assertEqual(ErrorMessage.resolve(new RequestError(400, RequestType.REQUEST)), Rez.Strings.ErrTemplate);
+    Test.assertEqual(ErrorMessage.resolve(new RequestError(HttpStatus.BAD_REQUEST, RequestType.REQUEST)),
+        Rez.Strings.ErrTemplate);
     return true;
 }
 
 (:test)
-function aNotFoundOnARegistrationReadsAsSetupFailure(logger as Test.Logger) as Boolean {
-    Test.assertEqual(ErrorMessage.resolve(new RequestError(RequestError.HTTP_NOT_FOUND, RequestType.REGISTRATION)),
+function aNotFoundIsAnAddressProblemOnEitherRequestType(logger as Test.Logger) as Boolean {
+    // A real 404 says the address has nothing behind it, which is the user's
+    // URL either way — nothing about it accuses the registration.
+    Test.assertEqual(ErrorMessage.resolve(new RequestError(HttpStatus.NOT_FOUND, RequestType.REGISTRATION)),
+        Rez.Strings.ErrNotFound);
+    Test.assertEqual(ErrorMessage.resolve(new RequestError(HttpStatus.NOT_FOUND, RequestType.REQUEST)),
+        Rez.Strings.ErrNotFound);
+    return true;
+}
+
+(:test)
+function anUnusableWebhookReadsAsSetupFailure(logger as Test.Logger) as Boolean {
+    // Reaching this reason means the webhook could not be used and registering
+    // again did not rescue it, which is a broken setup whoever asked.
+    Test.assertEqual(ErrorMessage.resolve(new RequestError(RequestError.UNUSABLE_WEBHOOK, RequestType.REQUEST)),
+        Rez.Strings.ErrRegistrationFailed);
+    Test.assertEqual(ErrorMessage.resolve(new RequestError(RequestError.UNUSABLE_WEBHOOK, RequestType.REGISTRATION)),
         Rez.Strings.ErrRegistrationFailed);
     return true;
 }

@@ -8,8 +8,8 @@ class RetryManager {
     private var _request as Method;
     private var _callback as Method;
     private var _requestType as Symbol;
-    private var _attemptsLeft as Number;
-    private var _registrationsLeft as Number;
+    private var _requestRetriesLeft as Number;
+    private var _registrationRetriesLeft as Number;
 
     function initialize(client as HaClient, request as Method, callback as Method,
                         requestType as Symbol) {
@@ -17,8 +17,8 @@ class RetryManager {
         _request = request;
         _callback = callback;
         _requestType = requestType;
-        _attemptsLeft = REQUEST_RETRIES;
-        _registrationsLeft = REGISTRATION_RETRIES;
+        _requestRetriesLeft = REQUEST_RETRIES;
+        _registrationRetriesLeft = REGISTRATION_RETRIES;
     }
 
     function attempt() as Void {
@@ -31,37 +31,37 @@ class RetryManager {
             return;
         }
 
-        if (reason == RequestError.HTTP_NOT_FOUND) {
-            if (_registrationsLeft <= 0) {
-                reportFailure(reason, _requestType);
-                return;
-            }
-
-            _registrationsLeft--;
-            _client.discardRegistration();
-            _client.register(method(:onRegistered));
-            return;
-        }
-
-        if (_attemptsLeft <= 0) {
+        if (_requestRetriesLeft <= 0) {
             reportFailure(reason, _requestType);
             return;
         }
 
-        _attemptsLeft--;
-        _request.invoke(method(:onAttempt));
+        _requestRetriesLeft--;
+
+        if (reason == RequestError.UNUSABLE_WEBHOOK) {
+            register();
+        } else {
+            attempt();
+        }
     }
 
     function onRegistered(webhookId as String or Null, reason as Object or Null) as Void {
-        if (reason != null) {
+        if (reason == null) {
+            attempt();
+            return;
+        }
+
+        if (_registrationRetriesLeft <= 0) {
             reportFailure(reason, RequestType.REGISTRATION);
             return;
         }
 
-        // The reissued request is fresh and carries its own budget: registering
-        // recovered, so the original failure counted for nothing.
-        _attemptsLeft = REQUEST_RETRIES;
-        _request.invoke(method(:onAttempt));
+        _registrationRetriesLeft--;
+        register();
+    }
+
+    private function register() as Void {
+        _client.register(method(:onRegistered));
     }
 
     private function reportFailure(reason as Object, requestType as Symbol) as Void {

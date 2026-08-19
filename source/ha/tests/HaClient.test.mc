@@ -38,6 +38,10 @@ class Registration {
     static function seed(webhookId as String) as Void {
         Application.Storage.setValue("webhookId", webhookId);
     }
+
+    static function stored() as String? {
+        return Application.Storage.getValue("webhookId") as String?;
+    }
 }
 
 // Captures each entry point's callback instead of making a web request, so a
@@ -86,16 +90,16 @@ class MockHaClient extends HaClient {
         (_fetchCallback as Method).invoke(payload, null);
     }
 
-    function fireFetchFailureWithCode(code as Number) as Void {
-        (_fetchCallback as Method).invoke(null, code);
+    function fireFetchFailure(reason as Object) as Void {
+        (_fetchCallback as Method).invoke(null, reason);
     }
 
     function fireServiceSuccessAt(index as Number) as Void {
         serviceCallbacks[index].invoke(true, null);
     }
 
-    function fireServiceFailureAt(index as Number, code as Number) as Void {
-        serviceCallbacks[index].invoke(null, code);
+    function fireServiceFailureAt(index as Number, reason as Object) as Void {
+        serviceCallbacks[index].invoke(null, reason);
     }
 
     // Persists the fresh id as the real client's registration reply does, since
@@ -105,8 +109,8 @@ class MockHaClient extends HaClient {
         (_registerCallback as Method).invoke(webhookId, null);
     }
 
-    function fireRegisterFailureWithCode(code as Number) as Void {
-        (_registerCallback as Method).invoke(null, code);
+    function fireRegisterFailure(reason as Object) as Void {
+        (_registerCallback as Method).invoke(null, reason);
     }
 }
 
@@ -232,15 +236,15 @@ function aFetchBodyThatCannotBeReadIsAFailureNotAnEmptyHome(logger as Test.Logge
 }
 
 (:test)
-function aDeadWebhookAnswersEmptyAndAsksToReregister(logger as Test.Logger) as Boolean {
+function aDeadWebhooksEmptyBodyIsUnusableRatherThanUnreadable(logger as Test.Logger) as Boolean {
     // A gone webhook answers 200 with an empty body, so the reply is not the
     // rendered envelope at all. That is the id being gone rather than a render
-    // that could not be read, so it reports the code the recovery path re-registers on.
+    // that could not be read.
     var capture = new ResultCapture();
     new ResponseHandler(capture.method(:onResult), ResponseType.TEMPLATE_RENDER).onResponse(200, null);
 
     Test.assert(capture.result == null);
-    Test.assertEqual(capture.error as Number, RequestError.HTTP_NOT_FOUND);
+    Test.assertEqual(capture.error as Symbol, RequestError.UNUSABLE_WEBHOOK);
     return true;
 }
 
@@ -308,7 +312,7 @@ function aSupersededRegistrationsReplyStoresNothing(logger as Test.Logger) as Bo
     var templateCapture = new ResultCapture();
     client.postTemplate("{{ 1 }}", templateCapture.method(:onResult));
 
-    Test.assertEqual(templateCapture.error as Number, RequestError.HTTP_NOT_FOUND);
+    Test.assertEqual(templateCapture.error as Symbol, RequestError.UNUSABLE_WEBHOOK);
     return true;
 }
 
@@ -326,49 +330,99 @@ function aFailedRegistrationLeavesNoIdBehind(logger as Test.Logger) as Boolean {
     var templateCapture = new ResultCapture();
     client.postTemplate("{{ 1 }}", templateCapture.method(:onResult));
 
-    Test.assertEqual(templateCapture.error as Number, RequestError.HTTP_NOT_FOUND);
+    Test.assertEqual(templateCapture.error as Symbol, RequestError.UNUSABLE_WEBHOOK);
     Test.assertEqual(client.postCount, 1);
     return true;
 }
 
 (:test)
-function aFetchRecoversOnceFromInvalidWebhook(logger as Test.Logger) as Boolean {
+function aRequestInterruptedByADeadWebhookCompletesOnceRegisteringRescuesIt(logger as Test.Logger) as Boolean {
+    // Recovery is not merely registering again: the request the user asked for
+    // is reissued behind the fresh id and its result reaches the caller, so a
+    // registration that expired mid-flight never surfaces at all.
     Application.Storage.clearValues();
     var client = new MockHaClient();
     Registration.seed("stale-id");
     var capture = new ResultCapture();
 
     new RetryManager(client, client.method(:fetchOnce), capture.method(:onResult), RequestType.REQUEST).attempt();
-    client.fireFetchFailureWithCode(RequestError.HTTP_NOT_FOUND);
+    client.fireFetchFailure(RequestError.UNUSABLE_WEBHOOK);
     client.fireRegisterSuccess("fresh-id");
-    client.fireFetchFailureWithCode(RequestError.HTTP_NOT_FOUND);
+    client.fireFetchSuccess({} as Dictionary);
 
     Test.assertEqual(client.fetchCount, 2);
     Test.assertEqual(client.registerCount, 1);
+    Test.assert(capture.result instanceof Dictionary);
+    Test.assert(capture.error == null);
+    return true;
+}
+
+(:test)
+function anUnusableWebhookThatKeepsComingBackSurfacesAsARequestFailure(logger as Test.Logger) as Boolean {
+    // The registrations having all succeeded is why the failure is the
+    // request's rather than the registration's.
+    Application.Storage.clearValues();
+    var client = new MockHaClient();
+    var capture = new ResultCapture();
+
+    new RetryManager(client, client.method(:fetchOnce), capture.method(:onResult), RequestType.REQUEST).attempt();
+    client.fireFetchFailure(RequestError.UNUSABLE_WEBHOOK);
+    client.fireRegisterSuccess("fresh-id");
+    client.fireFetchFailure(RequestError.UNUSABLE_WEBHOOK);
+    client.fireRegisterSuccess("fresher-id");
+    client.fireFetchFailure(RequestError.UNUSABLE_WEBHOOK);
+    client.fireRegisterSuccess("freshest-id");
+    client.fireFetchFailure(RequestError.UNUSABLE_WEBHOOK);
+
+    Test.assertEqual(client.fetchCount, 4);
+    Test.assertEqual(client.registerCount, 3);
     Test.assert(capture.result == null);
 
-    // The request that failed is what the error names: the re-registration
-    // succeeded, so the fetch behind it owns this failure.
     var error = capture.error as RequestError;
-    Test.assertEqual(error.reason as Number, RequestError.HTTP_NOT_FOUND);
+    Test.assertEqual(error.reason as Symbol, RequestError.UNUSABLE_WEBHOOK);
     Test.assertEqual(error.requestType, RequestType.REQUEST);
     return true;
 }
 
 (:test)
-function toggleLightRecoversOnceFromInvalidWebhook(logger as Test.Logger) as Boolean {
+function aGenuineNotFoundLeavesTheRegistrationAlone(logger as Test.Logger) as Boolean {
+    // A mistyped base URL answers 404 from an address that has nothing behind
+    // it. Reading that as the webhook having died would throw away a working
+    // registration and register again against the same wrong address.
     Application.Storage.clearValues();
     var client = new MockHaClient();
-    Registration.seed("stale-id");
+    Registration.seed("good-id");
+    var capture = new ResultCapture();
+
+    new RetryManager(client, client.method(:fetchOnce), capture.method(:onResult), RequestType.REQUEST).attempt();
+    client.fireFetchFailure(HttpStatus.NOT_FOUND);
+    client.fireFetchFailure(HttpStatus.NOT_FOUND);
+    client.fireFetchFailure(HttpStatus.NOT_FOUND);
+    client.fireFetchFailure(HttpStatus.NOT_FOUND);
+
+    Test.assertEqual(client.registerCount, 0);
+    Test.assertEqual(Registration.stored() as String, "good-id");
+
+    var error = capture.error as RequestError;
+    Test.assertEqual(error.reason as Number, HttpStatus.NOT_FOUND);
+    Test.assertEqual(error.requestType, RequestType.REQUEST);
+    return true;
+}
+
+(:test)
+function aToggleWithNoRegistrationRegistersAndThenGoesOut(logger as Test.Logger) as Boolean {
+    // An unregistered client refuses the toggle locally, before it reaches the
+    // wire, so registering is what lets the first post happen at all.
+    Application.Storage.clearValues();
+    var client = new MockHaClient();
     var capture = new ResultCapture();
 
     new RetryManager(client, new ServiceCall(client, "toggle", "entity_id", "light.a").method(:attempt),
         capture.method(:onResult), RequestType.REQUEST).attempt();
-    client.fireServiceFailureAt(0, RequestError.HTTP_NOT_FOUND);
     client.fireRegisterSuccess("fresh-id");
-    client.fireServiceSuccessAt(1);
+    client.fireServiceSuccessAt(0);
 
-    Test.assertEqual(client.toggleCount, 2);
+    Test.assertEqual(client.toggleCount, 1);
     Test.assertEqual(client.registerCount, 1);
     Test.assertEqual(capture.result as Boolean, true);
     Test.assert(capture.error == null);
@@ -385,8 +439,8 @@ function retryManagerReissuesOnAnyOtherFailureUpToTheThreshold(logger as Test.Lo
     var capture = new ResultCapture();
 
     new RetryManager(client, client.method(:fetchOnce), capture.method(:onResult), RequestType.REQUEST).attempt();
-    client.fireFetchFailureWithCode(-1);
-    client.fireFetchFailureWithCode(-1);
+    client.fireFetchFailure(-1);
+    client.fireFetchFailure(-1);
     client.fireFetchSuccess({} as Dictionary);
 
     Test.assertEqual(client.fetchCount, 3);
@@ -404,10 +458,10 @@ function retryManagerSurfacesTheFailureOnceItsThresholdIsSpent(logger as Test.Lo
     var capture = new ResultCapture();
 
     new RetryManager(client, client.method(:fetchOnce), capture.method(:onResult), RequestType.REQUEST).attempt();
-    client.fireFetchFailureWithCode(-1);
-    client.fireFetchFailureWithCode(-1);
-    client.fireFetchFailureWithCode(-1);
-    client.fireFetchFailureWithCode(-1);
+    client.fireFetchFailure(-1);
+    client.fireFetchFailure(-1);
+    client.fireFetchFailure(-1);
+    client.fireFetchFailure(-1);
 
     Test.assert(capture.result == null);
 
@@ -427,16 +481,35 @@ function aRegistrationFailureInsideFetchRecoveryStaysARegistrationFailure(logger
     // template error on the Home Assistant side.
     Application.Storage.clearValues();
     var client = new MockHaClient();
-    Registration.seed("stale-id");
     var capture = new ResultCapture();
 
     new RetryManager(client, client.method(:fetchOnce), capture.method(:onResult), RequestType.REQUEST).attempt();
-    client.fireFetchFailureWithCode(RequestError.HTTP_NOT_FOUND);
-    client.fireRegisterFailureWithCode(400);
+    client.fireFetchFailure(RequestError.UNUSABLE_WEBHOOK);
+    client.fireRegisterFailure(HttpStatus.BAD_REQUEST);
+    client.fireRegisterFailure(HttpStatus.BAD_REQUEST);
+
+    Test.assertEqual(client.registerCount, 2);
+    Test.assertEqual(client.fetchCount, 1);
 
     var error = capture.error as RequestError;
-    Test.assertEqual(error.reason as Number, 400);
+    Test.assertEqual(error.reason as Number, HttpStatus.BAD_REQUEST);
     Test.assertEqual(error.requestType, RequestType.REGISTRATION);
+    return true;
+}
+
+(:test)
+function registeringClearsTheStaleIdBeforeAskingForAFreshOne(logger as Test.Logger) as Boolean {
+    // A registration that never answers must not leave the dead id behind for
+    // the next request to post against, so the clear lands before the request
+    // goes out rather than on its reply.
+    Application.Storage.clearValues();
+    Registration.seed("stale-id");
+    var client = new RegisteringHaClient();
+
+    client.register(new ResultCapture().method(:onResult));
+
+    Test.assertEqual(client.postCount, 1);
+    Test.assert(Registration.stored() == null);
     return true;
 }
 
@@ -445,7 +518,7 @@ function aRegistrationFailureInsideFetchRecoveryStaysARegistrationFailure(logger
 // so serviceCallbacks/toggleCount (the shared "request reached transport"
 // seam) is what every assertion below reads, whichever kind fired it.
 // A registration is seeded first so a target's own request does not itself
-// fail with the "unregistered" 404 the client returns for a missing id.
+// fail as unusable, which is what the client answers for a missing id.
 
 (:test)
 class TargetLog {

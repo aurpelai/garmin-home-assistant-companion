@@ -3,13 +3,9 @@ import Toybox.Lang;
 
 module ErrorMessage {
 
-    // The request type participates because the same code means different things
-    // per type: a bad request against our registration body means our own body is
-    // malformed, while the same code on a fetch means a template error on the Home
-    // Assistant side.
-    //
-    // Which codes map to which message moves on hardware evidence; the three facts
-    // it reads do not.
+    // A bad request is the one code that means different things per request type:
+    // against our registration body it is our own body that is malformed, while
+    // on a fetch the template failed on the Home Assistant side.
     function resolve(error as RequestError) as ResourceId {
         var reason = error.reason;
 
@@ -17,17 +13,19 @@ module ErrorMessage {
             return Rez.Strings.ErrUnreadableBody;
         }
 
-        if (reason == 401 || reason == 403) {
+        if (reason == RequestError.UNUSABLE_WEBHOOK) {
+            return Rez.Strings.ErrRegistrationFailed;
+        }
+
+        if (reason == HttpStatus.UNAUTHORIZED || reason == HttpStatus.FORBIDDEN) {
             return Rez.Strings.ErrAuth;
         }
 
-        if (reason == RequestError.HTTP_NOT_FOUND) {
-            return error.requestType == RequestType.REGISTRATION
-                ? Rez.Strings.ErrRegistrationFailed
-                : Rez.Strings.ErrNotFound;
+        if (reason == HttpStatus.NOT_FOUND) {
+            return Rez.Strings.ErrNotFound;
         }
 
-        if (reason == 400) {
+        if (reason == HttpStatus.BAD_REQUEST) {
             return error.requestType == RequestType.REGISTRATION
                 ? Rez.Strings.ErrRegistrationRejected
                 : Rez.Strings.ErrTemplate;
