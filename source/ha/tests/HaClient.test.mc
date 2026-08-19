@@ -105,7 +105,10 @@ class MockHaClient extends HaClient {
 (:test)
 class RegisteringHaClient extends HaClient {
     public var postCount as Number = 0;
-    private var _postedHandler as ResponseHandler?;
+
+    // A list, not a single slot, so a test can answer an abandoned request
+    // after a later one has already been posted.
+    private var _postedHandlers as Array<ResponseHandler> = [];
 
     function initialize() {
         HaClient.initialize();
@@ -113,12 +116,17 @@ class RegisteringHaClient extends HaClient {
 
     function post(path as String, body as Dictionary, handler as ResponseHandler,
                   responseContentType as Communications.HttpResponseContentType) as Void {
-        _postedHandler = handler;
+        _postedHandlers.add(handler);
         postCount++;
     }
 
     function fireRegistrationResponse(code as Number, body as Dictionary or String or Null) as Void {
-        (_postedHandler as ResponseHandler).onResponse(code, body);
+        fireRegistrationResponseAt(_postedHandlers.size() - 1, code, body);
+    }
+
+    function fireRegistrationResponseAt(index as Number, code as Number,
+                                        body as Dictionary or String or Null) as Void {
+        _postedHandlers[index].onResponse(code, body);
     }
 }
 
@@ -266,6 +274,30 @@ function aSuccessfulRegistrationPersistsTheIdForLaterRequests(logger as Test.Log
     // is what proves onRegistrationReply actually persisted it.
     client.postTemplate("{{ 1 }}", new ResultCapture().method(:onResult));
     Test.assertEqual(client.postCount, 2);
+    return true;
+}
+
+(:test)
+function aSupersededRegistrationsReplyStoresNothing(logger as Test.Logger) as Boolean {
+    Application.Storage.clearValues();
+    var client = new RegisteringHaClient();
+    var capture = new ResultCapture();
+
+    client.register(capture.method(:onResult));
+    client.cancelAll();
+
+    // The lazy re-register refills the callback slot, so the abandoned reply
+    // below arrives to a live-looking client: without the generation it would
+    // persist the id the cancelled registration was issued for.
+    client.register(new ResultCapture().method(:onResult));
+    client.fireRegistrationResponseAt(0, 201, { "webhook_id" => "abandoned-id" });
+
+    Test.assert(capture.result == null);
+
+    var templateCapture = new ResultCapture();
+    client.postTemplate("{{ 1 }}", templateCapture.method(:onResult));
+
+    Test.assertEqual(templateCapture.error as Number, RequestError.HTTP_NOT_FOUND);
     return true;
 }
 
