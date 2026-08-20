@@ -34,7 +34,7 @@ class WebhookRequest {
         }
 
         _registered = true;
-        _client.register(method(:onRegistered));
+        _client.registerWithHomeAssistant(method(:onRegistered));
     }
 
     function onRegistered(webhookId as String or Null, error as RequestError or Null) as Void {

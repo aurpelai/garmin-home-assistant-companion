@@ -43,7 +43,7 @@ class MockHaClient extends HaClient {
         webhookCallbacks.add(callback);
     }
 
-    function postRegistration(callback as Method) as Void {
+    function attemptRegistration(callback as Method) as Void {
         _registerCallback = callback;
         registerCount++;
     }
@@ -85,7 +85,7 @@ class MockHaClient extends HaClient {
     }
 }
 
-// Overrides only the transport, so register(), onRegistrationReply() and the
+// Overrides only the transport, so registering, onRegistrationReply() and the
 // missing-id refusal in postToWebhook all run for real: what these tests pin is
 // HaClient's own handling of the stored id, not a mock's imitation of it.
 (:test)
@@ -241,7 +241,7 @@ function aSuccessfulRegistrationPersistsTheIdForLaterRequests(logger as Test.Log
     var client = new RegisteringHaClient();
     var capture = new ResultCapture();
 
-    client.register(capture.method(:onResult));
+    client.registerWithHomeAssistant(capture.method(:onResult));
     client.fireResponse(201, { "webhook_id" => "fresh-id" });
 
     Test.assertEqual(capture.result as String, "fresh-id");
@@ -260,13 +260,13 @@ function aSupersededRegistrationsReplyStoresNothing(logger as Test.Logger) as Bo
     var client = new RegisteringHaClient();
     var capture = new ResultCapture();
 
-    client.register(capture.method(:onResult));
+    client.registerWithHomeAssistant(capture.method(:onResult));
     client.cancelAll();
 
     // The lazy re-register refills the callback slot, so the abandoned reply
     // below arrives to a live-looking client: without the epoch it would
     // persist the id the cancelled registration was issued for.
-    client.register(new ResultCapture().method(:onResult));
+    client.registerWithHomeAssistant(new ResultCapture().method(:onResult));
     client.fireResponseAt(0, 201, { "webhook_id" => "abandoned-id" });
 
     Test.assert(capture.result == null);
@@ -280,7 +280,7 @@ function aFailedRegistrationLeavesNoIdBehind(logger as Test.Logger) as Boolean {
     var client = new RegisteringHaClient();
     var capture = new ResultCapture();
 
-    client.register(capture.method(:onResult));
+    client.registerWithHomeAssistant(capture.method(:onResult));
     client.fireResponse(400, null);
     client.fireResponseAt(1, 400, null);
 
@@ -470,7 +470,7 @@ function registeringClearsTheStaleIdBeforeAskingForAFreshOne(logger as Test.Logg
     Registration.seed("stale-id");
     var client = new RegisteringHaClient();
 
-    client.register(new ResultCapture().method(:onResult));
+    client.registerWithHomeAssistant(new ResultCapture().method(:onResult));
 
     Test.assertEqual(client.postCount, 1);
     Test.assert(Registration.stored() == null);
