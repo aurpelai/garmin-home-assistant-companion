@@ -5,15 +5,10 @@ module EntitySorter {
     const SENSOR_DEVICE_CLASSES = ["temperature", "humidity", "illuminance"] as Array<String>;
 
     function sortAreas(areas as Array<AreaModel>) as Array<AreaModel> {
-        var byId = {} as Dictionary<String, Object>;
-        var labels = {} as Dictionary<String, String>;
+        var sorted = areas.slice(0, null);
+        sorted.sort(new LabelComparator());
 
-        for (var index = 0; index < areas.size(); index++) {
-            byId.put(areas[index].id, areas[index]);
-            labels.put(areas[index].id, areas[index].name.toLower());
-        }
-
-        return sortByLabel(byId, labels) as Array<AreaModel>;
+        return sorted;
     }
 
     function sortLights(lights as Array<LightModel>) as Array<LightModel> {
@@ -75,32 +70,8 @@ module EntitySorter {
     }
 
     function sortByLightName(lights as Array<LightModel>) as Array<LightModel> {
-        var byId = {} as Dictionary<String, Object>;
-        var labels = {} as Dictionary<String, String>;
-
-        for (var index = 0; index < lights.size(); index++) {
-            byId.put(lights[index].id, lights[index]);
-            labels.put(lights[index].id, lights[index].name.toLower());
-        }
-
-        return sortByLabel(byId, labels) as Array<LightModel>;
-    }
-
-    // The comparator breaks equal labels on the id, so the order is total
-    // whatever order the keys come back in.
-    //
-    // The callers lower with toLower, which is ASCII-only, so non-Latin labels
-    // order by code point rather than locale collation.
-    function sortByLabel(modelsById as Dictionary<String, Object>,
-                         labelsById as Dictionary<String, String>) as Array<Object> {
-        var ids = modelsById.keys() as Array<String>;
-        ids.sort(new LabelComparator(labelsById));
-
-        var sorted = [] as Array<Object>;
-
-        for (var index = 0; index < ids.size(); index++) {
-            sorted.add(modelsById.get(ids[index]) as Object);
-        }
+        var sorted = lights.slice(0, null);
+        sorted.sort(new LabelComparator());
 
         return sorted;
     }
