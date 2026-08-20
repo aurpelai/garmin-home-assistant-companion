@@ -86,9 +86,8 @@ module EntitySorter {
         return sortByLabel(byId, labels) as Array<LightModel>;
     }
 
-    // Keyed by id internally, which is what identity is for; the comparator
-    // breaks equal labels on the id, so the order is total whatever order the
-    // keys come back in.
+    // The comparator breaks equal labels on the id, so the order is total
+    // whatever order the keys come back in.
     //
     // The callers lower with toLower, which is ASCII-only, so non-Latin labels
     // order by code point rather than locale collation.

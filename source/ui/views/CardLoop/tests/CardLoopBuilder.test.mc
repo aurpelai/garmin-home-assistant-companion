@@ -246,3 +246,19 @@ function anAreasEntitiesReachBothItsOwnCardAndItsFloorsAggregate(logger as Test.
     Test.assertEqual(CardLoopModelTest.readingOf(model, "floor.g", "temperature"), "21.0 °C");
     return true;
 }
+
+(:test)
+function anAreaWhoseOnlyEntityIsUnavailableStillGetsACard(logger as Test.Logger) as Boolean {
+    // A room vanishing because its one sensor's battery died would be alarming,
+    // where a room showing an unavailable reading says what is wrong.
+    var haState = CardLoopModelTest.stateOf({
+        "areas" => { "area.room" => { "name" => "Room" } }
+    }, {} as Dictionary, {
+        "sensor.dead" => CardLoopModelTest.temperature("unavailable", null, "area.room")
+    });
+
+    Test.assertEqual(
+        CardLoopModelTest.cardIds(CardLoopBuilder.build(haState)).toString(),
+        ["area.room"].toString());
+    return true;
+}

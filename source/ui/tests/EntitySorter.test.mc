@@ -66,7 +66,7 @@ function areasAreSortedByName(logger as Test.Logger) as Boolean {
 function sensorsAreGroupedByDeviceClass(logger as Test.Logger) as Boolean {
     var grouped = EntitySorter.groupSensorsByDeviceClass([
         EntitySorterTest.sensor("sensor.lux", "illuminance"),
-        EntitySorterTest.sensor("sensor.odd", "pressure"),
+        EntitySorterTest.sensor("sensor.odd", ""),
         EntitySorterTest.sensor("sensor.rh", "humidity"),
         EntitySorterTest.sensor("sensor.temp", "temperature")
     ]);
