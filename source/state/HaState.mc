@@ -10,7 +10,6 @@ class HaState {
     private var _lightsByArea as Dictionary<String, Array<LightModel>>;
     private var _sensorsByArea as Dictionary<String, Array<SensorModel>>;
     private var _zone as String or Null;
-    private var _overrides as Dictionary<String, Boolean>;
 
     function initialize() {
         _lights = {};
@@ -19,7 +18,6 @@ class HaState {
         _lightsByArea = {};
         _sensorsByArea = {};
         _zone = null;
-        _overrides = {};
     }
 
     function setZone(zone as String or Null) as Void {
@@ -34,10 +32,23 @@ class HaState {
         _floors = floors;
     }
 
+    // A refresh replaces server truth wholesale, so a tap still awaiting its reply
+    // is carried onto the incoming model. An assumption whose light is gone goes
+    // with it.
     function setLights(lights as Dictionary<String, LightModel>) as Void {
+        var entityIds = _lights.keys();
+
+        for (var index = 0; index < entityIds.size(); index++) {
+            var previous = _lights.get(entityIds[index] as String) as LightModel;
+            var incoming = lights.get(entityIds[index] as String);
+
+            if (previous.assumed != null && incoming != null) {
+                (incoming as LightModel).assumed = previous.assumed;
+            }
+        }
+
         _lights = lights;
         _lightsByArea = groupLightsByArea(lights);
-        dropOrphanedOverrides();
     }
 
     function setSensors(sensors as Dictionary<String, SensorModel>) as Void {
@@ -123,17 +134,13 @@ class HaState {
     }
 
     function isOn(entityId as String) as Boolean {
-        var assumed = _overrides.get(entityId);
-        if (assumed != null) {
-            return assumed;
-        }
-
         var light = _lights.get(entityId);
-        return light != null && light.state;
+        return light != null && light.isOn();
     }
 
     function isPending(entityId as String) as Boolean {
-        return _overrides.hasKey(entityId);
+        var light = _lights.get(entityId);
+        return light != null && light.isPending();
     }
 
     function override(entityId as String, isOn as Boolean) as Array<String> {
@@ -158,7 +165,7 @@ class HaState {
 
     function hasAnyOn(lights as Array<LightModel>) as Boolean {
         for (var index = 0; index < lights.size(); index++) {
-            if (isOn(lights[index].id)) {
+            if (lights[index].isOn()) {
                 return true;
             }
         }
@@ -186,11 +193,15 @@ class HaState {
         return false;
     }
 
-    // Finding no override is a no-op: a refresh may have dropped an orphan whose
+    // Finding no assumption is a no-op: a refresh may have dropped an orphan whose
     // reply then arrives.
     function clearOverrides(entityIds as Array<String>) as Void {
         for (var index = 0; index < entityIds.size(); index++) {
-            _overrides.remove(entityIds[index]);
+            var light = _lights.get(entityIds[index]);
+
+            if (light != null) {
+                (light as LightModel).assumed = null;
+            }
         }
     }
 
@@ -198,7 +209,12 @@ class HaState {
         var overridden = [] as Array<String>;
 
         for (var index = 0; index < entityIds.size(); index++) {
-            _overrides.put(entityIds[index], isOn);
+            var light = _lights.get(entityIds[index]);
+
+            if (light != null) {
+                (light as LightModel).assumed = isOn;
+            }
+
             overridden.add(entityIds[index]);
         }
 
@@ -245,22 +261,5 @@ class HaState {
         }
 
         return byArea;
-    }
-
-    private function dropOrphanedOverrides() as Void {
-        var entityIds = _overrides.keys();
-
-        for (var index = 0; index < entityIds.size(); index++) {
-            var entityId = entityIds[index] as String;
-            if (!isKnownEntity(entityId)) {
-                _overrides.remove(entityId);
-            }
-        }
-    }
-
-    // Every overridable domain must be asked, or the domain that is missing here
-    // loses its overrides on every other domain's refresh.
-    private function isKnownEntity(entityId as String) as Boolean {
-        return _lights.hasKey(entityId);
     }
 }

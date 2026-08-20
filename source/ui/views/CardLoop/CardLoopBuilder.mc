@@ -24,7 +24,7 @@ module CardLoopBuilder {
 
             for (var areaIndex = 0; areaIndex < entities.size(); areaIndex++) {
                 floored.put(entities[areaIndex].area.id, true);
-                cards.add(buildAreaCard(haState, entities[areaIndex], floor.id, floor.name));
+                cards.add(buildAreaCard(entities[areaIndex], floor.id, floor.name));
             }
         }
 
@@ -40,7 +40,7 @@ module CardLoopBuilder {
         var unflooredEntities = filterAreasWithEntities(haState, EntitySorter.sortAreas(unfloored));
 
         for (var index = 0; index < unflooredEntities.size(); index++) {
-            cards.add(buildAreaCard(haState, unflooredEntities[index], null, null));
+            cards.add(buildAreaCard(unflooredEntities[index], null, null));
         }
 
         return new CardLoopModel(cards);
@@ -65,10 +65,10 @@ module CardLoopBuilder {
         return filtered;
     }
 
-    function buildAreaCard(haState as HaState, entities as AreaEntities, floorId as String or Null,
+    function buildAreaCard(entities as AreaEntities, floorId as String or Null,
                            floorName as String or Null) as AreaCard {
         var lights = new LightTally();
-        lights.addAll(haState, entities.lights);
+        lights.addAll(entities.lights);
 
         return new AreaCard(
             entities.area.id,
@@ -85,7 +85,7 @@ module CardLoopBuilder {
         var sensors = [] as Array<SensorModel>;
 
         for (var index = 0; index < areas.size(); index++) {
-            lights.addAll(haState, areas[index].lights);
+            lights.addAll(areas[index].lights);
             sensors.addAll(areas[index].sensors);
         }
 

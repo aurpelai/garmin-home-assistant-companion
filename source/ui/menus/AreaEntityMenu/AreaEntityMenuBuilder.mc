@@ -21,7 +21,7 @@ module AreaEntityMenuBuilder {
             lights.add(new LightRowModel(
                 light.id,
                 light.name,
-                haState.isOn(light.id),
+                light.isOn(),
                 light.available,
                 light.memberIds == null ? null : (light.memberIds as Array<String>).size()));
         }
