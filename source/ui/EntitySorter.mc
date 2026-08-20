@@ -4,6 +4,8 @@ module EntitySorter {
 
     const SENSOR_DEVICE_CLASSES = ["temperature", "humidity", "illuminance"] as Array<String>;
 
+    // Sorts a copy: sort mutates in place, and a caller's array is not this
+    // module's to reorder.
     function sortAreas(areas as Array<AreaModel>) as Array<AreaModel> {
         var sorted = areas.slice(0, null);
         sorted.sort(new LabelComparator());

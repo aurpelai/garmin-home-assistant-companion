@@ -1,7 +1,6 @@
 import Toybox.Lang;
 
-// Anything the user sees in a sorted list: the name orders it, the id breaks a
-// tie so equal names never order arbitrarily.
+// The id is required so equal names never order arbitrarily.
 typedef Labelled as interface {
     var id as String;
     var name as String;
