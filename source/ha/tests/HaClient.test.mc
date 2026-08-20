@@ -75,7 +75,7 @@ class MockHaClient extends HaClient {
         fetchCount++;
     }
 
-    function register(callback as Method) as Void {
+    function postRegistration(callback as Method) as Void {
         _registerCallback = callback;
         registerCount++;
     }
@@ -324,14 +324,17 @@ function aFailedRegistrationLeavesNoIdBehind(logger as Test.Logger) as Boolean {
 
     client.register(capture.method(:onResult));
     client.fireRegistrationResponse(400, null);
+    client.fireRegistrationResponseAt(1, 400, null);
 
-    Test.assertEqual(capture.error as Number, 400);
+    var error = capture.error as RequestError;
+    Test.assertEqual(error.reason as Number, HttpStatus.BAD_REQUEST);
+    Test.assertEqual(error.requestType, RequestType.REGISTRATION);
 
     var templateCapture = new ResultCapture();
     client.postTemplate("{{ 1 }}", templateCapture.method(:onResult));
 
     Test.assertEqual(templateCapture.error as Symbol, RequestError.UNUSABLE_WEBHOOK);
-    Test.assertEqual(client.postCount, 1);
+    Test.assertEqual(client.postCount, 2);
     return true;
 }
 

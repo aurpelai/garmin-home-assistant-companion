@@ -275,6 +275,11 @@ class HaClient {
     }
 
     function register(callback as Method) as Void {
+        new RetryManager(self, method(:postRegistration), callback,
+                         RequestType.REGISTRATION).attempt();
+    }
+
+    function postRegistration(callback as Method) as Void {
         var body = {
             "device_id" => DEVICE_ID,
             "app_id" => APP_ID,
