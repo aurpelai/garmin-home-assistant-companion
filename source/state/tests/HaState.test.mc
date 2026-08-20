@@ -156,6 +156,21 @@ function theOverriddenIdsBelongToTheCallerNotToServerTruth(logger as Test.Logger
 }
 
 (:test)
+function anAreasLightsReadCurrentAfterATapRatherThanTheirHandedOutValue(logger as Test.Logger) as Boolean {
+    // The indexes hand out the lights themselves, so a caller holding an area's
+    // lights across a tap reads the assumption rather than a snapshot from before
+    // it.
+    var haState = HaStateTest.stateWithLights({ "light.a" => HaStateTest.light(false, "area.a") });
+    var held = haState.getLightsInArea("area.a");
+
+    haState.override("light.a", true);
+
+    Test.assert(held[0].isOn());
+    Test.assert(held[0].isPending());
+    return true;
+}
+
+(:test)
 function aMemberWithNoEntityOfItsOwnIsStillCalledButNeverReadsAsPending(logger as Test.Logger) as Boolean {
     // Membership expands over the whole group while entities arrive per area, so a
     // member assigned to no area has no state to assume. It stays a service target,
