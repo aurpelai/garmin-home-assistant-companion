@@ -119,9 +119,9 @@ class RegisteringHaClient extends HaClient {
 // The vehicle for every recovery test: a webhook post is the only request that
 // can meet an unusable id, so recovery is only reachable through one.
 (:test)
-class WebhookPostUnderTest {
-    static function of(client as HaClient) as WebhookPost {
-        return new WebhookPost(client, {}, ResponseType.TEMPLATE_RENDER,
+class WebhookRequestUnderTest {
+    static function of(client as HaClient) as WebhookRequest {
+        return new WebhookRequest(client, {}, ResponseType.TEMPLATE_RENDER,
                                Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON);
     }
 }
@@ -302,7 +302,7 @@ function aRequestInterruptedByADeadWebhookCompletesOnceRegisteringRescuesIt(logg
     Registration.seed("stale-id");
     var capture = new ResultCapture();
 
-    WebhookPostUnderTest.of(client).attempt(capture.method(:onResult));
+    WebhookRequestUnderTest.of(client).attempt(capture.method(:onResult));
     client.fireFetchFailure(RequestError.UNUSABLE_WEBHOOK);
     client.fireRegisterSuccess("fresh-id");
     client.fireFetchSuccess({} as Dictionary);
@@ -323,7 +323,7 @@ function anUnusableWebhookThatKeepsComingBackSurfacesAsARequestFailure(logger as
     var client = new MockHaClient();
     var capture = new ResultCapture();
 
-    new RetryManager(WebhookPostUnderTest.of(client).method(:attempt), capture.method(:onResult),
+    new RetryManager(WebhookRequestUnderTest.of(client).method(:attempt), capture.method(:onResult),
                      RequestType.REQUEST).attempt();
     client.fireFetchFailure(RequestError.UNUSABLE_WEBHOOK);
     client.fireRegisterSuccess("fresh-id");
@@ -447,7 +447,7 @@ function aRegistrationFailureInsideFetchRecoveryStaysARegistrationFailure(logger
     var client = new MockHaClient();
     var capture = new ResultCapture();
 
-    WebhookPostUnderTest.of(client).attempt(capture.method(:onResult));
+    WebhookRequestUnderTest.of(client).attempt(capture.method(:onResult));
     client.fireFetchFailure(RequestError.UNUSABLE_WEBHOOK);
     client.fireRegisterFailure(HttpStatus.BAD_REQUEST);
     client.fireRegisterFailure(HttpStatus.BAD_REQUEST);

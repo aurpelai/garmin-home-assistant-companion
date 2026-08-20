@@ -29,8 +29,8 @@ class ServiceCall {
             }
         };
 
-        new WebhookPost(_client, body, ResponseType.SERVICE_CALL,
-                        Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON).attempt(callback);
+        new WebhookRequest(_client, body, ResponseType.SERVICE_CALL,
+                           Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON).attempt(callback);
     }
 
 }

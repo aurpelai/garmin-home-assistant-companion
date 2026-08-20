@@ -1,3 +1,3 @@
 kind: "\U0001F527 Fixed"
-body: A wrong Home Assistant address no longer discards the watch's registration, and registering is retried before an error is shown.
+body: Each kind of request failure now recovers in the way that failure calls for.
 time: 2026-08-20T12:00:00.000000+03:00

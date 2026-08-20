@@ -1,11 +1,10 @@
 import Toybox.Communications;
 import Toybox.Lang;
 
-// A post the webhook may refuse, because the id it was issued for can go stale
-// on the Home Assistant side at any time. Registering earns a fresh id and the
-// post goes out behind it once; an id refused the moment it was issued is the
-// request's own failure, left to whatever budget the request is running on.
-class WebhookPost {
+// Home Assistant can retire a webhook id at any time, so registering again is
+// part of making the request rather than a failure to report. An id refused the
+// moment it was issued is the request's own failure and surfaces as one.
+class WebhookRequest {
     private var _client as HaClient;
     private var _body as Dictionary;
     private var _responseType as Symbol;
