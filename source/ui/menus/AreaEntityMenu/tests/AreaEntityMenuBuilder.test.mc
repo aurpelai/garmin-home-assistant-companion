@@ -49,18 +49,6 @@ function aRowReadsTheAssumedValueAndCarriesItsPendingStatus(logger as Test.Logge
 }
 
 (:test)
-function anUnnamedAreaTitlesItselfWithItsIdRatherThanGoingBlank(logger as Test.Logger) as Boolean {
-    var haState = AreaEntityMenuModelTest.stateOf({
-        "areas" => { "area.nameless" => {} as Dictionary }
-    }, {} as Dictionary, {} as Dictionary);
-
-    Test.assertEqual(
-        (AreaEntityMenuBuilder.build(haState, "area.nameless") as AreaEntityMenuModel).title,
-        "area.nameless");
-    return true;
-}
-
-(:test)
 function aSensorRowKeepsAvailabilityApartFromHaFormatting(logger as Test.Logger) as Boolean {
     // The view picks the unavailable label ahead of the display value, so the two
     // must reach it as separate facts: Home Assistant formats an unavailable

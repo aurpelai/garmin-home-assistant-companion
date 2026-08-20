@@ -5,21 +5,19 @@ import Toybox.Lang;
 // deletion rather than restoration and a refresh is a plain replacement.
 class HaState {
     private var _lights as Dictionary<String, LightModel>;
-    private var _sensors as Dictionary<String, SensorModel>;
     private var _areas as Dictionary<String, AreaModel>;
     private var _floors as Array<FloorModel>;
-    private var _lightIdsByArea as Dictionary<String, Array<String>>;
-    private var _sensorIdsByArea as Dictionary<String, Array<String>>;
+    private var _lightsByArea as Dictionary<String, Array<LightModel>>;
+    private var _sensorsByArea as Dictionary<String, Array<SensorModel>>;
     private var _zone as String or Null;
     private var _overrides as Dictionary<String, Boolean>;
 
     function initialize() {
         _lights = {};
-        _sensors = {};
         _areas = {};
         _floors = [];
-        _lightIdsByArea = {};
-        _sensorIdsByArea = {};
+        _lightsByArea = {};
+        _sensorsByArea = {};
         _zone = null;
         _overrides = {};
     }
@@ -38,33 +36,24 @@ class HaState {
 
     function setLights(lights as Dictionary<String, LightModel>) as Void {
         _lights = lights;
-        _lightIdsByArea = groupLightIdsByArea(lights);
+        _lightsByArea = groupLightsByArea(lights);
         dropOrphanedOverrides();
     }
 
     function setSensors(sensors as Dictionary<String, SensorModel>) as Void {
-        _sensors = sensors;
-        _sensorIdsByArea = groupSensorIdsByArea(sensors);
+        _sensorsByArea = groupSensorsByArea(sensors);
     }
 
     function hasAreas() as Boolean {
         return _areas.size() > 0;
     }
 
-    function getLight(entityId as String) as LightModel or Null {
-        return _lights.get(entityId);
-    }
-
-    function getSensor(entityId as String) as SensorModel or Null {
-        return _sensors.get(entityId);
-    }
-
     function getArea(areaId as String) as AreaModel or Null {
         return _areas.get(areaId);
     }
 
-    function getAreaIds() as Array<String> {
-        return _areas.keys() as Array<String>;
+    function getAreas() as Array<AreaModel> {
+        return _areas.values() as Array<AreaModel>;
     }
 
     function getFloors() as Array<FloorModel> {
@@ -85,29 +74,52 @@ class HaState {
         return _zone;
     }
 
-    function getLightIdsInArea(areaId as String) as Array<String> {
-        var lightIds = _lightIdsByArea.get(areaId);
-        return lightIds == null ? [] as Array<String> : lightIds;
+    function getLightsInArea(areaId as String) as Array<LightModel> {
+        var lights = _lightsByArea.get(areaId);
+        return lights == null ? [] as Array<LightModel> : lights;
     }
 
-    function getSensorIdsInArea(areaId as String) as Array<String> {
-        var sensorIds = _sensorIdsByArea.get(areaId);
-        return sensorIds == null ? [] as Array<String> : sensorIds;
+    function getSensorsInArea(areaId as String) as Array<SensorModel> {
+        var sensors = _sensorsByArea.get(areaId);
+        return sensors == null ? [] as Array<SensorModel> : sensors;
     }
 
-    function getLightIdsInFloor(floorId as String) as Array<String> {
+    // Every area the floor lists, registered or not: the service call expands the
+    // floor server-side, so a narrower scope would claim less than the action does.
+    function getLightsInFloor(floorId as String) as Array<LightModel> {
         var floor = getFloor(floorId);
-        var lightIds = [] as Array<String>;
+        var lights = [] as Array<LightModel>;
 
         if (floor == null) {
-            return lightIds;
+            return lights;
         }
 
         for (var index = 0; index < floor.areas.size(); index++) {
-            lightIds.addAll(getLightIdsInArea(floor.areas[index]));
+            lights.addAll(getLightsInArea(floor.areas[index]));
         }
 
-        return lightIds;
+        return lights;
+    }
+
+    // An area id the floor still lists but the registry no longer knows is
+    // skipped: the two arrive on the same target but a floor outliving its area
+    // is Home Assistant's to report, not ours to render.
+    function getAreasInFloor(floorId as String) as Array<AreaModel> {
+        var floor = getFloor(floorId);
+        var areas = [] as Array<AreaModel>;
+
+        if (floor == null) {
+            return areas;
+        }
+
+        for (var index = 0; index < floor.areas.size(); index++) {
+            var area = _areas.get(floor.areas[index]);
+            if (area != null) {
+                areas.add(area);
+            }
+        }
+
+        return areas;
     }
 
     function isOn(entityId as String) as Boolean {
@@ -129,7 +141,7 @@ class HaState {
     }
 
     function overrideFloorLights(floorId as String, isOn as Boolean) as Array<String> {
-        return overrideAll(getLightIdsInFloor(floorId), isOn);
+        return overrideAll(toLightIds(getLightsInFloor(floorId)), isOn);
     }
 
     function getToggleTargets(entityId as String) as Array<String> {
@@ -144,14 +156,24 @@ class HaState {
         return targets;
     }
 
-    function hasAnyOn(entityIds as Array<String>) as Boolean {
-        for (var index = 0; index < entityIds.size(); index++) {
-            if (isOn(entityIds[index])) {
+    function hasAnyOn(lights as Array<LightModel>) as Boolean {
+        for (var index = 0; index < lights.size(); index++) {
+            if (isOn(lights[index].id)) {
                 return true;
             }
         }
 
         return false;
+    }
+
+    function toLightIds(lights as Array<LightModel>) as Array<String> {
+        var ids = [] as Array<String>;
+
+        for (var index = 0; index < lights.size(); index++) {
+            ids.add(lights[index].id);
+        }
+
+        return ids;
     }
 
     function hasAnyPending(entityIds as Array<String>) as Boolean {
@@ -183,48 +205,46 @@ class HaState {
         return overridden;
     }
 
-    private function groupLightIdsByArea(lights as Dictionary<String, LightModel>)
-            as Dictionary<String, Array<String>> {
-        var idsByArea = {} as Dictionary<String, Array<String>>;
-        var entityIds = lights.keys();
+    private function groupLightsByArea(lights as Dictionary<String, LightModel>)
+            as Dictionary<String, Array<LightModel>> {
+        var byArea = {} as Dictionary<String, Array<LightModel>>;
+        var models = lights.values() as Array<LightModel>;
 
-        for (var index = 0; index < entityIds.size(); index++) {
-            var entityId = entityIds[index] as String;
-            var areaId = (lights.get(entityId) as LightModel).areaId;
+        for (var index = 0; index < models.size(); index++) {
+            var areaId = models[index].areaId;
 
             if (areaId != null) {
-                var inArea = idsByArea.get(areaId);
+                var inArea = byArea.get(areaId);
                 if (inArea == null) {
-                    inArea = [] as Array<String>;
-                    idsByArea.put(areaId, inArea);
+                    inArea = [] as Array<LightModel>;
+                    byArea.put(areaId, inArea);
                 }
-                inArea.add(entityId);
+                inArea.add(models[index]);
             }
         }
 
-        return idsByArea;
+        return byArea;
     }
 
-    private function groupSensorIdsByArea(sensors as Dictionary<String, SensorModel>)
-            as Dictionary<String, Array<String>> {
-        var idsByArea = {} as Dictionary<String, Array<String>>;
-        var entityIds = sensors.keys();
+    private function groupSensorsByArea(sensors as Dictionary<String, SensorModel>)
+            as Dictionary<String, Array<SensorModel>> {
+        var byArea = {} as Dictionary<String, Array<SensorModel>>;
+        var models = sensors.values() as Array<SensorModel>;
 
-        for (var index = 0; index < entityIds.size(); index++) {
-            var entityId = entityIds[index] as String;
-            var areaId = (sensors.get(entityId) as SensorModel).areaId;
+        for (var index = 0; index < models.size(); index++) {
+            var areaId = models[index].areaId;
 
             if (areaId != null) {
-                var inArea = idsByArea.get(areaId);
+                var inArea = byArea.get(areaId);
                 if (inArea == null) {
-                    inArea = [] as Array<String>;
-                    idsByArea.put(areaId, inArea);
+                    inArea = [] as Array<SensorModel>;
+                    byArea.put(areaId, inArea);
                 }
-                inArea.add(entityId);
+                inArea.add(models[index]);
             }
         }
 
-        return idsByArea;
+        return byArea;
     }
 
     private function dropOrphanedOverrides() as Void {

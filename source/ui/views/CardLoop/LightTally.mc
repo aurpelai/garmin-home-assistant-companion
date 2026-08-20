@@ -12,12 +12,11 @@ class LightTally {
         unavailable = 0;
     }
 
-    function addAll(haState as HaState, entityIds as Array<String>) as Void {
-        for (var index = 0; index < entityIds.size(); index++) {
-            var entityId = entityIds[index];
-            var light = haState.getLight(entityId);
+    function addAll(haState as HaState, lights as Array<LightModel>) as Void {
+        for (var index = 0; index < lights.size(); index++) {
+            var light = lights[index];
 
-            if (light == null || light.memberIds != null) {
+            if (light.memberIds != null) {
                 continue;
             }
 
@@ -26,7 +25,7 @@ class LightTally {
             } else {
                 available++;
 
-                if (haState.isOn(entityId)) {
+                if (haState.isOn(light.id)) {
                     on++;
                 }
             }

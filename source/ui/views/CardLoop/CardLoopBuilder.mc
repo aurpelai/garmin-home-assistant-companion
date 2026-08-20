@@ -14,33 +14,33 @@ module CardLoopBuilder {
 
         for (var index = 0; index < floors.size(); index++) {
             var floor = floors[index];
-            var areaIds = EntitySorter.sortAreas(haState, filterAreasWithEntities(haState, floor.areas));
-            if (areaIds.size() == 0) {
+            var entities = filterAreasWithEntities(
+                haState, EntitySorter.sortAreas(haState.getAreasInFloor(floor.id)));
+            if (entities.size() == 0) {
                 continue;
             }
 
-            var floorName = floor.name == null ? floor.id : floor.name as String;
-            cards.add(buildFloorCard(haState, floor.id, floorName, areaIds));
+            cards.add(buildFloorCard(haState, floor.id, floor.name, entities));
 
-            for (var areaIndex = 0; areaIndex < areaIds.size(); areaIndex++) {
-                floored.put(areaIds[areaIndex], true);
-                cards.add(buildAreaCard(haState, areaIds[areaIndex], floor.id, floorName));
+            for (var areaIndex = 0; areaIndex < entities.size(); areaIndex++) {
+                floored.put(entities[areaIndex].area.id, true);
+                cards.add(buildAreaCard(haState, entities[areaIndex], floor.id, floor.name));
             }
         }
 
-        var unfloored = [] as Array<String>;
-        var areaIds = haState.getAreaIds();
+        var areas = haState.getAreas();
+        var unfloored = [] as Array<AreaModel>;
 
-        for (var index = 0; index < areaIds.size(); index++) {
-            if (!floored.hasKey(areaIds[index])) {
-                unfloored.add(areaIds[index]);
+        for (var index = 0; index < areas.size(); index++) {
+            if (!floored.hasKey(areas[index].id)) {
+                unfloored.add(areas[index]);
             }
         }
 
-        var sortedUnfloored = EntitySorter.sortAreas(haState, filterAreasWithEntities(haState, unfloored));
+        var unflooredEntities = filterAreasWithEntities(haState, EntitySorter.sortAreas(unfloored));
 
-        for (var index = 0; index < sortedUnfloored.size(); index++) {
-            cards.add(buildAreaCard(haState, sortedUnfloored[index], null, null));
+        for (var index = 0; index < unflooredEntities.size(); index++) {
+            cards.add(buildAreaCard(haState, unflooredEntities[index], null, null));
         }
 
         return new CardLoopModel(cards);
@@ -49,50 +49,51 @@ module CardLoopBuilder {
     // An unavailable entity still counts: a room vanishing because a sensor's
     // battery died would be alarming, where a room showing an unavailable reading
     // says what is wrong.
-    function filterAreasWithEntities(haState as HaState, areaIds as Array<String>) as Array<String> {
-        var filtered = [] as Array<String>;
+    function filterAreasWithEntities(haState as HaState,
+                                     areas as Array<AreaModel>) as Array<AreaEntities> {
+        var filtered = [] as Array<AreaEntities>;
 
-        for (var index = 0; index < areaIds.size(); index++) {
-            var areaId = areaIds[index];
+        for (var index = 0; index < areas.size(); index++) {
+            var lights = haState.getLightsInArea(areas[index].id);
+            var sensors = haState.getSensorsInArea(areas[index].id);
 
-            if (haState.getLightIdsInArea(areaId).size() > 0 || haState.getSensorIdsInArea(areaId).size() > 0) {
-                filtered.add(areaId);
+            if (lights.size() > 0 || sensors.size() > 0) {
+                filtered.add(new AreaEntities(areas[index], lights, sensors));
             }
         }
 
         return filtered;
     }
 
-    function buildAreaCard(haState as HaState, areaId as String, floorId as String or Null,
+    function buildAreaCard(haState as HaState, entities as AreaEntities, floorId as String or Null,
                            floorName as String or Null) as AreaCard {
-        var area = haState.getArea(areaId);
         var lights = new LightTally();
-        lights.addAll(haState, haState.getLightIdsInArea(areaId));
+        lights.addAll(haState, entities.lights);
 
         return new AreaCard(
-            areaId,
+            entities.area.id,
             floorId,
-            area == null || area.name == null ? areaId : area.name as String,
+            entities.area.name,
             floorName,
-            SensorReading.buildFromSensors(haState, haState.getSensorIdsInArea(areaId)),
+            SensorReading.buildFromSensors(entities.sensors),
             lights);
     }
 
     function buildFloorCard(haState as HaState, floorId as String, floorName as String,
-                            areaIds as Array<String>) as FloorCard {
+                            areas as Array<AreaEntities>) as FloorCard {
         var lights = new LightTally();
-        var sensorIds = [] as Array<String>;
+        var sensors = [] as Array<SensorModel>;
 
-        for (var index = 0; index < areaIds.size(); index++) {
-            lights.addAll(haState, haState.getLightIdsInArea(areaIds[index]));
-            sensorIds.addAll(haState.getSensorIdsInArea(areaIds[index]));
+        for (var index = 0; index < areas.size(); index++) {
+            lights.addAll(haState, areas[index].lights);
+            sensors.addAll(areas[index].sensors);
         }
 
         return new FloorCard(
             floorId,
             floorName,
             haState.getZone(),
-            SensorReading.buildFromSensors(haState, sensorIds),
+            SensorReading.buildFromSensors(sensors),
             lights);
     }
 }

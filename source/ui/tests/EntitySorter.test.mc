@@ -4,16 +4,17 @@ import Toybox.Test;
 (:test)
 module EntitySorterTest {
 
-    function stateWith(lights as Dictionary, sensors as Dictionary) as HaState {
-        var haState = new HaState();
-        haState.setLights(HaPayload.parseLights({ "lights" => lights }));
-        haState.setSensors(HaPayload.parseSensors({ "sensors" => sensors }));
-        return haState;
+    function light(id as String, name as String, available as Boolean,
+                   memberIds as Array<String> or Null) as LightModel {
+        return new LightModel(id, false, name, available, "area.a", memberIds);
     }
 
-    function reading(deviceClass as String) as Dictionary {
-        return { "state" => 1.0, "display_state" => "1", "device_class" => deviceClass,
-                 "area_id" => "area.a" };
+    function sensor(id as String, deviceClass as String) as SensorModel {
+        return new SensorModel(id, 1.0, "1", null, deviceClass, id, true, "area.a");
+    }
+
+    function area(id as String, name as String) as AreaModel {
+        return new AreaModel(id, name);
     }
 }
 
@@ -21,90 +22,59 @@ module EntitySorterTest {
 function lightsAreSortedAvailableFirstThenGroupsThenByName(logger as Test.Logger) as Boolean {
     // Each rank must beat the next: the unavailable group outranks nothing, and
     // the group named last still leads the plain lights.
-    var haState = EntitySorterTest.stateWith({
-        "light.zzz_group" => { "state" => false, "name" => "Zzz", "available" => true,
-            "memberIds" => ["light.aaa"] },
-        "light.aaa" => { "state" => false, "name" => "Aaa", "available" => true },
-        "light.mid" => { "state" => false, "name" => "Ähtäri", "available" => true },
-        "light.dark" => { "state" => false, "name" => "Aaa Broken", "available" => false }
-    }, {});
-
-    var sorted = EntitySorter.sortLights(haState,
-        ["light.dark", "light.aaa", "light.mid", "light.zzz_group"]);
+    var sorted = EntitySorter.sortLights([
+        EntitySorterTest.light("light.dark", "Aaa Broken", false, null),
+        EntitySorterTest.light("light.aaa", "Aaa", true, null),
+        EntitySorterTest.light("light.mid", "Ähtäri", true, null),
+        EntitySorterTest.light("light.zzz_group", "Zzz", true, ["light.aaa"])
+    ]);
 
     Test.assertEqual(sorted.size(), 4);
-    Test.assertEqual(sorted[0], "light.zzz_group");
-    Test.assertEqual(sorted[1], "light.aaa");
-    Test.assertEqual(sorted[2], "light.mid");
-    Test.assertEqual(sorted[3], "light.dark");
+    Test.assertEqual(sorted[0].id, "light.zzz_group");
+    Test.assertEqual(sorted[1].id, "light.aaa");
+    Test.assertEqual(sorted[2].id, "light.mid");
+    Test.assertEqual(sorted[3].id, "light.dark");
     return true;
 }
 
 (:test)
 function lightsWithEqualNamesAreSortedByIdRatherThanArbitrarily(logger as Test.Logger) as Boolean {
-    var haState = EntitySorterTest.stateWith({
-        "light.b" => { "state" => false, "name" => "Lampe", "available" => true },
-        "light.a" => { "state" => false, "name" => "Lampe", "available" => true }
-    }, {});
+    var sorted = EntitySorter.sortLights([
+        EntitySorterTest.light("light.b", "Lampe", true, null),
+        EntitySorterTest.light("light.a", "Lampe", true, null)
+    ]);
 
-    var sorted = EntitySorter.sortLights(haState, ["light.b", "light.a"]);
-
-    Test.assertEqual(sorted[0], "light.a");
-    Test.assertEqual(sorted[1], "light.b");
+    Test.assertEqual(sorted[0].id, "light.a");
+    Test.assertEqual(sorted[1].id, "light.b");
     return true;
 }
 
 (:test)
-function areasAreSortedByLabelWithUnknownIdsDropped(logger as Test.Logger) as Boolean {
-    var haState = new HaState();
-    haState.setZone(HaPayload.parseZone({
-        "areas" => {
-            "area.zulu" => { "name" => "Alcove" },
-            "area.alpha" => { "name" => "Ülkerum" },
-            "area.nameless" => {} as Dictionary
-        }
-    }));
-    haState.setAreas(HaPayload.parseAreas({
-        "areas" => {
-            "area.zulu" => { "name" => "Alcove" },
-            "area.alpha" => { "name" => "Ülkerum" },
-            "area.nameless" => {} as Dictionary
-        }
-    }));
-    haState.setFloors(HaPayload.parseFloors({
-        "areas" => {
-            "area.zulu" => { "name" => "Alcove" },
-            "area.alpha" => { "name" => "Ülkerum" },
-            "area.nameless" => {} as Dictionary
-        }
-    }));
+function areasAreSortedByName(logger as Test.Logger) as Boolean {
+    var sorted = EntitySorter.sortAreas([
+        EntitySorterTest.area("area.alpha", "Ülkerum"),
+        EntitySorterTest.area("area.zulu", "Alcove")
+    ]);
 
-    var sorted = EntitySorter.sortAreas(haState,
-        ["area.alpha", "area.ghost", "area.nameless", "area.zulu"]);
-
-    Test.assertEqual(sorted.size(), 3);
-    Test.assertEqual(sorted[0], "area.zulu");
-    Test.assertEqual(sorted[1], "area.nameless");
-    Test.assertEqual(sorted[2], "area.alpha");
+    Test.assertEqual(sorted.size(), 2);
+    Test.assertEqual(sorted[0].id, "area.zulu");
+    Test.assertEqual(sorted[1].id, "area.alpha");
     return true;
 }
 
 (:test)
 function sensorsAreGroupedByDeviceClass(logger as Test.Logger) as Boolean {
-    var haState = EntitySorterTest.stateWith({}, {
-        "sensor.lux" => EntitySorterTest.reading("illuminance"),
-        "sensor.temp" => EntitySorterTest.reading("temperature"),
-        "sensor.rh" => EntitySorterTest.reading("humidity"),
-        "sensor.odd" => EntitySorterTest.reading("pressure")
-    });
-
-    var grouped = EntitySorter.groupSensorsByDeviceClass(haState,
-        ["sensor.lux", "sensor.odd", "sensor.rh", "sensor.temp"]);
+    var grouped = EntitySorter.groupSensorsByDeviceClass([
+        EntitySorterTest.sensor("sensor.lux", "illuminance"),
+        EntitySorterTest.sensor("sensor.odd", ""),
+        EntitySorterTest.sensor("sensor.rh", "humidity"),
+        EntitySorterTest.sensor("sensor.temp", "temperature")
+    ]);
 
     Test.assertEqual(grouped.size(), 4);
-    Test.assertEqual(grouped[0], "sensor.temp");
-    Test.assertEqual(grouped[1], "sensor.rh");
-    Test.assertEqual(grouped[2], "sensor.lux");
-    Test.assertEqual(grouped[3], "sensor.odd");
+    Test.assertEqual(grouped[0].id, "sensor.temp");
+    Test.assertEqual(grouped[1].id, "sensor.rh");
+    Test.assertEqual(grouped[2].id, "sensor.lux");
+    Test.assertEqual(grouped[3].id, "sensor.odd");
     return true;
 }

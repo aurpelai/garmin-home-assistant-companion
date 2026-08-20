@@ -80,12 +80,12 @@ class Coordinator {
     }
 
     function toggleFloorLights(floorId as String) as Void {
-        var lightIds = _haState.getLightIdsInFloor(floorId);
-        if (lightIds.size() == 0 || _haState.hasAnyPending(lightIds)) {
+        var lights = _haState.getLightsInFloor(floorId);
+        if (lights.size() == 0 || _haState.hasAnyPending(_haState.toLightIds(lights))) {
             return;
         }
 
-        var targetState = !_haState.hasAnyOn(lightIds);
+        var targetState = !_haState.hasAnyOn(lights);
         var overriddenIds = _haState.overrideFloorLights(floorId, targetState);
         var service = targetState ? "turn_on" : "turn_off";
 

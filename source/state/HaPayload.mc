@@ -20,8 +20,9 @@ module HaPayload {
             var entityId = entityIds[index] as String;
             var entry = entries.get(entityId) as Dictionary;
             lights.put(entityId, new LightModel(
+                entityId,
                 entry.get("state") instanceof Boolean ? entry.get("state") as Boolean : false,
-                asStringOrNull(entry.get("name")),
+                asString(entry.get("name")),
                 asAvailable(entry.get("available")),
                 asStringOrNull(entry.get("area_id")),
                 asMemberIds(entry.get("memberIds"))));
@@ -47,11 +48,12 @@ module HaPayload {
             }
 
             sensors.put(entityId, new SensorModel(
+                entityId,
                 asFloatOrNull(entry.get("state")),
                 displayValue,
                 asStringOrNull(entry.get("unit")),
-                asStringOrNull(entry.get("device_class")),
-                asStringOrNull(entry.get("name")),
+                asString(entry.get("device_class")),
+                asString(entry.get("name")),
                 asAvailable(entry.get("available")),
                 asStringOrNull(entry.get("area_id"))));
         }
@@ -82,8 +84,6 @@ module HaPayload {
         return out;
     }
 
-    // An unnamed area survives with a null name: a naming gap costs a label, not
-    // a room.
     function parseAreas(payload as Object or Null) as Dictionary<String, AreaModel> {
         var entries = readEntries(payload, "areas");
         var out = {} as Dictionary<String, AreaModel>;
@@ -92,7 +92,7 @@ module HaPayload {
         for (var index = 0; index < ids.size(); index++) {
             var id = ids[index] as String;
             var entry = entries.get(id) as Dictionary;
-            out.put(id, new AreaModel(asStringOrNull(entry.get("name"))));
+            out.put(id, new AreaModel(id, asString(entry.get("name"))));
         }
 
         return out;
@@ -112,7 +112,7 @@ module HaPayload {
 
             insertFloorByOrder(out, new FloorModel(
                 id,
-                asStringOrNull(entry.get("name")),
+                asString(entry.get("name")),
                 asOrder(entry.get("order")),
                 onlyStrings(entry.get("areas"))));
         }
@@ -153,6 +153,12 @@ module HaPayload {
 
     function asStringOrNull(raw as Object or Null) as String or Null {
         return raw instanceof String ? raw : null;
+    }
+
+    // Home Assistant guarantees the values read this way, so a non-string only
+    // reaches here on a malformed payload, which must not throw.
+    function asString(raw as Object or Null) as String {
+        return raw instanceof String ? raw : "";
     }
 
     function asOrder(raw as Object or Null) as Number {
