@@ -48,8 +48,8 @@ class MockHaClient extends HaClient {
         registerCount++;
     }
 
-    function postToWebhook(body as Dictionary, callback as Method, responseType as Symbol,
-                           responseContentType as Communications.HttpResponseContentType) as Void {
+    function attemptRequest(body as Dictionary, callback as Method, responseType as Symbol,
+                            responseContentType as Communications.HttpResponseContentType) as Void {
         webhookCallbacks.add(callback);
     }
 
@@ -86,7 +86,7 @@ class MockHaClient extends HaClient {
 }
 
 // Overrides only the transport, so registering, onRegistrationReply() and the
-// missing-id refusal in postToWebhook all run for real: what these tests pin is
+// missing-id refusal in attemptRequest all run for real: what these tests pin is
 // HaClient's own handling of the stored id, not a mock's imitation of it.
 (:test)
 class RegisteringHaClient extends HaClient {
@@ -122,7 +122,7 @@ class RegisteringHaClient extends HaClient {
 class WebhookRequestUnderTest {
     static function of(client as HaClient) as WebhookRequest {
         return new WebhookRequest(client, {}, ResponseType.TEMPLATE_RENDER,
-                               Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON);
+                                  Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON);
     }
 }
 

@@ -47,6 +47,6 @@ class WebhookRequest {
     }
 
     private function post() as Void {
-        _client.postToWebhook(_body, method(:onPosted), _responseType, _responseContentType);
+        _client.attemptRequest(_body, method(:onPosted), _responseType, _responseContentType);
     }
 }

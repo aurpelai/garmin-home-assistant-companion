@@ -301,6 +301,19 @@ class HaClient {
              Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON);
     }
 
+    function attemptRequest(body as Dictionary, callback as Method, responseType as Symbol,
+                            responseContentType as Communications.HttpResponseContentType) as Void {
+        var webhookId = Application.Storage.getValue(REGISTRATION_KEY) as String or Null;
+
+        if (webhookId == null) {
+            callback.invoke(null, RequestError.UNUSABLE_WEBHOOK);
+            return;
+        }
+
+        post("/api/webhook/" + webhookId, body, new ResponseHandler(callback, responseType),
+             responseContentType);
+    }
+
     // A cancelled request's reply is still delivered, and the lazy re-register
     // refills the callback slot within the same call stack, so the slot alone
     // cannot tell a superseded registration from the live one. Storing the id
@@ -341,19 +354,6 @@ class HaClient {
         // the response is application/json, not the rendered string alone.
         new WebhookRequest(self, body, ResponseType.TEMPLATE_RENDER,
                            Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON).attempt(callback);
-    }
-
-    function postToWebhook(body as Dictionary, callback as Method, responseType as Symbol,
-                           responseContentType as Communications.HttpResponseContentType) as Void {
-        var webhookId = Application.Storage.getValue(REGISTRATION_KEY) as String or Null;
-
-        if (webhookId == null) {
-            callback.invoke(null, RequestError.UNUSABLE_WEBHOOK);
-            return;
-        }
-
-        post("/api/webhook/" + webhookId, body, new ResponseHandler(callback, responseType),
-             responseContentType);
     }
 
     private function resolveTemplate(target as Symbol) as String {
