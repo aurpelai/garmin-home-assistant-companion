@@ -74,6 +74,9 @@ clean: ## Remove build output
 # from their kinds, APP_VERSION is synced to the batched number, and everything
 # lands in one `Release vX.Y.Z` commit + tag. Push it yourself with
 # `git push origin main --follow-tags`; the tag push cuts the GitHub Release.
+#
+# The tag must be annotated: `--follow-tags` pushes annotated tags only, so a
+# lightweight one is left behind silently and no Release is ever cut.
 release: ## Batch changelog, sync APP_VERSION, commit + tag (then push manually)
 	@test -z "$$(git status --porcelain)" || { echo "FAIL: working tree not clean; commit or stash first"; exit 1; }
 	$(CHANGIE) batch auto
@@ -82,5 +85,5 @@ release: ## Batch changelog, sync APP_VERSION, commit + tag (then push manually)
 	perl -i -pe 'BEGIN{$$v=shift} s/(const APP_VERSION = ")[^"]*(")/$${1}$$v$${2}/' "$${version#v}" "$(CLIENT)"; \
 	git add CHANGELOG.md .changes "$(CLIENT)"; \
 	git commit -m "Release $$version"; \
-	git tag "$$version"; \
+	git tag -a "$$version" -m "Release $$version"; \
 	echo "Tagged $$version. Push with: git push origin main --follow-tags"
