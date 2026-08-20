@@ -214,7 +214,7 @@ class HaClient {
             _requestInFlight = true;
             _changeInFlight = true;
             _pendingChangeCallback = next.callback;
-            new RetryManager(self, next.request, method(:onChangeSettled), RequestType.REQUEST).attempt();
+            new RetryManager(next.request, method(:onChangeSettled), RequestType.REQUEST).attempt();
             return;
         }
 
@@ -223,7 +223,7 @@ class HaClient {
             _pendingFetchTargets = _pendingFetchTargets.slice(1, null) as Array<Symbol>;
             _requestInFlight = true;
             _currentTarget = target;
-            new RetryManager(self, new TemplateRender(self, resolveTemplate(target)).method(:attempt),
+            new RetryManager(new TemplateRender(self, resolveTemplate(target)).method(:attempt),
                              method(:onTargetSettled), RequestType.REQUEST).attempt();
         }
     }
@@ -274,7 +274,11 @@ class HaClient {
         startNextRequest();
     }
 
-    function register(callback as Method) as Void {
+    function registerWithHomeAssistant(callback as Method) as Void {
+        new RetryManager(method(:attemptRegistration), callback, RequestType.REGISTRATION).attempt();
+    }
+
+    function attemptRegistration(callback as Method) as Void {
         var body = {
             "device_id" => DEVICE_ID,
             "app_id" => APP_ID,
@@ -288,12 +292,26 @@ class HaClient {
             "supports_encryption" => false,
             "app_data" => {}
         };
+        discardRegistration();
         _registrationCallback = callback;
         _registrationEpoch++;
         post("/api/mobile_app/registrations", body,
              new ResponseHandler(new RegistrationReply(self, _registrationEpoch).method(:onReply),
                                  ResponseType.REGISTRATION),
              Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON);
+    }
+
+    function attemptRequest(body as Dictionary, callback as Method, responseType as Symbol,
+                            responseContentType as Communications.HttpResponseContentType) as Void {
+        var webhookId = Application.Storage.getValue(REGISTRATION_KEY) as String or Null;
+
+        if (webhookId == null) {
+            callback.invoke(null, RequestError.UNUSABLE_WEBHOOK);
+            return;
+        }
+
+        post("/api/webhook/" + webhookId, body, new ResponseHandler(callback, responseType),
+             responseContentType);
     }
 
     // A cancelled request's reply is still delivered, and the lazy re-register
@@ -334,21 +352,8 @@ class HaClient {
         };
         // The webhook answers a JSON object of the named renders it was sent, so
         // the response is application/json, not the rendered string alone.
-        postToWebhook(body, callback, ResponseType.TEMPLATE_RENDER,
-                      Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON);
-    }
-
-    function postToWebhook(body as Dictionary, callback as Method, responseType as Symbol,
-                           responseContentType as Communications.HttpResponseContentType) as Void {
-        var webhookId = Application.Storage.getValue(REGISTRATION_KEY) as String or Null;
-
-        if (webhookId == null) {
-            callback.invoke(null, RequestError.HTTP_NOT_FOUND);
-            return;
-        }
-
-        post("/api/webhook/" + webhookId, body, new ResponseHandler(callback, responseType),
-             responseContentType);
+        new WebhookRequest(self, body, ResponseType.TEMPLATE_RENDER,
+                           Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON).attempt(callback);
     }
 
     private function resolveTemplate(target as Symbol) as String {
