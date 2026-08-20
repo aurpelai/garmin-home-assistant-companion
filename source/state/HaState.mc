@@ -141,7 +141,7 @@ class HaState {
     }
 
     function overrideFloorLights(floorId as String, isOn as Boolean) as Array<String> {
-        return overrideAll(toIds(getLightsInFloor(floorId)), isOn);
+        return overrideAll(toLightIds(getLightsInFloor(floorId)), isOn);
     }
 
     function getToggleTargets(entityId as String) as Array<String> {
@@ -166,7 +166,7 @@ class HaState {
         return false;
     }
 
-    function toIds(lights as Array<LightModel>) as Array<String> {
+    function toLightIds(lights as Array<LightModel>) as Array<String> {
         var ids = [] as Array<String>;
 
         for (var index = 0; index < lights.size(); index++) {

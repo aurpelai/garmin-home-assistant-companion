@@ -81,7 +81,7 @@ class Coordinator {
 
     function toggleFloorLights(floorId as String) as Void {
         var lights = _haState.getLightsInFloor(floorId);
-        if (lights.size() == 0 || _haState.hasAnyPending(_haState.toIds(lights))) {
+        if (lights.size() == 0 || _haState.hasAnyPending(_haState.toLightIds(lights))) {
             return;
         }
 
