@@ -2,7 +2,8 @@ import Toybox.Lang;
 
 // Server truth for one light, plus the value a tap assumed until its reply
 // settles. `state` is never overwritten: `assumed` sits over it, so reverting is
-// deletion rather than restoration and a refresh is a plain replacement.
+// deletion rather than restoration. A refresh carries a live assumption onto the
+// replacing model, since the server has not seen the tap yet.
 class LightModel {
     public var id as String;
     public var state as Boolean;

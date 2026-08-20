@@ -156,6 +156,25 @@ function theOverriddenIdsBelongToTheCallerNotToServerTruth(logger as Test.Logger
 }
 
 (:test)
+function aMemberWithNoEntityOfItsOwnIsStillCalledButNeverReadsAsPending(logger as Test.Logger) as Boolean {
+    // Membership expands over the whole group while entities arrive per area, so a
+    // member assigned to no area has no state to assume. It stays a service target,
+    // and the group's own row is what a second tap is locked out by.
+    var haState = HaStateTest.stateWithLights({
+        "light.group" => { "state" => false, "area_id" => "area.a", "available" => true,
+            "memberIds" => ["light.arealess"] }
+    });
+
+    var overridden = haState.override("light.group", true);
+
+    Test.assertEqual(overridden.size(), 2);
+    Test.assert(haState.isPending("light.group"));
+    Test.assert(!haState.isPending("light.arealess"));
+    Test.assert(haState.hasAnyPending(haState.getToggleTargets("light.group")));
+    return true;
+}
+
+(:test)
 function aFloorScopeCoversEveryLightInItsAreasAndNothingOutside(logger as Test.Logger) as Boolean {
     // Home Assistant expands the floor server-side and accepts a call to a light
     // that is currently unreachable, so a group and a dead bulb are both in scope

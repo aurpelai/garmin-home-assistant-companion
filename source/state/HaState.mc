@@ -1,8 +1,8 @@
 import Toybox.Lang;
 
-// What Home Assistant reported, plus the values the user's taps assumed. Server
-// truth is never overwritten by a tap: an override sits over it, so reverting is
-// deletion rather than restoration and a refresh is a plain replacement.
+// Everything the app knows about the home: what Home Assistant reported, indexed
+// by the questions the screens ask of it. Each light carries its own assumed
+// state; see LightModel for how a tap and a refresh interact.
 class HaState {
     private var _lights as Dictionary<String, LightModel>;
     private var _areas as Dictionary<String, AreaModel>;
@@ -36,14 +36,16 @@ class HaState {
     // is carried onto the incoming model. An assumption whose light is gone goes
     // with it.
     function setLights(lights as Dictionary<String, LightModel>) as Void {
-        var entityIds = _lights.keys();
+        var previous = _lights.values() as Array<LightModel>;
 
-        for (var index = 0; index < entityIds.size(); index++) {
-            var previous = _lights.get(entityIds[index] as String) as LightModel;
-            var incoming = lights.get(entityIds[index] as String);
+        for (var index = 0; index < previous.size(); index++) {
+            if (previous[index].assumed == null) {
+                continue;
+            }
 
-            if (previous.assumed != null && incoming != null) {
-                (incoming as LightModel).assumed = previous.assumed;
+            var incoming = lights.get(previous[index].id);
+            if (incoming != null) {
+                (incoming as LightModel).assumed = previous[index].assumed;
             }
         }
 
