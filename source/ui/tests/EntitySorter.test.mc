@@ -63,6 +63,20 @@ function areasAreSortedByName(logger as Test.Logger) as Boolean {
 }
 
 (:test)
+function sortingLeavesTheCallersOwnArrayInItsOriginalOrder(logger as Test.Logger) as Boolean {
+    var areas = [
+        EntitySorterTest.area("area.alpha", "Ülkerum"),
+        EntitySorterTest.area("area.zulu", "Alcove")
+    ];
+
+    EntitySorter.sortAreas(areas);
+
+    Test.assertEqual(areas[0].id, "area.alpha");
+    Test.assertEqual(areas[1].id, "area.zulu");
+    return true;
+}
+
+(:test)
 function sensorsAreGroupedByDeviceClass(logger as Test.Logger) as Boolean {
     var grouped = EntitySorter.groupSensorsByDeviceClass([
         EntitySorterTest.sensor("sensor.lux", "illuminance"),
