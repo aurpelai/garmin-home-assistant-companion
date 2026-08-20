@@ -5,6 +5,13 @@ All notable changes to this project are documented here.
 This file is compiled from change fragments by [changie](https://changie.dev);
 do not edit it by hand. Add a fragment with `changie new` in your PR instead.
 
+## [v0.5.2] - 2026-08-20
+
+### 🔧 Fixed
+
+- The app now re-registers with Home Assistant when the address or token changes.
+- Each kind of request failure now recovers in the way that failure calls for.
+
 ## [v0.5.1] - 2026-08-18
 
 ### 🔧 Fixed
