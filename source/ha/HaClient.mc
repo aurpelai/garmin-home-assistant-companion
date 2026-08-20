@@ -214,7 +214,7 @@ class HaClient {
             _requestInFlight = true;
             _changeInFlight = true;
             _pendingChangeCallback = next.callback;
-            new RetryManager(self, next.request, method(:onChangeSettled), RequestType.REQUEST).attempt();
+            new RetryManager(next.request, method(:onChangeSettled), RequestType.REQUEST).attempt();
             return;
         }
 
@@ -223,7 +223,7 @@ class HaClient {
             _pendingFetchTargets = _pendingFetchTargets.slice(1, null) as Array<Symbol>;
             _requestInFlight = true;
             _currentTarget = target;
-            new RetryManager(self, new TemplateRender(self, resolveTemplate(target)).method(:attempt),
+            new RetryManager(new TemplateRender(self, resolveTemplate(target)).method(:attempt),
                              method(:onTargetSettled), RequestType.REQUEST).attempt();
         }
     }
@@ -275,8 +275,7 @@ class HaClient {
     }
 
     function register(callback as Method) as Void {
-        new RetryManager(self, method(:postRegistration), callback,
-                         RequestType.REGISTRATION).attempt();
+        new RetryManager(method(:postRegistration), callback, RequestType.REGISTRATION).attempt();
     }
 
     function postRegistration(callback as Method) as Void {
@@ -340,8 +339,8 @@ class HaClient {
         };
         // The webhook answers a JSON object of the named renders it was sent, so
         // the response is application/json, not the rendered string alone.
-        postToWebhook(body, callback, ResponseType.TEMPLATE_RENDER,
-                      Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON);
+        new WebhookPost(self, body, ResponseType.TEMPLATE_RENDER,
+                        Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON).attempt(callback);
     }
 
     function postToWebhook(body as Dictionary, callback as Method, responseType as Symbol,

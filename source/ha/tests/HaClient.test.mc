@@ -3,32 +3,6 @@ import Toybox.Communications;
 import Toybox.Lang;
 import Toybox.Test;
 
-// Restates a posted request's ResponseHandler as the (result, error) shape the
-// toggle entry points capture, so every recorded callback fires the same way.
-//
-// A success carries a rendered body, since a fetch reply without one is a
-// failure rather than an empty home. The service-call branch reads no body, so
-// the same shape serves both request types the mock posts.
-(:test)
-class PostedRequest {
-    private const RENDERED_EMPTY_HOME = { ResponseType.TEMPLATE_RENDER_ROOT_KEY => "{}" };
-
-    private var _handler as ResponseHandler;
-
-    function initialize(handler as ResponseHandler) {
-        _handler = handler;
-    }
-
-    function respond(result as Object?, code as Number?) as Void {
-        if (code != null) {
-            _handler.onResponse(code, null);
-            return;
-        }
-
-        _handler.onResponse(200, RENDERED_EMPTY_HOME);
-    }
-}
-
 // Mirrors the key HaClient keeps its registration under, so that key stays
 // private to the client rather than gaining a setter only tests would call.
 // A class, not a bare function: the test runner collects annotated functions
@@ -48,31 +22,25 @@ class Registration {
 // test can fire success or failure synchronously.
 (:test)
 class MockHaClient extends HaClient {
-    private var _fetchCallback as Method?;
     private var _registerCallback as Method?;
 
-    // A list, not a single slot, so a test can fire an earlier in-flight toggle
-    // after a later one began.
-    public var serviceCallbacks as Array<Method> = [];
+    // A list, not a single slot, so a test can answer an earlier in-flight post
+    // after a later one began — a reissue and a stale reply both need that.
+    public var webhookCallbacks as Array<Method> = [];
 
-    // Callback capture alone can't distinguish "never called" from "called
-    // once", so these count the calls.
-    public var toggleCount as Number;
+    // A single slot can't distinguish "never registered" from "registered
+    // once", so this counts the calls.
     public var registerCount as Number;
-    public var fetchCount as Number;
 
     function initialize() {
         HaClient.initialize();
-        toggleCount = 0;
         registerCount = 0;
-        fetchCount = 0;
     }
 
     // Stands in for any request the retry manager reissues: what those tests
     // pin is the reissue, not which request happened to be the vehicle.
     function fetchOnce(callback as Method) as Void {
-        _fetchCallback = callback;
-        fetchCount++;
+        webhookCallbacks.add(callback);
     }
 
     function postRegistration(callback as Method) as Void {
@@ -80,26 +48,29 @@ class MockHaClient extends HaClient {
         registerCount++;
     }
 
-    function post(path as String, body as Dictionary, handler as ResponseHandler,
-                  responseContentType as Communications.HttpResponseContentType) as Void {
-        serviceCallbacks.add(new PostedRequest(handler).method(:respond));
-        toggleCount++;
+    function postToWebhook(body as Dictionary, callback as Method, responseType as Symbol,
+                           responseContentType as Communications.HttpResponseContentType) as Void {
+        webhookCallbacks.add(callback);
+    }
+
+    function fetchCount() as Number {
+        return webhookCallbacks.size();
     }
 
     function fireFetchSuccess(payload as Dictionary) as Void {
-        (_fetchCallback as Method).invoke(payload, null);
+        fireSuccessAt(webhookCallbacks.size() - 1, payload);
     }
 
     function fireFetchFailure(reason as Object) as Void {
-        (_fetchCallback as Method).invoke(null, reason);
+        fireFailureAt(webhookCallbacks.size() - 1, reason);
     }
 
-    function fireServiceSuccessAt(index as Number) as Void {
-        serviceCallbacks[index].invoke(true, null);
+    function fireSuccessAt(index as Number, result as Object) as Void {
+        webhookCallbacks[index].invoke(result, null);
     }
 
-    function fireServiceFailureAt(index as Number, reason as Object) as Void {
-        serviceCallbacks[index].invoke(null, reason);
+    function fireFailureAt(index as Number, reason as Object) as Void {
+        webhookCallbacks[index].invoke(null, reason);
     }
 
     // Persists the fresh id as the real client's registration reply does, since
@@ -114,9 +85,9 @@ class MockHaClient extends HaClient {
     }
 }
 
-// Overrides only the transport, so register() and onRegistrationReply() run
-// for real: what these tests pin is HaClient's own store-on-success,
-// leave-storage-alone-on-failure decision, not a mock's imitation of it.
+// Overrides only the transport, so register(), onRegistrationReply() and the
+// missing-id refusal in postToWebhook all run for real: what these tests pin is
+// HaClient's own handling of the stored id, not a mock's imitation of it.
 (:test)
 class RegisteringHaClient extends HaClient {
     public var postCount as Number = 0;
@@ -135,32 +106,23 @@ class RegisteringHaClient extends HaClient {
         postCount++;
     }
 
-    function fireRegistrationResponse(code as Number, body as Dictionary or String or Null) as Void {
-        fireRegistrationResponseAt(_postedHandlers.size() - 1, code, body);
+    function fireResponse(code as Number, body as Dictionary or String or Null) as Void {
+        fireResponseAt(_postedHandlers.size() - 1, code, body);
     }
 
-    function fireRegistrationResponseAt(index as Number, code as Number,
-                                        body as Dictionary or String or Null) as Void {
+    function fireResponseAt(index as Number, code as Number,
+                            body as Dictionary or String or Null) as Void {
         _postedHandlers[index].onResponse(code, body);
     }
 }
 
-// Monkey C closures can't capture mutable locals, so a test needs this object
-// to observe whether a nullary completion callback fired.
+// The vehicle for every recovery test: a webhook post is the only request that
+// can meet an unusable id, so recovery is only reachable through one.
 (:test)
-class CompletionSpy {
-    public var fired as Boolean;
-
-    function initialize() {
-        fired = false;
-    }
-
-    function onDone() as Void {
-        fired = true;
-    }
-
-    function onComplete() as Void {
-        fired = true;
+class WebhookPostUnderTest {
+    static function of(client as HaClient) as WebhookPost {
+        return new WebhookPost(client, {}, ResponseType.TEMPLATE_RENDER,
+                               Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON);
     }
 }
 
@@ -280,7 +242,7 @@ function aSuccessfulRegistrationPersistsTheIdForLaterRequests(logger as Test.Log
     var capture = new ResultCapture();
 
     client.register(capture.method(:onResult));
-    client.fireRegistrationResponse(201, { "webhook_id" => "fresh-id" });
+    client.fireResponse(201, { "webhook_id" => "fresh-id" });
 
     Test.assertEqual(capture.result as String, "fresh-id");
 
@@ -305,14 +267,10 @@ function aSupersededRegistrationsReplyStoresNothing(logger as Test.Logger) as Bo
     // below arrives to a live-looking client: without the epoch it would
     // persist the id the cancelled registration was issued for.
     client.register(new ResultCapture().method(:onResult));
-    client.fireRegistrationResponseAt(0, 201, { "webhook_id" => "abandoned-id" });
+    client.fireResponseAt(0, 201, { "webhook_id" => "abandoned-id" });
 
     Test.assert(capture.result == null);
-
-    var templateCapture = new ResultCapture();
-    client.postTemplate("{{ 1 }}", templateCapture.method(:onResult));
-
-    Test.assertEqual(templateCapture.error as Symbol, RequestError.UNUSABLE_WEBHOOK);
+    Test.assert(Registration.stored() == null);
     return true;
 }
 
@@ -323,17 +281,13 @@ function aFailedRegistrationLeavesNoIdBehind(logger as Test.Logger) as Boolean {
     var capture = new ResultCapture();
 
     client.register(capture.method(:onResult));
-    client.fireRegistrationResponse(400, null);
-    client.fireRegistrationResponseAt(1, 400, null);
+    client.fireResponse(400, null);
+    client.fireResponseAt(1, 400, null);
 
     var error = capture.error as RequestError;
     Test.assertEqual(error.reason as Number, HttpStatus.BAD_REQUEST);
     Test.assertEqual(error.requestType, RequestType.REGISTRATION);
-
-    var templateCapture = new ResultCapture();
-    client.postTemplate("{{ 1 }}", templateCapture.method(:onResult));
-
-    Test.assertEqual(templateCapture.error as Symbol, RequestError.UNUSABLE_WEBHOOK);
+    Test.assert(Registration.stored() == null);
     Test.assertEqual(client.postCount, 2);
     return true;
 }
@@ -348,12 +302,12 @@ function aRequestInterruptedByADeadWebhookCompletesOnceRegisteringRescuesIt(logg
     Registration.seed("stale-id");
     var capture = new ResultCapture();
 
-    new RetryManager(client, client.method(:fetchOnce), capture.method(:onResult), RequestType.REQUEST).attempt();
+    WebhookPostUnderTest.of(client).attempt(capture.method(:onResult));
     client.fireFetchFailure(RequestError.UNUSABLE_WEBHOOK);
     client.fireRegisterSuccess("fresh-id");
     client.fireFetchSuccess({} as Dictionary);
 
-    Test.assertEqual(client.fetchCount, 2);
+    Test.assertEqual(client.fetchCount(), 2);
     Test.assertEqual(client.registerCount, 1);
     Test.assert(capture.result instanceof Dictionary);
     Test.assert(capture.error == null);
@@ -362,23 +316,26 @@ function aRequestInterruptedByADeadWebhookCompletesOnceRegisteringRescuesIt(logg
 
 (:test)
 function anUnusableWebhookThatKeepsComingBackSurfacesAsARequestFailure(logger as Test.Logger) as Boolean {
-    // The registrations having all succeeded is why the failure is the
-    // request's rather than the registration's.
+    // The registration having succeeded is why the failure is the request's
+    // rather than the registration's: a fresh id that is refused the moment it
+    // was issued says nothing is wrong with registering.
     Application.Storage.clearValues();
     var client = new MockHaClient();
     var capture = new ResultCapture();
 
-    new RetryManager(client, client.method(:fetchOnce), capture.method(:onResult), RequestType.REQUEST).attempt();
+    new RetryManager(WebhookPostUnderTest.of(client).method(:attempt), capture.method(:onResult),
+                     RequestType.REQUEST).attempt();
     client.fireFetchFailure(RequestError.UNUSABLE_WEBHOOK);
     client.fireRegisterSuccess("fresh-id");
     client.fireFetchFailure(RequestError.UNUSABLE_WEBHOOK);
-    client.fireRegisterSuccess("fresher-id");
     client.fireFetchFailure(RequestError.UNUSABLE_WEBHOOK);
-    client.fireRegisterSuccess("freshest-id");
+    client.fireFetchFailure(RequestError.UNUSABLE_WEBHOOK);
     client.fireFetchFailure(RequestError.UNUSABLE_WEBHOOK);
 
-    Test.assertEqual(client.fetchCount, 4);
-    Test.assertEqual(client.registerCount, 3);
+    // Recovery is spent once, on the first refusal, and never again: the four
+    // posts the request budget pays for plus the one the fresh id bought.
+    Test.assertEqual(client.fetchCount(), 5);
+    Test.assertEqual(client.registerCount, 1);
     Test.assert(capture.result == null);
 
     var error = capture.error as RequestError;
@@ -397,7 +354,7 @@ function aGenuineNotFoundLeavesTheRegistrationAlone(logger as Test.Logger) as Bo
     Registration.seed("good-id");
     var capture = new ResultCapture();
 
-    new RetryManager(client, client.method(:fetchOnce), capture.method(:onResult), RequestType.REQUEST).attempt();
+    new RetryManager(client.method(:fetchOnce), capture.method(:onResult), RequestType.REQUEST).attempt();
     client.fireFetchFailure(HttpStatus.NOT_FOUND);
     client.fireFetchFailure(HttpStatus.NOT_FOUND);
     client.fireFetchFailure(HttpStatus.NOT_FOUND);
@@ -415,18 +372,22 @@ function aGenuineNotFoundLeavesTheRegistrationAlone(logger as Test.Logger) as Bo
 (:test)
 function aToggleWithNoRegistrationRegistersAndThenGoesOut(logger as Test.Logger) as Boolean {
     // An unregistered client refuses the toggle locally, before it reaches the
-    // wire, so registering is what lets the first post happen at all.
+    // wire, so registering is what lets the first post happen at all: the
+    // registration is the only thing on the wire until it answers.
     Application.Storage.clearValues();
-    var client = new MockHaClient();
+    var client = new RegisteringHaClient();
     var capture = new ResultCapture();
 
-    new RetryManager(client, new ServiceCall(client, "toggle", "entity_id", "light.a").method(:attempt),
-        capture.method(:onResult), RequestType.REQUEST).attempt();
-    client.fireRegisterSuccess("fresh-id");
-    client.fireServiceSuccessAt(0);
+    new ServiceCall(client, "toggle", "entity_id", "light.a").attempt(capture.method(:onResult));
 
-    Test.assertEqual(client.toggleCount, 1);
-    Test.assertEqual(client.registerCount, 1);
+    Test.assertEqual(client.postCount, 1);
+
+    client.fireResponse(201, { "webhook_id" => "fresh-id" });
+
+    Test.assertEqual(client.postCount, 2);
+
+    client.fireResponseAt(1, 200, null);
+
     Test.assertEqual(capture.result as Boolean, true);
     Test.assert(capture.error == null);
     return true;
@@ -441,12 +402,12 @@ function retryManagerReissuesOnAnyOtherFailureUpToTheThreshold(logger as Test.Lo
     Registration.seed("some-id");
     var capture = new ResultCapture();
 
-    new RetryManager(client, client.method(:fetchOnce), capture.method(:onResult), RequestType.REQUEST).attempt();
+    new RetryManager(client.method(:fetchOnce), capture.method(:onResult), RequestType.REQUEST).attempt();
     client.fireFetchFailure(-1);
     client.fireFetchFailure(-1);
     client.fireFetchSuccess({} as Dictionary);
 
-    Test.assertEqual(client.fetchCount, 3);
+    Test.assertEqual(client.fetchCount(), 3);
     Test.assertEqual(client.registerCount, 0);
     Test.assert(capture.result instanceof Dictionary);
     Test.assert(capture.error == null);
@@ -460,7 +421,7 @@ function retryManagerSurfacesTheFailureOnceItsThresholdIsSpent(logger as Test.Lo
     Registration.seed("some-id");
     var capture = new ResultCapture();
 
-    new RetryManager(client, client.method(:fetchOnce), capture.method(:onResult), RequestType.REQUEST).attempt();
+    new RetryManager(client.method(:fetchOnce), capture.method(:onResult), RequestType.REQUEST).attempt();
     client.fireFetchFailure(-1);
     client.fireFetchFailure(-1);
     client.fireFetchFailure(-1);
@@ -486,13 +447,13 @@ function aRegistrationFailureInsideFetchRecoveryStaysARegistrationFailure(logger
     var client = new MockHaClient();
     var capture = new ResultCapture();
 
-    new RetryManager(client, client.method(:fetchOnce), capture.method(:onResult), RequestType.REQUEST).attempt();
+    WebhookPostUnderTest.of(client).attempt(capture.method(:onResult));
     client.fireFetchFailure(RequestError.UNUSABLE_WEBHOOK);
     client.fireRegisterFailure(HttpStatus.BAD_REQUEST);
     client.fireRegisterFailure(HttpStatus.BAD_REQUEST);
 
     Test.assertEqual(client.registerCount, 2);
-    Test.assertEqual(client.fetchCount, 1);
+    Test.assertEqual(client.fetchCount(), 1);
 
     var error = capture.error as RequestError;
     Test.assertEqual(error.reason as Number, HttpStatus.BAD_REQUEST);
@@ -516,12 +477,10 @@ function registeringClearsTheStaleIdBeforeAskingForAFreshOne(logger as Test.Logg
     return true;
 }
 
-// Drives HaClient's new split-payload surface directly. Both a refresh
-// target and a queued change end up posted through the same mocked post(),
-// so serviceCallbacks/toggleCount (the shared "request reached transport"
-// seam) is what every assertion below reads, whichever kind fired it.
-// A registration is seeded first so a target's own request does not itself
-// fail as unusable, which is what the client answers for a missing id.
+// Both a refresh target and a queued change reach the wire as a webhook post,
+// so webhookCallbacks is the one seam every test below drives, whichever kind
+// fired it. A registration is seeded first so a request does not itself fail as
+// unusable, which is what the client answers for a missing id.
 
 (:test)
 class TargetLog {
@@ -548,10 +507,19 @@ function aChangeQueuesRatherThanBeingDropped(logger as Test.Logger) as Boolean {
     client.queueLightToggle("light.b", second.method(:onResult));
 
     // The first tap occupies the slot; the second is still queued rather than
-    // discarded, so it fires only once the first settles.
-    Test.assertEqual(client.serviceCallbacks.size(), 1);
-    client.fireServiceSuccessAt(0);
-    Test.assertEqual(client.serviceCallbacks.size(), 2);
+    // discarded, so it goes out only once the first settles.
+    Test.assertEqual(client.fetchCount(), 1);
+
+    client.fireSuccessAt(0, true);
+
+    Test.assertEqual(client.fetchCount(), 2);
+    Test.assertEqual(first.result as Boolean, true);
+    Test.assert(client.hasOutstandingChanges());
+
+    client.fireSuccessAt(1, true);
+
+    Test.assertEqual(second.result as Boolean, true);
+    Test.assert(!client.hasOutstandingChanges());
     return true;
 }
 
@@ -566,11 +534,16 @@ function changesGoOutBeforeFetches(logger as Test.Logger) as Boolean {
     client.queueLightToggle("light.a", new ResultCapture().method(:onResult));
 
     // The refresh's first target already occupies the slot when the toggle is
-    // queued; once it settles, the queued change must go out before the
-    // refresh's next target does.
-    Test.assertEqual(client.serviceCallbacks.size(), 1);
-    client.fireServiceSuccessAt(0);
-    Test.assertEqual(client.serviceCallbacks.size(), 2);
+    // queued; once it settles, the queued change goes out ahead of the
+    // refresh's next target, which is still waiting.
+    client.fireSuccessAt(0, {} as Dictionary);
+
+    Test.assertEqual(log.targets.size(), 1);
+    Test.assert(client.hasOutstandingChanges());
+
+    client.fireSuccessAt(1, true);
+
+    Test.assert(!client.hasOutstandingChanges());
     Test.assertEqual(log.targets.size(), 1);
     return true;
 }
@@ -589,12 +562,13 @@ function aRefreshTriggeredWhileOneIsIncompleteIsDropped(logger as Test.Logger) a
     client.refresh(log.method(:onTarget));
     client.refresh(log.method(:onTarget));
 
-    client.fireServiceSuccessAt(0);
-    client.fireServiceSuccessAt(1);
-    client.fireServiceSuccessAt(2);
+    client.fireSuccessAt(0, {} as Dictionary);
+    client.fireSuccessAt(1, {} as Dictionary);
+    client.fireSuccessAt(2, {} as Dictionary);
 
-    Test.assertEqual(client.serviceCallbacks.size(), 3);
+    Test.assertEqual(client.fetchCount(), 3);
     Test.assertEqual(log.targets.size(), 3);
+    Test.assert(!client.isRefreshing());
     return true;
 }
 
@@ -632,10 +606,11 @@ function theQueueDrainsOnlyOnceTheThresholdIsExhausted(logger as Test.Logger) as
     // first toggle on its own (indices 1, 2, 3 below are its own reissues),
     // and the second tap must still be waiting in the queue throughout —
     // untouched by any of them.
-    client.fireServiceFailureAt(0, -1);
-    client.fireServiceFailureAt(1, -1);
-    client.fireServiceFailureAt(2, -1);
-    Test.assertEqual(client.serviceCallbacks.size(), 4);
+    client.fireFailureAt(0, -1);
+    client.fireFailureAt(1, -1);
+    client.fireFailureAt(2, -1);
+
+    Test.assertEqual(client.fetchCount(), 4);
     Test.assert(first.error == null);
     Test.assert(second.result == null);
     Test.assert(second.error == null);
@@ -644,10 +619,11 @@ function theQueueDrainsOnlyOnceTheThresholdIsExhausted(logger as Test.Logger) as
     // finally drains the second tap: it is discarded, not fired, and its
     // callback is never invoked — one signal for one cause, not one per
     // queued change.
-    client.fireServiceFailureAt(3, -1);
+    client.fireFailureAt(3, -1);
 
     Test.assertEqual((first.error as RequestError).reason as Number, -1);
-    Test.assertEqual(client.serviceCallbacks.size(), 4);
+    Test.assertEqual(client.fetchCount(), 4);
+    Test.assert(!client.hasOutstandingChanges());
     Test.assert(second.result == null);
     Test.assert(second.error == null);
     return true;
@@ -666,24 +642,27 @@ function cancellingClearsTheQueueTheErrorAndTheSlotTogether(logger as Test.Logge
 
     client.queueLightToggle("light.a", new ResultCapture().method(:onResult));
     client.queueLightToggle("light.b", second.method(:onResult));
-    client.fireServiceFailureAt(0, -1);
+    client.fireFailureAt(0, -1);
 
     client.cancelAll();
 
     Test.assert(client.lastError() == null);
+    Test.assert(!client.hasOutstandingChanges());
 
     // The second tap was still queued, never posted, when cancelAll ran, so
     // it is discarded rather than merely delayed: index 1 is the first
     // change's own stale reissue, a reply to an already-cancelled request,
     // and must reach nobody rather than resolve the second tap's callback.
-    client.fireServiceSuccessAt(1);
+    client.fireSuccessAt(1, true);
+
     Test.assert(second.result == null);
     Test.assert(second.error == null);
 
     // The slot is free again: a fresh change fires immediately rather than
     // waiting behind whatever the cancelled run left outstanding.
     client.queueLightToggle("light.c", new ResultCapture().method(:onResult));
-    Test.assertEqual(client.serviceCallbacks.size(), 3);
+
+    Test.assertEqual(client.fetchCount(), 3);
     return true;
 }
 
@@ -700,14 +679,16 @@ function aRefreshWhereOneTargetFailsNeverStampsCompletion(logger as Test.Logger)
     var log = new TargetLog();
 
     client.refresh(log.method(:onTarget));
-    client.fireServiceSuccessAt(0);
-    client.fireServiceFailureAt(1, -1);
-    client.fireServiceFailureAt(2, -1);
-    client.fireServiceFailureAt(3, -1);
-    client.fireServiceFailureAt(4, -1);
-    client.fireServiceSuccessAt(5);
+    client.fireSuccessAt(0, {} as Dictionary);
+    client.fireFailureAt(1, -1);
+    client.fireFailureAt(2, -1);
+    client.fireFailureAt(3, -1);
+    client.fireFailureAt(4, -1);
+    client.fireSuccessAt(5, {} as Dictionary);
 
     Test.assertEqual(log.targets.size(), 3);
+    Test.assert(client.lastRefreshFailed());
+    Test.assert(!client.hasCompletedARefresh());
     Test.assert(client.msSinceLastRefresh() == null);
     return true;
 }
