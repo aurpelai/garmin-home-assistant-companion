@@ -12,23 +12,23 @@ class SensorReading {
     // Several sensors of one device class average, in an area or across a floor:
     // no one of them speaks for the scope, and picking one would show whichever
     // the walk reached first.
-    static function buildFromSensors(haState as HaState, entityIds as Array<String>) as Array<SensorReading> {
+    static function buildFromSensors(sensors as Array<SensorModel>) as Array<SensorReading> {
         var readings = [] as Array<SensorReading>;
 
         for (var classIndex = 0; classIndex < EntitySorter.SENSOR_DEVICE_CLASSES.size(); classIndex++) {
             var deviceClass = EntitySorter.SENSOR_DEVICE_CLASSES[classIndex];
-            var sensors = [] as Array<SensorModel>;
+            var usable = [] as Array<SensorModel>;
 
-            for (var index = 0; index < entityIds.size(); index++) {
-                var sensor = haState.getSensor(entityIds[index]);
-                if (sensor != null && sensor.available && sensor.value != null
+            for (var index = 0; index < sensors.size(); index++) {
+                var sensor = sensors[index];
+                if (sensor.available && sensor.value != null
                         && deviceClass.equals(sensor.deviceClass)) {
-                    sensors.add(sensor);
+                    usable.add(sensor);
                 }
             }
 
-            if (sensors.size() > 0) {
-                readings.add(new SensorReading(deviceClass, formatMean(sensors)));
+            if (usable.size() > 0) {
+                readings.add(new SensorReading(deviceClass, formatMean(usable)));
             }
         }
 
@@ -40,7 +40,7 @@ class SensorReading {
     // precise than its coarsest input, so "21.5 °C" with "22 °C" reads "22 °C".
     private static function formatMean(sensors as Array<SensorModel>) as String {
         if (sensors.size() == 1) {
-            return sensors[0].displayValue as String;
+            return sensors[0].displayValue;
         }
 
         var sum = 0.0;
@@ -65,7 +65,7 @@ class SensorReading {
     // The unit is stripped off the display value by value rather than guessed at
     // a separator, leaving the numeric part to measure.
     private static function countDecimals(sensor as SensorModel) as Number {
-        var number = stripSuffix(sensor.displayValue as String, sensor.unit);
+        var number = stripSuffix(sensor.displayValue, sensor.unit);
         var dot = number.find(".");
 
         if (dot == null) {

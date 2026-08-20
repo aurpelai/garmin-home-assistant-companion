@@ -14,6 +14,12 @@ module HaStateTest {
         haState.setLights(HaPayload.parseLights({ "lights" => entries }));
     }
 
+    function setStructure(haState as HaState, payload as Dictionary) as Void {
+        haState.setZone(HaPayload.parseZone(payload));
+        haState.setAreas(HaPayload.parseAreas(payload));
+        haState.setFloors(HaPayload.parseFloors(payload));
+    }
+
     function light(state as Boolean, areaId as String) as Dictionary {
         return { "state" => state, "area_id" => areaId, "available" => true };
     }
@@ -62,8 +68,7 @@ function storingATargetReplacesItWholesaleAndLeavesOverridesAlone(logger as Test
 
     Test.assert(haState.isPending("light.a"));
     Test.assert(haState.isOn("light.a"));
-    Test.assert(haState.getLight("light.b") == null);
-    Test.assertEqual(haState.getLightIdsInArea("area.a").size(), 1);
+    Test.assertEqual(haState.getLightsInArea("area.a").size(), 1);
     return true;
 }
 
@@ -145,7 +150,7 @@ function theOverriddenIdsBelongToTheCallerNotToServerTruth(logger as Test.Logger
     var overridden = haState.override("light.group", true);
     overridden.add("light.intruder");
 
-    Test.assertEqual(((haState.getLight("light.group") as LightModel).memberIds as Array<String>).size(), 1);
+    Test.assertEqual(haState.getToggleTargets("light.group").size(), 2);
     Test.assert(!haState.isPending("light.intruder"));
     return true;
 }
@@ -157,21 +162,11 @@ function aFloorScopeCoversEveryLightInItsAreasAndNothingOutside(logger as Test.L
     // — anything narrower would claim less than the action does. Only the floor's
     // own areas bound it.
     var haState = new HaState();
-    haState.setZone(HaPayload.parseZone({
+    HaStateTest.setStructure(haState, {
         "areas" => { "area.kitchen" => { "name" => "Küche" }, "area.hall" => { "name" => "Hall" } },
         "floors" => { "floor.ground" => { "name" => "Ground", "order" => 0,
             "areas" => ["area.kitchen", "area.hall"] } }
-    }));
-    haState.setAreas(HaPayload.parseAreas({
-        "areas" => { "area.kitchen" => { "name" => "Küche" }, "area.hall" => { "name" => "Hall" } },
-        "floors" => { "floor.ground" => { "name" => "Ground", "order" => 0,
-            "areas" => ["area.kitchen", "area.hall"] } }
-    }));
-    haState.setFloors(HaPayload.parseFloors({
-        "areas" => { "area.kitchen" => { "name" => "Küche" }, "area.hall" => { "name" => "Hall" } },
-        "floors" => { "floor.ground" => { "name" => "Ground", "order" => 0,
-            "areas" => ["area.kitchen", "area.hall"] } }
-    }));
+    });
     HaStateTest.setLights(haState, {
         "light.group" => { "state" => false, "area_id" => "area.kitchen", "available" => true,
             "memberIds" => ["light.kitchen"] },
@@ -203,8 +198,41 @@ function areaMembershipIsIndexedFromEachEntitysOwnAreaId(logger as Test.Logger) 
         "light.bedroom" => HaStateTest.light(false, "area.bedroom")
     });
 
-    Test.assertEqual(haState.getLightIdsInArea("area.kitchen").size(), 2);
-    Test.assertEqual(haState.getLightIdsInArea("area.bedroom").size(), 1);
-    Test.assertEqual(haState.getLightIdsInArea("area.bedroom")[0], "light.bedroom");
+    Test.assertEqual(haState.getLightsInArea("area.kitchen").size(), 2);
+    Test.assertEqual(haState.getLightsInArea("area.bedroom").size(), 1);
+    Test.assertEqual(haState.getLightsInArea("area.bedroom")[0].id, "light.bedroom");
+    return true;
+}
+
+(:test)
+function aFloorResolvesOnlyTheAreasTheRegistryStillKnows(logger as Test.Logger) as Boolean {
+    // The floor's area list and the area registry arrive on one target but are
+    // Home Assistant's to keep in step, so an id it no longer knows yields no
+    // area rather than a card the user cannot open.
+    var haState = new HaState();
+    HaStateTest.setStructure(haState, {
+        "areas" => { "area.kept" => { "name" => "Kept" } },
+        "floors" => { "floor.g" => { "name" => "Ground", "order" => 0,
+            "areas" => ["area.kept", "area.ghost"] } }
+    });
+
+    var areas = haState.getAreasInFloor("floor.g");
+
+    Test.assertEqual(areas.size(), 1);
+    Test.assertEqual(areas[0].id, "area.kept");
+    Test.assertEqual(areas[0].name, "Kept");
+    return true;
+}
+
+(:test)
+function anUnknownAreaOrFloorYieldsAnEmptyCollectionRatherThanNull(logger as Test.Logger) as Boolean {
+    // Both mean nothing to render, so a caller says so once.
+    var haState = new HaState();
+
+    Test.assertEqual(haState.getLightsInArea("area.ghost").size(), 0);
+    Test.assertEqual(haState.getSensorsInArea("area.ghost").size(), 0);
+    Test.assertEqual(haState.getLightsInFloor("floor.ghost").size(), 0);
+    Test.assertEqual(haState.getAreasInFloor("floor.ghost").size(), 0);
+    Test.assertEqual(haState.getAreas().size(), 0);
     return true;
 }

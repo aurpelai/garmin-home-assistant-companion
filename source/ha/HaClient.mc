@@ -49,11 +49,11 @@ class HaClient {
     private const STRUCTURE_TEMPLATE =
         "{% set ns = namespace(areasOut={}, floorsOut={}) %}" +
         "{% for a in areas() %}" +
-        "{% set ns.areasOut = dict(ns.areasOut, **{a: dict(name=area_name(a) | default(none))}) %}" +
+        "{% set ns.areasOut = dict(ns.areasOut, **{a: dict(name=area_name(a))}) %}" +
         "{% endfor %}" +
         "{% for f in floors() %}" +
         "{% set ns.floorsOut = dict(ns.floorsOut, **{f: dict(" +
-            "name=floor_name(f) | default(none), order=loop.index0, " +
+            "name=floor_name(f), order=loop.index0, " +
             "areas=floor_areas(f) | default([]) | list)}) %}" +
         "{% endfor %}" +
         "{{ dict(zone=state_attr('zone.home', 'friendly_name'), " +

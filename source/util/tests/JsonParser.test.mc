@@ -110,11 +110,12 @@ function jsonFeedsHaStateEndToEnd(logger as Test.Logger) as Boolean {
     var haState = new HaState();
     haState.setLights(HaPayload.parseLights(JsonParser.parse(payload)));
 
-    var light = haState.getLight("light.bedroom_lights") as LightModel;
-    Test.assertEqual(light.name as String, "Bedroom Lights");
-    Test.assertEqual(light.state, false);
-    Test.assertEqual((light.memberIds as Array<String>).size(), 3);
-    Test.assertEqual(haState.getLightIdsInArea("area.bedroom").size(), 1);
+    var lights = haState.getLightsInArea("area.bedroom");
+    Test.assertEqual(lights.size(), 1);
+    Test.assertEqual(lights[0].id, "light.bedroom_lights");
+    Test.assertEqual(lights[0].name, "Bedroom Lights");
+    Test.assertEqual(lights[0].state, false);
+    Test.assertEqual((lights[0].memberIds as Array<String>).size(), 3);
     return true;
 }
 
@@ -132,10 +133,11 @@ function jsonFeedsHaStateEndToEndWithRawNonAscii(logger as Test.Logger) as Boole
     HaPayloadTest.applyStructure(haState, JsonParser.parse(structure) as Dictionary);
     haState.setSensors(HaPayload.parseSensors(JsonParser.parse(sensors)));
 
-    var sensor = haState.getSensor("sensor.temp") as SensorModel;
-    Test.assertEqual((haState.getArea("area.kitchen") as AreaModel).name as String, "Küche");
-    Test.assertEqual(sensor.name as String, "Café Sensor");
-    Test.assertEqual(sensor.displayValue as String, "21.5 °C");
+    var sensor = haState.getSensorsInArea("area.kitchen")[0];
+    Test.assertEqual((haState.getArea("area.kitchen") as AreaModel).name, "Küche");
+    Test.assertEqual(sensor.id, "sensor.temp");
+    Test.assertEqual(sensor.name, "Café Sensor");
+    Test.assertEqual(sensor.displayValue, "21.5 °C");
     Test.assertEqual(sensor.unit as String, "°C");
     return true;
 }

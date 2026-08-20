@@ -57,21 +57,37 @@ function sensorWithoutDisplayValueIsAbsent(logger as Test.Logger) as Boolean {
 }
 
 (:test)
-function unnamedAreaAndFloorSurviveWithNullNames(logger as Test.Logger) as Boolean {
-    // A naming gap costs a label, not a room: dropping the entry would lose every
-    // entity in it.
-    var payload = {
-        "areas" => { "area.nameless" => { "name" => null } },
-        "floors" => { "floor.nameless" => { "name" => null, "order" => 0, "areas" => ["area.nameless"] } }
+function everyParsedModelCarriesTheIdItIsKeyedUnder(logger as Test.Logger) as Boolean {
+    // The id is the entity's own identity, so a model holds it rather than
+    // leaving every caller to carry the key alongside.
+    var structure = {
+        "areas" => { "area.kitchen" => { "name" => "Küche" } },
+        "floors" => { "floor.g" => { "name" => "Ground", "order" => 0, "areas" => ["area.kitchen"] } }
     };
-    var areas = HaPayload.parseAreas(payload);
-    var floors = HaPayload.parseFloors(payload);
+    var lights = HaPayload.parseLights(HaPayloadTest.lightsPayload({
+        "light.kitchen" => { "state" => true, "name" => "Küchenlicht", "area_id" => "area.kitchen" }
+    }));
+    var sensors = HaPayload.parseSensors(HaPayloadTest.sensorsPayload({
+        "sensor.warm" => HaPayloadTest.reading(21.5, "21.5 °C", "area.kitchen")
+    }));
 
-    Test.assert(areas.hasKey("area.nameless"));
-    Test.assert((areas.get("area.nameless") as AreaModel).name == null);
-    Test.assertEqual(floors.size(), 1);
-    Test.assert(floors[0].name == null);
-    Test.assertEqual(floors[0].id, "floor.nameless");
+    Test.assertEqual((HaPayload.parseAreas(structure).get("area.kitchen") as AreaModel).id, "area.kitchen");
+    Test.assertEqual(HaPayload.parseFloors(structure)[0].id, "floor.g");
+    Test.assertEqual((lights.get("light.kitchen") as LightModel).id, "light.kitchen");
+    Test.assertEqual((sensors.get("sensor.warm") as SensorModel).id, "sensor.warm");
+    return true;
+}
+
+(:test)
+function parsedModelsCarryTheNamesHomeAssistantRequires(logger as Test.Logger) as Boolean {
+    var structure = {
+        "areas" => { "area.kitchen" => { "name" => "Küche" } },
+        "floors" => { "floor.g" => { "name" => "Rez-de-chaussée", "order" => 0,
+            "areas" => ["area.kitchen"] } }
+    };
+
+    Test.assertEqual((HaPayload.parseAreas(structure).get("area.kitchen") as AreaModel).name, "Küche");
+    Test.assertEqual(HaPayload.parseFloors(structure)[0].name, "Rez-de-chaussée");
     return true;
 }
 
@@ -89,7 +105,7 @@ function floorsAreOrderedAsHomeAssistantReportedThem(logger as Test.Logger) as B
 
     Test.assertEqual(floors.size(), 3);
     Test.assertEqual(floors[0].id, "floor.cellar");
-    Test.assertEqual(floors[1].name as String, "Rez-de-chaussée");
+    Test.assertEqual(floors[1].name, "Rez-de-chaussée");
     Test.assertEqual(floors[2].id, "floor.attic");
     return true;
 }
@@ -125,10 +141,10 @@ function eitherArrivalOrderOfTheTargetsProducesTheSameState(logger as Test.Logge
     HaPayloadTest.applyStructure(lightsFirst, structure);
 
     Test.assertEqual(structureFirst.getZone() as String, lightsFirst.getZone() as String);
-    Test.assertEqual((structureFirst.getArea("area.kitchen") as AreaModel).name as String,
-                     (lightsFirst.getArea("area.kitchen") as AreaModel).name as String);
-    Test.assertEqual(structureFirst.getLightIdsInArea("area.kitchen").size(),
-                     lightsFirst.getLightIdsInArea("area.kitchen").size());
+    Test.assertEqual((structureFirst.getArea("area.kitchen") as AreaModel).name,
+                     (lightsFirst.getArea("area.kitchen") as AreaModel).name);
+    Test.assertEqual(structureFirst.getLightsInArea("area.kitchen").size(),
+                     lightsFirst.getLightsInArea("area.kitchen").size());
     Test.assertEqual(structureFirst.isOn("light.kitchen"), lightsFirst.isOn("light.kitchen"));
     return true;
 }

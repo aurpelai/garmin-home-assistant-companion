@@ -110,7 +110,7 @@ function anAreaCardTalliesPhysicalLightsAndSplitsThemByAvailability(logger as Te
             "memberIds" => ["light.on", "light.off"] }
     }, {} as Dictionary);
     var lights = new LightTally();
-    lights.addAll(haState, haState.getLightIdsInArea("area.room"));
+    lights.addAll(haState, haState.getLightsInArea("area.room"));
 
     Test.assertEqual(lights.on, 1);
     Test.assertEqual(lights.available, 2);
@@ -208,5 +208,41 @@ function aDeviceClassWhoseOnlySensorIsUnusableIsAbsentRatherThanBlank(logger as 
 
     Test.assertEqual(model.cards[0].readings.size(), 1);
     Test.assertEqual(CardLoopModelTest.readingOf(model, "area.room", "humidity"), "41 %");
+    return true;
+}
+
+(:test)
+function anAreaWithNoEntitiesGetsNoCardAndTakesItsEmptyFloorWithIt(logger as Test.Logger) as Boolean {
+    // A room with nothing in it has nothing to show, and a floor whose every area
+    // is empty is not a heading for anything.
+    var haState = CardLoopModelTest.stateOf({
+        "areas" => { "area.stocked" => { "name" => "Stocked" }, "area.bare" => { "name" => "Bare" } },
+        "floors" => { "floor.empty" => { "name" => "Empty", "order" => 0, "areas" => ["area.bare"] } }
+    }, {
+        "light.stocked" => CardLoopModelTest.light(false, "area.stocked")
+    }, {} as Dictionary);
+
+    Test.assertEqual(
+        CardLoopModelTest.cardIds(CardLoopBuilder.build(haState)).toString(),
+        ["area.stocked"].toString());
+    return true;
+}
+
+(:test)
+function anAreasEntitiesReachBothItsOwnCardAndItsFloorsAggregate(logger as Test.Logger) as Boolean {
+    // Resolved once per rebuild and passed down, so the area card and the floor
+    // aggregate cannot disagree about what the area holds.
+    var haState = CardLoopModelTest.stateOf({
+        "areas" => { "area.room" => { "name" => "Room" } },
+        "floors" => { "floor.g" => { "name" => "Ground", "order" => 0, "areas" => ["area.room"] } }
+    }, {
+        "light.room" => CardLoopModelTest.light(true, "area.room")
+    }, {
+        "sensor.room" => CardLoopModelTest.temperature("21.0 °C", 21.0, "area.room")
+    });
+    var model = CardLoopBuilder.build(haState);
+
+    Test.assertEqual(CardLoopModelTest.readingOf(model, "area.room", "temperature"), "21.0 °C");
+    Test.assertEqual(CardLoopModelTest.readingOf(model, "floor.g", "temperature"), "21.0 °C");
     return true;
 }

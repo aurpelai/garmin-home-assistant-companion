@@ -12,37 +12,28 @@ module AreaEntityMenuBuilder {
             return null;
         }
 
-        var lightIds = EntitySorter.sortLights(haState, haState.getLightIdsInArea(areaId));
+        var sortedLights = EntitySorter.sortLights(haState.getLightsInArea(areaId));
         var lights = [] as Array<LightRowModel>;
 
-        for (var index = 0; index < lightIds.size(); index++) {
-            var entityId = lightIds[index];
-            var light = haState.getLight(entityId);
-            if (light == null) {
-                continue;
-            }
+        for (var index = 0; index < sortedLights.size(); index++) {
+            var light = sortedLights[index];
 
             lights.add(new LightRowModel(
-                entityId,
+                light.id,
                 light.name,
-                haState.isOn(entityId),
+                haState.isOn(light.id),
                 light.available,
                 light.memberIds == null ? null : (light.memberIds as Array<String>).size()));
         }
 
-        var sensorIds = EntitySorter.groupSensorsByDeviceClass(haState, haState.getSensorIdsInArea(areaId));
+        var groupedSensors = EntitySorter.groupSensorsByDeviceClass(haState.getSensorsInArea(areaId));
         var sensors = [] as Array<SensorRowModel>;
 
-        for (var index = 0; index < sensorIds.size(); index++) {
-            var entityId = sensorIds[index];
-            var sensor = haState.getSensor(entityId);
-            if (sensor == null) {
-                continue;
-            }
-
-            sensors.add(new SensorRowModel(entityId, sensor.name, sensor.displayValue, sensor.available));
+        for (var index = 0; index < groupedSensors.size(); index++) {
+            var sensor = groupedSensors[index];
+            sensors.add(new SensorRowModel(sensor.id, sensor.name, sensor.displayValue, sensor.available));
         }
 
-        return new AreaEntityMenuModel(area.name == null ? areaId : area.name as String, lights, sensors);
+        return new AreaEntityMenuModel(area.name, lights, sensors);
     }
 }
