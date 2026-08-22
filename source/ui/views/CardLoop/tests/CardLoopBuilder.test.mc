@@ -110,7 +110,7 @@ function anAreaCardTalliesPhysicalLightsAndSplitsThemByAvailability(logger as Te
             "memberIds" => ["light.on", "light.off"] }
     }, {} as Dictionary);
     var lights = new LightTally();
-    lights.addAll(haState, haState.getLightsInArea("area.room"));
+    lights.addAll(haState.getLightsInArea("area.room"));
 
     Test.assertEqual(lights.on, 1);
     Test.assertEqual(lights.available, 2);
