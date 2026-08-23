@@ -16,7 +16,7 @@ class FakeCoordinatorClient extends HaClient {
     private var _toggleCallbacks as Array<Method> = [];
     private var _msSinceLastRefresh as Number or Null = null;
     private var _refreshFailure as RequestError or Null = null;
-    private var _everCompleted as Boolean = false;
+    private var _hasCompleted as Boolean = false;
 
     function initialize() {
         HaClient.initialize();
@@ -28,8 +28,8 @@ class FakeCoordinatorClient extends HaClient {
         _refreshFailure = null;
     }
 
-    function refreshOutcome() as RefreshOutcome {
-        return new RefreshOutcome(_refreshFailure, _everCompleted);
+    function refreshResult() as RefreshResult {
+        return new RefreshResult(_refreshFailure, _hasCompleted);
     }
 
     function queueLightToggle(entityId as String, callback as Method) as Void {
@@ -61,14 +61,14 @@ class FakeCoordinatorClient extends HaClient {
 
     // Mirrors the real client's own bookkeeping: the first target to fail is the
     // failure the whole refresh carries, and a refresh that lost nothing counts
-    // as completed — so a test drives the outcome the way the client would
-    // rather than setting it behind the client's back.
+    // as completed — so a test drives the result the way the client would rather
+    // than setting it behind the client's back.
     function fireTarget(target as Symbol, result as Object or Null, error as RequestError or Null) as Void {
         if (error != null && _refreshFailure == null) {
             _refreshFailure = error;
         }
 
-        _everCompleted = _everCompleted || _refreshFailure == null;
+        _hasCompleted = _hasCompleted || _refreshFailure == null;
 
         (_onTarget as Method).invoke(target, result, true);
     }
@@ -82,7 +82,7 @@ class FakeCoordinatorClient extends HaClient {
     }
 
     // A change's failure reaches its own caller and nothing else: the refresh
-    // outcome is not the channel a toggle reports through.
+    // result is not the channel a toggle reports through.
     function fireToggleSuccessAt(index as Number) as Void {
         _toggleCallbacks[index].invoke(true, null);
     }

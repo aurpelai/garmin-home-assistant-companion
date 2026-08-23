@@ -689,11 +689,11 @@ function aRefreshWhereOneTargetFailsNeverStampsCompletion(logger as Test.Logger)
     Test.assertEqual(log.targets.size(), 3);
 
     // The lost target's own failure survives the target that succeeded after
-    // it: were the outcome the last reply's, a refresh ending on a success
-    // would read as clean.
-    var outcome = client.refreshOutcome();
-    Test.assertEqual((outcome.failure as RequestError).reason as Number, -1);
-    Test.assert(!outcome.everCompleted);
+    // it: were the result the last reply's, a refresh ending on a success would
+    // read as clean.
+    var result = client.refreshResult();
+    Test.assertEqual((result.failure as RequestError).reason as Number, -1);
+    Test.assert(!result.hasCompleted);
     Test.assert(client.msSinceLastRefresh() == null);
     return true;
 }
@@ -720,7 +720,7 @@ function aRefreshCarriesTheFirstFailureItMetNotTheLast(logger as Test.Logger) as
     client.fireSuccessAt(8, {} as Dictionary);
 
     Test.assertEqual(log.targets.size(), 3);
-    Test.assertEqual((client.refreshOutcome().failure as RequestError).reason as Number, 401);
+    Test.assertEqual((client.refreshResult().failure as RequestError).reason as Number, 401);
     return true;
 }
 

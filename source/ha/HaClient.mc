@@ -67,8 +67,8 @@ class HaClient {
         return _lastRefreshCompletedAt == null ? null : System.getTimer() - (_lastRefreshCompletedAt as Number);
     }
 
-    function refreshOutcome() as RefreshOutcome {
-        return new RefreshOutcome(_refreshFailure, _lastRefreshCompletedAt != null);
+    function refreshResult() as RefreshResult {
+        return new RefreshResult(_refreshFailure, _lastRefreshCompletedAt != null);
     }
 
     // Dropped rather than queued, so a caller whose trigger is refused must ask
