@@ -688,22 +688,22 @@ function aRefreshWhereOneTargetFailsNeverStampsCompletion(logger as Test.Logger)
 
     Test.assertEqual(log.targets.size(), 3);
 
-    // The lost target's own failure survives the target that succeeded after
-    // it: were the result the last reply's, a refresh ending on a success would
+    // The lost target's own error survives the target that succeeded after it:
+    // were the result the last reply's, a refresh ending on a success would
     // read as clean.
     var result = client.refreshResult();
-    Test.assertEqual((result.failure as RequestError).reason as Number, -1);
-    Test.assert(!result.hasCompleted);
+    Test.assertEqual((result.error as RequestError).reason as Number, -1);
+    Test.assert(!result.hasEverCompleted);
     Test.assert(client.msSinceLastRefresh() == null);
     return true;
 }
 
 (:test)
-function aRefreshCarriesTheFirstFailureItMetNotTheLast(logger as Test.Logger) as Boolean {
+function aRefreshKeepsTheFirstErrorNotTheLast(logger as Test.Logger) as Boolean {
     // Two targets exhaust with different reasons, and a third succeeds after
-    // both. The refresh keeps the failure it met first: what matters is that no
-    // later reply can overwrite it, success included, and taking the first is
-    // what makes that hold without a separate flag to remember it by.
+    // both. The refresh keeps the error of the first target it lost: what
+    // matters is that no later reply can overwrite it, success included, and
+    // taking the first is what makes that hold without a separate flag.
     Application.Storage.clearValues();
     var client = new MockHaClient();
     Registration.seed("some-id");
@@ -711,16 +711,16 @@ function aRefreshCarriesTheFirstFailureItMetNotTheLast(logger as Test.Logger) as
 
     client.refresh(log.method(:onTarget));
 
-    for (var attempt = 0; attempt < 4; attempt++) {
-        client.fireFailureAt(attempt, 401);
+    for (var index = 0; index < 4; index++) {
+        client.fireFailureAt(index, 401);
     }
-    for (var attempt = 4; attempt < 8; attempt++) {
-        client.fireFailureAt(attempt, -1);
+    for (var index = 4; index < 8; index++) {
+        client.fireFailureAt(index, -1);
     }
     client.fireSuccessAt(8, {} as Dictionary);
 
     Test.assertEqual(log.targets.size(), 3);
-    Test.assertEqual((client.refreshResult().failure as RequestError).reason as Number, 401);
+    Test.assertEqual((client.refreshResult().error as RequestError).reason as Number, 401);
     return true;
 }
 

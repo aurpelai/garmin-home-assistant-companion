@@ -174,19 +174,19 @@ class Coordinator {
                 showCardLoop();
             }
 
-            if (result.failure != null) {
+            if (result.error != null) {
                 toast(Rez.Strings.ErrRefresh);
             }
 
             return;
         }
 
-        if (result.failure != null) {
-            showError(result.failure as RequestError);
+        if (result.error != null) {
+            showError(result.error as RequestError);
             return;
         }
 
-        if (result.hasCompleted) {
+        if (result.hasEverCompleted) {
             showMessage(Rez.Strings.NothingFound);
         }
     }

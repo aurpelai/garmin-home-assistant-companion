@@ -38,7 +38,7 @@ class HaClient {
     private var _pendingFetchTargets as Array<Symbol>;
     private var _currentTarget as Symbol or Null;
     private var _onRefreshTarget as Method or Null;
-    private var _refreshFailure as RequestError or Null;
+    private var _refreshError as RequestError or Null;
     private var _lastRefreshCompletedAt as Number or Null;
 
     function initialize() {
@@ -51,7 +51,7 @@ class HaClient {
         _pendingFetchTargets = [];
         _currentTarget = null;
         _onRefreshTarget = null;
-        _refreshFailure = null;
+        _refreshError = null;
         _lastRefreshCompletedAt = null;
     }
 
@@ -68,7 +68,7 @@ class HaClient {
     }
 
     function refreshResult() as RefreshResult {
-        return new RefreshResult(_refreshFailure, _lastRefreshCompletedAt != null);
+        return new RefreshResult(_refreshError, _lastRefreshCompletedAt != null);
     }
 
     // Dropped rather than queued, so a caller whose trigger is refused must ask
@@ -79,7 +79,7 @@ class HaClient {
         }
 
         _pendingFetchTargets = REFRESH_TARGETS.slice(0, null) as Array<Symbol>;
-        _refreshFailure = null;
+        _refreshError = null;
         _onRefreshTarget = onTarget;
         startNextRequest();
     }
@@ -170,13 +170,13 @@ class HaClient {
         var target = _currentTarget as Symbol;
         var onTarget = _onRefreshTarget as Method;
 
-        if (_refreshFailure == null) {
-            _refreshFailure = spentError;
+        if (_refreshError == null) {
+            _refreshError = spentError;
         }
 
         var isLastTarget = !isRefreshing();
 
-        if (isLastTarget && _refreshFailure == null) {
+        if (isLastTarget && _refreshError == null) {
             _lastRefreshCompletedAt = System.getTimer();
         }
 
