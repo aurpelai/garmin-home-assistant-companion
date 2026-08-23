@@ -81,7 +81,7 @@ module HaTemplate {
         "{% endfor %}" +
         "{{ dict(sensors=ns.out) | tojson }}";
 
-    function forTarget(target as Symbol) as String {
+    function resolve(target as Symbol) as String {
         if (target == FetchTarget.STRUCTURE) {
             return STRUCTURE;
         }

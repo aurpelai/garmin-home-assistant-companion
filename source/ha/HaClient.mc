@@ -133,7 +133,7 @@ class HaClient {
             _pendingFetchTargets = _pendingFetchTargets.slice(1, null) as Array<Symbol>;
             _requestInFlight = true;
             _currentTarget = target;
-            new RetryManager(new TemplateRender(self, HaTemplate.forTarget(target)).method(:attempt),
+            new RetryManager(new TemplateRender(self, HaTemplate.resolve(target)).method(:attempt),
                              method(:onTargetSettled), RequestType.REQUEST).attempt();
         }
     }
