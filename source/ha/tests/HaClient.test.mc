@@ -646,7 +646,7 @@ function cancellingClearsTheQueueTheErrorAndTheSlotTogether(logger as Test.Logge
 
     client.cancelAll();
 
-    Test.assert(client.lastError() == null);
+    Test.assert(client.refreshOutcome().error == null);
     Test.assert(!client.hasOutstandingChanges());
 
     // The second tap was still queued, never posted, when cancelAll ran, so
@@ -687,8 +687,8 @@ function aRefreshWhereOneTargetFailsNeverStampsCompletion(logger as Test.Logger)
     client.fireSuccessAt(5, {} as Dictionary);
 
     Test.assertEqual(log.targets.size(), 3);
-    Test.assert(client.lastRefreshFailed());
-    Test.assert(!client.hasCompletedARefresh());
+    Test.assert(client.refreshOutcome().lostATarget);
+    Test.assert(!client.refreshOutcome().everCompleted);
     Test.assert(client.msSinceLastRefresh() == null);
     return true;
 }

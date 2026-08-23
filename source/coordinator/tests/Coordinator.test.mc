@@ -16,8 +16,8 @@ class FakeCoordinatorClient extends HaClient {
     private var _toggleCallbacks as Array<Method> = [];
     private var _msSinceLastRefresh as Number or Null = null;
     private var _lastError as RequestError or Null = null;
-    private var _hasCompletedARefresh as Boolean = false;
-    private var _lastRefreshFailed as Boolean = false;
+    private var _everCompleted as Boolean = false;
+    private var _lostATarget as Boolean = false;
 
     function initialize() {
         HaClient.initialize();
@@ -26,11 +26,11 @@ class FakeCoordinatorClient extends HaClient {
     function refresh(onTarget as Method) as Void {
         refreshCount++;
         _onTarget = onTarget;
-        _lastRefreshFailed = false;
+        _lostATarget = false;
     }
 
-    function lastRefreshFailed() as Boolean {
-        return _lastRefreshFailed;
+    function refreshOutcome() as RefreshOutcome {
+        return new RefreshOutcome(_lastError, _lostATarget, _everCompleted);
     }
 
     function queueLightToggle(entityId as String, callback as Method) as Void {
@@ -60,28 +60,16 @@ class FakeCoordinatorClient extends HaClient {
         _msSinceLastRefresh = value;
     }
 
-    function lastError() as RequestError or Null {
-        return _lastError;
-    }
-
-    function hasCompletedARefresh() as Boolean {
-        return _hasCompletedARefresh;
-    }
-
-    function setHasCompletedARefresh(value as Boolean) as Void {
-        _hasCompletedARefresh = value;
-    }
-
     // Mirrors the real client's own bookkeeping: a settled failure becomes the
-    // last error and any success clears it, so a test drives the grid's facts
+    // last error and any success clears it, so a test drives the outcome's facts
     // the way the client would rather than setting them behind its back.
     function fireTarget(target as Symbol, result as Object or Null, error as RequestError or Null) as Void {
         _lastError = error;
 
         if (error != null) {
-            _lastRefreshFailed = true;
+            _lostATarget = true;
         } else {
-            _hasCompletedARefresh = true;
+            _everCompleted = true;
         }
 
         (_onTarget as Method).invoke(target, result, true);
