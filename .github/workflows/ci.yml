@@ -97,7 +97,7 @@ jobs:
 
           out=$(monkeyc \
             -d ${{ matrix.device }} \
-            -f "monkey.jungle;test.jungle" \
+            -f monkey.jungle \
             -o bin/test_${{ matrix.device }}.prg \
             -y developer_key.der \
             -l 3 -w --unit-test 2>&1)
@@ -114,8 +114,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     container:
-      # matco's action is unusable here: its compile step hardcodes
-      # `-f monkey.jungle`, so test.jungle can never be layered on.
+      # The image supplies the SDK and simulator; the run is driven by hand
+      # because monkeydo's exit status is unusable as a verdict.
       image: ghcr.io/matco/connectiq-tester@sha256:7a6f586cb0e0393ff288da09cf27b6dad40a0058a346c529b99fd0fc19858f0f
     steps:
       - name: Checkout
@@ -135,7 +135,7 @@ jobs:
           mkdir -p bin
 
           monkeyc \
-            -f "monkey.jungle;test.jungle" \
+            -f monkey.jungle \
             -d fenix8solar51mm \
             -o bin/test.prg \
             -y developer_key.der \

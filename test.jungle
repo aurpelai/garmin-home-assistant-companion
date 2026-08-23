@@ -1,3 +1,0 @@
-# Layered onto monkey.jungle for the unit-test build, replacing the production
-# annotation exclusion so the mock implementations compile instead.
-base.excludeAnnotations = production
