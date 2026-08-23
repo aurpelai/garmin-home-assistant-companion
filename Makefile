@@ -5,13 +5,10 @@
 # A developer key is needed to sign builds:
 #   make key            # generate developer_key.der (once)
 
-DEVICE ?= fenix8solar51mm
-KEY    ?= developer_key.der
-JUNGLE ?= monkey.jungle
-
-# The unit-test build layers test.jungle on top to swap in mock settings; app
-# builds use the production jungle alone.
-TEST_JUNGLE ?= $(JUNGLE);test.jungle
+DEVICE  ?= fenix8solar51mm
+KEY     ?= developer_key.der
+JUNGLE  ?= monkey.jungle
+PACKAGE ?= garmin-home-assistant-companion
 
 # Type-check level. 3 = strictest (errors on type mismatches). This is the
 # project standard — CI also compiles at -l 3.
@@ -36,7 +33,13 @@ endif
 CLIENT  ?= source/ha/HaClient.mc
 CHANGIE ?= npx changie@1.25.2
 
-.PHONY: build test lint sim run key clean release
+# Release output folder under bin/releases. Defaults to the version in $(CLIENT)
+# — the constant `make release` syncs — so exports land beside previous ones.
+# Override for variants: `make export DIR=v0.5.3--debug`. Recursively expanded
+# so the version is read when exporting, not on every make invocation.
+DIR = v$(shell perl -ne 'print $$1 if /const APP_VERSION = "([^"]*)"/' "$(CLIENT)")
+
+.PHONY: build test lint sim run export key clean release
 
 build: ## Compile a debug build for $(DEVICE)
 	@mkdir -p bin
@@ -52,7 +55,7 @@ lint: ## Compile with -l 3 -w and fail on any warning
 
 test: ## Build + run unit tests in the simulator (must be running: make sim)
 	@mkdir -p bin
-	"$(MONKEYC)" -f "$(TEST_JUNGLE)" -d $(DEVICE) --unit-test -o bin/test.prg -y $(KEY) $(STRICT)
+	"$(MONKEYC)" -f $(JUNGLE) -d $(DEVICE) --unit-test -o bin/test.prg -y $(KEY) $(STRICT)
 	"$(MONKEYDO)" bin/test.prg $(DEVICE) -t
 
 sim: ## Launch the Connect IQ simulator (opens it, then returns)
@@ -60,6 +63,11 @@ sim: ## Launch the Connect IQ simulator (opens it, then returns)
 
 run: build ## Launch the (strict-built) app in the simulator (must be running)
 	"$(MONKEYDO)" bin/app.prg $(DEVICE)
+
+# The store artifact, built for every product in the manifest (no -d).
+export: ## Package a release .iq into bin/releases/$(DIR)
+	@mkdir -p bin/releases/$(DIR)
+	"$(MONKEYC)" -f $(JUNGLE) -o bin/releases/$(DIR)/$(PACKAGE).iq -y $(KEY) -e -r $(STRICT)
 
 key: ## Generate a developer signing key (once)
 	openssl genrsa -out /tmp/ciq_key.pem 4096
