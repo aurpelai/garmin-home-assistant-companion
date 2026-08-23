@@ -700,11 +700,10 @@ function aRefreshWhereOneTargetFailsNeverStampsCompletion(logger as Test.Logger)
 
 (:test)
 function aRefreshCarriesTheFirstFailureItMetNotTheLast(logger as Test.Logger) as Boolean {
-    // Two targets exhaust with different reasons. The first is what the refresh
-    // reports, because the targets run in a fixed order and the earliest one to
-    // give up is the one that explains the rest — a rejected token fails all
-    // three, and the user is told about the token rather than about whatever the
-    // last target happened to say.
+    // Two targets exhaust with different reasons, and a third succeeds after
+    // both. The refresh keeps the failure it met first: what matters is that no
+    // later reply can overwrite it, success included, and taking the first is
+    // what makes that hold without a separate flag to remember it by.
     Application.Storage.clearValues();
     var client = new MockHaClient();
     Registration.seed("some-id");

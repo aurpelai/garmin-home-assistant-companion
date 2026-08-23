@@ -1,0 +1,3 @@
+kind: "\U0001F527 Fixed"
+body: A refresh that fails before your home can load now says what went wrong, instead of waiting or reporting nothing found.
+time: 2026-08-23T19:50:18.997755+03:00
