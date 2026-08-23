@@ -114,8 +114,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     container:
-      # The image supplies the SDK and simulator; the run is driven by hand
-      # because monkeydo's exit status is unusable as a verdict.
       image: ghcr.io/matco/connectiq-tester@sha256:7a6f586cb0e0393ff288da09cf27b6dad40a0058a346c529b99fd0fc19858f0f
     steps:
       - name: Checkout
