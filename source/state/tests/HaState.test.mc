@@ -49,15 +49,18 @@ function pendingIsDerivedFromAnOverrideExisting(logger as Test.Logger) as Boolea
     Test.assert(!haState.isPending("light.a"));
     haState.override("light.a", true);
     Test.assert(haState.isPending("light.a"));
-    haState.clearOverrides(["light.a"]);
+    HaStateTest.setLights(haState, { "light.a" => HaStateTest.light(true, "area.a") });
     Test.assert(!haState.isPending("light.a"));
     return true;
 }
 
 (:test)
-function storingATargetReplacesItWholesaleAndLeavesOverridesAlone(logger as Test.Logger) as Boolean {
-    // The refresh interleaving case: server truth is replaced, yet the assumed
-    // value survives rather than flickering back and forward again.
+function arrivingLightsAnswerEveryAssumptionTheyReplace(logger as Test.Logger) as Boolean {
+    // Home Assistant reports every light it knows in one payload, so its arrival
+    // is truth about all of them — including the one just tapped, whose assumed
+    // value has no standing against it. Server truth still reads as off here: a
+    // tap whose call has not reached the bulb yet is answered by what HA says,
+    // not by what the tap hoped.
     var haState = HaStateTest.stateWithLights({
         "light.a" => HaStateTest.light(false, "area.a"),
         "light.b" => HaStateTest.light(false, "area.a")
@@ -66,40 +69,28 @@ function storingATargetReplacesItWholesaleAndLeavesOverridesAlone(logger as Test
     haState.override("light.a", true);
     HaStateTest.setLights(haState, { "light.a" => HaStateTest.light(false, "area.a") });
 
-    Test.assert(haState.isPending("light.a"));
-    Test.assert(haState.isOn("light.a"));
+    Test.assert(!haState.isPending("light.a"));
+    Test.assert(!haState.isOn("light.a"));
     Test.assertEqual(haState.getLightsInArea("area.a").size(), 1);
     return true;
 }
 
 (:test)
-function aRefreshDropsOnlyOverridesWhoseEntityIsGone(logger as Test.Logger) as Boolean {
-    var haState = HaStateTest.stateWithLights({
-        "light.staying" => HaStateTest.light(false, "area.a"),
-        "light.going" => HaStateTest.light(false, "area.a")
-    });
-
-    haState.override("light.staying", true);
-    haState.override("light.going", true);
-    HaStateTest.setLights(haState, { "light.staying" => HaStateTest.light(false, "area.a") });
-
-    Test.assert(haState.isPending("light.staying"));
-    Test.assert(!haState.isPending("light.going"));
-    return true;
-}
-
-(:test)
-function clearingAnOverrideThatIsGoneIsANoOp(logger as Test.Logger) as Boolean {
-    // A refresh may have dropped an orphan whose service-call reply then arrives,
-    // and every terminal outcome clears regardless.
+function anAssumptionOutlivesTheReplyAndOnlyAFetchEndsIt(logger as Test.Logger) as Boolean {
+    // The service call's reply says the call was accepted, never what the light
+    // became, so nothing about it can answer the assumption. Until a fetch lands
+    // the row goes on showing what the user asked for.
     var haState = HaStateTest.stateWithLights({ "light.a" => HaStateTest.light(false, "area.a") });
 
-    haState.clearOverrides(["light.vanished"]);
     haState.override("light.a", true);
-    haState.clearOverrides(["light.a", "light.vanished"]);
 
+    Test.assert(haState.isOn("light.a"));
+    Test.assert(haState.isPending("light.a"));
+
+    HaStateTest.setLights(haState, { "light.a" => HaStateTest.light(true, "area.a") });
+
+    Test.assert(haState.isOn("light.a"));
     Test.assert(!haState.isPending("light.a"));
-    Test.assert(!haState.isOn("light.a"));
     return true;
 }
 
@@ -114,13 +105,14 @@ function aGroupScopeCoversTheGroupItselfAndItsMembers(logger as Test.Logger) as 
         "light.two" => HaStateTest.light(false, "area.a")
     });
 
-    var overridden = haState.override("light.group", true);
+    haState.override("light.group", true);
 
-    Test.assertEqual(overridden.size(), 3);
     Test.assert(haState.isOn("light.group"));
     Test.assert(haState.isOn("light.one"));
     Test.assert(haState.isOn("light.two"));
     Test.assert(haState.isPending("light.group"));
+    Test.assert(haState.isPending("light.one"));
+    Test.assert(haState.isPending("light.two"));
     return true;
 }
 
@@ -132,26 +124,10 @@ function aGroupWithNoMembersStillOverridesItself(logger as Test.Logger) as Boole
         "light.group" => HaStateTest.light(false, "area.a")
     });
 
-    Test.assertEqual(haState.override("light.group", true).size(), 1);
+    haState.override("light.group", true);
+
     Test.assert(haState.isOn("light.group"));
-    return true;
-}
-
-(:test)
-function theOverriddenIdsBelongToTheCallerNotToServerTruth(logger as Test.Logger) as Boolean {
-    // The caller holds these until its reply settles, so mutating them must not
-    // rewrite a group's membership or create an override nobody asked for.
-    var haState = HaStateTest.stateWithLights({
-        "light.group" => { "state" => false, "area_id" => "area.a", "available" => true,
-            "memberIds" => ["light.one"] },
-        "light.one" => HaStateTest.light(false, "area.a")
-    });
-
-    var overridden = haState.override("light.group", true);
-    overridden.add("light.intruder");
-
-    Test.assertEqual(haState.getToggleTargets("light.group").size(), 2);
-    Test.assert(!haState.isPending("light.intruder"));
+    Test.assert(haState.isPending("light.group"));
     return true;
 }
 
@@ -180,9 +156,9 @@ function aMemberWithNoEntityOfItsOwnIsStillCalledButNeverReadsAsPending(logger a
             "memberIds" => ["light.arealess"] }
     });
 
-    var overridden = haState.override("light.group", true);
+    haState.override("light.group", true);
 
-    Test.assertEqual(overridden.size(), 2);
+    Test.assertEqual(haState.getToggleTargets("light.group").size(), 2);
     Test.assert(haState.isPending("light.group"));
     Test.assert(!haState.isPending("light.arealess"));
     Test.assert(haState.hasAnyPending(haState.getToggleTargets("light.group")));
@@ -210,9 +186,8 @@ function aFloorScopeCoversEveryLightInItsAreasAndNothingOutside(logger as Test.L
         "light.elsewhere" => HaStateTest.light(false, "area.attic")
     });
 
-    var overridden = haState.overrideFloorLights("floor.ground", true);
+    haState.overrideFloorLights("floor.ground", true);
 
-    Test.assertEqual(overridden.size(), 4);
     Test.assert(haState.isOn("light.group"));
     Test.assert(haState.isOn("light.kitchen"));
     Test.assert(haState.isOn("light.broken"));
