@@ -1,28 +1,20 @@
 import Toybox.Lang;
 
 // How the refresh that just settled turned out, as the one value the navigation
-// gate reads. Separately these facts invite the wrong answer: `error` is the
-// last reply's, so a refresh that lost its first target and recovered on its
-// last looks clean, and `everCompleted` is about the session rather than this
-// refresh.
+// gate reads.
 class RefreshOutcome {
-    // The last error any reply surfaced, refresh or service call alike, and null
-    // once anything succeeds. What the user is shown when there is nothing to
-    // show instead.
-    var error as RequestError or Null;
-
-    // Whether any target of the refresh just settled failed, which `error`
-    // cannot answer: a later target succeeding clears it.
-    var lostATarget as Boolean;
+    // The failure of whichever target the refresh lost, kept for the whole
+    // refresh rather than replaced by each reply: a later target succeeding
+    // must not make a refresh that lost a part look clean by the time it
+    // settles.
+    var lostTargetTo as RequestError or Null;
 
     // Whether any refresh has ever settled with every target intact. Nothing
-    // found and nothing failed is still loading until this is true.
+    // found and nothing lost is still loading until this is true.
     var everCompleted as Boolean;
 
-    function initialize(error as RequestError or Null, lostATarget as Boolean,
-                        everCompleted as Boolean) {
-        self.error = error;
-        self.lostATarget = lostATarget;
+    function initialize(lostTargetTo as RequestError or Null, everCompleted as Boolean) {
+        self.lostTargetTo = lostTargetTo;
         self.everCompleted = everCompleted;
     }
 }

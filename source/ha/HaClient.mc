@@ -38,9 +38,8 @@ class HaClient {
     private var _pendingFetchTargets as Array<Symbol>;
     private var _currentTarget as Symbol or Null;
     private var _onRefreshTarget as Method or Null;
-    private var _refreshHadFailure as Boolean;
+    private var _refreshFailure as RequestError or Null;
     private var _lastRefreshCompletedAt as Number or Null;
-    private var _lastError as RequestError or Null;
 
     function initialize() {
         _requestInFlight = false;
@@ -52,9 +51,8 @@ class HaClient {
         _pendingFetchTargets = [];
         _currentTarget = null;
         _onRefreshTarget = null;
-        _refreshHadFailure = false;
+        _refreshFailure = null;
         _lastRefreshCompletedAt = null;
-        _lastError = null;
     }
 
     function isRefreshing() as Boolean {
@@ -70,7 +68,7 @@ class HaClient {
     }
 
     function refreshOutcome() as RefreshOutcome {
-        return new RefreshOutcome(_lastError, _refreshHadFailure, _lastRefreshCompletedAt != null);
+        return new RefreshOutcome(_refreshFailure, _lastRefreshCompletedAt != null);
     }
 
     // Dropped rather than queued, so a caller whose trigger is refused must ask
@@ -81,7 +79,7 @@ class HaClient {
         }
 
         _pendingFetchTargets = REFRESH_TARGETS.slice(0, null) as Array<Symbol>;
-        _refreshHadFailure = false;
+        _refreshFailure = null;
         _onRefreshTarget = onTarget;
         startNextRequest();
     }
@@ -101,7 +99,7 @@ class HaClient {
         Communications.cancelAllRequests();
         _changeQueue = [];
         _pendingFetchTargets = [];
-        _lastError = null;
+        _refreshFailure = null;
         _requestInFlight = false;
         _changeInFlight = false;
         _pendingChangeCallback = null;
@@ -154,7 +152,6 @@ class HaClient {
 
         var callback = _pendingChangeCallback as Method;
         _pendingChangeCallback = null;
-        _lastError = spentError;
 
         if (spentError != null) {
             _changeQueue = [];
@@ -174,12 +171,13 @@ class HaClient {
         var target = _currentTarget as Symbol;
         var onTarget = _onRefreshTarget as Method;
 
-        _lastError = spentError;
-        _refreshHadFailure = _refreshHadFailure || spentError != null;
+        if (_refreshFailure == null) {
+            _refreshFailure = spentError;
+        }
 
         var isLastTarget = !isRefreshing();
 
-        if (isLastTarget && !_refreshHadFailure) {
+        if (isLastTarget && _refreshFailure == null) {
             _lastRefreshCompletedAt = System.getTimer();
         }
 

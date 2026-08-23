@@ -15,9 +15,8 @@ class FakeCoordinatorClient extends HaClient {
     private var _onTarget as Method?;
     private var _toggleCallbacks as Array<Method> = [];
     private var _msSinceLastRefresh as Number or Null = null;
-    private var _lastError as RequestError or Null = null;
+    private var _refreshFailure as RequestError or Null = null;
     private var _everCompleted as Boolean = false;
-    private var _lostATarget as Boolean = false;
 
     function initialize() {
         HaClient.initialize();
@@ -26,11 +25,11 @@ class FakeCoordinatorClient extends HaClient {
     function refresh(onTarget as Method) as Void {
         refreshCount++;
         _onTarget = onTarget;
-        _lostATarget = false;
+        _refreshFailure = null;
     }
 
     function refreshOutcome() as RefreshOutcome {
-        return new RefreshOutcome(_lastError, _lostATarget, _everCompleted);
+        return new RefreshOutcome(_refreshFailure, _everCompleted);
     }
 
     function queueLightToggle(entityId as String, callback as Method) as Void {
@@ -60,17 +59,16 @@ class FakeCoordinatorClient extends HaClient {
         _msSinceLastRefresh = value;
     }
 
-    // Mirrors the real client's own bookkeeping: a settled failure becomes the
-    // last error and any success clears it, so a test drives the outcome's facts
-    // the way the client would rather than setting them behind its back.
+    // Mirrors the real client's own bookkeeping: the first target to fail is the
+    // failure the whole refresh carries, and a refresh that lost nothing counts
+    // as completed — so a test drives the outcome the way the client would
+    // rather than setting it behind the client's back.
     function fireTarget(target as Symbol, result as Object or Null, error as RequestError or Null) as Void {
-        _lastError = error;
-
-        if (error != null) {
-            _lostATarget = true;
-        } else {
-            _everCompleted = true;
+        if (error != null && _refreshFailure == null) {
+            _refreshFailure = error;
         }
+
+        _everCompleted = _everCompleted || _refreshFailure == null;
 
         (_onTarget as Method).invoke(target, result, true);
     }
@@ -80,17 +78,16 @@ class FakeCoordinatorClient extends HaClient {
     // refresh has finished, which the real client does not treat as complete
     // either.
     function fireMidRefreshTarget(target as Symbol, result as Object or Null) as Void {
-        _lastError = null;
         (_onTarget as Method).invoke(target, result, false);
     }
 
+    // A change's failure reaches its own caller and nothing else: the refresh
+    // outcome is not the channel a toggle reports through.
     function fireToggleSuccessAt(index as Number) as Void {
-        _lastError = null;
         _toggleCallbacks[index].invoke(true, null);
     }
 
     function fireToggleFailureAt(index as Number, error as RequestError) as Void {
-        _lastError = error;
         _toggleCallbacks[index].invoke(null, error);
     }
 }

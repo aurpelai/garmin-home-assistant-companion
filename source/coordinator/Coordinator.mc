@@ -174,15 +174,15 @@ class Coordinator {
                 showCardLoop();
             }
 
-            if (outcome.lostATarget) {
+            if (outcome.lostTargetTo != null) {
                 toast(Rez.Strings.ErrRefresh);
             }
 
             return;
         }
 
-        if (outcome.error != null) {
-            showError(outcome.error as RequestError);
+        if (outcome.lostTargetTo != null) {
+            showError(outcome.lostTargetTo as RequestError);
             return;
         }
 

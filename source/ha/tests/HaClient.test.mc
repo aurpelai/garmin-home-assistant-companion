@@ -630,11 +630,12 @@ function theQueueDrainsOnlyOnceTheThresholdIsExhausted(logger as Test.Logger) as
 }
 
 (:test)
-function cancellingClearsTheQueueTheErrorAndTheSlotTogether(logger as Test.Logger) as Boolean {
+function cancellingClearsTheQueueAndTheSlotTogether(logger as Test.Logger) as Boolean {
     // Cancels with a change genuinely occupying the slot (mid-retry, not yet
-    // exhausted, so lastError has nothing to do with why the slot later reads
-    // as free) and another genuinely still queued — not an empty queue and a
-    // free slot that arrived on their own from an already-exhausted run.
+    // exhausted, so the slot later reading as free is cancelAll's doing rather
+    // than a threshold spending itself) and another genuinely still queued —
+    // not an empty queue and a free slot that arrived on their own from an
+    // already-exhausted run.
     Application.Storage.clearValues();
     var client = new MockHaClient();
     Registration.seed("some-id");
@@ -646,7 +647,6 @@ function cancellingClearsTheQueueTheErrorAndTheSlotTogether(logger as Test.Logge
 
     client.cancelAll();
 
-    Test.assert(client.refreshOutcome().error == null);
     Test.assert(!client.hasOutstandingChanges());
 
     // The second tap was still queued, never posted, when cancelAll ran, so
@@ -687,8 +687,13 @@ function aRefreshWhereOneTargetFailsNeverStampsCompletion(logger as Test.Logger)
     client.fireSuccessAt(5, {} as Dictionary);
 
     Test.assertEqual(log.targets.size(), 3);
-    Test.assert(client.refreshOutcome().lostATarget);
-    Test.assert(!client.refreshOutcome().everCompleted);
+
+    // The lost target's own failure survives the target that succeeded after
+    // it: were the outcome the last reply's, a refresh ending on a success
+    // would read as clean.
+    var outcome = client.refreshOutcome();
+    Test.assertEqual((outcome.lostTargetTo as RequestError).reason as Number, -1);
+    Test.assert(!outcome.everCompleted);
     Test.assert(client.msSinceLastRefresh() == null);
     return true;
 }
