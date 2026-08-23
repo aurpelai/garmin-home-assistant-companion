@@ -166,16 +166,13 @@ function aStaleHideDoesNotClearAViewAlreadyReplacedAsCurrent(logger as Test.Logg
 }
 
 (:test)
-function toggleRecordsAnOverrideFiresAndTheReplyClearsExactlyThoseIds(logger as Test.Logger) as Boolean {
+function aTapIsAnsweredByTheNextFetchRatherThanByItsOwnReply(logger as Test.Logger) as Boolean {
     var client = new FakeCoordinatorClient();
     var coordinator = new Coordinator(client);
 
     coordinator.onActivate();
     client.fireTarget(FetchTarget.LIGHTS, {
-        "lights" => {
-            "light.a" => { "state" => false, "area_id" => "area.x" },
-            "light.b" => { "state" => false, "area_id" => "area.x" }
-        }
+        "lights" => { "light.a" => { "state" => false, "area_id" => "area.x" } }
     }, null);
 
     // A tap only ever arrives from a screen the user is looking at.
@@ -191,20 +188,49 @@ function toggleRecordsAnOverrideFiresAndTheReplyClearsExactlyThoseIds(logger as 
     coordinator.toggleEntity("light.a");
     Test.assertEqual(client.toggledEntityIds.size(), 1);
 
+    // The reply says only that the call was accepted, so the assumption stands
+    // and the row is still locked against a second tap.
     client.fireToggleSuccessAt(0);
+    coordinator.toggleEntity("light.a");
+    Test.assertEqual(client.toggledEntityIds.size(), 1);
 
-    // The reply's own refresh trigger fires once the override it created is
-    // cleared, so a fresh tap is accepted again.
+    // Lights arriving is what answers it — and taps are accepted again.
+    client.fireTarget(FetchTarget.LIGHTS, {
+        "lights" => { "light.a" => { "state" => true, "area_id" => "area.x" } }
+    }, null);
+
+    Test.assert(!coordinator.haState().isPending("light.a"));
     coordinator.toggleEntity("light.a");
     Test.assertEqual(client.toggledEntityIds.size(), 2);
+    return true;
+}
 
-    // A failed reply clears its own override too: nothing to restore, since
-    // server truth was never overwritten.
-    coordinator.toggleEntity("light.b");
-    client.fireToggleFailureAt(client.toggledEntityIds.size() - 1,
-        new RequestError(-1, RequestType.REQUEST));
-    coordinator.toggleEntity("light.b");
-    Test.assertEqual(client.toggledEntityIds.size(), 4);
+(:test)
+function aRefusedTapKeepsShowingWhatWasAskedForUntilAFetchLands(logger as Test.Logger) as Boolean {
+    // The rule does not special-case a failure: nothing but Home Assistant's own
+    // truth answers an assumption, and a refused call is not truth. The toast is
+    // what tells the user, rather than the row snapping back on its own.
+    var client = new FakeCoordinatorClient();
+    var coordinator = new Coordinator(client);
+
+    coordinator.onActivate();
+    client.fireTarget(FetchTarget.LIGHTS, {
+        "lights" => { "light.a" => { "state" => false, "area_id" => "area.x" } }
+    }, null);
+    coordinator.onViewShown(new StubScreen(false));
+
+    coordinator.toggleEntity("light.a");
+    client.fireToggleFailureAt(0, new RequestError(-1, RequestType.REQUEST));
+
+    Test.assert(coordinator.haState().isOn("light.a"));
+    Test.assert(coordinator.haState().isPending("light.a"));
+
+    client.fireTarget(FetchTarget.LIGHTS, {
+        "lights" => { "light.a" => { "state" => false, "area_id" => "area.x" } }
+    }, null);
+
+    Test.assert(!coordinator.haState().isOn("light.a"));
+    Test.assert(!coordinator.haState().isPending("light.a"));
     return true;
 }
 
@@ -233,7 +259,17 @@ function aGroupTapMovesItsMembersAndIsBlockedByOneOfThemBeingPending(logger as T
     coordinator.toggleEntity("light.grp");
     Test.assertEqual(client.toggledEntityIds.size(), 1);
 
+    // Lights arriving is what frees the member's scope, not the reply.
     client.fireToggleSuccessAt(0);
+    client.fireTarget(FetchTarget.LIGHTS, {
+        "lights" => {
+            "light.grp" => { "state" => false, "area_id" => "area.x",
+                "memberIds" => ["light.one", "light.two"] },
+            "light.one" => { "state" => true, "area_id" => "area.x" },
+            "light.two" => { "state" => false, "area_id" => "area.x" }
+        }
+    }, null);
+
     coordinator.toggleEntity("light.grp");
     Test.assertEqual(client.toggledEntityIds.size(), 2);
 
@@ -489,15 +525,13 @@ function aFailedTargetKeepsDataOnScreenRatherThanReplacingItWithTheFailure(logge
 
 (:test)
 function aFailedToggleDoesNotTakeTheScreenAway(logger as Test.Logger) as Boolean {
-    // A service-call failure does not consult the grid: the override clears
-    // either way, so the row visibly snaps back regardless of outcome. The
-    // screen the user was on must survive that rather than being replaced by
-    // the info screen.
+    // A service-call failure does not consult the grid: it is one request
+    // refused, not a verdict on where the user belongs. The screen they were on
+    // must survive it rather than being replaced by the info screen.
     //
-    // Whether a toast explains the snap-back is not asserted here, for the
-    // same reason as the partial-refresh signal: ErrorMessage's own tests
-    // pin the wording, and the coordinator has no accessor for "did I toast"
-    // that exists for a production reason.
+    // Whether a toast explains the refusal is not asserted here: ErrorMessage's
+    // own tests pin the wording, and the coordinator has no accessor for "did I
+    // toast" that exists for a production reason.
     var client = new FakeCoordinatorClient();
     var coordinator = new Coordinator(client);
     var view = new StubScreen(false);
@@ -514,6 +548,5 @@ function aFailedToggleDoesNotTakeTheScreenAway(logger as Test.Logger) as Boolean
     client.fireToggleFailureAt(0, new RequestError(-1, RequestType.REQUEST));
 
     Test.assert(coordinator.currentView() == view);
-    Test.assert(!coordinator.haState().isPending("light.a"));
     return true;
 }

@@ -32,23 +32,10 @@ class HaState {
         _floors = floors;
     }
 
-    // A refresh replaces server truth wholesale, so a tap still awaiting its reply
-    // is carried onto the incoming model. An assumption whose light is gone goes
-    // with it.
+    // Every light Home Assistant knows arrives together, so this is the one
+    // moment an assumption is answered: the incoming models carry none, and a
+    // tap's assumed value dies with the truth that supersedes it.
     function setLights(lights as Dictionary<String, LightModel>) as Void {
-        var previous = _lights.values() as Array<LightModel>;
-
-        for (var index = 0; index < previous.size(); index++) {
-            if (previous[index].assumed == null) {
-                continue;
-            }
-
-            var incoming = lights.get(previous[index].id);
-            if (incoming != null) {
-                (incoming as LightModel).assumed = previous[index].assumed;
-            }
-        }
-
         _lights = lights;
         _lightsByArea = groupLightsByArea(lights);
     }
@@ -145,12 +132,12 @@ class HaState {
         return light != null && light.isPending();
     }
 
-    function override(entityId as String, isOn as Boolean) as Array<String> {
-        return overrideAll(getToggleTargets(entityId), isOn);
+    function override(entityId as String, isOn as Boolean) as Void {
+        overrideAll(getToggleTargets(entityId), isOn);
     }
 
-    function overrideFloorLights(floorId as String, isOn as Boolean) as Array<String> {
-        return overrideAll(toLightIds(getLightsInFloor(floorId)), isOn);
+    function overrideFloorLights(floorId as String, isOn as Boolean) as Void {
+        overrideAll(toLightIds(getLightsInFloor(floorId)), isOn);
     }
 
     function getToggleTargets(entityId as String) as Array<String> {
@@ -195,32 +182,14 @@ class HaState {
         return false;
     }
 
-    // Finding no assumption is a no-op: a refresh may have dropped an orphan whose
-    // reply then arrives.
-    function clearOverrides(entityIds as Array<String>) as Void {
-        for (var index = 0; index < entityIds.size(); index++) {
-            var light = _lights.get(entityIds[index]);
-
-            if (light != null) {
-                (light as LightModel).assumed = null;
-            }
-        }
-    }
-
-    private function overrideAll(entityIds as Array<String>, isOn as Boolean) as Array<String> {
-        var overridden = [] as Array<String>;
-
+    private function overrideAll(entityIds as Array<String>, isOn as Boolean) as Void {
         for (var index = 0; index < entityIds.size(); index++) {
             var light = _lights.get(entityIds[index]);
 
             if (light != null) {
                 (light as LightModel).assumed = isOn;
             }
-
-            overridden.add(entityIds[index]);
         }
-
-        return overridden;
     }
 
     private function groupLightsByArea(lights as Dictionary<String, LightModel>)

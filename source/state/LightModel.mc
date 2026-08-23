@@ -1,9 +1,8 @@
 import Toybox.Lang;
 
-// Server truth for one light, plus the value a tap assumed until its reply
-// settles. `state` is never overwritten: `assumed` sits over it, so reverting is
-// deletion rather than restoration. A refresh carries a live assumption onto the
-// replacing model, since the server has not seen the tap yet.
+// Server truth for one light, plus the value a tap assumed. Only Home Assistant
+// writes `state`; `assumed` sits over it and lasts until the next fetch replaces
+// the model, so nothing but HA's own truth ever answers a tap.
 class LightModel {
     public var id as String;
     public var state as Boolean;

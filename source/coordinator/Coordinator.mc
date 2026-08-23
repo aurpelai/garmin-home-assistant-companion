@@ -74,8 +74,8 @@ class Coordinator {
             return;
         }
 
-        var overriddenIds = _haState.override(entityId, !_haState.isOn(entityId));
-        _client.queueLightToggle(entityId, new ToggleReply(self, overriddenIds).method(:onSettled));
+        _haState.override(entityId, !_haState.isOn(entityId));
+        _client.queueLightToggle(entityId, new ToggleReply(self).method(:onSettled));
         updateDisplay();
     }
 
@@ -86,24 +86,21 @@ class Coordinator {
         }
 
         var targetState = !_haState.hasAnyOn(lights);
-        var overriddenIds = _haState.overrideFloorLights(floorId, targetState);
+        _haState.overrideFloorLights(floorId, targetState);
         var service = targetState ? "turn_on" : "turn_off";
 
-        _client.queueFloorLights(floorId, service, new ToggleReply(self, overriddenIds).method(:onSettled));
+        _client.queueFloorLights(floorId, service, new ToggleReply(self).method(:onSettled));
         updateDisplay();
     }
 
-    // A failure signals here rather than deferring to the destination below:
-    // the override clears either way, so the row snaps back, and without a
-    // signal that looks exactly like the app ignoring the tap.
-    function onToggleSettled(overriddenIds as Array<String>, error as RequestError or Null) as Void {
-        _haState.clearOverrides(overriddenIds);
-
+    // The reply says the call was accepted, not what the light now is, so it
+    // leaves the assumed value alone: only the fetch below can answer it. A
+    // failure still signals, since the row goes on showing what was asked for.
+    function onToggleSettled(error as RequestError or Null) as Void {
         if (error != null) {
             toast(ErrorMessage.resolve(error));
         }
 
-        updateDisplay();
         refresh();
     }
 

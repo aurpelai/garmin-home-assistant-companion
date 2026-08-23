@@ -1,0 +1,3 @@
+kind: "\U0001F527 Fixed"
+body: Tapping a light no longer makes it flash back to its old state before settling.
+time: 2026-08-24T00:29:08.636333+03:00
