@@ -630,11 +630,12 @@ function theQueueDrainsOnlyOnceTheThresholdIsExhausted(logger as Test.Logger) as
 }
 
 (:test)
-function cancellingClearsTheQueueTheErrorAndTheSlotTogether(logger as Test.Logger) as Boolean {
+function cancellingClearsTheQueueAndTheSlotTogether(logger as Test.Logger) as Boolean {
     // Cancels with a change genuinely occupying the slot (mid-retry, not yet
-    // exhausted, so lastError has nothing to do with why the slot later reads
-    // as free) and another genuinely still queued — not an empty queue and a
-    // free slot that arrived on their own from an already-exhausted run.
+    // exhausted, so the slot later reading as free is cancelAll's doing rather
+    // than a threshold spending itself) and another genuinely still queued —
+    // not an empty queue and a free slot that arrived on their own from an
+    // already-exhausted run.
     Application.Storage.clearValues();
     var client = new MockHaClient();
     Registration.seed("some-id");
@@ -646,7 +647,6 @@ function cancellingClearsTheQueueTheErrorAndTheSlotTogether(logger as Test.Logge
 
     client.cancelAll();
 
-    Test.assert(client.lastError() == null);
     Test.assert(!client.hasOutstandingChanges());
 
     // The second tap was still queued, never posted, when cancelAll ran, so
@@ -687,9 +687,40 @@ function aRefreshWhereOneTargetFailsNeverStampsCompletion(logger as Test.Logger)
     client.fireSuccessAt(5, {} as Dictionary);
 
     Test.assertEqual(log.targets.size(), 3);
-    Test.assert(client.lastRefreshFailed());
-    Test.assert(!client.hasCompletedARefresh());
+
+    // The lost target's own error survives the target that succeeded after it:
+    // were the result the last reply's, a refresh ending on a success would
+    // read as clean.
+    var result = client.refreshResult();
+    Test.assertEqual((result.error as RequestError).reason as Number, -1);
+    Test.assert(!result.hasEverCompleted);
     Test.assert(client.msSinceLastRefresh() == null);
+    return true;
+}
+
+(:test)
+function aRefreshKeepsTheFirstErrorNotTheLast(logger as Test.Logger) as Boolean {
+    // Two targets exhaust with different reasons, and a third succeeds after
+    // both. The refresh keeps the error of the first target it lost: what
+    // matters is that no later reply can overwrite it, success included, and
+    // taking the first is what makes that hold without a separate flag.
+    Application.Storage.clearValues();
+    var client = new MockHaClient();
+    Registration.seed("some-id");
+    var log = new TargetLog();
+
+    client.refresh(log.method(:onTarget));
+
+    for (var index = 0; index < 4; index++) {
+        client.fireFailureAt(index, 401);
+    }
+    for (var index = 4; index < 8; index++) {
+        client.fireFailureAt(index, -1);
+    }
+    client.fireSuccessAt(8, {} as Dictionary);
+
+    Test.assertEqual(log.targets.size(), 3);
+    Test.assertEqual((client.refreshResult().error as RequestError).reason as Number, 401);
     return true;
 }
 

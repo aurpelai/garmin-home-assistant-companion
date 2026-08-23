@@ -164,29 +164,29 @@ class Coordinator {
         }
     }
 
-    // The one navigation gate, reached once a refresh has settled so the three
-    // facts it reads are final rather than mid-flight.
+    // The one navigation gate, reached once a refresh has settled so the result
+    // it reads is final rather than mid-flight.
     private function showDestination() as Void {
-        var error = _client.lastError();
+        var result = _client.refreshResult();
 
         if (_haState.hasAreas()) {
             if (_currentView == null) {
                 showCardLoop();
             }
 
-            if (_client.lastRefreshFailed()) {
+            if (result.error != null) {
                 toast(Rez.Strings.ErrRefresh);
             }
 
             return;
         }
 
-        if (error != null) {
-            showError(error);
+        if (result.error != null) {
+            showError(result.error as RequestError);
             return;
         }
 
-        if (_client.hasCompletedARefresh()) {
+        if (result.hasEverCompleted) {
             showMessage(Rez.Strings.NothingFound);
         }
     }
