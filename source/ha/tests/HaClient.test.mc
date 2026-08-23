@@ -692,9 +692,36 @@ function aRefreshWhereOneTargetFailsNeverStampsCompletion(logger as Test.Logger)
     // it: were the outcome the last reply's, a refresh ending on a success
     // would read as clean.
     var outcome = client.refreshOutcome();
-    Test.assertEqual((outcome.lostTargetTo as RequestError).reason as Number, -1);
+    Test.assertEqual((outcome.failure as RequestError).reason as Number, -1);
     Test.assert(!outcome.everCompleted);
     Test.assert(client.msSinceLastRefresh() == null);
+    return true;
+}
+
+(:test)
+function aRefreshCarriesTheFirstFailureItMetNotTheLast(logger as Test.Logger) as Boolean {
+    // Two targets exhaust with different reasons. The first is what the refresh
+    // reports, because the targets run in a fixed order and the earliest one to
+    // give up is the one that explains the rest — a rejected token fails all
+    // three, and the user is told about the token rather than about whatever the
+    // last target happened to say.
+    Application.Storage.clearValues();
+    var client = new MockHaClient();
+    Registration.seed("some-id");
+    var log = new TargetLog();
+
+    client.refresh(log.method(:onTarget));
+
+    for (var attempt = 0; attempt < 4; attempt++) {
+        client.fireFailureAt(attempt, 401);
+    }
+    for (var attempt = 4; attempt < 8; attempt++) {
+        client.fireFailureAt(attempt, -1);
+    }
+    client.fireSuccessAt(8, {} as Dictionary);
+
+    Test.assertEqual(log.targets.size(), 3);
+    Test.assertEqual((client.refreshOutcome().failure as RequestError).reason as Number, 401);
     return true;
 }
 

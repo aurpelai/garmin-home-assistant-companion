@@ -99,7 +99,6 @@ class HaClient {
         Communications.cancelAllRequests();
         _changeQueue = [];
         _pendingFetchTargets = [];
-        _refreshFailure = null;
         _requestInFlight = false;
         _changeInFlight = false;
         _pendingChangeCallback = null;
