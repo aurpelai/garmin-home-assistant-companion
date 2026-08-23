@@ -5,6 +5,13 @@ All notable changes to this project are documented here.
 This file is compiled from change fragments by [changie](https://changie.dev);
 do not edit it by hand. Add a fragment with `changie new` in your PR instead.
 
+## [v0.5.3] - 2026-08-24
+
+### 🔧 Fixed
+
+- The app no longer gets stuck on the loading screen when part of your home fails to load.
+- Tapping a light no longer makes it flash back to its old state before settling.
+
 ## [v0.5.2] - 2026-08-20
 
 ### 🔧 Fixed
