@@ -83,7 +83,7 @@ class HaClient {
 
     // `states(e, true, true)` keeps HA's own display precision and unit as a
     // string, so the watch never reparses or rounds and can't disagree with
-    // the user's dashboard. Needs HA 2023.3.
+    // the user's dashboard.
     //
     // `float(none)`, never `float(0)`: a non-numeric state defaulted to 0 is
     // indistinguishable from a sensor genuinely reading zero, so an area mean
