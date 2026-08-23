@@ -3,7 +3,11 @@
 [![CI](https://github.com/aurpelai/garmin-home-assistant-companion/actions/workflows/ci.yml/badge.svg)](https://github.com/aurpelai/garmin-home-assistant-companion/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-A Garmin Connect IQ watch app for controlling and monitoring Home Assistant from your wrist. Open a room to toggle its lights, individually or as a group, and to read its temperature, humidity, and light level. More entity types are planned.
+A Garmin Connect IQ watch app for controlling and monitoring Home Assistant from your wrist. Open an area to toggle its lights, individually or as a group, and to read its temperature, humidity, and light level. More entity types are planned.
+
+The app presents your home as floors and areas, following how you've organised them in Home Assistant, so an entity you haven't put in an area doesn't appear on the watch. Beyond that the app follows your setup: hidden entities stay hidden, and readings appear exactly as Home Assistant formats them.
+
+Nothing to configure beyond your Home Assistant URL and a token — no YAML, no helper entities.
 
 ## Requirements
 
@@ -17,11 +21,7 @@ A Garmin Connect IQ watch app for controlling and monitoring Home Assistant from
 
 - HA reachable over **HTTPS with a publicly-trusted certificate**. Self-signed certificates are rejected by Connect IQ with no override, so a LAN-only HTTP instance will not work. The easiest path is [Home Assistant Cloud (Nabu Casa)](https://www.nabucasa.com/); the DIY alternative is a reverse proxy with a Let's Encrypt certificate.
 - A long-lived access token for authentication.
-- **Home Assistant 2023.4 or newer.** The app's template uses a function added in that release.
-
-## How it works
-
-The app talks directly to HA's REST API from the watch via `Communications.makeWebRequest` — there's no custom backend and no companion app. Requests are authenticated with a Bearer token. To group entities by area with zero extra configuration (no YAML, no helper entities), the app POSTs a small Jinja template to HA's `/api/template` endpoint, which returns a JSON map of area name → the lights and the temperature, humidity, and illuminance sensors in that area, along with each light's on/off state and each sensor's reading formatted the way Home Assistant formats it. Entities you have hidden in Home Assistant are filtered out by that template, so they never reach the watch.
+- **Home Assistant 2024.4 or newer.** The app reads your floors, and the template functions for them were added in that release.
 
 ## User setup
 
@@ -29,10 +29,6 @@ The app talks directly to HA's REST API from the watch via `Communications.makeW
 2. In Home Assistant, go to **Profile → Security → Long-Lived Access Tokens** and create a new token.
 3. Install "Companion for Home Assistant" on your watch via Connect IQ.
 4. Open the app's settings through the Garmin Connect Mobile app (Device → HA Companion → Settings), and enter your HA base URL and the token. **Paste the token — don't retype it**; a single mistyped character breaks auth.
-
-## Roadmap / Status
-
-Initial scaffold. Current (MVP) functionality: browse Home Assistant areas, toggle the lights in each of them, and read each area's temperature, humidity, and illuminance sensors. Further features are expected on top of this base.
 
 ## Contributing
 
