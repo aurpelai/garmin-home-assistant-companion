@@ -37,17 +37,24 @@ module HaTemplate {
 
     // Each light carries its own area id and, for a group, its member ids —
     // the area's own light list is gone, so grouping moves to the parser.
+    //
+    // Group identity comes from the group registry, not `state_attr(e,
+    // 'entity_id')`: that attribute vanishes when a group goes unavailable, which
+    // would drop a real group to a plain light and lose its place. An unavailable
+    // group is kept (its members are down, not gone); only an available group that
+    // expands to nothing — every member hidden — is left out.
     const LIGHTS =
+        "{% set groups = integration_entities('group') %}" +
         "{% set ns = namespace(out={}) %}" +
         "{% for a in areas() %}" +
         "{% for e in area_entities(a) | reject('is_hidden_entity') | list %}" +
         "{% if e.startswith('light.') and states[e] is not none %}" +
         "{% set members = expand(e) | rejectattr('entity_id', 'is_hidden_entity') " +
             "| map(attribute='entity_id') | list %}" +
-        "{% if state_attr(e, 'entity_id') is none or members | count > 0 %}" +
+        "{% if e not in groups or members | count > 0 or is_state(e, 'unavailable') %}" +
         "{% set light = dict(state=is_state(e, 'on'), name=states[e].name, area_id=a, " +
             "available=not is_state(e, 'unavailable')) %}" +
-        "{% if state_attr(e, 'entity_id') is not none %}" +
+        "{% if e in groups %}" +
         "{% set light = dict(light, memberIds=members) %}" +
         "{% endif %}" +
         "{% set ns.out = dict(ns.out, **{e: light}) %}" +
