@@ -178,7 +178,7 @@ class PageIndicator {
             return;
         }
 
-        dc.setColor(system_color_dark__text.color, system_color_dark__background.background);
+        dc.setColor(system_color_dark__text.color, system_color_dark__text.background);
         dc.clear();
     }
 
