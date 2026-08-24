@@ -4,7 +4,7 @@
          (generated from icons/launcher_master.svg) and wired per device in
          monkey.jungle. Only shared, size-independent drawables live here. -->
     <bitmap id="SelectHint" personality="system_icon_dark__hint_button_right_top system_loc__hint_button_right_top" />
-    <bitmap id="LightbulbOnOutline" filename="lightbulb-on-outline.svg" scaleX="10%" scaleY="10%" />
-    <bitmap id="LightbulbOutline" filename="lightbulb-outline.svg" scaleX="8%" scaleY="8%" />
-    <bitmap id="LightbulbOffOutline" filename="lightbulb-off-outline.svg" scaleX="8%" scaleY="8%" />
+    <bitmap id="LightbulbOnOutline" filename="lightbulb-on-outline.svg" scaleX="10%" scaleY="10%" automaticPalette="false" />
+    <bitmap id="LightbulbOutline" filename="lightbulb-outline.svg" scaleX="8%" scaleY="8%" automaticPalette="false" />
+    <bitmap id="LightbulbOffOutline" filename="lightbulb-off-outline.svg" scaleX="8%" scaleY="8%" automaticPalette="false" />
 </drawables>
