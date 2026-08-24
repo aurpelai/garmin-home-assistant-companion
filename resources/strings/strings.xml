@@ -8,10 +8,6 @@
 
     <!-- UI -->
     <string id="AllLights">All Lights</string>
-    <string id="FloorLightsAllOff">All lights off</string>
-    <string id="FloorLightsAllOn">All lights on</string>
-    <string id="FloorLightsNone">No lights available</string>
-    <string id="FloorLightsSomeOn">Some lights on</string>
     <string id="GroupLightCount">Group • $1$ Lights</string>
     <string id="GroupLightCountOne">Group • 1 Light</string>
     <string id="GroupUnavailable">Group unavailable</string>

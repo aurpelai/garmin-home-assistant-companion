@@ -2,7 +2,13 @@ import Toybox.Graphics;
 import Toybox.Lang;
 import Toybox.WatchUi;
 
+// A whole floor. Its middle band is a single group icon summarising every light
+// on the floor: filled yellow when all are on, an outline when some are, filled
+// grey when none are; a floor with no lights at all shows nothing.
 class FloorCard extends Card {
+    private const LIGHTS_ALL = WatchUi.loadResource(Rez.Drawables.LightbulbGroup) as WatchUi.BitmapResource;
+    private const LIGHTS_SOME = WatchUi.loadResource(Rez.Drawables.LightbulbGroupOutline) as WatchUi.BitmapResource;
+
     private var _zone as String or Null;
     private var _lights as LightTally;
 
@@ -17,26 +23,26 @@ class FloorCard extends Card {
 
     function draw(dc as Graphics.Dc) as Void {
         drawFrame(dc, _zone);
-        drawLightStatus(dc, lightStatus());
+
+        if (_lights.available + _lights.unavailable > 0) {
+            drawLightSummary(dc);
+        }
     }
 
     function open(coordinator as Coordinator) as Void {
         coordinator.showFloorMenu(id);
     }
 
-    private function lightStatus() as String {
-        if (_lights.available == 0) {
-            return WatchUi.loadResource(Rez.Strings.FloorLightsNone) as String;
-        }
+    private function drawLightSummary(dc as Graphics.Dc) as Void {
+        var centerX = dc.getWidth() / 2;
+        var centerY = middleBandY(dc);
 
-        if (_lights.on == _lights.available) {
-            return WatchUi.loadResource(Rez.Strings.FloorLightsAllOn) as String;
+        if (_lights.on == _lights.available && _lights.on > 0) {
+            drawLightIcon(dc, centerX, centerY, LIGHTS_ALL, Graphics.COLOR_YELLOW);
+        } else if (_lights.on > 0) {
+            drawLightIcon(dc, centerX, centerY, LIGHTS_SOME, Graphics.COLOR_YELLOW);
+        } else {
+            drawLightIcon(dc, centerX, centerY, LIGHTS_ALL, Graphics.COLOR_LT_GRAY);
         }
-
-        if (_lights.on > 0) {
-            return WatchUi.loadResource(Rez.Strings.FloorLightsSomeOn) as String;
-        }
-
-        return WatchUi.loadResource(Rez.Strings.FloorLightsAllOff) as String;
     }
 }

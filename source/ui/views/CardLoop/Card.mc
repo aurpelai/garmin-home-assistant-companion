@@ -5,15 +5,10 @@ import Toybox.WatchUi;
 
 class Card {
     private const GRID_SIZE = 12;
-    private const LIGHT_INDICATOR_GAP = 4;
 
     private const BOX_HORIZONTAL_PADDING = 10;
     private const BOX_VERTICAL_PADDING = 5;
     private const BOX_BORDER_RADIUS = 6;
-
-    private const LIGHTBULB_ON = WatchUi.loadResource(Rez.Drawables.LightbulbOn) as WatchUi.BitmapResource;
-    private const LIGHTBULB_OFF = WatchUi.loadResource(Rez.Drawables.LightbulbOutline) as WatchUi.BitmapResource;
-    private const LIGHTBULB_UNAVAILABLE = WatchUi.loadResource(Rez.Drawables.LightbulbOffOutline) as WatchUi.BitmapResource;
 
     private const FONT_SIZES = WatchUi.loadResource(Rez.JsonData.VectorFontSizes) as Dictionary;
 
@@ -65,33 +60,7 @@ class Card {
         drawSelectHint(dc);
     }
 
-    hidden function drawLightStatus(dc as Graphics.Dc, text as String) as Void {
-        Rendering.useAntiAlias(dc, true);
-        dc.setColor(Graphics.COLOR_LT_GRAY, system_color_dark__text.background);
-        dc.drawText(dc.getWidth() / 2, middleBandY(dc), SUBTITLE_FONT, text,
-            Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
-    }
-
-    hidden function drawLightIndicators(dc as Graphics.Dc, lights as LightTally) as Void {
-        var totalCount = lights.available + lights.unavailable;
-        var step = LIGHTBULB_ON.getWidth() + LIGHT_INDICATOR_GAP;
-        var firstX = dc.getWidth() / 2 - (totalCount - 1) * step / 2;
-        var centerY = middleBandY(dc);
-
-        for (var index = 0; index < totalCount; index++) {
-            var x = firstX + index * step;
-
-            if (index < lights.on) {
-                drawLightIcon(dc, x, centerY, LIGHTBULB_ON, Graphics.COLOR_YELLOW);
-            } else if (index < lights.available) {
-                drawLightIcon(dc, x, centerY, LIGHTBULB_OFF, Graphics.COLOR_LT_GRAY);
-            } else {
-                drawLightIcon(dc, x, centerY, LIGHTBULB_UNAVAILABLE, Graphics.COLOR_DK_GRAY);
-            }
-        }
-    }
-
-    private function middleBandY(dc as Graphics.Dc) as Number {
+    hidden function middleBandY(dc as Graphics.Dc) as Number {
         return dc.getHeight() * 6 / GRID_SIZE;
     }
 
@@ -107,8 +76,8 @@ class Card {
         dc.drawText(x, y, SUBTITLE_FONT, text, Graphics.TEXT_JUSTIFY_CENTER);
     }
 
-    private function drawLightIcon(dc as Graphics.Dc, x as Number, y as Number,
-                                   icon as WatchUi.BitmapResource, tint as Number) as Void {
+    hidden function drawLightIcon(dc as Graphics.Dc, x as Number, y as Number,
+                                  icon as WatchUi.BitmapResource, tint as Number) as Void {
         dc.drawBitmap2(x - icon.getWidth() / 2, y - icon.getHeight() / 2, icon, {
             :tintColor => tint
         });
