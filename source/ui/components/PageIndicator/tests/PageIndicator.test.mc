@@ -37,11 +37,33 @@ function hidingClearsTheVisibleState(logger as Test.Logger) as Boolean {
 }
 
 (:test)
-function aCountFallingBelowTheMinimumHidesAVisibleIndicator(logger as Test.Logger) as Boolean {
+function aCountDroppingToASingleCardHidesAVisibleIndicator(logger as Test.Logger) as Boolean {
     var indicator = new PageIndicator(5);
 
     indicator.updateIndex(3);
-    indicator.setPageCount(2, 1);
+    indicator.setPageCount(1, 0);
+
+    Test.assert(!indicator.isVisible());
+
+    return true;
+}
+
+(:test)
+function aTwoPageCountBecomesVisibleOnceNavigated(logger as Test.Logger) as Boolean {
+    var indicator = new PageIndicator(2);
+
+    indicator.updateIndex(1);
+
+    Test.assert(indicator.isVisible());
+
+    return true;
+}
+
+(:test)
+function aSingleCardNeverReveals(logger as Test.Logger) as Boolean {
+    var indicator = new PageIndicator(1);
+
+    indicator.updateIndex(0);
 
     Test.assert(!indicator.isVisible());
 

@@ -1,7 +1,6 @@
 import Rez.Styles;
 import Toybox.Graphics;
 import Toybox.Lang;
-import Toybox.Math;
 import Toybox.Timer;
 import Toybox.WatchUi;
 
@@ -10,16 +9,21 @@ enum PageIndicatorState {
     PAGE_INDICATOR_VISIBLE
 }
 
+typedef IndicatorLayout as interface {
+    function reset() as Void;
+    function startDismiss(onHidden as (Method() as Void)) as Void;
+    function draw(dc as Graphics.Dc, indicator as PageIndicator, start as Number, count as Number,
+                   moreBefore as Boolean, moreAfter as Boolean) as Void;
+};
+
 class PageIndicator {
+    private const MAX_PAGE_INDICATORS = 5;
+
     private const SLIDE_OUT_DURATION = 0.2;
     private const VISIBLE_DURATION_MS = 1800;
     private const INDICATOR_FADE_DURATION = 0.05;
 
-    private const START_ANGLE = Math.PI;
-
     private const PAGE_INDICATOR_INSET = 8;
-    private const MAX_PAGE_INDICATORS = 5;
-    private const MIN_PAGE_INDICATORS = 3;
 
     private const ACTIVE_INDICATOR_COLOR_CHANNEL = 254; // NOTE: 255 causes Graphics.createColor to return -1 (transparent)
     private const INACTIVE_INDICATOR_COLOR_CHANNEL = 0;
@@ -29,16 +33,19 @@ class PageIndicator {
 
     private var _pageIndicatorRadius as Number;
     private var _pageOverflowRadius as Number;
-    private var _pageIndicatorSpacing as Number;
-    public var _inactiveIndicatorColorChannel as Number;
-
-    private var _radiusStart as Float;
-    private var _radiusEnd as Float;
-    public var _radius as Float;
+    public var inactiveIndicatorColorChannel as Number;
 
     private var _layer as WatchUi.Layer;
     private var _state as PageIndicatorState;
     private var _timer as Timer.Timer;
+
+    private var _radialLayout as RadialLayout;
+    private var _axialLayout as AxialLayout;
+
+    // Captured at reveal and frozen for the visible lifetime: a background rebuild
+    // must never reshape an indicator that is on screen. Do not recompute in draw.
+    private var _layout as IndicatorLayout;
+    private var _window as Array;
 
     private var _pageCount as Number;
     private var _currentPage as Number;
@@ -55,19 +62,25 @@ class PageIndicator {
         var dimensions = WatchUi.loadResource(Rez.JsonData.PageIndicatorDimensions) as Dictionary;
         _pageIndicatorRadius = dimensions.get("radius") as Number;
         _pageOverflowRadius = dimensions.get("overflowRadius") as Number;
-        _pageIndicatorSpacing = dimensions.get("spacing") as Number;
+        var spacing = dimensions.get("spacing") as Number;
 
         var dc = _layer.getDc();
-        _radiusStart = dc != null
+        var centerX = dc != null ? dc.getWidth() / 2 : 0;
+        var centerY = dc != null ? dc.getHeight() / 2 : 0;
+        var radiusStart = dc != null
             ? (dc.getWidth() / 2 - PAGE_INDICATOR_INSET - _pageIndicatorRadius).toFloat()
             : 0.0;
-        _radius = _radiusStart;
-        _radiusEnd = dc != null
+        var radiusEnd = dc != null
             ? (dc.getWidth() / 2 + PAGE_INDICATOR_INSET + _pageIndicatorRadius).toFloat()
             : 0.0;
 
+        _radialLayout = new RadialLayout(centerX, centerY, radiusStart, radiusEnd, spacing, SLIDE_OUT_DURATION);
+        _axialLayout = new AxialLayout(centerX, centerY, radiusStart, radiusEnd, spacing, SLIDE_OUT_DURATION);
+        _window = resolveWindow();
+        _layout = selectLayout(_window[1] as Number);
+
         _timer = new Timer.Timer();
-        _inactiveIndicatorColorChannel = INACTIVE_INDICATOR_COLOR_CHANNEL;
+        inactiveIndicatorColorChannel = INACTIVE_INDICATOR_COLOR_CHANNEL;
     }
 
     function onParentViewHide() as Void {
@@ -81,21 +94,13 @@ class PageIndicator {
     }
 
     function onHideStart() as Void {
-        WatchUi.animate(
-            self,
-            :_radius,
-            WatchUi.ANIM_TYPE_LINEAR,
-            _radiusStart,
-            _radiusEnd,
-            SLIDE_OUT_DURATION,
-            method(:hideIndicator)
-        );
+        _layout.startDismiss(method(:hideIndicator));
     }
 
     private function onIndexUpdate() as Void {
         WatchUi.animate(
             self,
-            :_inactiveIndicatorColorChannel,
+            :inactiveIndicatorColorChannel,
             WatchUi.ANIM_TYPE_LINEAR,
             ACTIVE_INDICATOR_COLOR_CHANNEL,
             INACTIVE_INDICATOR_COLOR_CHANNEL,
@@ -111,57 +116,28 @@ class PageIndicator {
             return;
         }
 
-        var currentPageWindow = getCurrentPageWindow();
-        var visibleIndicatorCount = currentPageWindow.get(:count) as Number;
-
-        var centerX = dc.getWidth() / 2;
-        var centerY = dc.getHeight() / 2;
-        var angleStep = _pageIndicatorSpacing / _radiusStart;
-
         clear();
 
-        if (currentPageWindow.get(:moreBefore) as Boolean) {
-            drawOverflowIndicator(
-                dc,
-                calculateFanAngle(-1, visibleIndicatorCount, angleStep),
-                centerX,
-                centerY,
-                _radius
-            );
-        }
-
-        var start = currentPageWindow.get(:start) as Number;
-
-        for (var i = 0; i < visibleIndicatorCount; i++) {
-            var page = start + i;
-            drawPageIndicator(
-                dc,
-                calculateFanAngle(i, visibleIndicatorCount, angleStep),
-                centerX,
-                centerY,
-                _radius,
-                page
-            );
-        }
-
-        if (currentPageWindow.get(:moreAfter) as Boolean) {
-            drawOverflowIndicator(
-                dc,
-                calculateFanAngle(visibleIndicatorCount, visibleIndicatorCount, angleStep),
-                centerX,
-                centerY,
-                _radius
-            );
-        }
-
+        _layout.draw(dc, self, _window[0] as Number, _window[1] as Number, _window[2] as Boolean, _window[3] as Boolean);
     }
 
-    private function drawPageIndicator(dc as Graphics.Dc, angle as Float, centerX as Number,
-                                       centerY as Number, radius as Float, page as Number) as Void {
-        var point = calculatePointOnCircle(angle, centerX, centerY, radius);
-        var x = point[0];
-        var y = point[1];
+    private function resolveWindow() as Array {
+        if (_pageCount <= MAX_PAGE_INDICATORS) {
+            return [0, _pageCount, false, false];
+        }
 
+        if (_currentPage <= MAX_PAGE_INDICATORS - 1) {
+            return [0, MAX_PAGE_INDICATORS, false, true];
+        }
+
+        if (_currentPage >= _pageCount - MAX_PAGE_INDICATORS) {
+            return [_pageCount - MAX_PAGE_INDICATORS, MAX_PAGE_INDICATORS, true, false];
+        }
+
+        return [_currentPage - MAX_PAGE_INDICATORS / 2, MAX_PAGE_INDICATORS, true, true];
+    }
+
+    function drawIndicator(dc as Graphics.Dc, x as Float, y as Float, page as Number) as Void {
         if (page == _currentPage) {
             Rendering.useAntiAlias(dc, true);
 
@@ -175,7 +151,7 @@ class PageIndicator {
         Rendering.useAntiAlias(dc, false);
 
         if (page == _previousPage) {
-            var color = Graphics.createColor(255, _inactiveIndicatorColorChannel, _inactiveIndicatorColorChannel, _inactiveIndicatorColorChannel);
+            var color = Graphics.createColor(255, inactiveIndicatorColorChannel, inactiveIndicatorColorChannel, inactiveIndicatorColorChannel);
             dc.setColor(color, system_color_dark__background.background);
             dc.fillCircle(x, y, _pageIndicatorRadius);
         }
@@ -184,12 +160,7 @@ class PageIndicator {
         dc.drawCircle(x, y, _pageIndicatorRadius);
     }
 
-    private function drawOverflowIndicator(dc as Graphics.Dc, angle as Float, centerX as Number,
-                                           centerY as Number, radius as Float) as Void {
-        var point = calculatePointOnCircle(angle, centerX, centerY, radius);
-        var x = point[0];
-        var y = point[1];
-
+    function drawOverflowIndicator(dc as Graphics.Dc, x as Float, y as Float) as Void {
         Rendering.useAntiAlias(dc, false);
 
         dc.setColor(OVERFLOW_INDICATOR_STROKE_COLOR, system_color_dark__background.background);
@@ -216,10 +187,12 @@ class PageIndicator {
     }
 
     function showIndicator() as Void {
-        _radius = _radiusStart;
-        _state = _pageCount < MIN_PAGE_INDICATORS
-            ? PAGE_INDICATOR_HIDDEN
-            : PAGE_INDICATOR_VISIBLE;
+        _window = resolveWindow();
+        _layout = selectLayout(_window[1] as Number);
+        _layout.reset();
+        _state = hasMultiplePages()
+            ? PAGE_INDICATOR_VISIBLE
+            : PAGE_INDICATOR_HIDDEN;
 
         if (!isVisible()) {
             return;
@@ -246,7 +219,7 @@ class PageIndicator {
         _currentPage = page;
         _previousPage = page;
 
-        if (isVisible() && _pageCount < MIN_PAGE_INDICATORS) {
+        if (isVisible() && !hasMultiplePages()) {
             dismiss();
         }
     }
@@ -260,51 +233,11 @@ class PageIndicator {
         draw();
     }
 
-    private function calculateFanAngle(i as Number, visibleIndicatorCount as Number, angleStep as Float) as Float {
-        return START_ANGLE - (i - (visibleIndicatorCount - 1) / 2.0) * angleStep;
+    private function hasMultiplePages() as Boolean {
+        return _pageCount > 1;
     }
 
-    private function calculatePointOnCircle(angle as Float, centerX as Number, centerY as Number,
-                                          radius as Float) as Array<Float> {
-        return [
-            (centerX + radius * Math.cos(angle)).toFloat(),
-            (centerY + radius * Math.sin(angle)).toFloat()
-        ];
-    }
-
-    private function getCurrentPageWindow() as Dictionary {
-        if (_pageCount <= MAX_PAGE_INDICATORS) {
-            return {
-                :start => 0,
-                :count => _pageCount,
-                :moreBefore => false,
-                :moreAfter => false
-            };
-        }
-
-        if (_currentPage <= MAX_PAGE_INDICATORS - 1) {
-            return {
-                :start => 0,
-                :count => MAX_PAGE_INDICATORS,
-                :moreBefore => false,
-                :moreAfter => true
-            };
-        }
-
-        if (_currentPage >= _pageCount - MAX_PAGE_INDICATORS) {
-            return {
-                :start => _pageCount - MAX_PAGE_INDICATORS,
-                :count => MAX_PAGE_INDICATORS,
-                :moreBefore => true,
-                :moreAfter => false
-            };
-        }
-
-        return {
-            :start => _currentPage - MAX_PAGE_INDICATORS / 2,
-            :count => MAX_PAGE_INDICATORS,
-            :moreBefore => true,
-            :moreAfter => true
-        };
+    private function selectLayout(count as Number) as IndicatorLayout {
+        return count == 2 ? _axialLayout : _radialLayout;
     }
 }
