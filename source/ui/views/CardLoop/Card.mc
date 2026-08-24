@@ -11,7 +11,7 @@ class Card {
     private const BOX_VERTICAL_PADDING = 5;
     private const BOX_BORDER_RADIUS = 6;
 
-    private const LIGHTBULB_ON = WatchUi.loadResource(Rez.Drawables.LightbulbOnOutline) as WatchUi.BitmapResource;
+    private const LIGHTBULB_ON = WatchUi.loadResource(Rez.Drawables.LightbulbOn) as WatchUi.BitmapResource;
     private const LIGHTBULB_OFF = WatchUi.loadResource(Rez.Drawables.LightbulbOutline) as WatchUi.BitmapResource;
     private const LIGHTBULB_UNAVAILABLE = WatchUi.loadResource(Rez.Drawables.LightbulbOffOutline) as WatchUi.BitmapResource;
 
