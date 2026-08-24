@@ -41,6 +41,9 @@ class PageIndicator {
 
     private var _radialLayout as RadialLayout;
     private var _axialLayout as AxialLayout;
+
+    // Captured at reveal and frozen for the visible lifetime: a background rebuild
+    // must never reshape an indicator that is on screen. Do not recompute in draw.
     private var _layout as DotLayout;
     private var _window as Array;
 
