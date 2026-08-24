@@ -190,7 +190,7 @@ class PageIndicator {
         _window = resolveWindow();
         _layout = selectLayout(_window[1] as Number);
         _layout.reset();
-        _state = isNavigable()
+        _state = hasMultiplePages()
             ? PAGE_INDICATOR_VISIBLE
             : PAGE_INDICATOR_HIDDEN;
 
@@ -219,7 +219,7 @@ class PageIndicator {
         _currentPage = page;
         _previousPage = page;
 
-        if (isVisible() && !isNavigable()) {
+        if (isVisible() && !hasMultiplePages()) {
             dismiss();
         }
     }
@@ -233,7 +233,7 @@ class PageIndicator {
         draw();
     }
 
-    private function isNavigable() as Boolean {
+    private function hasMultiplePages() as Boolean {
         return _pageCount > 1;
     }
 
