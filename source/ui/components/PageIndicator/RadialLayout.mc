@@ -4,7 +4,6 @@ import Toybox.Math;
 import Toybox.WatchUi;
 
 class RadialLayout {
-    private const MAX_PAGE_INDICATORS = 5;
     private const START_ANGLE = Math.PI;
 
     private var _centerX as Number;
@@ -42,30 +41,8 @@ class RadialLayout {
         );
     }
 
-    function draw(dc as Graphics.Dc, indicator as PageIndicator, currentPage as Number, pageCount as Number) as Void {
-        if (pageCount <= MAX_PAGE_INDICATORS) {
-            drawWindow(dc, indicator, 0, pageCount, false, false);
-
-            return;
-        }
-
-        if (currentPage <= MAX_PAGE_INDICATORS - 1) {
-            drawWindow(dc, indicator, 0, MAX_PAGE_INDICATORS, false, true);
-
-            return;
-        }
-
-        if (currentPage >= pageCount - MAX_PAGE_INDICATORS) {
-            drawWindow(dc, indicator, pageCount - MAX_PAGE_INDICATORS, MAX_PAGE_INDICATORS, true, false);
-
-            return;
-        }
-
-        drawWindow(dc, indicator, currentPage - MAX_PAGE_INDICATORS / 2, MAX_PAGE_INDICATORS, true, true);
-    }
-
-    private function drawWindow(dc as Graphics.Dc, indicator as PageIndicator, start as Number,
-                                count as Number, moreBefore as Boolean, moreAfter as Boolean) as Void {
+    function place(dc as Graphics.Dc, indicator as PageIndicator, start as Number,
+                   count as Number, moreBefore as Boolean, moreAfter as Boolean) as Void {
         var angleStep = _spacing / _radiusStart;
 
         if (moreBefore) {

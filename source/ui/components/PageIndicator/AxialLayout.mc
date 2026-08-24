@@ -36,10 +36,21 @@ class AxialLayout {
         );
     }
 
-    function draw(dc as Graphics.Dc, indicator as PageIndicator, currentPage as Number, pageCount as Number) as Void {
+    function place(dc as Graphics.Dc, indicator as PageIndicator, start as Number,
+                   count as Number, moreBefore as Boolean, moreAfter as Boolean) as Void {
         var x = _anchorX - offset;
+        var top = _centerY - (count - 1) * _spacing / 2.0;
 
-        indicator.drawDot(dc, x, _centerY - _spacing / 2.0, 0);
-        indicator.drawDot(dc, x, _centerY + _spacing / 2.0, 1);
+        if (moreBefore) {
+            indicator.drawOverflowDot(dc, x, top - _spacing);
+        }
+
+        for (var i = 0; i < count; i++) {
+            indicator.drawDot(dc, x, top + i * _spacing, start + i);
+        }
+
+        if (moreAfter) {
+            indicator.drawOverflowDot(dc, x, top + count * _spacing);
+        }
     }
 }

@@ -12,10 +12,13 @@ enum PageIndicatorState {
 typedef DotLayout as interface {
     function reset() as Void;
     function startDismiss(onHidden as (Method() as Void)) as Void;
-    function draw(dc as Graphics.Dc, indicator as PageIndicator, currentPage as Number, pageCount as Number) as Void;
+    function place(dc as Graphics.Dc, indicator as PageIndicator, start as Number, count as Number,
+                   moreBefore as Boolean, moreAfter as Boolean) as Void;
 };
 
 class PageIndicator {
+    private const MAX_PAGE_INDICATORS = 5;
+
     private const SLIDE_OUT_DURATION = 0.2;
     private const VISIBLE_DURATION_MS = 1800;
     private const INDICATOR_FADE_DURATION = 0.05;
@@ -109,7 +112,26 @@ class PageIndicator {
         }
 
         clear();
-        _layout.draw(dc, self, _currentPage, _pageCount);
+
+        if (_pageCount <= MAX_PAGE_INDICATORS) {
+            _layout.place(dc, self, 0, _pageCount, false, false);
+
+            return;
+        }
+
+        if (_currentPage <= MAX_PAGE_INDICATORS - 1) {
+            _layout.place(dc, self, 0, MAX_PAGE_INDICATORS, false, true);
+
+            return;
+        }
+
+        if (_currentPage >= _pageCount - MAX_PAGE_INDICATORS) {
+            _layout.place(dc, self, _pageCount - MAX_PAGE_INDICATORS, MAX_PAGE_INDICATORS, true, false);
+
+            return;
+        }
+
+        _layout.place(dc, self, _currentPage - MAX_PAGE_INDICATORS / 2, MAX_PAGE_INDICATORS, true, true);
     }
 
     function drawDot(dc as Graphics.Dc, x as Float, y as Float, page as Number) as Void {
