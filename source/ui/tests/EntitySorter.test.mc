@@ -38,6 +38,21 @@ function lightsAreSortedAvailableFirstThenGroupsThenByName(logger as Test.Logger
 }
 
 (:test)
+function anUnavailableGroupLeadsItsBucketEvenWithNoReachableMembers(logger as Test.Logger) as Boolean {
+    // A group whose members are all unavailable expands to nothing, so its member
+    // ids arrive empty rather than null. Empty is still a group: it must lead the
+    // unavailable bucket, not sink among the plain lights.
+    var sorted = EntitySorter.sortLights([
+        EntitySorterTest.light("light.dark", "Aaa Broken", false, null),
+        EntitySorterTest.light("light.dead_group", "Zzz Group", false, [] as Array<String>)
+    ]);
+
+    Test.assertEqual(sorted[0].id, "light.dead_group");
+    Test.assertEqual(sorted[1].id, "light.dark");
+    return true;
+}
+
+(:test)
 function lightsWithEqualNamesAreSortedByIdRatherThanArbitrarily(logger as Test.Logger) as Boolean {
     var sorted = EntitySorter.sortLights([
         EntitySorterTest.light("light.b", "Lampe", true, null),
