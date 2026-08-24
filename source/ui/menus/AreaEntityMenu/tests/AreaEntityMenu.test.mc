@@ -135,7 +135,7 @@ function sensorRowsFollowLightRowsAndAreInert(logger as Test.Logger) as Boolean 
     var menu = AreaEntityMenuTest.menuOf(AreaEntityMenuTest.stateOf({
         "light.a" => { "state" => true, "area_id" => "area.room" }
     }, {
-        "sensor.t" => { "state" => 21.5, "display_state" => "21.5 °C", "unit" => "°C",
+        "sensor.t" => { "state" => 21.5, "friendly_state" => "21.5 °C", "unit" => "°C",
             "device_class" => "temperature", "area_id" => "area.room" }
     }));
 
@@ -191,7 +191,7 @@ function aDomainArrivingAfterTheMenuOpenedAddsNoRow(logger as Test.Logger) as Bo
     Test.assert(menu.getItem(1) == null);
 
     haState.setSensors(HaPayload.parseSensors({
-        "sensors" => { "sensor.t" => { "state" => 21.5, "display_state" => "21.5 °C",
+        "sensors" => { "sensor.t" => { "state" => 21.5, "friendly_state" => "21.5 °C",
             "device_class" => "temperature", "area_id" => "area.room" } }
     }));
     menu.rebuild(haState);

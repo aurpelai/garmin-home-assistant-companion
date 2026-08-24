@@ -56,13 +56,13 @@ function aSensorRowKeepsAvailabilityApartFromHaFormatting(logger as Test.Logger)
     var haState = AreaEntityMenuModelTest.stateOf({
         "areas" => { "area.room" => { "name" => "Room" } }
     }, {} as Dictionary, {
-        "sensor.dead" => { "state" => null, "display_state" => "unavailable °C", "unit" => "°C",
+        "sensor.dead" => { "state" => null, "friendly_state" => "unavailable °C", "unit" => "°C",
             "device_class" => "temperature", "area_id" => "area.room", "available" => false }
     });
     var row = (AreaEntityMenuBuilder.build(haState, "area.room") as AreaEntityMenuModel).sensors[0];
 
     Test.assert(!row.isAvailable);
-    Test.assertEqual(row.displayValue as String, "unavailable °C");
+    Test.assertEqual(row.friendlyState as String, "unavailable °C");
     return true;
 }
 

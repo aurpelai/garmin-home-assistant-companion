@@ -40,15 +40,15 @@ class SensorReading {
     // precise than its coarsest input, so "21.5 °C" with "22 °C" reads "22 °C".
     private static function formatMean(sensors as Array<SensorModel>) as String {
         if (sensors.size() == 1) {
-            return sensors[0].displayValue;
+            return sensors[0].friendlyState;
         }
 
         var sum = 0.0;
-        var decimals = countDecimals(sensors[0]);
+        var decimals = sensors[0].displayPrecision;
 
         for (var index = 0; index < sensors.size(); index++) {
             sum += sensors[index].value as Float;
-            var own = countDecimals(sensors[index]);
+            var own = sensors[index].displayPrecision;
             decimals = own < decimals ? own : decimals;
         }
 
@@ -60,50 +60,5 @@ class SensorReading {
         }
 
         return mean + " " + unit;
-    }
-
-    // The unit is stripped off the display value by value rather than guessed at
-    // a separator, leaving the numeric part to measure.
-    private static function countDecimals(sensor as SensorModel) as Number {
-        var number = stripSuffix(sensor.displayValue, sensor.unit);
-        var dot = number.find(".");
-
-        if (dot == null) {
-            return 0;
-        }
-
-        var fraction = number.substring(dot + 1, number.length());
-
-        return fraction == null ? 0 : countDigits(fraction as String);
-    }
-
-    private static function stripSuffix(text as String, suffix as String or Null) as String {
-        if (suffix == null || (suffix as String).length() == 0
-                || (suffix as String).length() > text.length()) {
-            return text;
-        }
-
-        var tail = text.substring(text.length() - (suffix as String).length(), text.length());
-
-        if (tail == null || !(tail as String).equals(suffix)) {
-            return text;
-        }
-
-        var head = text.substring(0, text.length() - (suffix as String).length());
-
-        return head == null ? text : head as String;
-    }
-
-    private static function countDigits(text as String) as Number {
-        var chars = text.toCharArray();
-        var count = 0;
-
-        for (var index = 0; index < chars.size(); index++) {
-            if (chars[index] >= '0' && chars[index] <= '9') {
-                count++;
-            }
-        }
-
-        return count;
     }
 }

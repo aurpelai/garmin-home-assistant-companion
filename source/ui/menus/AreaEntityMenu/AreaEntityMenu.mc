@@ -106,12 +106,12 @@ class AreaEntityMenu extends WatchUi.Menu2 {
     }
 
     static function toSensorSubLabel(row as SensorRowModel) as String {
-        var displayValue = row.displayValue;
+        var friendlyState = row.friendlyState;
 
-        if (!row.isAvailable || displayValue == null) {
+        if (!row.isAvailable || friendlyState == null) {
             return WatchUi.loadResource(Rez.Strings.Unavailable) as String;
         }
 
-        return displayValue as String;
+        return friendlyState as String;
     }
 }

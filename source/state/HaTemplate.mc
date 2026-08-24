@@ -72,7 +72,8 @@ module HaTemplate {
         "{% if e.startswith('sensor.') and states[e] is not none " +
             "and state_attr(e, 'device_class') in ['temperature', 'humidity', 'illuminance'] %}" +
         "{% set ns.out = dict(ns.out, **{e: dict(" +
-            "state=states(e) | float(none), display_state=states(e, true, true), " +
+            "state=states(e) | float(none), friendly_state=states(e, true, true), " +
+            "display_precision=(states(e, rounded=True) | string).split('.')[1] | default('', true) | length, " +
             "unit=state_attr(e, 'unit_of_measurement'), " +
             "device_class=state_attr(e, 'device_class'), area_id=a, name=entity_name(e), " +
             "available=not is_state(e, 'unavailable') and not is_state(e, 'unknown'))}) %}" +

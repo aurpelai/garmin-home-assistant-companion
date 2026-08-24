@@ -31,8 +31,8 @@ module HaPayload {
         return lights;
     }
 
-    // A sensor with no display_state is absent rather than present with nulls:
-    // display_state is the row's only text, so an entry without one cannot be
+    // A sensor with no friendly_state is absent rather than present with nulls:
+    // friendly_state is the row's only text, so an entry without one cannot be
     // rendered at all.
     function parseSensors(payload as Object or Null) as Dictionary<String, SensorModel> {
         var entries = readEntries(payload, "sensors");
@@ -42,15 +42,16 @@ module HaPayload {
         for (var index = 0; index < entityIds.size(); index++) {
             var entityId = entityIds[index] as String;
             var entry = entries.get(entityId) as Dictionary;
-            var displayValue = asStringOrNull(entry.get("display_state"));
-            if (displayValue == null) {
+            var friendlyState = asStringOrNull(entry.get("friendly_state"));
+            if (friendlyState == null) {
                 continue;
             }
 
             sensors.put(entityId, new SensorModel(
                 entityId,
                 asFloatOrNull(entry.get("state")),
-                displayValue,
+                friendlyState,
+                asNumber(entry.get("display_precision")),
                 asStringOrNull(entry.get("unit")),
                 asString(entry.get("device_class")),
                 asString(entry.get("name")),
@@ -113,7 +114,7 @@ module HaPayload {
             insertFloorByOrder(out, new FloorModel(
                 id,
                 asString(entry.get("name")),
-                asOrder(entry.get("order")),
+                asNumber(entry.get("order")),
                 onlyStrings(entry.get("areas"))));
         }
 
@@ -161,7 +162,7 @@ module HaPayload {
         return raw instanceof String ? raw : "";
     }
 
-    function asOrder(raw as Object or Null) as Number {
+    function asNumber(raw as Object or Null) as Number {
         if (raw instanceof Number) {
             return raw;
         }
