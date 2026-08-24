@@ -5,6 +5,21 @@ All notable changes to this project are documented here.
 This file is compiled from change fragments by [changie](https://changie.dev);
 do not edit it by hand. Add a fragment with `changie new` in your PR instead.
 
+## [v0.6.0] - 2026-08-24
+
+### 🎉 New
+
+- Area cards show each light's status as a bulb icon — lit, off, or unavailable — instead of a plain dot
+
+### ✨ Improved
+
+- Sensor display precision arrives as its own payload field instead of being parsed from Home Assistant's formatted state string
+- The page indicator is shown when there are two or more pages to flip through
+
+### 🔧 Fixed
+
+- A light group whose lights are all unavailable no longer sorts in among the individual lights
+
 ## [v0.5.3] - 2026-08-24
 
 ### 🔧 Fixed
