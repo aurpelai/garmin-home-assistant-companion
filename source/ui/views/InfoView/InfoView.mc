@@ -30,7 +30,7 @@ class InfoView extends WatchUi.View {
         var width = dc.getWidth();
         var height = dc.getHeight();
 
-        dc.setColor(system_color_dark__text.color, Graphics.COLOR_BLACK);
+        dc.setColor(system_color_dark__text.color, system_color_dark__background.background);
         dc.clear();
         textArea.setLocation(width * 0.2, height * 0.2);
         textArea.setSize(width * 0.6, height * 0.6);
@@ -38,7 +38,7 @@ class InfoView extends WatchUi.View {
 
         if (detail != null) {
             Rendering.useAntiAlias(dc, true);
-            dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_BLACK);
+            dc.setColor(Graphics.COLOR_DK_GRAY, system_color_dark__text.background);
             dc.drawText(width / 2, height * 0.85, Graphics.FONT_XTINY, detail as String,
                 Graphics.TEXT_JUSTIFY_CENTER);
         }
