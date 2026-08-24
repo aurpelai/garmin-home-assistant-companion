@@ -76,7 +76,7 @@ class PageIndicator {
 
         _radialLayout = new RadialLayout(centerX, centerY, radiusStart, radiusEnd, spacing, SLIDE_OUT_DURATION);
         _axialLayout = new AxialLayout(centerX, centerY, radiusStart, radiusEnd, spacing, SLIDE_OUT_DURATION);
-        _window = computeWindow();
+        _window = resolveWindow();
         _layout = selectLayout(_window[1] as Number);
 
         _timer = new Timer.Timer();
@@ -121,7 +121,7 @@ class PageIndicator {
         _layout.place(dc, self, _window[0] as Number, _window[1] as Number, _window[2] as Boolean, _window[3] as Boolean);
     }
 
-    private function computeWindow() as Array {
+    private function resolveWindow() as Array {
         if (_pageCount <= MAX_PAGE_INDICATORS) {
             return [0, _pageCount, false, false];
         }
@@ -187,7 +187,7 @@ class PageIndicator {
     }
 
     function showIndicator() as Void {
-        _window = computeWindow();
+        _window = resolveWindow();
         _layout = selectLayout(_window[1] as Number);
         _layout.reset();
         _state = isNavigable()
