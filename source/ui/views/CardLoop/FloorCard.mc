@@ -2,9 +2,6 @@ import Toybox.Graphics;
 import Toybox.Lang;
 import Toybox.WatchUi;
 
-// A whole floor. Its middle band is a single group icon summarising every light
-// on the floor: filled yellow when all are on, an outline when some are, filled
-// grey when none are; a floor with no lights at all shows nothing.
 class FloorCard extends Card {
     private const LIGHTS_ALL = WatchUi.loadResource(Rez.Drawables.LightbulbGroup) as WatchUi.BitmapResource;
     private const LIGHTS_SOME = WatchUi.loadResource(Rez.Drawables.LightbulbGroupOutline) as WatchUi.BitmapResource;
@@ -35,7 +32,7 @@ class FloorCard extends Card {
 
     private function drawLightSummary(dc as Graphics.Dc) as Void {
         var centerX = dc.getWidth() / 2;
-        var centerY = middleBandY(dc);
+        var centerY = dc.getHeight() / 2;
 
         if (_lights.on == _lights.available && _lights.on > 0) {
             drawLightIcon(dc, centerX, centerY, LIGHTS_ALL, Graphics.COLOR_YELLOW);

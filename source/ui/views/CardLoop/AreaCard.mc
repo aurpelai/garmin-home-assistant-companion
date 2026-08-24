@@ -2,8 +2,6 @@ import Toybox.Graphics;
 import Toybox.Lang;
 import Toybox.WatchUi;
 
-// One area. Its middle band is a dot per physical light in the area, so a glance
-// says how many are on; an area with no lights at all shows none.
 class AreaCard extends Card {
     private const LIGHT_INDICATOR_GAP = 4;
 
@@ -38,7 +36,7 @@ class AreaCard extends Card {
         var totalCount = lights.available + lights.unavailable;
         var step = LIGHTBULB_ON.getWidth() + LIGHT_INDICATOR_GAP;
         var firstX = dc.getWidth() / 2 - (totalCount - 1) * step / 2;
-        var centerY = middleBandY(dc);
+        var centerY = dc.getHeight() / 2;
 
         for (var index = 0; index < totalCount; index++) {
             var x = firstX + index * step;

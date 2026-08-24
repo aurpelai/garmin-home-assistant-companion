@@ -52,16 +52,20 @@ class Card {
         Rendering.useAntiAlias(dc, true);
 
         if (subtitle != null) {
-            drawSubtitle(dc, centerX, dc.getHeight() * 2 / GRID_SIZE, subtitle as String);
+            drawSubtitle(dc, centerX, getRowY(dc, 2), subtitle as String);
         }
 
-        drawTitle(dc, centerX, dc.getHeight() * 3 / GRID_SIZE, name);
+        drawTitle(dc, centerX, getRowY(dc, 3), name);
         drawReadings(dc);
         drawSelectHint(dc);
     }
 
-    hidden function middleBandY(dc as Graphics.Dc) as Number {
-        return dc.getHeight() * 6 / GRID_SIZE;
+    hidden function getRowY(dc as Graphics.Dc, row as Number) as Number {
+        return dc.getHeight() * row / GRID_SIZE;
+    }
+
+    hidden function getColumnX(dc as Graphics.Dc, column as Number) as Number {
+        return dc.getWidth() * column / GRID_SIZE;
     }
 
     private function drawTitle(dc as Graphics.Dc, x as Number, y as Number, text as String) as Void {
@@ -88,14 +92,14 @@ class Card {
             var reading = readings[index];
 
             if ("temperature".equals(reading.deviceClass)) {
-                drawReadingBox(dc, dc.getWidth() * 4 / GRID_SIZE,
-                    dc.getHeight() * 8 / GRID_SIZE, reading.text);
+                drawReadingBox(dc, getColumnX(dc, 4),
+                    getRowY(dc, 8), reading.text);
             } else if ("humidity".equals(reading.deviceClass)) {
-                drawReadingBox(dc, dc.getWidth() * 8 / GRID_SIZE,
-                    dc.getHeight() * 8 / GRID_SIZE, reading.text);
+                drawReadingBox(dc, getColumnX(dc, 8),
+                    getRowY(dc, 8), reading.text);
             } else if ("illuminance".equals(reading.deviceClass)) {
                 drawReadingBox(dc, dc.getWidth() / 2,
-                    dc.getHeight() * 10 / GRID_SIZE, reading.text);
+                    getRowY(dc, 10), reading.text);
             }
         }
     }
