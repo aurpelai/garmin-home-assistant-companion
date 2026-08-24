@@ -72,7 +72,7 @@ class PageIndicator {
 
         _radialLayout = new RadialLayout(centerX, centerY, radiusStart, radiusEnd, spacing, SLIDE_OUT_DURATION);
         _axialLayout = new AxialLayout(centerX, centerY, radiusStart, radiusEnd, spacing, SLIDE_OUT_DURATION);
-        _layout = selectLayout();
+        _layout = selectLayout(computeWindow()[1] as Number);
 
         _timer = new Timer.Timer();
         inactiveIndicatorColorChannel = INACTIVE_INDICATOR_COLOR_CHANNEL;
@@ -113,25 +113,25 @@ class PageIndicator {
 
         clear();
 
-        if (_pageCount <= MAX_PAGE_INDICATORS) {
-            _layout.place(dc, self, 0, _pageCount, false, false);
+        var window = computeWindow();
+        _layout = selectLayout(window[1] as Number);
+        _layout.place(dc, self, window[0] as Number, window[1] as Number, window[2] as Boolean, window[3] as Boolean);
+    }
 
-            return;
+    private function computeWindow() as Array {
+        if (_pageCount <= MAX_PAGE_INDICATORS) {
+            return [0, _pageCount, false, false];
         }
 
         if (_currentPage <= MAX_PAGE_INDICATORS - 1) {
-            _layout.place(dc, self, 0, MAX_PAGE_INDICATORS, false, true);
-
-            return;
+            return [0, MAX_PAGE_INDICATORS, false, true];
         }
 
         if (_currentPage >= _pageCount - MAX_PAGE_INDICATORS) {
-            _layout.place(dc, self, _pageCount - MAX_PAGE_INDICATORS, MAX_PAGE_INDICATORS, true, false);
-
-            return;
+            return [_pageCount - MAX_PAGE_INDICATORS, MAX_PAGE_INDICATORS, true, false];
         }
 
-        _layout.place(dc, self, _currentPage - MAX_PAGE_INDICATORS / 2, MAX_PAGE_INDICATORS, true, true);
+        return [_currentPage - MAX_PAGE_INDICATORS / 2, MAX_PAGE_INDICATORS, true, true];
     }
 
     function drawDot(dc as Graphics.Dc, x as Float, y as Float, page as Number) as Void {
@@ -184,7 +184,7 @@ class PageIndicator {
     }
 
     function showIndicator() as Void {
-        _layout = selectLayout();
+        _layout = selectLayout(computeWindow()[1] as Number);
         _layout.reset();
         _state = isNavigable()
             ? PAGE_INDICATOR_VISIBLE
@@ -233,7 +233,7 @@ class PageIndicator {
         return _pageCount > 1;
     }
 
-    private function selectLayout() as DotLayout {
-        return _pageCount == 2 ? _axialLayout : _radialLayout;
+    private function selectLayout(count as Number) as DotLayout {
+        return count == 2 ? _axialLayout : _radialLayout;
     }
 }
