@@ -42,8 +42,6 @@ class PageIndicator {
     private var _radialLayout as RadialLayout;
     private var _axialLayout as AxialLayout;
 
-    // Captured at reveal and frozen for the visible lifetime: a background rebuild
-    // must never reshape an indicator that is on screen. Do not recompute in draw.
     private var _layout as IndicatorLayout;
     private var _window as Array;
 
@@ -210,10 +208,6 @@ class PageIndicator {
         clear();
     }
 
-    // A rebuild has no "from" page to cross-fade out of, hence both indices
-    // taking the same value. Only showIndicator arms the auto-hide timer, so a
-    // count change may hide but must never reveal: anything revealed here would
-    // stay on screen indefinitely.
     function setPageCount(pageCount as Number, page as Number) as Void {
         _pageCount = pageCount;
         _currentPage = page;

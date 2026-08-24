@@ -2,13 +2,6 @@ import Toybox.Lang;
 import Toybox.Test;
 import Toybox.WatchUi;
 
-// Drives the push seam through the platform menu's own accessors: a model in,
-// item labels and states out.
-//
-// Row counts are asserted by probing one index past the last expected row:
-// Menu2 exposes no count accessor, and getItem is declared `MenuItem or Null`
-// with an out-of-range index as its only source of that null.
-
 (:test)
 module AreaEntityMenuTest {
 
@@ -44,9 +37,6 @@ module AreaEntityMenuTest {
 
 (:test)
 function aPushChangesTheItemSetInNeitherDirection(logger as Test.Logger) as Boolean {
-    // The freeze is what makes a row impossible to move or lose under the
-    // user's finger, so a model that both drops an entry and gains one leaves
-    // every item exactly where it was — the gained entity is not added either.
     var menu = AreaEntityMenuTest.menuOf(AreaEntityMenuTest.stateOf({
         "light.a" => { "state" => true, "area_id" => "area.room" },
         "light.b" => { "state" => true, "area_id" => "area.room" }
@@ -69,8 +59,6 @@ function aPushChangesTheItemSetInNeitherDirection(logger as Test.Logger) as Bool
 
 (:test)
 function anEntityMissingFromTheModelKeepsTheItemItHad(logger as Test.Logger) as Boolean {
-    // Driven by model entries, so an entity with no entry is never visited and
-    // its row keeps what it last showed rather than being blanked or removed.
     var menu = AreaEntityMenuTest.menuOf(AreaEntityMenuTest.stateOf({
         "light.a" => { "state" => true, "area_id" => "area.room" },
         "light.gone" => { "state" => true, "area_id" => "area.room", "name" => "Gone" }
@@ -90,8 +78,6 @@ function anEntityMissingFromTheModelKeepsTheItemItHad(logger as Test.Logger) as 
 
 (:test)
 function aLightSublabelPicksUnavailableOverAGroupCount(logger as Test.Logger) as Boolean {
-    // An unavailable group would otherwise read as a member count, hiding that
-    // nothing in it can be reached.
     var group = new LightRowModel("light.grp", "Group", false, false, 3);
 
     Test.assertEqual(AreaEntityMenu.toLightSubLabel(group) as String, "Group unavailable");
@@ -110,8 +96,8 @@ function anAvailableGroupShowsItsMemberCount(logger as Test.Logger) as Boolean {
 
 (:test)
 function aSensorSublabelPicksUnavailableOverTheDisplayValue(logger as Test.Logger) as Boolean {
-    // Home Assistant formats whatever the state is, so an unavailable sensor
-    // would otherwise render as the word unavailable followed by a unit.
+    // UNVERIFIED: Home Assistant formats an unavailable sensor as the word
+    // unavailable followed by its unit.
     var dead = new SensorRowModel("sensor.t", "Temp", "unavailable °C", false);
     var live = new SensorRowModel("sensor.t", "Temp", "21.5 °C", true);
 
@@ -130,8 +116,6 @@ function aRowFallsBackToItsIdWhenHaNamesItNothing(logger as Test.Logger) as Bool
 
 (:test)
 function sensorRowsFollowLightRowsAndAreInert(logger as Test.Logger) as Boolean {
-    // Being a plain MenuItem is what makes a sensor row inert, so the ordering
-    // and the row type are one decision rather than two.
     var menu = AreaEntityMenuTest.menuOf(AreaEntityMenuTest.stateOf({
         "light.a" => { "state" => true, "area_id" => "area.room" }
     }, {
@@ -170,9 +154,6 @@ function aVanishedAreaMakesItsMenuObsolete(logger as Test.Logger) as Boolean {
 
 (:test)
 function aDomainArrivingAfterTheMenuOpenedAddsNoRow(logger as Test.Logger) as Boolean {
-    // A refresh fetches lights and sensors as separate requests, so a menu
-    // opened between the two shows only what had landed. The accepted cost of
-    // the freeze: reopening the menu is what reveals the rest.
     var haState = new HaState();
     haState.setZone(HaPayload.parseZone({
         "areas" => { "area.room" => { "name" => "Room" } }
@@ -203,9 +184,6 @@ function aDomainArrivingAfterTheMenuOpenedAddsNoRow(logger as Test.Logger) as Bo
 
 (:test)
 function theEmptyRowOutlivesTheEntitiesArriving(logger as Test.Logger) as Boolean {
-    // Frozen like every other row rather than special-cased: removing it would
-    // be the item set changing under an open menu, which is the one thing the
-    // freeze forbids.
     var haState = new HaState();
     haState.setZone(HaPayload.parseZone({
         "areas" => { "area.room" => { "name" => "Room" } }

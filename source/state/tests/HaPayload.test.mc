@@ -8,7 +8,6 @@ module HaPayloadTest {
         return { "lights" => entries };
     }
 
-    // The three writes the structure target makes, as the coordinator makes them.
     function applyStructure(haState as HaState, payload as Dictionary) as Void {
         haState.setZone(HaPayload.parseZone(payload));
         haState.setAreas(HaPayload.parseAreas(payload));
@@ -47,8 +46,6 @@ function nonNumericSensorValueIsAbsentRatherThanZero(logger as Test.Logger) as B
 
 (:test)
 function sensorWithoutFriendlyStateIsAbsent(logger as Test.Logger) as Boolean {
-    // The friendly state is the row's only text, so an entry with none cannot be
-    // rendered at all — absent beats present with nulls.
     var parsed = HaPayload.parseSensors(HaPayloadTest.sensorsPayload({
         "sensor.mute" => HaPayloadTest.reading(21.5, null, "area.kitchen")
     }));
@@ -59,8 +56,6 @@ function sensorWithoutFriendlyStateIsAbsent(logger as Test.Logger) as Boolean {
 
 (:test)
 function everyParsedModelCarriesTheIdItIsKeyedUnder(logger as Test.Logger) as Boolean {
-    // The id is the entity's own identity, so a model holds it rather than
-    // leaving every caller to carry the key alongside.
     var structure = {
         "areas" => { "area.kitchen" => { "name" => "Küche" } },
         "floors" => { "floor.g" => { "name" => "Ground", "order" => 0, "areas" => ["area.kitchen"] } }
@@ -94,8 +89,6 @@ function parsedModelsCarryTheNamesHomeAssistantRequires(logger as Test.Logger) a
 
 (:test)
 function floorsAreOrderedAsHomeAssistantReportedThem(logger as Test.Logger) as Boolean {
-    // Dictionary key order is hash order, so only the reported `order` can say
-    // which floor comes first.
     var floors = HaPayload.parseFloors({
         "floors" => {
             "floor.attic" => { "name" => "Attic", "order" => 2, "areas" => [] as Array<String> },
@@ -126,8 +119,6 @@ function memberIdsArePresentOnGroupsOnly(logger as Test.Logger) as Boolean {
 
 (:test)
 function eitherArrivalOrderOfTheTargetsProducesTheSameState(logger as Test.Logger) as Boolean {
-    // The structure target and the entity targets are separate requests, so
-    // neither may depend on the other having landed.
     var structure = { "zone" => "Kotitalo", "areas" => { "area.kitchen" => { "name" => "Küche" } } };
     var lights = HaPayloadTest.lightsPayload({
         "light.kitchen" => { "state" => true, "name" => "Küchenlicht", "area_id" => "area.kitchen" }
@@ -152,8 +143,6 @@ function eitherArrivalOrderOfTheTargetsProducesTheSameState(logger as Test.Logge
 
 (:test)
 function unusableInputParsesToAnEmptyTargetRatherThanThrowing(logger as Test.Logger) as Boolean {
-    // The webhook can hand back anything; an empty target keeps the watch running
-    // where a throw would not.
     Test.assertEqual(HaPayload.parseLights(null).size(), 0);
     Test.assertEqual(HaPayload.parseSensors("not a payload").size(), 0);
     Test.assertEqual(HaPayload.parseAreas({ "areas" => "not a map" }).size(), 0);

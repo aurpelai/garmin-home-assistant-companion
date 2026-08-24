@@ -1,27 +1,18 @@
 import Toybox.Lang;
 
-// The request half of the Home Assistant data contract, whose response half is
-// HaPayload: what these templates emit is what HaPayload reads back, so the
-// wire key names on both sides live side by side.
+// Piped through `| tojson` because the render_template webhook returns the
+// rendered value as a string; without it the payload is a Python repr no JSON
+// reader accepts (see #73).
 //
-// Piped through `| tojson`: the render_template webhook returns the rendered
-// value as a string, so without it the payload is a Python repr (single quotes,
-// True/False, enum units) that no JSON reader accepts. tojson makes it
-// well-formed JSON, which JsonParser then decodes on-device.
+// UNVERIFIED: kept backslash-free (`.startswith(...)`, never a `match` regex)
+// because a backslash is sent unescaped by the Connect IQ JSON serializer,
+// producing a 400 "Invalid JSON specified" from HA.
 //
-// Deliberately backslash-free: we filter entities with `.startswith(...)`
-// instead of a regex like select('match','^light\.'). A backslash in these
-// strings would be sent unescaped by the Connect IQ JSON serializer, producing
-// an invalid JSON escape and a 400 "Invalid JSON specified" from HA.
-//
-// Every value reaching a closing `| tojson` is guarded at its own site. An
-// Undefined raises TypeError from inside tojson, before any later filter runs,
-// so `| tojson | default(...)` cannot catch it — one bad entity would cost the
-// whole payload rather than its own row.
+// UNVERIFIED: an Undefined raises TypeError inside tojson before any later
+// filter runs, so `| tojson | default(...)` cannot catch it — hence each value
+// is guarded at its own site (see #109).
 module HaTemplate {
 
-    // Every area is emitted, including empty ones: entity targets arrive
-    // separately, so an area that looks empty here may be populated later.
     const STRUCTURE =
         "{% set ns = namespace(areasOut={}, floorsOut={}) %}" +
         "{% for a in areas() %}" +
@@ -35,14 +26,11 @@ module HaTemplate {
         "{{ dict(zone=state_attr('zone.home', 'friendly_name'), " +
             "areas=ns.areasOut, floors=ns.floorsOut) | tojson }}";
 
-    // Each light carries its own area id and, for a group, its member ids —
-    // the area's own light list is gone, so grouping moves to the parser.
-    //
     // Group identity comes from the group registry, not `state_attr(e,
     // 'entity_id')`: that attribute vanishes when a group goes unavailable, which
-    // would drop a real group to a plain light and lose its place. An unavailable
-    // group is kept (its members are down, not gone); only an available group that
-    // expands to nothing — every member hidden — is left out.
+    // would drop a real group to a plain light and lose its place (see #152). An
+    // unavailable group is kept (its members are down, not gone); only an
+    // available group that expands to nothing — every member hidden — is left out.
     const LIGHTS =
         "{% set groups = integration_entities('group') %}" +
         "{% set ns = namespace(out={}) %}" +
@@ -71,7 +59,7 @@ module HaTemplate {
     // `float(none)`, never `float(0)`: a non-numeric state defaulted to 0 is
     // indistinguishable from a sensor genuinely reading zero, so an area mean
     // would silently absorb it — one unavailable sensor plus a real 21.5 °C
-    // shows 10.8 °C. null makes the absence visible to the parser instead.
+    // shows 10.8 °C (see #109). null makes the absence visible to the parser instead.
     const SENSORS =
         "{% set ns = namespace(out={}) %}" +
         "{% for a in areas() %}" +

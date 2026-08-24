@@ -8,6 +8,6 @@ class ResponseType {
     static const SERVICE_CALL = :serviceCall;
 
     // The single name our template is registered under in the request; the
-    // webhook echoes its render back under the same key.
+    // webhook echoes its render back under the same key (see #73).
     static const TEMPLATE_RENDER_ROOT_KEY = "home";
 }

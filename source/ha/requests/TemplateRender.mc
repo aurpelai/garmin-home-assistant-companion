@@ -1,7 +1,5 @@
 import Toybox.Lang;
 
-// Monkey C has no closures, so something must hold the template between the
-// request and its retried reissue.
 class TemplateRender {
     private var _client as HaClient;
     private var _template as String;

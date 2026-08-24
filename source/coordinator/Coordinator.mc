@@ -1,10 +1,6 @@
 import Toybox.Lang;
 import Toybox.WatchUi;
 
-// Owns fetch policy, the client, view construction and navigation. A view asks
-// it to toggle; it has HaState record the override, fires the request through
-// HaClient, and on reply tells HaState to clear exactly the ids the override
-// created. Retains no models — that is a view's job.
 class Coordinator {
     private const STALE_AFTER_MS = 60 * 1000;
 
@@ -31,8 +27,6 @@ class Coordinator {
         }
     }
 
-    // Order-independent: a stale hide from a view already replaced as current
-    // must not clear the view that replaced it.
     function onViewHidden(view as Screen) as Void {
         if (_currentView == view) {
             _currentView = null;
@@ -47,8 +41,6 @@ class Coordinator {
         return _haState;
     }
 
-    // A subject gone between the card being drawn and the tap landing leaves
-    // nothing to open, so the tap is dropped rather than opening an empty menu.
     function showAreaMenu(areaId as String) as Void {
         var model = AreaEntityMenuBuilder.build(_haState, areaId);
         if (model == null) {
@@ -93,9 +85,6 @@ class Coordinator {
         updateDisplay();
     }
 
-    // The reply says the call was accepted, not what the light now is, so it
-    // leaves the assumed value alone: only the fetch below can answer it. A
-    // failure still signals, since the row goes on showing what was asked for.
     function onToggleSettled(error as RequestError or Null) as Void {
         if (error != null) {
             toast(ErrorMessage.resolve(error));
@@ -104,8 +93,6 @@ class Coordinator {
         refresh();
     }
 
-    // A token change is as disqualifying as a URL change: Home Assistant's
-    // visibility is per-user, so the entities behind a new token may differ.
     function discardRegistration() as Void {
         _client.cancelAll();
         _client.discardRegistration();
@@ -121,8 +108,6 @@ class Coordinator {
         showInfoView(WatchUi.loadResource(id) as String, null);
     }
 
-    // The info screen shows no Home Assistant data, so it is not a Screen and
-    // nothing is live to push into while it is up.
     private function showInfoView(message as String, detail as String or Null) as Void {
         _currentView = null;
         WatchUi.switchToView(new InfoView(message, true, detail), new InfoDelegate(self), WatchUi.SLIDE_IMMEDIATE);
@@ -137,10 +122,6 @@ class Coordinator {
         _client.refresh(method(:onFetchTarget));
     }
 
-    // Every reply lands here, failures included. Each target reaches the screen
-    // as it lands, so partial data is visible while the rest is in flight, but
-    // where the user belongs is a question about the refresh rather than about
-    // one reply — so it waits for the last one.
     function onFetchTarget(target as Symbol, result as Object or Null, isLastTarget as Boolean) as Void {
         if (result != null) {
             if (target == FetchTarget.STRUCTURE) {
@@ -161,8 +142,6 @@ class Coordinator {
         }
     }
 
-    // The one navigation gate, reached once a refresh has settled so the result
-    // it reads is final rather than mid-flight.
     private function showDestination() as Void {
         var result = _client.refreshResult();
 
@@ -192,8 +171,6 @@ class Coordinator {
         WatchUi.showToast(WatchUi.loadResource(id) as String, null);
     }
 
-    // An obsolete view lands on the card loop, which builds from the whole of
-    // HaState and so is the one screen no deletion can empty.
     private function updateDisplay() as Void {
         var view = _currentView;
 

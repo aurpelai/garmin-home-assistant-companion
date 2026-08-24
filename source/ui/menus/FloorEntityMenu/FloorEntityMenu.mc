@@ -1,10 +1,9 @@
 import Toybox.Lang;
 import Toybox.WatchUi;
 
-// The item set is built once here and frozen for the life of the menu: a push
-// updates toggle states and nothing else. A floor gaining or losing its lights
-// while the menu is open therefore changes no row, and seeing a changed set
-// means reopening the menu.
+// The row is built once and frozen for the life of the menu: a rebuild updates
+// its toggle state and nothing else, so nothing moves or vanishes under the
+// user's finger while the menu is open.
 class FloorEntityMenu extends WatchUi.Menu2 {
     private var _coordinator as Coordinator;
     private var _floorId as String;
@@ -56,8 +55,6 @@ class FloorEntityMenu extends WatchUi.Menu2 {
         }
     }
 
-    // A floor row's identity and its service target diverge, so the delegate
-    // cannot read the target off the platform event and asks here instead.
     function toServiceTarget(rowId as Object or Null) as String or Null {
         return FloorEntityMenuModel.LIGHTS_ROW_ID.equals(rowId) ? _floorId : null;
     }

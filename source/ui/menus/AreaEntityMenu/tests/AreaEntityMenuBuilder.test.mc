@@ -18,9 +18,6 @@ module AreaEntityMenuModelTest {
 
 (:test)
 function anAreaGoneFromTheStructureYieldsNoModel(logger as Test.Logger) as Boolean {
-    // Absence is answered here so no call site has to check: a user standing in
-    // an area deleted in Home Assistant leaves the coordinator to decide where
-    // they go instead.
     var haState = AreaEntityMenuModelTest.stateOf({
         "areas" => { "area.kept" => { "name" => "Kept" } }
     }, {} as Dictionary, {} as Dictionary);
@@ -32,8 +29,6 @@ function anAreaGoneFromTheStructureYieldsNoModel(logger as Test.Logger) as Boole
 
 (:test)
 function aRowReadsTheAssumedValueAndCarriesItsPendingStatus(logger as Test.Logger) as Boolean {
-    // The tap's assumed value shows immediately, and the status is derived from
-    // the override existing rather than stored anywhere that could disagree.
     var haState = AreaEntityMenuModelTest.stateOf({
         "areas" => { "area.room" => { "name" => "Room" } }
     }, {
@@ -50,9 +45,8 @@ function aRowReadsTheAssumedValueAndCarriesItsPendingStatus(logger as Test.Logge
 
 (:test)
 function aSensorRowKeepsAvailabilityApartFromHaFormatting(logger as Test.Logger) as Boolean {
-    // The view picks the unavailable label ahead of the display value, so the two
-    // must reach it as separate facts: Home Assistant formats an unavailable
-    // sensor as the word unavailable followed by its unit.
+    // UNVERIFIED: Home Assistant formats an unavailable sensor as the word
+    // unavailable followed by its unit.
     var haState = AreaEntityMenuModelTest.stateOf({
         "areas" => { "area.room" => { "name" => "Room" } }
     }, {} as Dictionary, {
@@ -68,9 +62,6 @@ function aSensorRowKeepsAvailabilityApartFromHaFormatting(logger as Test.Logger)
 
 (:test)
 function aGroupRowCarriesItsMemberCountWhileAPlainRowCarriesNone(logger as Test.Logger) as Boolean {
-    // The count is derived from the ids the payload carried, so there is one
-    // source of truth; a plain light has none, which is what the view reads to
-    // leave its sublabel empty.
     var haState = AreaEntityMenuModelTest.stateOf({
         "areas" => { "area.room" => { "name" => "Room" } }
     }, {
@@ -80,7 +71,6 @@ function aGroupRowCarriesItsMemberCountWhileAPlainRowCarriesNone(logger as Test.
     }, {} as Dictionary);
     var lights = (AreaEntityMenuBuilder.build(haState, "area.room") as AreaEntityMenuModel).lights;
 
-    // Groups lead their area's rows, so the group is first.
     Test.assertEqual(lights[0].memberCount as Number, 3);
     Test.assert(lights[1].memberCount == null);
     return true;

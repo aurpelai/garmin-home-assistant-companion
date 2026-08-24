@@ -7,14 +7,14 @@ import Toybox.System;
 // when. Knows no domain types: a fetch reply hands out a raw payload for the
 // caller to parse.
 //
-// Connect IQ allows one outstanding request of any kind — exceeding it yields a
-// queue-full transport error — so everything below serialises through a single
-// slot that a refresh and a service call compete for.
+// UNVERIFIED: Connect IQ allows one outstanding request of any kind — exceeding
+// it yields a queue-full transport error — so everything below serialises
+// through a single slot that a refresh and a service call compete for.
 class HaClient {
     private const REGISTRATION_KEY = "webhookId";
 
-    // The device can't introspect its real model/OS, so every install registers
-    // under these same constants.
+    // UNVERIFIED: the device can't introspect its real model/OS, so every
+    // install registers under these same constants.
     private const DEVICE_ID = "companion_for_home_assistant";
     private const APP_ID = "companion_for_home_assistant";
     private const APP_NAME = "Companion For Home Assistant";
@@ -25,8 +25,6 @@ class HaClient {
     private const OS_NAME = "Connect IQ";
     private const OS_VERSION = "1";
 
-    // Fired in this order on every refresh; either arrival order is tolerated
-    // downstream, so the order here is just the one chosen.
     private const REFRESH_TARGETS = [FetchTarget.STRUCTURE, FetchTarget.LIGHTS, FetchTarget.SENSORS];
 
     private var _requestInFlight as Boolean;
@@ -71,8 +69,6 @@ class HaClient {
         return new RefreshResult(_refreshError, _lastRefreshCompletedAt != null);
     }
 
-    // Dropped rather than queued, so a caller whose trigger is refused must ask
-    // again once whatever was outstanding has settled.
     function refresh(onTarget as Method) as Void {
         if (isRefreshing() || hasOutstandingChanges()) {
             return;
@@ -92,9 +88,8 @@ class HaClient {
         queueChange(new ServiceCall(self, service, "floor_id", floorId).method(:attempt), callback);
     }
 
-    // Connect IQ still delivers a cancelled request's reply, so nulling the
-    // callbacks is what makes it harmless: the settle methods find nothing to
-    // notify and return.
+    // UNVERIFIED: Connect IQ still delivers a cancelled request's reply, so the
+    // callbacks are nulled to drop it.
     function cancelAll() as Void {
         Communications.cancelAllRequests();
         _changeQueue = [];
@@ -138,9 +133,6 @@ class HaClient {
         }
     }
 
-    // The error arrives only once RetryManager's threshold is spent, so it is a
-    // verdict that the link is down rather than one failed reply — which is what
-    // makes discarding the user's queued taps justified here.
     function onChangeSettled(result as Object or Null, spentError as RequestError or Null) as Void {
         _requestInFlight = false;
         _changeInFlight = false;
@@ -224,10 +216,6 @@ class HaClient {
              responseContentType);
     }
 
-    // A cancelled request's reply is still delivered, and the lazy re-register
-    // refills the callback slot within the same call stack, so the slot alone
-    // cannot tell a superseded registration from the live one. Storing the id
-    // before that check would persist the abandoned instance's registration.
     function onRegistrationReply(epoch as Number, webhookId as String or Null,
                                  error as Number or Null) as Void {
         if (epoch != _registrationEpoch || _registrationCallback == null) {
@@ -261,7 +249,7 @@ class HaClient {
             }
         };
         // The webhook answers a JSON object of the named renders it was sent, so
-        // the response is application/json, not the rendered string alone.
+        // the response is application/json, not the rendered string alone (see #73).
         new WebhookRequest(self, body, ResponseType.TEMPLATE_RENDER,
                            Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON).attempt(callback);
     }

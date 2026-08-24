@@ -1,15 +1,14 @@
 import Toybox.Lang;
 
-// Server truth for one light, plus the value a tap assumed. Only Home Assistant
-// writes `state`; `assumed` sits over it and lasts until the next fetch replaces
-// the model, so nothing but HA's own truth ever answers a tap.
 class LightModel {
     public var id as String;
     public var state as Boolean;
     public var name as String;
     public var available as Boolean;
     public var areaId as String or Null;
-    // Groups only; the member count is memberIds.size().
+    // A group whose members have all vanished still arrives as a group, with an
+    // empty list rather than null — a group is what this being non-null means,
+    // never that it has members.
     public var memberIds as Array<String> or Null;
     public var assumed as Boolean or Null;
 
