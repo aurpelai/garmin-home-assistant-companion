@@ -18,7 +18,7 @@ class HaClient {
     private const DEVICE_ID = "companion_for_home_assistant";
     private const APP_ID = "companion_for_home_assistant";
     private const APP_NAME = "Companion For Home Assistant";
-    private const APP_VERSION = "0.6.0";
+    private const APP_VERSION = "0.7.0";
     private const DEVICE_NAME = "Garmin Watch";
     private const MANUFACTURER = "Garmin";
     private const MODEL = "Connect IQ";

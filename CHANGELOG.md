@@ -5,6 +5,12 @@ All notable changes to this project are documented here.
 This file is compiled from change fragments by [changie](https://changie.dev);
 do not edit it by hand. Add a fragment with `changie new` in your PR instead.
 
+## [v0.7.0] - 2026-08-25
+
+### ✨ Improved
+
+- A floor now indicates its light status with an icon instead of words
+
 ## [v0.6.0] - 2026-08-24
 
 ### 🎉 New
