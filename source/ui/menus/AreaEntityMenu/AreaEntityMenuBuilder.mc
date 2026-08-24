@@ -31,7 +31,7 @@ module AreaEntityMenuBuilder {
 
         for (var index = 0; index < groupedSensors.size(); index++) {
             var sensor = groupedSensors[index];
-            sensors.add(new SensorRowModel(sensor.id, sensor.name, sensor.displayValue, sensor.available));
+            sensors.add(new SensorRowModel(sensor.id, sensor.name, sensor.friendlyState, sensor.available));
         }
 
         return new AreaEntityMenuModel(area.name, lights, sensors);

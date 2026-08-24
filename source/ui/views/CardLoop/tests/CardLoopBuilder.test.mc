@@ -19,9 +19,11 @@ module CardLoopModelTest {
         return { "state" => state, "area_id" => areaId, "available" => true };
     }
 
-    function temperature(display as String, value as Float or Null, areaId as String) as Dictionary {
-        return { "state" => value, "display_state" => display, "unit" => "°C",
-            "device_class" => "temperature", "area_id" => areaId, "available" => value != null };
+    function temperature(display as String, precision as Number, value as Float or Null,
+                         areaId as String) as Dictionary {
+        return { "state" => value, "friendly_state" => display, "display_precision" => precision,
+            "unit" => "°C", "device_class" => "temperature", "area_id" => areaId,
+            "available" => value != null };
     }
 
     function cardIds(model as CardLoopModel) as Array<String> {
@@ -131,9 +133,9 @@ function severalSensorsOfOneDeviceClassAverageWhateverTheScope(logger as Test.Lo
         "floors" => { "floor.ground" => { "name" => "Ground", "order" => 0,
             "areas" => ["area.kitchen", "area.bedroom"] } }
     }, {} as Dictionary, {
-        "sensor.kitchen_near" => CardLoopModelTest.temperature("18.0 °C", 18.0, "area.kitchen"),
-        "sensor.kitchen_far" => CardLoopModelTest.temperature("20.0 °C", 20.0, "area.kitchen"),
-        "sensor.bedroom" => CardLoopModelTest.temperature("23.0 °C", 23.0, "area.bedroom")
+        "sensor.kitchen_near" => CardLoopModelTest.temperature("18.0 °C", 1, 18.0, "area.kitchen"),
+        "sensor.kitchen_far" => CardLoopModelTest.temperature("20.0 °C", 1, 20.0, "area.kitchen"),
+        "sensor.bedroom" => CardLoopModelTest.temperature("23.0 °C", 1, 23.0, "area.bedroom")
     });
     var model = CardLoopBuilder.build(haState);
 
@@ -150,8 +152,8 @@ function aLoneReadingIsEchoedAsHomeAssistantSentIt(logger as Test.Logger) as Boo
     var haState = CardLoopModelTest.stateOf({
         "areas" => { "area.attic" => { "name" => "Attic" } }
     }, {} as Dictionary, {
-        "sensor.lux" => { "state" => 1024.0, "display_state" => "1,024 lx", "unit" => "lx",
-            "device_class" => "illuminance", "area_id" => "area.attic", "available" => true }
+        "sensor.lux" => { "state" => 1024.0, "friendly_state" => "1,024 lx", "display_precision" => 0,
+            "unit" => "lx", "device_class" => "illuminance", "area_id" => "area.attic", "available" => true }
     });
 
     Test.assertEqual(
@@ -163,18 +165,34 @@ function aLoneReadingIsEchoedAsHomeAssistantSentIt(logger as Test.Logger) as Boo
 (:test)
 function aFloorMeanTakesTheFewestDecimalsItsInputsCarried(logger as Test.Logger) as Boolean {
     // A mean is no more precise than its coarsest input, so 21.5 with 22 reads
-    // 22 rather than 21.75. The unit is stripped by value, not guessed at a
-    // separator, so a non-ASCII unit does not confuse the measurement.
+    // 22 rather than 21.75.
     var haState = CardLoopModelTest.stateOf({
         "areas" => { "area.a" => { "name" => "A" }, "area.b" => { "name" => "B" } },
         "floors" => { "floor.g" => { "name" => "G", "order" => 0, "areas" => ["area.a", "area.b"] } }
     }, {} as Dictionary, {
-        "sensor.a" => CardLoopModelTest.temperature("21.5 °C", 21.5, "area.a"),
-        "sensor.b" => CardLoopModelTest.temperature("22 °C", 22.0, "area.b")
+        "sensor.a" => CardLoopModelTest.temperature("21.5 °C", 1, 21.5, "area.a"),
+        "sensor.b" => CardLoopModelTest.temperature("22 °C", 0, 22.0, "area.b")
     });
 
     Test.assertEqual(
         CardLoopModelTest.readingOf(CardLoopBuilder.build(haState), "floor.g", "temperature"), "22 °C");
+    return true;
+}
+
+(:test)
+function aMeanOfMixedPrecisionMembersTakesTheFewestDecimals(logger as Test.Logger) as Boolean {
+    // Same device class, different display precisions: one sensor's precision is
+    // raised in Home Assistant while its sibling keeps the default.
+    var haState = CardLoopModelTest.stateOf({
+        "areas" => { "area.a" => { "name" => "A" }, "area.b" => { "name" => "B" } },
+        "floors" => { "floor.g" => { "name" => "G", "order" => 0, "areas" => ["area.a", "area.b"] } }
+    }, {} as Dictionary, {
+        "sensor.fine" => CardLoopModelTest.temperature("24.390 °C", 3, 24.39, "area.a"),
+        "sensor.coarse" => CardLoopModelTest.temperature("24.4 °C", 1, 24.4, "area.b")
+    });
+
+    Test.assertEqual(
+        CardLoopModelTest.readingOf(CardLoopBuilder.build(haState), "floor.g", "temperature"), "24.4 °C");
     return true;
 }
 
@@ -186,8 +204,8 @@ function aFloorMeanExcludesAnUnusableReadingRatherThanCountingItAsZero(logger as
         "areas" => { "area.a" => { "name" => "A" }, "area.b" => { "name" => "B" } },
         "floors" => { "floor.g" => { "name" => "G", "order" => 0, "areas" => ["area.a", "area.b"] } }
     }, {} as Dictionary, {
-        "sensor.dead" => CardLoopModelTest.temperature("unavailable", null, "area.a"),
-        "sensor.live" => CardLoopModelTest.temperature("21.5 °C", 21.5, "area.b")
+        "sensor.dead" => CardLoopModelTest.temperature("unavailable", 0, null, "area.a"),
+        "sensor.live" => CardLoopModelTest.temperature("21.5 °C", 1, 21.5, "area.b")
     });
 
     Test.assertEqual(
@@ -200,8 +218,8 @@ function aDeviceClassWhoseOnlySensorIsUnusableIsAbsentRatherThanBlank(logger as 
     var haState = CardLoopModelTest.stateOf({
         "areas" => { "area.room" => { "name" => "Room" } }
     }, {} as Dictionary, {
-        "sensor.dead" => CardLoopModelTest.temperature("unavailable", null, "area.room"),
-        "sensor.humid" => { "state" => 41.0, "display_state" => "41 %", "unit" => "%",
+        "sensor.dead" => CardLoopModelTest.temperature("unavailable", 0, null, "area.room"),
+        "sensor.humid" => { "state" => 41.0, "friendly_state" => "41 %", "display_precision" => 0, "unit" => "%",
             "device_class" => "humidity", "area_id" => "area.room", "available" => true }
     });
     var model = CardLoopBuilder.build(haState);
@@ -238,7 +256,7 @@ function anAreasEntitiesReachBothItsOwnCardAndItsFloorsAggregate(logger as Test.
     }, {
         "light.room" => CardLoopModelTest.light(true, "area.room")
     }, {
-        "sensor.room" => CardLoopModelTest.temperature("21.0 °C", 21.0, "area.room")
+        "sensor.room" => CardLoopModelTest.temperature("21.0 °C", 1, 21.0, "area.room")
     });
     var model = CardLoopBuilder.build(haState);
 
@@ -254,7 +272,7 @@ function anAreaWhoseOnlyEntityIsUnavailableStillGetsACard(logger as Test.Logger)
     var haState = CardLoopModelTest.stateOf({
         "areas" => { "area.room" => { "name" => "Room" } }
     }, {} as Dictionary, {
-        "sensor.dead" => CardLoopModelTest.temperature("unavailable", null, "area.room")
+        "sensor.dead" => CardLoopModelTest.temperature("unavailable", 0, null, "area.room")
     });
 
     Test.assertEqual(

@@ -1,0 +1,3 @@
+kind: ✨ Improved
+body: Sensor display precision arrives as its own payload field instead of being parsed from Home Assistant's formatted state string
+time: 2026-08-24T11:26:34.654131+03:00

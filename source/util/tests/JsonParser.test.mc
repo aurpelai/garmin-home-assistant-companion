@@ -125,7 +125,7 @@ function jsonFeedsHaStateEndToEnd(logger as Test.Logger) as Boolean {
 function jsonFeedsHaStateEndToEndWithRawNonAscii(logger as Test.Logger) as Boolean {
     var structure = "{\"areas\": {\"area.kitchen\": {\"name\": \"Küche\"}}}";
     var sensors = "{\"sensors\": {\"sensor.temp\": {\"state\": 21.5, " +
-            "\"display_state\": \"21.5 °C\", \"unit\": \"°C\", " +
+            "\"friendly_state\": \"21.5 °C\", \"unit\": \"°C\", " +
             "\"device_class\": \"temperature\", \"area_id\": \"area.kitchen\", " +
             "\"name\": \"Café Sensor\", \"available\": true}}}";
 
@@ -137,7 +137,7 @@ function jsonFeedsHaStateEndToEndWithRawNonAscii(logger as Test.Logger) as Boole
     Test.assertEqual((haState.getArea("area.kitchen") as AreaModel).name, "Küche");
     Test.assertEqual(sensor.id, "sensor.temp");
     Test.assertEqual(sensor.name, "Café Sensor");
-    Test.assertEqual(sensor.displayValue, "21.5 °C");
+    Test.assertEqual(sensor.friendlyState, "21.5 °C");
     Test.assertEqual(sensor.unit as String, "°C");
     return true;
 }

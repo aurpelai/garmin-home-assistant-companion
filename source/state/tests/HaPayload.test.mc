@@ -19,10 +19,11 @@ module HaPayloadTest {
         return { "sensors" => entries };
     }
 
-    function reading(state as Object or Null, displayValue as Object or Null, areaId as String) as Dictionary {
+    function reading(state as Object or Null, friendlyState as Object or Null, areaId as String) as Dictionary {
         return {
             "state" => state,
-            "display_state" => displayValue,
+            "friendly_state" => friendlyState,
+            "display_precision" => 1,
             "unit" => "°C",
             "device_class" => "temperature",
             "area_id" => areaId,
@@ -45,8 +46,8 @@ function nonNumericSensorValueIsAbsentRatherThanZero(logger as Test.Logger) as B
 }
 
 (:test)
-function sensorWithoutDisplayValueIsAbsent(logger as Test.Logger) as Boolean {
-    // The display value is the row's only text, so an entry with none cannot be
+function sensorWithoutFriendlyStateIsAbsent(logger as Test.Logger) as Boolean {
+    // The friendly state is the row's only text, so an entry with none cannot be
     // rendered at all — absent beats present with nulls.
     var parsed = HaPayload.parseSensors(HaPayloadTest.sensorsPayload({
         "sensor.mute" => HaPayloadTest.reading(21.5, null, "area.kitchen")
