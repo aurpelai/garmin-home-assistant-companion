@@ -42,6 +42,7 @@ class PageIndicator {
     private var _radialLayout as RadialLayout;
     private var _axialLayout as AxialLayout;
     private var _layout as DotLayout;
+    private var _window as Array;
 
     private var _pageCount as Number;
     private var _currentPage as Number;
@@ -72,7 +73,8 @@ class PageIndicator {
 
         _radialLayout = new RadialLayout(centerX, centerY, radiusStart, radiusEnd, spacing, SLIDE_OUT_DURATION);
         _axialLayout = new AxialLayout(centerX, centerY, radiusStart, radiusEnd, spacing, SLIDE_OUT_DURATION);
-        _layout = selectLayout(computeWindow()[1] as Number);
+        _window = computeWindow();
+        _layout = selectLayout(_window[1] as Number);
 
         _timer = new Timer.Timer();
         inactiveIndicatorColorChannel = INACTIVE_INDICATOR_COLOR_CHANNEL;
@@ -113,9 +115,7 @@ class PageIndicator {
 
         clear();
 
-        var window = computeWindow();
-        _layout = selectLayout(window[1] as Number);
-        _layout.place(dc, self, window[0] as Number, window[1] as Number, window[2] as Boolean, window[3] as Boolean);
+        _layout.place(dc, self, _window[0] as Number, _window[1] as Number, _window[2] as Boolean, _window[3] as Boolean);
     }
 
     private function computeWindow() as Array {
@@ -184,7 +184,8 @@ class PageIndicator {
     }
 
     function showIndicator() as Void {
-        _layout = selectLayout(computeWindow()[1] as Number);
+        _window = computeWindow();
+        _layout = selectLayout(_window[1] as Number);
         _layout.reset();
         _state = isNavigable()
             ? PAGE_INDICATOR_VISIBLE
