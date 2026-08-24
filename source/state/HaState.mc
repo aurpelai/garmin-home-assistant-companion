@@ -37,11 +37,11 @@ class HaState {
     // tap's assumed value dies with the truth that supersedes it.
     function setLights(lights as Dictionary<String, LightModel>) as Void {
         _lights = lights;
-        _lightsByArea = groupLightsByArea(lights);
+        _lightsByArea = groupByArea(lights.values() as Array<EntityModel>) as Dictionary<String, Array<LightModel>>;
     }
 
     function setSensors(sensors as Dictionary<String, SensorModel>) as Void {
-        _sensorsByArea = groupSensorsByArea(sensors);
+        _sensorsByArea = groupByArea(sensors.values() as Array<EntityModel>) as Dictionary<String, Array<SensorModel>>;
     }
 
     function hasAreas() as Boolean {
@@ -192,10 +192,9 @@ class HaState {
         }
     }
 
-    private function groupLightsByArea(lights as Dictionary<String, LightModel>)
-            as Dictionary<String, Array<LightModel>> {
-        var byArea = {} as Dictionary<String, Array<LightModel>>;
-        var models = lights.values() as Array<LightModel>;
+    private function groupByArea(models as Array<EntityModel>)
+            as Dictionary<String, Array<EntityModel>> {
+        var byArea = {} as Dictionary<String, Array<EntityModel>>;
 
         for (var index = 0; index < models.size(); index++) {
             var areaId = models[index].areaId;
@@ -203,28 +202,7 @@ class HaState {
             if (areaId != null) {
                 var inArea = byArea.get(areaId);
                 if (inArea == null) {
-                    inArea = [] as Array<LightModel>;
-                    byArea.put(areaId, inArea);
-                }
-                inArea.add(models[index]);
-            }
-        }
-
-        return byArea;
-    }
-
-    private function groupSensorsByArea(sensors as Dictionary<String, SensorModel>)
-            as Dictionary<String, Array<SensorModel>> {
-        var byArea = {} as Dictionary<String, Array<SensorModel>>;
-        var models = sensors.values() as Array<SensorModel>;
-
-        for (var index = 0; index < models.size(); index++) {
-            var areaId = models[index].areaId;
-
-            if (areaId != null) {
-                var inArea = byArea.get(areaId);
-                if (inArea == null) {
-                    inArea = [] as Array<SensorModel>;
+                    inArea = [] as Array<EntityModel>;
                     byArea.put(areaId, inArea);
                 }
                 inArea.add(models[index]);
