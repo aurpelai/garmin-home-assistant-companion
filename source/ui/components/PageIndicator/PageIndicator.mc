@@ -9,7 +9,7 @@ enum PageIndicatorState {
     PAGE_INDICATOR_VISIBLE
 }
 
-typedef DotLayout as interface {
+typedef IndicatorLayout as interface {
     function reset() as Void;
     function startDismiss(onHidden as (Method() as Void)) as Void;
     function place(dc as Graphics.Dc, indicator as PageIndicator, start as Number, count as Number,
@@ -44,7 +44,7 @@ class PageIndicator {
 
     // Captured at reveal and frozen for the visible lifetime: a background rebuild
     // must never reshape an indicator that is on screen. Do not recompute in draw.
-    private var _layout as DotLayout;
+    private var _layout as IndicatorLayout;
     private var _window as Array;
 
     private var _pageCount as Number;
@@ -137,7 +137,7 @@ class PageIndicator {
         return [_currentPage - MAX_PAGE_INDICATORS / 2, MAX_PAGE_INDICATORS, true, true];
     }
 
-    function drawDot(dc as Graphics.Dc, x as Float, y as Float, page as Number) as Void {
+    function drawIndicator(dc as Graphics.Dc, x as Float, y as Float, page as Number) as Void {
         if (page == _currentPage) {
             Rendering.useAntiAlias(dc, true);
 
@@ -160,7 +160,7 @@ class PageIndicator {
         dc.drawCircle(x, y, _pageIndicatorRadius);
     }
 
-    function drawOverflowDot(dc as Graphics.Dc, x as Float, y as Float) as Void {
+    function drawOverflowIndicator(dc as Graphics.Dc, x as Float, y as Float) as Void {
         Rendering.useAntiAlias(dc, false);
 
         dc.setColor(OVERFLOW_INDICATOR_STROKE_COLOR, system_color_dark__background.background);
@@ -237,7 +237,7 @@ class PageIndicator {
         return _pageCount > 1;
     }
 
-    private function selectLayout(count as Number) as DotLayout {
+    private function selectLayout(count as Number) as IndicatorLayout {
         return count == 2 ? _axialLayout : _radialLayout;
     }
 }

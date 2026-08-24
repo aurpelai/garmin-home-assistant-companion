@@ -42,15 +42,15 @@ class AxialLayout {
         var top = _centerY - (count - 1) * _spacing / 2.0;
 
         if (moreBefore) {
-            indicator.drawOverflowDot(dc, x, top - _spacing);
+            indicator.drawOverflowIndicator(dc, x, top - _spacing);
         }
 
         for (var i = 0; i < count; i++) {
-            indicator.drawDot(dc, x, top + i * _spacing, start + i);
+            indicator.drawIndicator(dc, x, top + i * _spacing, start + i);
         }
 
         if (moreAfter) {
-            indicator.drawOverflowDot(dc, x, top + count * _spacing);
+            indicator.drawOverflowIndicator(dc, x, top + count * _spacing);
         }
     }
 }

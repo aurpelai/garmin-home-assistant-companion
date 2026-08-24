@@ -47,17 +47,17 @@ class RadialLayout {
 
         if (moreBefore) {
             var point = calculatePointOnCircle(calculateFanAngle(-1, count, angleStep));
-            indicator.drawOverflowDot(dc, point[0], point[1]);
+            indicator.drawOverflowIndicator(dc, point[0], point[1]);
         }
 
         for (var i = 0; i < count; i++) {
             var point = calculatePointOnCircle(calculateFanAngle(i, count, angleStep));
-            indicator.drawDot(dc, point[0], point[1], start + i);
+            indicator.drawIndicator(dc, point[0], point[1], start + i);
         }
 
         if (moreAfter) {
             var point = calculatePointOnCircle(calculateFanAngle(count, count, angleStep));
-            indicator.drawOverflowDot(dc, point[0], point[1]);
+            indicator.drawOverflowIndicator(dc, point[0], point[1]);
         }
     }
 
