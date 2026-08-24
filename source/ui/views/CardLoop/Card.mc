@@ -11,14 +11,16 @@ import Toybox.WatchUi;
 // (System 6 / API 5.0.0), so they track the watch theme instead of being
 // hand-picked.
 class Card {
-    private const COLUMN_COUNT = 12;
-    private const LIGHT_INDICATOR_RADIUS = 7;
-    private const LIGHT_INDICATOR_SAFE_AREA = 4;
-    private const LIGHT_INDICATOR_SIZE = 2 * (LIGHT_INDICATOR_RADIUS + LIGHT_INDICATOR_SAFE_AREA);
+    private const GRID_SIZE = 12;
+    private const LIGHT_INDICATOR_GAP = 4;
 
     private const BOX_HORIZONTAL_PADDING = 10;
     private const BOX_VERTICAL_PADDING = 5;
     private const BOX_BORDER_RADIUS = 6;
+
+    private const LIGHTBULB_ON = WatchUi.loadResource(Rez.Drawables.LightbulbOnOutline) as WatchUi.BitmapResource;
+    private const LIGHTBULB_OFF = WatchUi.loadResource(Rez.Drawables.LightbulbOutline) as WatchUi.BitmapResource;
+    private const LIGHTBULB_UNAVAILABLE = WatchUi.loadResource(Rez.Drawables.LightbulbOffOutline) as WatchUi.BitmapResource;
 
     private const FONT_SIZES = WatchUi.loadResource(Rez.JsonData.VectorFontSizes) as Dictionary;
 
@@ -64,10 +66,10 @@ class Card {
         Rendering.useAntiAlias(dc, true);
 
         if (subtitle != null) {
-            drawSubtitle(dc, centerX, dc.getHeight() * 2 / COLUMN_COUNT, subtitle as String);
+            drawSubtitle(dc, centerX, dc.getHeight() * 2 / GRID_SIZE, subtitle as String);
         }
 
-        drawTitle(dc, centerX, dc.getHeight() * 3 / COLUMN_COUNT, name);
+        drawTitle(dc, centerX, dc.getHeight() * 3 / GRID_SIZE, name);
         drawReadings(dc);
         drawSelectHint(dc);
     }
@@ -76,29 +78,30 @@ class Card {
         Rendering.useAntiAlias(dc, true);
         dc.setColor(Graphics.COLOR_LT_GRAY, system_color_dark__text.background);
         dc.drawText(dc.getWidth() / 2, middleBandY(dc), SUBTITLE_FONT, text,
-            Graphics.TEXT_JUSTIFY_CENTER);
+            Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
     }
 
     hidden function drawLightIndicators(dc as Graphics.Dc, lights as LightTally) as Void {
         var totalCount = lights.available + lights.unavailable;
-        var firstX = dc.getWidth() / 2 - (totalCount - 1) * LIGHT_INDICATOR_SIZE / 2;
-        var centerY = middleBandY(dc) + LIGHT_INDICATOR_RADIUS;
+        var step = LIGHTBULB_ON.getWidth() + LIGHT_INDICATOR_GAP;
+        var firstX = dc.getWidth() / 2 - (totalCount - 1) * step / 2;
+        var centerY = middleBandY(dc);
 
         for (var index = 0; index < totalCount; index++) {
-            var x = firstX + index * LIGHT_INDICATOR_SIZE;
+            var x = firstX + index * step;
 
             if (index < lights.on) {
-                drawFilledLightIndicator(dc, x, centerY, Graphics.COLOR_YELLOW);
+                drawLightIcon(dc, x, centerY, LIGHTBULB_ON, Graphics.COLOR_YELLOW);
             } else if (index < lights.available) {
-                drawFilledLightIndicator(dc, x, centerY, Graphics.COLOR_DK_GRAY);
+                drawLightIcon(dc, x, centerY, LIGHTBULB_OFF, Graphics.COLOR_LT_GRAY);
             } else {
-                drawOutlinedLightIndicator(dc, x, centerY);
+                drawLightIcon(dc, x, centerY, LIGHTBULB_UNAVAILABLE, Graphics.COLOR_DK_GRAY);
             }
         }
     }
 
     private function middleBandY(dc as Graphics.Dc) as Number {
-        return dc.getHeight() / 2 - LIGHT_INDICATOR_RADIUS;
+        return dc.getHeight() * 6 / GRID_SIZE;
     }
 
     private function drawTitle(dc as Graphics.Dc, x as Number, y as Number, text as String) as Void {
@@ -113,17 +116,11 @@ class Card {
         dc.drawText(x, y, SUBTITLE_FONT, text, Graphics.TEXT_JUSTIFY_CENTER);
     }
 
-    private function drawFilledLightIndicator(dc as Graphics.Dc, x as Number, y as Number,
-                                              color as Number) as Void {
-        Rendering.useAntiAlias(dc, true);
-        dc.setColor(color, system_color_dark__background.background);
-        dc.fillCircle(x, y, LIGHT_INDICATOR_RADIUS);
-    }
-
-    private function drawOutlinedLightIndicator(dc as Graphics.Dc, x as Number, y as Number) as Void {
-        Rendering.useAntiAlias(dc, false);
-        dc.setColor(Graphics.COLOR_DK_GRAY, system_color_dark__background.background);
-        dc.drawCircle(x, y, LIGHT_INDICATOR_RADIUS);
+    private function drawLightIcon(dc as Graphics.Dc, x as Number, y as Number,
+                                   icon as WatchUi.BitmapResource, tint as Number) as Void {
+        dc.drawBitmap2(x - icon.getWidth() / 2, y - icon.getHeight() / 2, icon, {
+            :tintColor => tint
+        });
     }
 
     private function drawReadings(dc as Graphics.Dc) as Void {
@@ -131,14 +128,14 @@ class Card {
             var reading = readings[index];
 
             if ("temperature".equals(reading.deviceClass)) {
-                drawReadingBox(dc, dc.getWidth() * 4 / COLUMN_COUNT,
-                    dc.getHeight() * 8 / COLUMN_COUNT, reading.text);
+                drawReadingBox(dc, dc.getWidth() * 4 / GRID_SIZE,
+                    dc.getHeight() * 8 / GRID_SIZE, reading.text);
             } else if ("humidity".equals(reading.deviceClass)) {
-                drawReadingBox(dc, dc.getWidth() * 8 / COLUMN_COUNT,
-                    dc.getHeight() * 8 / COLUMN_COUNT, reading.text);
+                drawReadingBox(dc, dc.getWidth() * 8 / GRID_SIZE,
+                    dc.getHeight() * 8 / GRID_SIZE, reading.text);
             } else if ("illuminance".equals(reading.deviceClass)) {
                 drawReadingBox(dc, dc.getWidth() / 2,
-                    dc.getHeight() * 10 / COLUMN_COUNT, reading.text);
+                    dc.getHeight() * 10 / GRID_SIZE, reading.text);
             }
         }
     }
