@@ -12,7 +12,7 @@ enum PageIndicatorState {
 typedef IndicatorLayout as interface {
     function reset() as Void;
     function startDismiss(onHidden as (Method() as Void)) as Void;
-    function place(dc as Graphics.Dc, indicator as PageIndicator, start as Number, count as Number,
+    function draw(dc as Graphics.Dc, indicator as PageIndicator, start as Number, count as Number,
                    moreBefore as Boolean, moreAfter as Boolean) as Void;
 };
 
@@ -118,7 +118,7 @@ class PageIndicator {
 
         clear();
 
-        _layout.place(dc, self, _window[0] as Number, _window[1] as Number, _window[2] as Boolean, _window[3] as Boolean);
+        _layout.draw(dc, self, _window[0] as Number, _window[1] as Number, _window[2] as Boolean, _window[3] as Boolean);
     }
 
     private function resolveWindow() as Array {

@@ -41,7 +41,7 @@ class RadialLayout {
         );
     }
 
-    function place(dc as Graphics.Dc, indicator as PageIndicator, start as Number,
+    function draw(dc as Graphics.Dc, indicator as PageIndicator, start as Number,
                    count as Number, moreBefore as Boolean, moreAfter as Boolean) as Void {
         var angleStep = _spacing / _radiusStart;
 

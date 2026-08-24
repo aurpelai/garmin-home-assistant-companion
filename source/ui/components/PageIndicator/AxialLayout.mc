@@ -36,7 +36,7 @@ class AxialLayout {
         );
     }
 
-    function place(dc as Graphics.Dc, indicator as PageIndicator, start as Number,
+    function draw(dc as Graphics.Dc, indicator as PageIndicator, start as Number,
                    count as Number, moreBefore as Boolean, moreAfter as Boolean) as Void {
         var x = _anchorX - offset;
         var top = _centerY - (count - 1) * _spacing / 2.0;
