@@ -1,7 +1,5 @@
 import Toybox.Lang;
 
-// Monkey C has no closures, so something must carry the epoch a registration
-// was issued under until its reply lands.
 class RegistrationReply {
     private var _client as HaClient;
     private var _epoch as Number;

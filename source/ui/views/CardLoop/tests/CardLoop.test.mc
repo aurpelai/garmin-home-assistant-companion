@@ -1,9 +1,6 @@
 import Toybox.Lang;
 import Toybox.Test;
 
-// Drives the card loop's own push seam: a model in, the focused card out.
-// Card content and sequencing are covered by the builder's tests.
-
 (:test)
 module CardLoopTest {
 
@@ -68,14 +65,11 @@ function pagingMovesThroughTheSequenceAndWrapsAtBothEnds(logger as Test.Logger) 
 
 (:test)
 function aPushRestoresFocusByCardIdRatherThanByIndex(logger as Test.Logger) as Boolean {
-    // A push can arrive with no user action behind it, so the index means
-    // nothing: only the id names the card the user was looking at.
     var loop = CardLoopTest.loopOf(CardLoopTest.twoFloors());
 
     loop.showPrevious();
     Test.assertEqual(CardLoopTest.focusedId(loop), "area.bedroom");
 
-    // The ground floor loses an area, which shifts every later index down.
     loop.rebuild(CardLoopTest.stateOf({
         "areas" => {
             "area.kitchen" => { "name" => "Kitchen" },
@@ -96,8 +90,6 @@ function aPushRestoresFocusByCardIdRatherThanByIndex(logger as Test.Logger) as B
 
 (:test)
 function aVanishedCardFallsBackToTheFloorItSatUnder(logger as Test.Logger) as Boolean {
-    // The floor id is captured before the model is replaced, because a vanished
-    // area cannot be looked up afterwards to find which floor it belonged to.
     var loop = CardLoopTest.loopOf(CardLoopTest.twoFloors());
 
     loop.showPrevious();
@@ -123,8 +115,6 @@ function aVanishedCardFallsBackToTheFloorItSatUnder(logger as Test.Logger) as Bo
 
 (:test)
 function theCardLoopIsNeverObsolete(logger as Test.Logger) as Boolean {
-    // It is the fallback destination for every other screen going obsolete, so
-    // it must never send the coordinator anywhere itself.
     var loop = CardLoopTest.loopOf(CardLoopTest.twoFloors());
 
     Test.assert(!loop.isObsolete(new HaState()));

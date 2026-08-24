@@ -1,8 +1,5 @@
 import Toybox.Lang;
 
-// Everything the app knows about the home: what Home Assistant reported, indexed
-// by the questions the screens ask of it. Each light carries its own assumed
-// state; see LightModel for how a tap and a refresh interact.
 class HaState {
     private var _lights as Dictionary<String, LightModel>;
     private var _areas as Dictionary<String, AreaModel>;
@@ -32,9 +29,9 @@ class HaState {
         _floors = floors;
     }
 
-    // Every light Home Assistant knows arrives together, so this is the one
-    // moment an assumption is answered: the incoming models carry none, and a
-    // tap's assumed value dies with the truth that supersedes it.
+    // A fetch clears pending overrides only by replacing the models wholesale;
+    // the fresh ones come back with no assumption. Updating them in place instead
+    // would leave a tapped light pending forever.
     function setLights(lights as Dictionary<String, LightModel>) as Void {
         _lights = lights;
         _lightsByArea = groupByArea(lights.values() as Array<EntityModel>) as Dictionary<String, Array<LightModel>>;
@@ -84,8 +81,6 @@ class HaState {
         return sensors == null ? [] as Array<SensorModel> : sensors;
     }
 
-    // Every area the floor lists, registered or not: the service call expands the
-    // floor server-side, so a narrower scope would claim less than the action does.
     function getLightsInFloor(floorId as String) as Array<LightModel> {
         var floor = getFloor(floorId);
         var lights = [] as Array<LightModel>;
@@ -101,9 +96,6 @@ class HaState {
         return lights;
     }
 
-    // An area id the floor still lists but the registry no longer knows is
-    // skipped: the two arrive on the same target but a floor outliving its area
-    // is Home Assistant's to report, not ours to render.
     function getAreasInFloor(floorId as String) as Array<AreaModel> {
         var floor = getFloor(floorId);
         var areas = [] as Array<AreaModel>;

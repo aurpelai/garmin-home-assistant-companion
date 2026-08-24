@@ -8,8 +8,8 @@ typedef Labelled as interface {
 
 class LabelComparator {
 
-    // toLower is ASCII-only, so non-Latin names order by code point rather than
-    // locale collation.
+    // UNVERIFIED: toLower is ASCII-only, so non-Latin names order by code point
+    // rather than locale collation.
     function compare(first as Object, second as Object) as Number {
         var left = first as Labelled;
         var right = second as Labelled;

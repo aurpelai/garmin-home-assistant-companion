@@ -6,6 +6,8 @@ class FloorCard extends Card {
     private var _zone as String or Null;
     private var _lights as LightTally;
 
+    // A floor is its own floor: passing the id as both is what lets the card loop
+    // fall back to the floor when a focused area card disappears.
     function initialize(id as String, name as String, zone as String or Null,
                         readings as Array<SensorReading>, lights as LightTally) {
         Card.initialize(id, id, name, readings);

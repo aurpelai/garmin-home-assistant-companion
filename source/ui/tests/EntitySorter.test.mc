@@ -20,8 +20,6 @@ module EntitySorterTest {
 
 (:test)
 function lightsAreSortedAvailableFirstThenGroupsThenByName(logger as Test.Logger) as Boolean {
-    // Each rank must beat the next: the unavailable group outranks nothing, and
-    // the group named last still leads the plain lights.
     var sorted = EntitySorter.sortLights([
         EntitySorterTest.light("light.dark", "Aaa Broken", false, null),
         EntitySorterTest.light("light.aaa", "Aaa", true, null),
@@ -39,9 +37,6 @@ function lightsAreSortedAvailableFirstThenGroupsThenByName(logger as Test.Logger
 
 (:test)
 function anUnavailableGroupLeadsItsBucketEvenWithNoReachableMembers(logger as Test.Logger) as Boolean {
-    // A group whose members are all unavailable expands to nothing, so its member
-    // ids arrive empty rather than null. Empty is still a group: it must lead the
-    // unavailable bucket, not sink among the plain lights.
     var sorted = EntitySorter.sortLights([
         EntitySorterTest.light("light.dark", "Aaa Broken", false, null),
         EntitySorterTest.light("light.dead_group", "Zzz Group", false, [] as Array<String>)

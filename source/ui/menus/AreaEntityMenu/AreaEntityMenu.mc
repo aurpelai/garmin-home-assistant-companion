@@ -1,11 +1,11 @@
 import Toybox.Lang;
 import Toybox.WatchUi;
 
-// The item set is built once here and frozen for the life of the menu: a push
-// updates labels and toggle states and nothing else. An entity arriving or
-// leaving while the menu is open therefore changes no row, which is what makes
-// it impossible for one to move or vanish under the user's finger. Seeing a
-// changed set of entities means reopening the menu.
+// The item set is built once here and frozen for the life of the menu: a
+// rebuild updates labels and toggle states and nothing else, never the set of
+// rows. An entity arriving or leaving while the menu is open therefore moves no
+// row and removes none under the user's finger; seeing the change means
+// reopening the menu.
 class AreaEntityMenu extends WatchUi.Menu2 {
     private var _coordinator as Coordinator;
     private var _areaId as String;

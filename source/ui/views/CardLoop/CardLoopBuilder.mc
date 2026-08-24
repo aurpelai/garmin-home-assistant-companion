@@ -3,10 +3,6 @@ import Toybox.Lang;
 // Pure: touches no WatchUi, fetches nothing, and mutates no HaState.
 module CardLoopBuilder {
 
-    // Alone among the builders it has no subject to look up, so it never returns
-    // null — an empty home yields an empty sequence, a finding rather than an
-    // absence. Areas belonging to no floor trail every floor, with no card marking
-    // where they begin.
     function build(haState as HaState) as CardLoopModel {
         var cards = [] as Array<Card>;
         var floors = haState.getFloors();
@@ -46,9 +42,6 @@ module CardLoopBuilder {
         return new CardLoopModel(cards);
     }
 
-    // An unavailable entity still counts: a room vanishing because a sensor's
-    // battery died would be alarming, where a room showing an unavailable reading
-    // says what is wrong.
     function filterAreasWithEntities(haState as HaState,
                                      areas as Array<AreaModel>) as Array<AreaEntities> {
         var filtered = [] as Array<AreaEntities>;

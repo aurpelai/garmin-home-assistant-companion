@@ -13,11 +13,6 @@ module FloorEntityMenuBuilder {
         return new FloorEntityMenuModel(floor.name, buildLightRows(haState, floorId));
     }
 
-    // One row per domain present on the floor, so a floor with no lights gets no
-    // row rather than a dead one.
-    //
-    // Read over the same scope the fan-out overrides, so the row's state and its
-    // pending status describe exactly what a tap would command.
     function buildLightRows(haState as HaState, floorId as String) as Array<LightRowModel> {
         var lights = haState.getLightsInFloor(floorId);
 

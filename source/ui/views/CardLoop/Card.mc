@@ -3,13 +3,6 @@ import Toybox.Graphics;
 import Toybox.Lang;
 import Toybox.WatchUi;
 
-// One screen-full of the card loop, drawing itself — which is why a card is not
-// a Model. Subclasses supply the middle band that differs per type; everything
-// else here is shared by all of them.
-//
-// Fonts, colors, and the select-key hint come from the device's SDK personality
-// (System 6 / API 5.0.0), so they track the watch theme instead of being
-// hand-picked.
 class Card {
     private const GRID_SIZE = 12;
     private const LIGHT_INDICATOR_GAP = 4;
@@ -39,8 +32,6 @@ class Card {
         :size => FONT_SIZES.get("medium") as Number
     }) as Graphics.VectorFont;
 
-    // Read from outside by the loop, which restores focus by id and falls back
-    // to floorId; anything only a card's own drawing needs stays private.
     public var id as String;
     public var floorId as String or Null;
     public var name as String;

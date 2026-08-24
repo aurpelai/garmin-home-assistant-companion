@@ -33,9 +33,6 @@ function aFloorGoneFromTheStructureYieldsNoModel(logger as Test.Logger) as Boole
 
 (:test)
 function aFloorWithNoLightsCarriesNoRowWhileOneWithOnlyDeadOnesDoes(logger as Test.Logger) as Boolean {
-    // The menu carries an item per domain present on the floor and omits the
-    // rest, and presence is the only test: a dead bulb is still a light the call
-    // reaches, so only a floor with none at all loses the row.
     var empty = FloorEntityMenuModelTest.stateOf(
         FloorEntityMenuModelTest.oneFloorWith(["area.room"]), {} as Dictionary);
     var onlyDead = FloorEntityMenuModelTest.stateOf(
@@ -52,8 +49,6 @@ function aFloorWithNoLightsCarriesNoRowWhileOneWithOnlyDeadOnesDoes(logger as Te
 
 (:test)
 function theFloorRowReadsOnWhenAnyLightInTheFloorIsOn(logger as Test.Logger) as Boolean {
-    // Read over exactly the scope a tap commands — every light in the floor — so
-    // the row cannot claim a state its own action would not produce.
     var haState = FloorEntityMenuModelTest.stateOf(
         FloorEntityMenuModelTest.oneFloorWith(["area.room"]), {
             "light.off" => { "state" => false, "area_id" => "area.room", "available" => true },

@@ -1,11 +1,7 @@
 import Toybox.Lang;
 
-// Pure: touches no WatchUi, fetches nothing, and mutates no HaState.
 module AreaEntityMenuBuilder {
 
-    // Takes the area id and looks the area up, so absence is discovered and
-    // answered here rather than at every call site. Returns null when the area is
-    // gone.
     function build(haState as HaState, areaId as String) as AreaEntityMenuModel or Null {
         var area = haState.getArea(areaId);
         if (area == null) {

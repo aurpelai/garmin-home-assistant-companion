@@ -2,8 +2,8 @@ import Toybox.Application;
 import Toybox.Lang;
 import Toybox.WatchUi;
 
-// getInitialView returns a plain loading view rather than a Menu2: returning a
-// Menu2 here crashes on some devices.
+// UNVERIFIED: getInitialView returns a plain loading view rather than a Menu2
+// because returning a Menu2 here crashes on some devices.
 class HaCompanionApp extends Application.AppBase {
     private var _coordinator as Coordinator;
 

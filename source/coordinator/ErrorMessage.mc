@@ -5,7 +5,7 @@ module ErrorMessage {
 
     // A bad request is the one code that means different things per request type:
     // against our registration body it is our own body that is malformed, while
-    // on a fetch the template failed on the Home Assistant side.
+    // on a fetch — UNVERIFIED — it is the template failing on the Home Assistant side.
     function resolve(error as RequestError) as ResourceId {
         var reason = error.reason;
 

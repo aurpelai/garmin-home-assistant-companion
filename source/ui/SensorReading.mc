@@ -9,9 +9,6 @@ class SensorReading {
         self.text = text;
     }
 
-    // Several sensors of one device class average, in an area or across a floor:
-    // no one of them speaks for the scope, and picking one would show whichever
-    // the walk reached first.
     static function buildFromSensors(sensors as Array<SensorModel>) as Array<SensorReading> {
         var readings = [] as Array<SensorReading>;
 
@@ -35,9 +32,6 @@ class SensorReading {
         return readings;
     }
 
-    // A lone reading is echoed as Home Assistant sent it. Averaging several
-    // rounds to the fewest decimals any of them carried: a mean is no more
-    // precise than its coarsest input, so "21.5 °C" with "22 °C" reads "22 °C".
     private static function formatMean(sensors as Array<SensorModel>) as String {
         if (sensors.size() == 1) {
             return sensors[0].friendlyState;

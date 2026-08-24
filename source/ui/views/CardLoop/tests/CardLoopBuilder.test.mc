@@ -36,8 +36,6 @@ module CardLoopModelTest {
         return ids;
     }
 
-    // Empty rather than null on a miss: a card never carries a blank reading, so
-    // an empty result is unambiguous and keeps the assertions comparing strings.
     function readingOf(model as CardLoopModel, cardId as String, deviceClass as String) as String {
         for (var index = 0; index < model.cards.size(); index++) {
             var card = model.cards[index];
@@ -58,9 +56,6 @@ module CardLoopModelTest {
 
 (:test)
 function eachFloorHeadsItsOwnAreasAndUnflooredAreasTrailEveryFloor(logger as Test.Logger) as Boolean {
-    // Upstairs is listed first but carries the higher order, so a correct
-    // sequence puts Ground first — payload order alone would not. Within a
-    // floor, areas sort by name rather than by the order the floor listed them.
     var haState = CardLoopModelTest.stateOf({
         "areas" => {
             "area.bedroom" => { "name" => "Bedroom" },
@@ -87,9 +82,6 @@ function eachFloorHeadsItsOwnAreasAndUnflooredAreasTrailEveryFloor(logger as Tes
 
 (:test)
 function anEmptyHomeYieldsAModelWithNoCardsRatherThanNull(logger as Test.Logger) as Boolean {
-    // The card loop's builder has no subject to look up, so it cannot report
-    // absence the way the per-screen builders do: an empty home is a finding
-    // for the caller to act on, not a missing model.
     var model = CardLoopBuilder.build(new HaState());
 
     Test.assertEqual(model.cards.size(), 0);
@@ -103,11 +95,7 @@ function anAreaCardTalliesPhysicalLightsAndSplitsThemByAvailability(logger as Te
     }, {
         "light.on" => CardLoopModelTest.light(true, "area.room"),
         "light.off" => CardLoopModelTest.light(false, "area.room"),
-        // A dead light is still one of the area's bulbs, so it is counted — as
-        // unavailable, which the card draws as an outline rather than a dot it
-        // could claim is off.
         "light.dead" => { "state" => false, "area_id" => "area.room", "available" => false },
-        // The group entity would double-count its own members.
         "light.grp" => { "state" => true, "area_id" => "area.room", "available" => true,
             "memberIds" => ["light.on", "light.off"] }
     }, {} as Dictionary);
@@ -122,9 +110,6 @@ function anAreaCardTalliesPhysicalLightsAndSplitsThemByAvailability(logger as Te
 
 (:test)
 function severalSensorsOfOneDeviceClassAverageWhateverTheScope(logger as Test.Logger) as Boolean {
-    // No one sensor speaks for its scope, so picking one would put whichever the
-    // walk reached first on the card. An area with two of a class averages them
-    // exactly as a floor averages across its areas.
     var haState = CardLoopModelTest.stateOf({
         "areas" => {
             "area.kitchen" => { "name" => "Kitchen" },
@@ -146,9 +131,8 @@ function severalSensorsOfOneDeviceClassAverageWhateverTheScope(logger as Test.Lo
 
 (:test)
 function aLoneReadingIsEchoedAsHomeAssistantSentIt(logger as Test.Logger) as Boolean {
-    // Echoed rather than recomposed from the value: Home Assistant's grouping
-    // separator is formatting we cannot reproduce, so a lone reading must pass
-    // through untouched instead of being rebuilt as "1024 lx".
+    // UNVERIFIED: Home Assistant's own formatting of a reading cannot be
+    // reproduced on the watch, so a lone reading is echoed untouched.
     var haState = CardLoopModelTest.stateOf({
         "areas" => { "area.attic" => { "name" => "Attic" } }
     }, {} as Dictionary, {
@@ -164,8 +148,6 @@ function aLoneReadingIsEchoedAsHomeAssistantSentIt(logger as Test.Logger) as Boo
 
 (:test)
 function aFloorMeanTakesTheFewestDecimalsItsInputsCarried(logger as Test.Logger) as Boolean {
-    // A mean is no more precise than its coarsest input, so 21.5 with 22 reads
-    // 22 rather than 21.75.
     var haState = CardLoopModelTest.stateOf({
         "areas" => { "area.a" => { "name" => "A" }, "area.b" => { "name" => "B" } },
         "floors" => { "floor.g" => { "name" => "G", "order" => 0, "areas" => ["area.a", "area.b"] } }
@@ -181,8 +163,6 @@ function aFloorMeanTakesTheFewestDecimalsItsInputsCarried(logger as Test.Logger)
 
 (:test)
 function aMeanOfMixedPrecisionMembersTakesTheFewestDecimals(logger as Test.Logger) as Boolean {
-    // Same device class, different display precisions: one sensor's precision is
-    // raised in Home Assistant while its sibling keeps the default.
     var haState = CardLoopModelTest.stateOf({
         "areas" => { "area.a" => { "name" => "A" }, "area.b" => { "name" => "B" } },
         "floors" => { "floor.g" => { "name" => "G", "order" => 0, "areas" => ["area.a", "area.b"] } }
@@ -198,8 +178,7 @@ function aMeanOfMixedPrecisionMembersTakesTheFewestDecimals(logger as Test.Logge
 
 (:test)
 function aFloorMeanExcludesAnUnusableReadingRatherThanCountingItAsZero(logger as Test.Logger) as Boolean {
-    // An unavailable sensor's state arrives as null, never a numeric zero:
-    // averaged in, it would drag the floor's reading down by half.
+    // UNVERIFIED: an unavailable sensor's state arrives as null, never a zero.
     var haState = CardLoopModelTest.stateOf({
         "areas" => { "area.a" => { "name" => "A" }, "area.b" => { "name" => "B" } },
         "floors" => { "floor.g" => { "name" => "G", "order" => 0, "areas" => ["area.a", "area.b"] } }
@@ -231,8 +210,6 @@ function aDeviceClassWhoseOnlySensorIsUnusableIsAbsentRatherThanBlank(logger as 
 
 (:test)
 function anAreaWithNoEntitiesGetsNoCardAndTakesItsEmptyFloorWithIt(logger as Test.Logger) as Boolean {
-    // A room with nothing in it has nothing to show, and a floor whose every area
-    // is empty is not a heading for anything.
     var haState = CardLoopModelTest.stateOf({
         "areas" => { "area.stocked" => { "name" => "Stocked" }, "area.bare" => { "name" => "Bare" } },
         "floors" => { "floor.empty" => { "name" => "Empty", "order" => 0, "areas" => ["area.bare"] } }
@@ -248,8 +225,6 @@ function anAreaWithNoEntitiesGetsNoCardAndTakesItsEmptyFloorWithIt(logger as Tes
 
 (:test)
 function anAreasEntitiesReachBothItsOwnCardAndItsFloorsAggregate(logger as Test.Logger) as Boolean {
-    // Resolved once per rebuild and passed down, so the area card and the floor
-    // aggregate cannot disagree about what the area holds.
     var haState = CardLoopModelTest.stateOf({
         "areas" => { "area.room" => { "name" => "Room" } },
         "floors" => { "floor.g" => { "name" => "Ground", "order" => 0, "areas" => ["area.room"] } }
@@ -267,8 +242,6 @@ function anAreasEntitiesReachBothItsOwnCardAndItsFloorsAggregate(logger as Test.
 
 (:test)
 function anAreaWhoseOnlyEntityIsUnavailableStillGetsACard(logger as Test.Logger) as Boolean {
-    // A room vanishing because its one sensor's battery died would be alarming,
-    // where a room showing an unavailable reading says what is wrong.
     var haState = CardLoopModelTest.stateOf({
         "areas" => { "area.room" => { "name" => "Room" } }
     }, {} as Dictionary, {

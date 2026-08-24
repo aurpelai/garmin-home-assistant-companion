@@ -2,9 +2,7 @@ import Toybox.Lang;
 
 class SensorModel {
     public var id as String;
-    // Null when the sensor's state was non-numeric; never degraded to a zero.
     public var value as Float or Null;
-    // Home Assistant's own formatting, never reparsed.
     public var friendlyState as String;
     public var displayPrecision as Number;
     public var unit as String or Null;

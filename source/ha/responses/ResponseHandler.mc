@@ -18,15 +18,15 @@ class ResponseHandler {
         switch (_responseType) {
             case ResponseType.TEMPLATE_RENDER:
                 // A dead webhook answers 200 with an empty body, so the render
-                // never arrives as the expected envelope. That is the id being
-                // gone rather than an unreadable render.
+                // never arrives as the expected envelope (see #68). That is the
+                // id being gone rather than an unreadable render.
                 if (!(data instanceof Dictionary)) {
                     _callback.invoke(null, RequestError.UNUSABLE_WEBHOOK);
                     return;
                 }
 
                 // The render_template webhook returns the rendered value as a
-                // string, so the payload arrives JSON-encoded a second time.
+                // string, so the payload arrives JSON-encoded a second time (see #73).
                 var rendered = data.get(ResponseType.TEMPLATE_RENDER_ROOT_KEY);
                 var home = (rendered instanceof Lang.String) ? JsonParser.parse(rendered) : rendered;
                 if (home == null) {
@@ -40,8 +40,6 @@ class ResponseHandler {
                 if (webhookId instanceof Lang.String) {
                     _callback.invoke(webhookId, null);
                 } else {
-                    // Report an error code, not the 200: a body without a usable
-                    // webhook_id is a failure the error channel must carry.
                     _callback.invoke(null, Communications.INVALID_HTTP_BODY_IN_NETWORK_RESPONSE);
                 }
                 break;

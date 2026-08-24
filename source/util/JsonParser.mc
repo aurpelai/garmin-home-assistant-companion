@@ -5,7 +5,8 @@ import Toybox.StringUtil;
 //
 // HA's render_template webhook returns the rendered template as a STRING inside
 // the JSON envelope, so Connect IQ decodes the envelope but hands the payload
-// back as an unparsed String (double-encoded). This decodes that inner string.
+// back as an unparsed String (double-encoded, see #68). This decodes that inner
+// string.
 //
 // One pass over a char-code array, no backtracking, minimal allocation: the
 // payload grows with home size and an on-device parse that runs too long trips
@@ -68,8 +69,6 @@ class JsonParser {
         return null;
     }
 
-    // Lets callers reject a missing value like `{"a": }`, which parseValue alone
-    // can't: its null return is ambiguous with a legitimate `null` literal.
     private function valueStartsHere() as Boolean {
         skipWhitespace();
         if (_pos >= _len) {
@@ -156,8 +155,6 @@ class JsonParser {
         return false;
     }
 
-    // Escape-free strings (the common case) take one substring; only a string
-    // that actually contains a backslash walks segment-by-segment.
     private function parseString() as String or Null {
         _pos++;
         var start = _pos;
@@ -275,10 +272,6 @@ class JsonParser {
         return StringUtil.utf8ArrayToString(bytes);
     }
 
-    // Each structural char is allowed at most once and only where JSON permits:
-    // a dot before any exponent, one exponent marker, and a sign only right after
-    // it. A char that breaks the grammar ends the number, leaving the caller to
-    // reject the trailing garbage rather than accepting e.g. `1.2.3`.
     private function parseNumber() as Object or Null {
         var start = _pos;
         var hasDot = false;

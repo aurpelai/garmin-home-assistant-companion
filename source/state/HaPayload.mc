@@ -31,9 +31,6 @@ module HaPayload {
         return lights;
     }
 
-    // A sensor with no friendly_state is absent rather than present with nulls:
-    // friendly_state is the row's only text, so an entry without one cannot be
-    // rendered at all.
     function parseSensors(payload as Object or Null) as Dictionary<String, SensorModel> {
         var entries = readEntries(payload, "sensors");
         var sensors = {} as Dictionary<String, SensorModel>;
@@ -99,9 +96,9 @@ module HaPayload {
         return out;
     }
 
-    // Ordered ascending by each floor's `order`, which is Home Assistant's own
-    // floors() order; Dictionary.keys() is hash order. The insertion is stable,
-    // so equal orders keep parse order.
+    // UNVERIFIED: ordered ascending by each floor's `order`, which is Home
+    // Assistant's own floors() order; Dictionary.keys() is hash order. The
+    // insertion is stable, so equal orders keep parse order.
     function parseFloors(payload as Object or Null) as Array<FloorModel> {
         var entries = readEntries(payload, "floors");
         var out = [] as Array<FloorModel>;
@@ -132,8 +129,6 @@ module HaPayload {
         floors[position] = floor;
     }
 
-    // Defaults to available, not off: a missing value is a contract breach and
-    // must not mark a working entity down.
     function asAvailable(raw as Object or Null) as Boolean {
         return raw instanceof Boolean ? raw : true;
     }
@@ -156,8 +151,8 @@ module HaPayload {
         return raw instanceof String ? raw : null;
     }
 
-    // Home Assistant guarantees the values read this way, so a non-string only
-    // reaches here on a malformed payload, which must not throw.
+    // UNVERIFIED: Home Assistant guarantees the values read this way, so a
+    // non-string only reaches here on a malformed payload, which must not throw.
     function asString(raw as Object or Null) as String {
         return raw instanceof String ? raw : "";
     }
