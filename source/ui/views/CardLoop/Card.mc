@@ -5,15 +5,10 @@ import Toybox.WatchUi;
 
 class Card {
     private const GRID_SIZE = 12;
-    private const LIGHT_INDICATOR_GAP = 4;
 
     private const BOX_HORIZONTAL_PADDING = 10;
     private const BOX_VERTICAL_PADDING = 5;
     private const BOX_BORDER_RADIUS = 6;
-
-    private const LIGHTBULB_ON = WatchUi.loadResource(Rez.Drawables.LightbulbOn) as WatchUi.BitmapResource;
-    private const LIGHTBULB_OFF = WatchUi.loadResource(Rez.Drawables.LightbulbOutline) as WatchUi.BitmapResource;
-    private const LIGHTBULB_UNAVAILABLE = WatchUi.loadResource(Rez.Drawables.LightbulbOffOutline) as WatchUi.BitmapResource;
 
     private const FONT_SIZES = WatchUi.loadResource(Rez.JsonData.VectorFontSizes) as Dictionary;
 
@@ -57,42 +52,20 @@ class Card {
         Rendering.useAntiAlias(dc, true);
 
         if (subtitle != null) {
-            drawSubtitle(dc, centerX, dc.getHeight() * 2 / GRID_SIZE, subtitle as String);
+            drawSubtitle(dc, centerX, getRowY(dc, 2), subtitle as String);
         }
 
-        drawTitle(dc, centerX, dc.getHeight() * 3 / GRID_SIZE, name);
+        drawTitle(dc, centerX, getRowY(dc, 3), name);
         drawReadings(dc);
         drawSelectHint(dc);
     }
 
-    hidden function drawLightStatus(dc as Graphics.Dc, text as String) as Void {
-        Rendering.useAntiAlias(dc, true);
-        dc.setColor(Graphics.COLOR_LT_GRAY, system_color_dark__text.background);
-        dc.drawText(dc.getWidth() / 2, middleBandY(dc), SUBTITLE_FONT, text,
-            Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+    hidden function getRowY(dc as Graphics.Dc, row as Number) as Number {
+        return dc.getHeight() * row / GRID_SIZE;
     }
 
-    hidden function drawLightIndicators(dc as Graphics.Dc, lights as LightTally) as Void {
-        var totalCount = lights.available + lights.unavailable;
-        var step = LIGHTBULB_ON.getWidth() + LIGHT_INDICATOR_GAP;
-        var firstX = dc.getWidth() / 2 - (totalCount - 1) * step / 2;
-        var centerY = middleBandY(dc);
-
-        for (var index = 0; index < totalCount; index++) {
-            var x = firstX + index * step;
-
-            if (index < lights.on) {
-                drawLightIcon(dc, x, centerY, LIGHTBULB_ON, Graphics.COLOR_YELLOW);
-            } else if (index < lights.available) {
-                drawLightIcon(dc, x, centerY, LIGHTBULB_OFF, Graphics.COLOR_LT_GRAY);
-            } else {
-                drawLightIcon(dc, x, centerY, LIGHTBULB_UNAVAILABLE, Graphics.COLOR_DK_GRAY);
-            }
-        }
-    }
-
-    private function middleBandY(dc as Graphics.Dc) as Number {
-        return dc.getHeight() * 6 / GRID_SIZE;
+    hidden function getColumnX(dc as Graphics.Dc, column as Number) as Number {
+        return dc.getWidth() * column / GRID_SIZE;
     }
 
     private function drawTitle(dc as Graphics.Dc, x as Number, y as Number, text as String) as Void {
@@ -107,8 +80,8 @@ class Card {
         dc.drawText(x, y, SUBTITLE_FONT, text, Graphics.TEXT_JUSTIFY_CENTER);
     }
 
-    private function drawLightIcon(dc as Graphics.Dc, x as Number, y as Number,
-                                   icon as WatchUi.BitmapResource, tint as Number) as Void {
+    hidden function drawLightIcon(dc as Graphics.Dc, x as Number, y as Number,
+                                  icon as WatchUi.BitmapResource, tint as Number) as Void {
         dc.drawBitmap2(x - icon.getWidth() / 2, y - icon.getHeight() / 2, icon, {
             :tintColor => tint
         });
@@ -119,14 +92,14 @@ class Card {
             var reading = readings[index];
 
             if ("temperature".equals(reading.deviceClass)) {
-                drawReadingBox(dc, dc.getWidth() * 4 / GRID_SIZE,
-                    dc.getHeight() * 8 / GRID_SIZE, reading.text);
+                drawReadingBox(dc, getColumnX(dc, 4),
+                    getRowY(dc, 8), reading.text);
             } else if ("humidity".equals(reading.deviceClass)) {
-                drawReadingBox(dc, dc.getWidth() * 8 / GRID_SIZE,
-                    dc.getHeight() * 8 / GRID_SIZE, reading.text);
+                drawReadingBox(dc, getColumnX(dc, 8),
+                    getRowY(dc, 8), reading.text);
             } else if ("illuminance".equals(reading.deviceClass)) {
                 drawReadingBox(dc, dc.getWidth() / 2,
-                    dc.getHeight() * 10 / GRID_SIZE, reading.text);
+                    getRowY(dc, 10), reading.text);
             }
         }
     }
