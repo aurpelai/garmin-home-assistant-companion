@@ -33,14 +33,6 @@ class Coordinator {
         }
     }
 
-    function currentView() as Screen or Null {
-        return _currentView;
-    }
-
-    function haState() as HaState {
-        return _haState;
-    }
-
     function showAreaMenu(areaId as String) as Void {
         var model = AreaEntityMenuBuilder.build(_haState, areaId);
         if (model == null) {
