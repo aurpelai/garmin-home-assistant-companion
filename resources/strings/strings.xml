@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <strings>
-    <string id="AppName">HA Companion</string>
+    <string id="AppName" scope="glance">HA Companion</string>
 
     <!-- Settings screen (shown in Garmin Connect Mobile) -->
     <string id="SettingHaBaseUrlTitle">Home Assistant URL</string>
