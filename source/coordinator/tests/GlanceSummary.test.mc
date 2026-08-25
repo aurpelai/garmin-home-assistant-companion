@@ -27,7 +27,7 @@ function writingAbsentClearsAnyStoredValue(logger as Test.Logger) as Boolean {
 
 (:test)
 function climateLineJoinsTemperatureAndHumidity(logger as Test.Logger) as Boolean {
-    Test.assert((GlanceSummary.climateLine({ "temperature" => "21.6 °C", "humidity" => "52 %" }) as String).equals("21.6 °C ∙ 52 %"));
+    Test.assert((GlanceSummary.climateLine({ "temperature" => "21.6 °C", "humidity" => "52 %" }) as String).equals("21.6 °C • 52 %"));
     return true;
 }
 

@@ -32,7 +32,7 @@ module GlanceSummary {
         var line = temperature instanceof String ? temperature : null;
 
         if (humidity instanceof String) {
-            line = line == null ? humidity : line + " ∙ " + humidity;
+            line = line == null ? humidity : line + " • " + humidity;
         }
 
         return line;
