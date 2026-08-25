@@ -10,7 +10,7 @@ module GlanceSummary {
     const HUMIDITY_KEY = "glanceHumidity";
 
     function setLights(token as String or Null) as Void {
-        put(LIGHTS_KEY, token);
+        set(LIGHTS_KEY, token);
     }
 
     function getLights() as String or Null {
@@ -18,8 +18,8 @@ module GlanceSummary {
     }
 
     function setClimate(averages as Dictionary) as Void {
-        put(TEMPERATURE_KEY, averages.get("temperature"));
-        put(HUMIDITY_KEY, averages.get("humidity"));
+        set(TEMPERATURE_KEY, averages.get("temperature"));
+        set(HUMIDITY_KEY, averages.get("humidity"));
     }
 
     function getTemperature() as String or Null {
@@ -30,7 +30,7 @@ module GlanceSummary {
         return Application.Storage.getValue(HUMIDITY_KEY) as String or Null;
     }
 
-    function put(key as String, value as Object or Null) as Void {
+    function set(key as String, value as Object or Null) as Void {
         if (value instanceof String) {
             Application.Storage.setValue(key, value);
             return;
