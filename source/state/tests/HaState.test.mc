@@ -24,8 +24,8 @@ module HaStateTest {
         return { "state" => state, "area_id" => areaId, "available" => true };
     }
 
-    function unavailableLight(state as Boolean, areaId as String) as Dictionary {
-        return { "state" => state, "area_id" => areaId, "available" => false };
+    function unavailableLight(areaId as String) as Dictionary {
+        return { "state" => false, "area_id" => areaId, "available" => false };
     }
 }
 
@@ -262,10 +262,10 @@ function allLightsStateReadsAllOnWhenEveryLightIsOn(logger as Test.Logger) as Bo
 }
 
 (:test)
-function allLightsStateCountsAnUnavailableLightByItsLastKnownState(logger as Test.Logger) as Boolean {
+function allLightsStateCountsAnUnavailableLightAsOff(logger as Test.Logger) as Boolean {
     var haState = HaStateTest.stateWithLights({
-        "light.on" => HaStateTest.unavailableLight(true, "area.a"),
-        "light.off" => HaStateTest.unavailableLight(false, "area.a")
+        "light.on" => HaStateTest.light(true, "area.a"),
+        "light.unavailable" => HaStateTest.unavailableLight("area.a")
     });
 
     Test.assert(haState.allLightsState() == :someOn);
