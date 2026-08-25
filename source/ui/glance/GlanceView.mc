@@ -26,8 +26,9 @@ class GlanceView extends WatchUi.GlanceView {
 
     function onUpdate(dc as Graphics.Dc) as Void {
         GlanceView.onUpdate(dc);
-        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
         dc.clear();
+        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
 
         var height = dc.getHeight();
         var lights = GlanceSummary.getLightState();
