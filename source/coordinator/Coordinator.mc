@@ -192,12 +192,12 @@ class Coordinator {
 
     private function cacheGlanceSummary() as Void {
         var summary = _haState.resolveLightSummary();
-        var token = summary == null ? null
+        var lightState = summary == null ? null
             : summary == :allOn ? GlanceSummary.ALL_LIGHTS_ON
             : summary == :someOn ? GlanceSummary.ALL_LIGHTS_SOME
             : GlanceSummary.ALL_LIGHTS_OFF;
 
-        GlanceSummary.setLightState(token);
+        GlanceSummary.setLightState(lightState);
     }
 
     private function showCardLoop() as Void {
