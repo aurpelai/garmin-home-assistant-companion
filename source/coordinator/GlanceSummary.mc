@@ -18,8 +18,8 @@ module GlanceSummary {
     }
 
     function setClimate(means as Dictionary) as Void {
-        put(TEMPERATURE_KEY, reading(means, "temperature"));
-        put(HUMIDITY_KEY, reading(means, "humidity"));
+        put(TEMPERATURE_KEY, means.get("temperature"));
+        put(HUMIDITY_KEY, means.get("humidity"));
     }
 
     function getTemperature() as String or Null {
@@ -30,17 +30,12 @@ module GlanceSummary {
         return Application.Storage.getValue(HUMIDITY_KEY) as String or Null;
     }
 
-    function reading(means as Dictionary, deviceClass as String) as String or Null {
-        var value = means.get(deviceClass);
-        return value instanceof String ? value : null;
-    }
-
-    function put(key as String, value as String or Null) as Void {
-        if (value == null) {
-            Application.Storage.deleteValue(key);
+    function put(key as String, value as Object or Null) as Void {
+        if (value instanceof String) {
+            Application.Storage.setValue(key, value);
             return;
         }
 
-        Application.Storage.setValue(key, value);
+        Application.Storage.deleteValue(key);
     }
 }
