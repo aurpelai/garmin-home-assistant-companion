@@ -1,9 +1,8 @@
 import Toybox.Application;
 import Toybox.Lang;
 
-// The only channel between the full app and its glance: the glance runs as a
-// separate process with no access to HaState, so the app reduces state to the
-// few values the glance draws and leaves them in storage for it to read back.
+// The glance is a separate process with no access to HaState, so storage is
+// the only channel: the full app writes what the glance draws, the glance reads.
 (:glance)
 module GlanceSummary {
     enum AllLights {

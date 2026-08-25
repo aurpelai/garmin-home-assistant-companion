@@ -3,8 +3,6 @@ import Toybox.Lang;
 import Toybox.System;
 import Toybox.WatchUi;
 
-// Runs in the glance process (32 KB, no HaState): the phone link is read live
-// here, while the all-lights line comes from the summary the full app cached.
 (:glance)
 class GlanceView extends WatchUi.GlanceView {
     private const ICON_GAP = 4;
