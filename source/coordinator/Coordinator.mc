@@ -90,7 +90,7 @@ class Coordinator {
         _client.discardRegistration();
         _haState = new HaState();
         GlanceSummary.setLights(null);
-        GlanceSummary.setClimate(null);
+        GlanceSummary.setClimate({});
         refresh();
     }
 
@@ -135,7 +135,7 @@ class Coordinator {
                     HaPayload.parseMeans(result, "areas"),
                     HaPayload.parseMeans(result, "floors"),
                     HaPayload.parseHomeMeans(result));
-                GlanceSummary.setClimate(GlanceSummary.climateLine(_haState.getHomeMeans() as Dictionary));
+                GlanceSummary.setClimate(_haState.getHomeMeans() as Dictionary);
             }
         }
 

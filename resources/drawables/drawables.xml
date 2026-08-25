@@ -9,6 +9,7 @@
     <bitmap id="GlanceLightsAll" filename="lightbulb-group.svg" scaleX="6%" scaleY="6%" automaticPalette="false" scope="glance" />
     <bitmap id="GlanceLightsSome" filename="lightbulb-group-outline.svg" scaleX="6%" scaleY="6%" automaticPalette="false" scope="glance" />
     <bitmap id="GlanceThermometer" filename="thermometer.svg" scaleX="6%" scaleY="6%" automaticPalette="false" scope="glance" />
+    <bitmap id="GlanceHumidity" filename="water-percent.svg" scaleX="6%" scaleY="6%" automaticPalette="false" scope="glance" />
 
     <!-- Icons -->
     <bitmap id="LightbulbGroupSome" filename="lightbulb-group-outline.svg" scaleX="16%" scaleY="16%" automaticPalette="false" />

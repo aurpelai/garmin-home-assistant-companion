@@ -26,16 +26,28 @@ function writingAbsentClearsAnyStoredValue(logger as Test.Logger) as Boolean {
 }
 
 (:test)
-function climateLineJoinsTemperatureAndHumidity(logger as Test.Logger) as Boolean {
-    Test.assert((GlanceSummary.climateLine({ "temperature" => "21.6 °C", "humidity" => "52 %" }) as String).equals("21.6 °C • 52 %"));
+function climateStoresTemperatureAndHumiditySeparatelyAndIgnoresOtherClasses(logger as Test.Logger) as Boolean {
+    Application.Storage.clearValues();
+
+    GlanceSummary.setClimate({ "temperature" => "21.6 °C", "humidity" => "52 %", "illuminance" => "5 lx" });
+
+    Test.assert((GlanceSummary.getTemperature() as String).equals("21.6 °C"));
+    Test.assert((GlanceSummary.getHumidity() as String).equals("52 %"));
+
+    Application.Storage.clearValues();
     return true;
 }
 
 (:test)
-function climateLineKeepsWhicheverIsPresent(logger as Test.Logger) as Boolean {
-    Test.assert((GlanceSummary.climateLine({ "temperature" => "21.6 °C" }) as String).equals("21.6 °C"));
-    Test.assert((GlanceSummary.climateLine({ "humidity" => "52 %" }) as String).equals("52 %"));
-    Test.assert(GlanceSummary.climateLine({ "illuminance" => "5 lx" }) == null);
-    Test.assert(GlanceSummary.climateLine({}) == null);
+function climateClearsWhicheverReadingIsNoLongerPresent(logger as Test.Logger) as Boolean {
+    Application.Storage.clearValues();
+
+    GlanceSummary.setClimate({ "temperature" => "21.6 °C", "humidity" => "52 %" });
+    GlanceSummary.setClimate({ "temperature" => "22.0 °C" });
+
+    Test.assert((GlanceSummary.getTemperature() as String).equals("22.0 °C"));
+    Test.assert(GlanceSummary.getHumidity() == null);
+
+    Application.Storage.clearValues();
     return true;
 }

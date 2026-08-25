@@ -6,7 +6,8 @@ import Toybox.Lang;
 (:glance, :background)
 module GlanceSummary {
     const LIGHTS_KEY = "glanceLights";
-    const CLIMATE_KEY = "glanceClimate";
+    const TEMPERATURE_KEY = "glanceTemperature";
+    const HUMIDITY_KEY = "glanceHumidity";
 
     function setLights(token as String or Null) as Void {
         put(LIGHTS_KEY, token);
@@ -16,26 +17,22 @@ module GlanceSummary {
         return Application.Storage.getValue(LIGHTS_KEY) as String or Null;
     }
 
-    function setClimate(line as String or Null) as Void {
-        put(CLIMATE_KEY, line);
+    function setClimate(means as Dictionary) as Void {
+        put(TEMPERATURE_KEY, reading(means, "temperature"));
+        put(HUMIDITY_KEY, reading(means, "humidity"));
     }
 
-    function getClimate() as String or Null {
-        return Application.Storage.getValue(CLIMATE_KEY) as String or Null;
+    function getTemperature() as String or Null {
+        return Application.Storage.getValue(TEMPERATURE_KEY) as String or Null;
     }
 
-    // The join is presentation, so it lives here rather than in the HA template
-    // that computed the means.
-    function climateLine(means as Dictionary) as String or Null {
-        var temperature = means.get("temperature");
-        var humidity = means.get("humidity");
-        var line = temperature instanceof String ? temperature : null;
+    function getHumidity() as String or Null {
+        return Application.Storage.getValue(HUMIDITY_KEY) as String or Null;
+    }
 
-        if (humidity instanceof String) {
-            line = line == null ? humidity : line + " • " + humidity;
-        }
-
-        return line;
+    function reading(means as Dictionary, deviceClass as String) as String or Null {
+        var value = means.get(deviceClass);
+        return value instanceof String ? value : null;
     }
 
     function put(key as String, value as String or Null) as Void {
