@@ -223,57 +223,57 @@ function anUnknownAreaOrFloorYieldsAnEmptyCollectionRatherThanNull(logger as Tes
 }
 
 (:test)
-function allLightsStateIsAbsentWhenThereAreNoLights(logger as Test.Logger) as Boolean {
-    Test.assert(new HaState().allLightsState() == null);
+function aHomeWithNoLightsHasNoLightSummary(logger as Test.Logger) as Boolean {
+    Test.assert(new HaState().resolveLightSummary() == null);
     return true;
 }
 
 (:test)
-function allLightsStateReadsAllOffWhenEveryLightIsOff(logger as Test.Logger) as Boolean {
+function theSummaryReadsAllOffWhenEveryLightIsOff(logger as Test.Logger) as Boolean {
     var haState = HaStateTest.stateWithLights({
         "light.a" => HaStateTest.light(false, "area.a"),
         "light.b" => HaStateTest.light(false, "area.a")
     });
 
-    Test.assert(haState.allLightsState() == :allOff);
+    Test.assert(haState.resolveLightSummary() == :allOff);
     return true;
 }
 
 (:test)
-function allLightsStateReadsSomeOnWhenOnlyPartAreOn(logger as Test.Logger) as Boolean {
+function theSummaryReadsSomeOnWhenOnlyPartAreOn(logger as Test.Logger) as Boolean {
     var haState = HaStateTest.stateWithLights({
         "light.a" => HaStateTest.light(true, "area.a"),
         "light.b" => HaStateTest.light(false, "area.a")
     });
 
-    Test.assert(haState.allLightsState() == :someOn);
+    Test.assert(haState.resolveLightSummary() == :someOn);
     return true;
 }
 
 (:test)
-function allLightsStateReadsAllOnWhenEveryLightIsOn(logger as Test.Logger) as Boolean {
+function theSummaryReadsAllOnWhenEveryLightIsOn(logger as Test.Logger) as Boolean {
     var haState = HaStateTest.stateWithLights({
         "light.a" => HaStateTest.light(true, "area.a"),
         "light.b" => HaStateTest.light(true, "area.a")
     });
 
-    Test.assert(haState.allLightsState() == :allOn);
+    Test.assert(haState.resolveLightSummary() == :allOn);
     return true;
 }
 
 (:test)
-function allLightsStateCountsAnUnavailableLightAsOff(logger as Test.Logger) as Boolean {
+function theSummaryCountsAnUnavailableLightAsOff(logger as Test.Logger) as Boolean {
     var haState = HaStateTest.stateWithLights({
         "light.on" => HaStateTest.light(true, "area.a"),
         "light.unavailable" => HaStateTest.unavailableLight("area.a")
     });
 
-    Test.assert(haState.allLightsState() == :someOn);
+    Test.assert(haState.resolveLightSummary() == :someOn);
     return true;
 }
 
 (:test)
-function allLightsStateFollowsAnOptimisticOverride(logger as Test.Logger) as Boolean {
+function theSummaryFollowsAnOptimisticOverride(logger as Test.Logger) as Boolean {
     var haState = HaStateTest.stateWithLights({
         "light.a" => HaStateTest.light(false, "area.a"),
         "light.b" => HaStateTest.light(false, "area.a")
@@ -281,6 +281,6 @@ function allLightsStateFollowsAnOptimisticOverride(logger as Test.Logger) as Boo
 
     haState.override("light.a", true);
 
-    Test.assert(haState.allLightsState() == :someOn);
+    Test.assert(haState.resolveLightSummary() == :someOn);
     return true;
 }

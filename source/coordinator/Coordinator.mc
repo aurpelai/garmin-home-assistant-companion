@@ -191,7 +191,7 @@ class Coordinator {
     }
 
     private function cacheGlanceSummary() as Void {
-        var state = _haState.allLightsState();
+        var state = _haState.resolveLightSummary();
         var token = state == null ? null
             : state == :allOn ? GlanceSummary.ALL_LIGHTS_ON
             : state == :someOn ? GlanceSummary.ALL_LIGHTS_SOME

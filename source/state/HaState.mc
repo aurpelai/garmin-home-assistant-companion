@@ -144,7 +144,7 @@ class HaState {
         return targets;
     }
 
-    function allLightsState() as Symbol or Null {
+    function resolveLightSummary() as Symbol or Null {
         var lights = _lights.values() as Array<LightModel>;
         if (lights.size() == 0) {
             return null;
