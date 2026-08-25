@@ -55,14 +55,14 @@ class GlanceView extends WatchUi.GlanceView {
 
         var rows = [] as Array<StatusRow or MultiStatusRow>;
 
-        var lights = buildLightRow();
-        if (lights != null) {
-            rows.add(lights);
+        var lightRow = buildLightRow();
+        if (lightRow != null) {
+            rows.add(lightRow);
         }
 
-        var climate = buildClimateRow(dc);
-        if (climate != null) {
-            rows.add(climate);
+        var climateRow = buildClimateRow(dc);
+        if (climateRow != null) {
+            rows.add(climateRow);
         }
 
         return rows;
