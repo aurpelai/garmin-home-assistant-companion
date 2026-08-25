@@ -46,8 +46,8 @@ function malformedAggregatePayloadsYieldEmptyRatherThanThrow(logger as Test.Logg
     Test.assertEqual(HaPayload.parseAreaLightCounts(junk).size(), 0);
     Test.assertEqual(HaPayload.parseFloorLightSummaries(junk).size(), 0);
     Test.assert(HaPayload.parseHomeLightSummary(junk) == null);
-    Test.assertEqual(HaPayload.parseMeans(junk, "areas").size(), 0);
-    Test.assertEqual(HaPayload.parseHomeMeans(junk).size(), 0);
+    Test.assertEqual(HaPayload.parseAverages(junk, "areas").size(), 0);
+    Test.assertEqual(HaPayload.parseHomeAverages(junk).size(), 0);
     Test.assert(HaPayload.parseAreaLightCounts(null) != null);
     return true;
 }

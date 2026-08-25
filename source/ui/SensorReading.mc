@@ -9,12 +9,12 @@ class SensorReading {
         self.text = text;
     }
 
-    static function fromMeans(means as Dictionary<String, String>) as Array<SensorReading> {
+    static function build(averages as Dictionary<String, String>) as Array<SensorReading> {
         var readings = [] as Array<SensorReading>;
 
         for (var index = 0; index < EntitySorter.SENSOR_DEVICE_CLASSES.size(); index++) {
             var deviceClass = EntitySorter.SENSOR_DEVICE_CLASSES[index];
-            var text = means.get(deviceClass);
+            var text = averages.get(deviceClass);
             if (text != null) {
                 readings.add(new SensorReading(deviceClass, text));
             }

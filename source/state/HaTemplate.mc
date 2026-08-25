@@ -68,7 +68,7 @@ module HaTemplate {
             "{{ 'all_on' if lit.on == lit.total else 'all_off' if lit.on == 0 else 'some_on' }}" +
             "{% endif %}" +
         "{% endmacro %}" +
-        "{% macro classMean(ids, cls) %}" +
+        "{% macro classAverage(ids, cls) %}" +
             "{% set v = namespace(nums=[], unit=none) %}" +
             "{% for e in ids %}" +
             "{% if e.startswith('sensor.') and states[e] is not none and not is_hidden_entity(e) " +
@@ -87,10 +87,10 @@ module HaTemplate {
             "{{ m ~ ' ' ~ v.unit }}" +
             "{% endif %}" +
         "{% endmacro %}" +
-        "{% macro means(ids) %}" +
+        "{% macro averages(ids) %}" +
             "{% set out = namespace(d={}) %}" +
             "{% for cls in ['temperature', 'humidity', 'illuminance'] %}" +
-            "{% set r = classMean(ids, cls) | trim %}" +
+            "{% set r = classAverage(ids, cls) | trim %}" +
             "{% if r | length > 0 %}{% set out.d = dict(out.d, **{cls: r}) %}{% endif %}" +
             "{% endfor %}" +
             "{{ out.d | tojson }}" +
@@ -144,7 +144,7 @@ module HaTemplate {
         "{% for a in areas() %}" +
         "{% set ids = area_entities(a) | list %}" +
         "{% set ns.home = ns.home + ids %}" +
-        "{% set m = means(ids) | from_json %}" +
+        "{% set m = averages(ids) | from_json %}" +
         "{% if m | length > 0 %}{% set ns.areas = dict(ns.areas, **{a: m}) %}{% endif %}" +
         "{% for e in ids | reject('is_hidden_entity') | list %}" +
         "{% if e.startswith('sensor.') and states[e] is not none " +
@@ -161,11 +161,11 @@ module HaTemplate {
         "{% for a in floor_areas(f) | default([]) | list %}" +
         "{% set fids.l = fids.l + (area_entities(a) | list) %}" +
         "{% endfor %}" +
-        "{% set m = means(fids.l) | from_json %}" +
+        "{% set m = averages(fids.l) | from_json %}" +
         "{% if m | length > 0 %}{% set ns.floors = dict(ns.floors, **{f: m}) %}{% endif %}" +
         "{% endfor %}" +
         "{{ dict(sensors=ns.out, areas=ns.areas, floors=ns.floors, " +
-            "home=means(ns.home) | from_json) | tojson }}";
+            "home=averages(ns.home) | from_json) | tojson }}";
 
     // Only the home summaries, so the background process's fetch and parse stay
     // within its small memory pool.
@@ -175,7 +175,7 @@ module HaTemplate {
         "{% set ns.home = ns.home + (area_entities(a) | list) %}" +
         "{% endfor %}" +
         "{{ dict(lights=(lightSummary(ns.home) | trim or none), " +
-            "climate=means(ns.home) | from_json) | tojson }}";
+            "climate=averages(ns.home) | from_json) | tojson }}";
 
     function resolve(target as Symbol) as String {
         if (target == FetchTarget.STRUCTURE) {

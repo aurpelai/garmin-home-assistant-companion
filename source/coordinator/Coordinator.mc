@@ -132,10 +132,10 @@ class Coordinator {
             } else if (target == FetchTarget.SENSORS) {
                 _haState.setSensors(HaPayload.parseSensors(result));
                 _haState.setSensorAggregates(
-                    HaPayload.parseMeans(result, "areas"),
-                    HaPayload.parseMeans(result, "floors"),
-                    HaPayload.parseHomeMeans(result));
-                GlanceSummary.setClimate(_haState.getHomeMeans() as Dictionary);
+                    HaPayload.parseAverages(result, "areas"),
+                    HaPayload.parseAverages(result, "floors"),
+                    HaPayload.parseHomeAverages(result));
+                GlanceSummary.setClimate(_haState.getHomeAverages() as Dictionary);
             }
         }
 

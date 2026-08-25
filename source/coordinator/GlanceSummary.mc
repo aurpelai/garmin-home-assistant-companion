@@ -17,9 +17,9 @@ module GlanceSummary {
         return Application.Storage.getValue(LIGHTS_KEY) as String or Null;
     }
 
-    function setClimate(means as Dictionary) as Void {
-        put(TEMPERATURE_KEY, means.get("temperature"));
-        put(HUMIDITY_KEY, means.get("humidity"));
+    function setClimate(averages as Dictionary) as Void {
+        put(TEMPERATURE_KEY, averages.get("temperature"));
+        put(HUMIDITY_KEY, averages.get("humidity"));
     }
 
     function getTemperature() as String or Null {

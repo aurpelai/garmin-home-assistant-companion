@@ -242,9 +242,9 @@ function areaAndFloorMeansDoNotCollideOnAnIdTheyShare(logger as Test.Logger) as 
         { "shared" => { "temperature" => "22.0 °C" } },
         { "temperature" => "20.0 °C" });
 
-    Test.assert((haState.getAreaMeans("shared").get("temperature") as String).equals("18.0 °C"));
-    Test.assert((haState.getFloorMeans("shared").get("temperature") as String).equals("22.0 °C"));
-    Test.assert((haState.getHomeMeans().get("temperature") as String).equals("20.0 °C"));
-    Test.assertEqual(haState.getAreaMeans("ghost").size(), 0);
+    Test.assert((haState.getAreaAverages("shared").get("temperature") as String).equals("18.0 °C"));
+    Test.assert((haState.getFloorAverages("shared").get("temperature") as String).equals("22.0 °C"));
+    Test.assert((haState.getHomeAverages().get("temperature") as String).equals("20.0 °C"));
+    Test.assertEqual(haState.getAreaAverages("ghost").size(), 0);
     return true;
 }

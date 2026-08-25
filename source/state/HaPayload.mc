@@ -86,7 +86,7 @@ module HaPayload {
         return asStringOrNull(payload instanceof Dictionary ? payload.get("home") : null);
     }
 
-    function parseMeans(payload as Object or Null, key as String)
+    function parseAverages(payload as Object or Null, key as String)
             as Dictionary<String, Dictionary<String, String>> {
         var entries = readEntries(payload, key);
         var out = {} as Dictionary<String, Dictionary<String, String>>;
@@ -100,7 +100,7 @@ module HaPayload {
         return out;
     }
 
-    function parseHomeMeans(payload as Object or Null) as Dictionary<String, String> {
+    function parseHomeAverages(payload as Object or Null) as Dictionary<String, String> {
         if (!(payload instanceof Dictionary)) {
             return {} as Dictionary<String, String>;
         }

@@ -11,9 +11,9 @@ class HaState {
     private var _lightCounts as Dictionary<String, LightCount>;
     private var _lightSummaries as Dictionary<String, String>;
     private var _homeLightSummary as String or Null;
-    private var _areaMeans as Dictionary<String, Dictionary<String, String>>;
-    private var _floorMeans as Dictionary<String, Dictionary<String, String>>;
-    private var _homeMeans as Dictionary<String, String>;
+    private var _areaAverages as Dictionary<String, Dictionary<String, String>>;
+    private var _floorAverages as Dictionary<String, Dictionary<String, String>>;
+    private var _homeAverages as Dictionary<String, String>;
 
     function initialize() {
         _lights = {};
@@ -25,9 +25,9 @@ class HaState {
         _lightCounts = {};
         _lightSummaries = {};
         _homeLightSummary = null;
-        _areaMeans = {};
-        _floorMeans = {};
-        _homeMeans = {};
+        _areaAverages = {};
+        _floorAverages = {};
+        _homeAverages = {};
     }
 
     function setZone(zone as String or Null) as Void {
@@ -62,12 +62,12 @@ class HaState {
         _homeLightSummary = home;
     }
 
-    function setSensorAggregates(areaMeans as Dictionary<String, Dictionary<String, String>>,
-                                 floorMeans as Dictionary<String, Dictionary<String, String>>,
+    function setSensorAggregates(areaAverages as Dictionary<String, Dictionary<String, String>>,
+                                 floorAverages as Dictionary<String, Dictionary<String, String>>,
                                  home as Dictionary<String, String>) as Void {
-        _areaMeans = areaMeans;
-        _floorMeans = floorMeans;
-        _homeMeans = home;
+        _areaAverages = areaAverages;
+        _floorAverages = floorAverages;
+        _homeAverages = home;
     }
 
     function getLightCount(areaId as String) as LightCount {
@@ -83,22 +83,22 @@ class HaState {
         return _homeLightSummary;
     }
 
-    function getAreaMeans(areaId as String) as Dictionary<String, String> {
-        return meansOr(_areaMeans, areaId);
+    function getAreaAverages(areaId as String) as Dictionary<String, String> {
+        return averagesOr(_areaAverages, areaId);
     }
 
-    function getFloorMeans(floorId as String) as Dictionary<String, String> {
-        return meansOr(_floorMeans, floorId);
+    function getFloorAverages(floorId as String) as Dictionary<String, String> {
+        return averagesOr(_floorAverages, floorId);
     }
 
-    private function meansOr(source as Dictionary<String, Dictionary<String, String>>,
-                             scopeId as String) as Dictionary<String, String> {
-        var means = source.get(scopeId);
-        return means == null ? ({} as Dictionary<String, String>) : means;
+    private function averagesOr(source as Dictionary<String, Dictionary<String, String>>,
+                                scopeId as String) as Dictionary<String, String> {
+        var averages = source.get(scopeId);
+        return averages == null ? ({} as Dictionary<String, String>) : averages;
     }
 
-    function getHomeMeans() as Dictionary<String, String> {
-        return _homeMeans;
+    function getHomeAverages() as Dictionary<String, String> {
+        return _homeAverages;
     }
 
     function hasAreas() as Boolean {
