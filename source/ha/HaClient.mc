@@ -11,8 +11,6 @@ import Toybox.System;
 // it yields a queue-full transport error — so everything below serialises
 // through a single slot that a refresh and a service call compete for.
 class HaClient {
-    private const REGISTRATION_KEY = Webhook.REGISTRATION_KEY;
-
     // UNVERIFIED: the device can't introspect its real model/OS, so every
     // install registers under these same constants.
     private const DEVICE_ID = "companion_for_home_assistant";
@@ -205,7 +203,7 @@ class HaClient {
 
     function attemptRequest(body as Dictionary, callback as Method, responseType as Symbol,
                             responseContentType as Communications.HttpResponseContentType) as Void {
-        var webhookId = Application.Storage.getValue(REGISTRATION_KEY) as String or Null;
+        var webhookId = Application.Storage.getValue(Webhook.REGISTRATION_KEY) as String or Null;
 
         if (webhookId == null) {
             callback.invoke(null, RequestError.UNUSABLE_WEBHOOK);
@@ -232,11 +230,11 @@ class HaClient {
     }
 
     function discardRegistration() as Void {
-        Application.Storage.deleteValue(REGISTRATION_KEY);
+        Application.Storage.deleteValue(Webhook.REGISTRATION_KEY);
     }
 
     private function setRegistration(webhookId as String) as Void {
-        Application.Storage.setValue(REGISTRATION_KEY, webhookId);
+        Application.Storage.setValue(Webhook.REGISTRATION_KEY, webhookId);
     }
 
     function postTemplate(template as String, callback as Method) as Void {
