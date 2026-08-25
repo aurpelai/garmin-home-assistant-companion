@@ -18,12 +18,9 @@ module HaPayloadTest {
         return { "sensors" => entries };
     }
 
-    function reading(state as Object or Null, friendlyState as Object or Null, areaId as String) as Dictionary {
+    function reading(friendlyState as Object or Null, areaId as String) as Dictionary {
         return {
-            "state" => state,
             "friendly_state" => friendlyState,
-            "display_precision" => 1,
-            "unit" => "°C",
             "device_class" => "temperature",
             "area_id" => areaId,
             "name" => "Café Thermomètre",
@@ -33,21 +30,9 @@ module HaPayloadTest {
 }
 
 (:test)
-function nonNumericSensorValueIsAbsentRatherThanZero(logger as Test.Logger) as Boolean {
-    var parsed = HaPayload.parseSensors(HaPayloadTest.sensorsPayload({
-        "sensor.broken" => HaPayloadTest.reading(null, "unavailable", "area.kitchen"),
-        "sensor.warm" => HaPayloadTest.reading(21.5, "21.5 °C", "area.kitchen")
-    }));
-
-    Test.assert((parsed.get("sensor.broken") as SensorModel).value == null);
-    Test.assertEqual((parsed.get("sensor.warm") as SensorModel).value as Float, 21.5);
-    return true;
-}
-
-(:test)
 function sensorWithoutFriendlyStateIsAbsent(logger as Test.Logger) as Boolean {
     var parsed = HaPayload.parseSensors(HaPayloadTest.sensorsPayload({
-        "sensor.mute" => HaPayloadTest.reading(21.5, null, "area.kitchen")
+        "sensor.mute" => HaPayloadTest.reading(null, "area.kitchen")
     }));
 
     Test.assert(parsed.get("sensor.mute") == null);
@@ -64,7 +49,7 @@ function everyParsedModelCarriesTheIdItIsKeyedUnder(logger as Test.Logger) as Bo
         "light.kitchen" => { "state" => true, "name" => "Küchenlicht", "area_id" => "area.kitchen" }
     }));
     var sensors = HaPayload.parseSensors(HaPayloadTest.sensorsPayload({
-        "sensor.warm" => HaPayloadTest.reading(21.5, "21.5 °C", "area.kitchen")
+        "sensor.warm" => HaPayloadTest.reading("21.5 °C", "area.kitchen")
     }));
 
     Test.assertEqual((HaPayload.parseAreas(structure).get("area.kitchen") as AreaModel).id, "area.kitchen");

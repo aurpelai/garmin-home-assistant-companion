@@ -12,6 +12,7 @@ import Toybox.StringUtil;
 // payload grows with home size and an on-device parse that runs too long trips
 // the "code took too long to run" watchdog. Malformed input yields null rather
 // than throwing.
+(:background)
 class JsonParser {
     private var _str as String;
     // Char units, not bytes: _pos indexes both this and _str.substring, which is

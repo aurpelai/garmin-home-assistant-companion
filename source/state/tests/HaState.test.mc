@@ -223,64 +223,28 @@ function anUnknownAreaOrFloorYieldsAnEmptyCollectionRatherThanNull(logger as Tes
 }
 
 (:test)
-function aHomeWithNoLightsHasNoLightSummary(logger as Test.Logger) as Boolean {
-    Test.assert(new HaState().resolveLightSummary() == null);
+function lightAggregatesDefaultToEmptyBeforeAFetch(logger as Test.Logger) as Boolean {
+    var haState = new HaState();
+
+    Test.assert(haState.getHomeLightSummary() == null);
+    Test.assert(haState.getLightSummary("floor.ghost") == null);
+    Test.assertEqual(haState.getLightCount("area.ghost").available, 0);
+    Test.assertEqual(haState.getLightCount("area.ghost").on, 0);
     return true;
 }
 
 (:test)
-function theSummaryReadsAllOffWhenEveryLightIsOff(logger as Test.Logger) as Boolean {
-    var haState = HaStateTest.stateWithLights({
-        "light.a" => HaStateTest.light(false, "area.a"),
-        "light.b" => HaStateTest.light(false, "area.a")
-    });
+function sensorMeansShareOneScopeSpaceForAreasAndFloors(logger as Test.Logger) as Boolean {
+    var haState = new HaState();
 
-    Test.assert(haState.resolveLightSummary() == :allOff);
-    return true;
-}
+    haState.setSensorAggregates(
+        { "area.a" => { "temperature" => "21.6 °C" } },
+        { "floor.g" => { "humidity" => "52 %" } },
+        { "temperature" => "22.0 °C" });
 
-(:test)
-function theSummaryReadsSomeOnWhenOnlyPartAreOn(logger as Test.Logger) as Boolean {
-    var haState = HaStateTest.stateWithLights({
-        "light.a" => HaStateTest.light(true, "area.a"),
-        "light.b" => HaStateTest.light(false, "area.a")
-    });
-
-    Test.assert(haState.resolveLightSummary() == :someOn);
-    return true;
-}
-
-(:test)
-function theSummaryReadsAllOnWhenEveryLightIsOn(logger as Test.Logger) as Boolean {
-    var haState = HaStateTest.stateWithLights({
-        "light.a" => HaStateTest.light(true, "area.a"),
-        "light.b" => HaStateTest.light(true, "area.a")
-    });
-
-    Test.assert(haState.resolveLightSummary() == :allOn);
-    return true;
-}
-
-(:test)
-function theSummaryCountsAnUnavailableLightAsOff(logger as Test.Logger) as Boolean {
-    var haState = HaStateTest.stateWithLights({
-        "light.on" => HaStateTest.light(true, "area.a"),
-        "light.unavailable" => HaStateTest.unavailableLight("area.a")
-    });
-
-    Test.assert(haState.resolveLightSummary() == :someOn);
-    return true;
-}
-
-(:test)
-function theSummaryFollowsAnOptimisticOverride(logger as Test.Logger) as Boolean {
-    var haState = HaStateTest.stateWithLights({
-        "light.a" => HaStateTest.light(false, "area.a"),
-        "light.b" => HaStateTest.light(false, "area.a")
-    });
-
-    haState.override("light.a", true);
-
-    Test.assert(haState.resolveLightSummary() == :someOn);
+    Test.assert((haState.getMeans("area.a").get("temperature") as String).equals("21.6 °C"));
+    Test.assert((haState.getMeans("floor.g").get("humidity") as String).equals("52 %"));
+    Test.assert((haState.getHomeMeans().get("temperature") as String).equals("22.0 °C"));
+    Test.assertEqual(haState.getMeans("area.ghost").size(), 0);
     return true;
 }

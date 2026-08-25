@@ -3,11 +3,11 @@ import Toybox.Lang;
 import Toybox.Test;
 
 (:test)
-function allLightsRoundTripsThroughStorage(logger as Test.Logger) as Boolean {
+function lightsRoundTripThroughStorage(logger as Test.Logger) as Boolean {
     Application.Storage.clearValues();
 
-    GlanceSummary.setLightState(GlanceSummary.ALL_LIGHTS_SOME);
-    Test.assert(GlanceSummary.getLightState() == GlanceSummary.ALL_LIGHTS_SOME);
+    GlanceSummary.setLights(GlanceSummary.SOME_ON);
+    Test.assert((GlanceSummary.getLights() as String).equals(GlanceSummary.SOME_ON));
 
     Application.Storage.clearValues();
     return true;
@@ -17,10 +17,25 @@ function allLightsRoundTripsThroughStorage(logger as Test.Logger) as Boolean {
 function writingAbsentClearsAnyStoredValue(logger as Test.Logger) as Boolean {
     Application.Storage.clearValues();
 
-    GlanceSummary.setLightState(GlanceSummary.ALL_LIGHTS_ON);
-    GlanceSummary.setLightState(null);
-    Test.assert(GlanceSummary.getLightState() == null);
+    GlanceSummary.setLights(GlanceSummary.ALL_ON);
+    GlanceSummary.setLights(null);
+    Test.assert(GlanceSummary.getLights() == null);
 
     Application.Storage.clearValues();
+    return true;
+}
+
+(:test)
+function climateLineJoinsTemperatureAndHumidity(logger as Test.Logger) as Boolean {
+    Test.assert((GlanceSummary.climateLine({ "temperature" => "21.6 °C", "humidity" => "52 %" }) as String).equals("21.6 °C ∙ 52 %"));
+    return true;
+}
+
+(:test)
+function climateLineKeepsWhicheverIsPresent(logger as Test.Logger) as Boolean {
+    Test.assert((GlanceSummary.climateLine({ "temperature" => "21.6 °C" }) as String).equals("21.6 °C"));
+    Test.assert((GlanceSummary.climateLine({ "humidity" => "52 %" }) as String).equals("52 %"));
+    Test.assert(GlanceSummary.climateLine({ "illuminance" => "5 lx" }) == null);
+    Test.assert(GlanceSummary.climateLine({}) == null);
     return true;
 }

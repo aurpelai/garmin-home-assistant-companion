@@ -16,11 +16,11 @@ module CardLoopBuilder {
                 continue;
             }
 
-            cards.add(buildFloorCard(haState, floor.id, floor.name, entities));
+            cards.add(buildFloorCard(haState, floor.id, floor.name));
 
             for (var areaIndex = 0; areaIndex < entities.size(); areaIndex++) {
                 floored.put(entities[areaIndex].area.id, true);
-                cards.add(buildAreaCard(entities[areaIndex], floor.id, floor.name));
+                cards.add(buildAreaCard(haState, entities[areaIndex].area, floor.id, floor.name));
             }
         }
 
@@ -36,7 +36,7 @@ module CardLoopBuilder {
         var unflooredEntities = filterAreasWithEntities(haState, EntitySorter.sortAreas(unfloored));
 
         for (var index = 0; index < unflooredEntities.size(); index++) {
-            cards.add(buildAreaCard(unflooredEntities[index], null, null));
+            cards.add(buildAreaCard(haState, unflooredEntities[index].area, null, null));
         }
 
         return new CardLoopModel(cards);
@@ -58,35 +58,23 @@ module CardLoopBuilder {
         return filtered;
     }
 
-    function buildAreaCard(entities as AreaEntities, floorId as String or Null,
+    function buildAreaCard(haState as HaState, area as AreaModel, floorId as String or Null,
                            floorName as String or Null) as AreaCard {
-        var lights = new LightTally();
-        lights.addAll(entities.lights);
-
         return new AreaCard(
-            entities.area.id,
+            area.id,
             floorId,
-            entities.area.name,
+            area.name,
             floorName,
-            SensorReading.buildFromSensors(entities.sensors),
-            lights);
+            SensorReading.fromMeans(haState.getMeans(area.id)),
+            haState.getLightCount(area.id));
     }
 
-    function buildFloorCard(haState as HaState, floorId as String, floorName as String,
-                            areas as Array<AreaEntities>) as FloorCard {
-        var lights = new LightTally();
-        var sensors = [] as Array<SensorModel>;
-
-        for (var index = 0; index < areas.size(); index++) {
-            lights.addAll(areas[index].lights);
-            sensors.addAll(areas[index].sensors);
-        }
-
+    function buildFloorCard(haState as HaState, floorId as String, floorName as String) as FloorCard {
         return new FloorCard(
             floorId,
             floorName,
             haState.getZone(),
-            SensorReading.buildFromSensors(sensors),
-            lights);
+            SensorReading.fromMeans(haState.getMeans(floorId)),
+            haState.getLightSummary(floorId));
     }
 }

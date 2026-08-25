@@ -10,7 +10,7 @@ module EntitySorterTest {
     }
 
     function sensor(id as String, deviceClass as String) as SensorModel {
-        return new SensorModel(id, 1.0, "1", 0, null, deviceClass, id, true, "area.a");
+        return new SensorModel(id, "1", deviceClass, id, true, "area.a");
     }
 
     function area(id as String, name as String) as AreaModel {

@@ -138,6 +138,5 @@ function jsonFeedsHaStateEndToEndWithRawNonAscii(logger as Test.Logger) as Boole
     Test.assertEqual(sensor.id, "sensor.temp");
     Test.assertEqual(sensor.name, "Café Sensor");
     Test.assertEqual(sensor.friendlyState, "21.5 °C");
-    Test.assertEqual(sensor.unit as String, "°C");
     return true;
 }

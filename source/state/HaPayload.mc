@@ -46,10 +46,7 @@ module HaPayload {
 
             sensors.put(entityId, new SensorModel(
                 entityId,
-                asFloatOrNull(entry.get("state")),
                 friendlyState,
-                asNumber(entry.get("display_precision")),
-                asStringOrNull(entry.get("unit")),
                 asString(entry.get("device_class")),
                 asString(entry.get("name")),
                 asAvailable(entry.get("available")),
@@ -57,6 +54,88 @@ module HaPayload {
         }
 
         return sensors;
+    }
+
+    function parseLightCounts(payload as Object or Null) as Dictionary<String, LightCount> {
+        var entries = readEntries(payload, "areas");
+        var out = {} as Dictionary<String, LightCount>;
+        var ids = entries.keys();
+
+        for (var index = 0; index < ids.size(); index++) {
+            var id = ids[index] as String;
+            var entry = entries.get(id) as Dictionary;
+            out.put(id, new LightCount(
+                asNumber(entry.get("on")),
+                asNumber(entry.get("available")),
+                asNumber(entry.get("unavailable"))));
+        }
+
+        return out;
+    }
+
+    function parseLightSummaries(payload as Object or Null) as Dictionary<String, String> {
+        var out = {} as Dictionary<String, String>;
+        if (!(payload instanceof Dictionary)) {
+            return out;
+        }
+
+        var raw = payload.get("floors");
+        if (!(raw instanceof Dictionary)) {
+            return out;
+        }
+
+        var ids = raw.keys();
+        for (var index = 0; index < ids.size(); index++) {
+            var id = ids[index];
+            var summary = asStringOrNull(raw.get(id));
+            if (id instanceof String && summary != null) {
+                out.put(id, summary);
+            }
+        }
+
+        return out;
+    }
+
+    function parseHomeLightSummary(payload as Object or Null) as String or Null {
+        return asStringOrNull(payload instanceof Dictionary ? payload.get("home") : null);
+    }
+
+    function parseMeans(payload as Object or Null, key as String)
+            as Dictionary<String, Dictionary<String, String>> {
+        var entries = readEntries(payload, key);
+        var out = {} as Dictionary<String, Dictionary<String, String>>;
+        var ids = entries.keys();
+
+        for (var index = 0; index < ids.size(); index++) {
+            var id = ids[index] as String;
+            out.put(id, asStringMap(entries.get(id) as Dictionary));
+        }
+
+        return out;
+    }
+
+    function parseHomeMeans(payload as Object or Null) as Dictionary<String, String> {
+        if (!(payload instanceof Dictionary)) {
+            return {} as Dictionary<String, String>;
+        }
+
+        var raw = payload.get("home");
+        return raw instanceof Dictionary ? asStringMap(raw) : ({} as Dictionary<String, String>);
+    }
+
+    function asStringMap(raw as Dictionary) as Dictionary<String, String> {
+        var out = {} as Dictionary<String, String>;
+        var keys = raw.keys();
+
+        for (var index = 0; index < keys.size(); index++) {
+            var key = keys[index];
+            var value = asStringOrNull(raw.get(key));
+            if (key instanceof String && value != null) {
+                out.put(key, value);
+            }
+        }
+
+        return out;
     }
 
     function readEntries(payload as Object or Null, key as String) as Dictionary<String, Dictionary> {

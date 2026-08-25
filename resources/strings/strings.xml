@@ -18,7 +18,6 @@
     <string id="Unavailable">Unavailable</string>
 
     <!-- Glance -->
-    <string id="GlancePhoneConnected" scope="glance">Connected to phone</string>
     <string id="GlancePhoneDisconnected" scope="glance">Not connected to phone</string>
     <string id="GlanceAllLightsOn" scope="glance">All lights on</string>
     <string id="GlanceSomeLightsOn" scope="glance">Some lights on</string>

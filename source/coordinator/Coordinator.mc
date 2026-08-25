@@ -123,8 +123,16 @@ class Coordinator {
                 _haState.setFloors(HaPayload.parseFloors(result));
             } else if (target == FetchTarget.LIGHTS) {
                 _haState.setLights(HaPayload.parseLights(result));
+                _haState.setLightAggregates(
+                    HaPayload.parseLightCounts(result),
+                    HaPayload.parseLightSummaries(result),
+                    HaPayload.parseHomeLightSummary(result));
             } else if (target == FetchTarget.SENSORS) {
                 _haState.setSensors(HaPayload.parseSensors(result));
+                _haState.setSensorAggregates(
+                    HaPayload.parseMeans(result, "areas"),
+                    HaPayload.parseMeans(result, "floors"),
+                    HaPayload.parseHomeMeans(result));
             }
         }
 
@@ -183,13 +191,8 @@ class Coordinator {
     }
 
     private function cacheGlanceSummary() as Void {
-        var summary = _haState.resolveLightSummary();
-        var lightState = summary == null ? null
-            : summary == :allOn ? GlanceSummary.ALL_LIGHTS_ON
-            : summary == :someOn ? GlanceSummary.ALL_LIGHTS_SOME
-            : GlanceSummary.ALL_LIGHTS_OFF;
-
-        GlanceSummary.setLightState(lightState);
+        GlanceSummary.setLights(_haState.getHomeLightSummary());
+        GlanceSummary.setClimate(GlanceSummary.climateLine(_haState.getHomeMeans() as Dictionary));
     }
 
     private function showCardLoop() as Void {

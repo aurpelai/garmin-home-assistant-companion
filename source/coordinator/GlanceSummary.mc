@@ -1,28 +1,53 @@
 import Toybox.Application;
 import Toybox.Lang;
 
-// The glance is a separate process with no access to HaState, so storage is
-// the only channel: the full app writes what the glance draws, the glance reads.
-(:glance)
+// The glance and the background service are separate processes with no access to
+// HaState, so storage is the only channel between them and the running app.
+(:glance, :background)
 module GlanceSummary {
-    enum AllLights {
-        ALL_LIGHTS_OFF = 0,
-        ALL_LIGHTS_SOME = 1,
-        ALL_LIGHTS_ON = 2,
+    const LIGHTS_KEY = "glanceLights";
+    const CLIMATE_KEY = "glanceClimate";
+
+    const ALL_ON = "all_on";
+    const SOME_ON = "some_on";
+    const ALL_OFF = "all_off";
+
+    function setLights(token as String or Null) as Void {
+        put(LIGHTS_KEY, token);
     }
 
-    const ALL_LIGHTS_KEY = "glanceAllLights";
+    function getLights() as String or Null {
+        return Application.Storage.getValue(LIGHTS_KEY) as String or Null;
+    }
 
-    function setLightState(state as AllLights or Null) as Void {
-        if (state == null) {
-            Application.Storage.deleteValue(ALL_LIGHTS_KEY);
+    function setClimate(line as String or Null) as Void {
+        put(CLIMATE_KEY, line);
+    }
+
+    function getClimate() as String or Null {
+        return Application.Storage.getValue(CLIMATE_KEY) as String or Null;
+    }
+
+    // The join is presentation, so it lives here rather than in the HA template
+    // that computed the means.
+    function climateLine(means as Dictionary) as String or Null {
+        var temperature = means.get("temperature");
+        var humidity = means.get("humidity");
+        var line = temperature instanceof String ? temperature : null;
+
+        if (humidity instanceof String) {
+            line = line == null ? humidity : line + " ∙ " + humidity;
+        }
+
+        return line;
+    }
+
+    function put(key as String, value as String or Null) as Void {
+        if (value == null) {
+            Application.Storage.deleteValue(key);
             return;
         }
 
-        Application.Storage.setValue(ALL_LIGHTS_KEY, state);
-    }
-
-    function getLightState() as AllLights or Null {
-        return Application.Storage.getValue(ALL_LIGHTS_KEY) as AllLights or Null;
+        Application.Storage.setValue(key, value);
     }
 }
