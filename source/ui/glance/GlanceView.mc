@@ -55,12 +55,12 @@ class GlanceView extends WatchUi.GlanceView {
 
         var rows = [] as Array<StatusRow or MultiStatusRow>;
 
-        var lights = lightRow();
+        var lights = buildLightRow();
         if (lights != null) {
             rows.add(lights);
         }
 
-        var climate = climateRow(dc);
+        var climate = buildClimateRow(dc);
         if (climate != null) {
             rows.add(climate);
         }
@@ -68,7 +68,7 @@ class GlanceView extends WatchUi.GlanceView {
         return rows;
     }
 
-    private function lightRow() as StatusRow or Null {
+    private function buildLightRow() as StatusRow or Null {
         var token = GlanceSummary.getLights();
         if (token == null) {
             return null;
@@ -89,7 +89,7 @@ class GlanceView extends WatchUi.GlanceView {
         return new StatusRow(icon, tint, WatchUi.loadResource(text) as String);
     }
 
-    private function climateRow(dc as Graphics.Dc) as MultiStatusRow or Null {
+    private function buildClimateRow(dc as Graphics.Dc) as MultiStatusRow or Null {
         var temperature = GlanceSummary.getTemperature();
         var humidity = GlanceSummary.getHumidity();
         var items = [] as Array<StatusItem>;
