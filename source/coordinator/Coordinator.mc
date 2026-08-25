@@ -172,6 +172,8 @@ class Coordinator {
     }
 
     private function updateDisplay() as Void {
+        cacheGlanceSummary();
+
         var view = _currentView;
 
         if (view == null) {
@@ -185,6 +187,16 @@ class Coordinator {
 
         view.rebuild(_haState);
         WatchUi.requestUpdate();
+    }
+
+    private function cacheGlanceSummary() as Void {
+        var state = _haState.allLightsState();
+        var token = state == null ? null
+            : state == :allOn ? GlanceSummary.ALL_LIGHTS_ON
+            : state == :someOn ? GlanceSummary.ALL_LIGHTS_SOME
+            : GlanceSummary.ALL_LIGHTS_OFF;
+
+        GlanceSummary.writeAllLights(token);
     }
 
     private function showCardLoop() as Void {

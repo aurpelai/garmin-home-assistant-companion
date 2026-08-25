@@ -217,3 +217,55 @@ function anUnknownAreaOrFloorYieldsAnEmptyCollectionRatherThanNull(logger as Tes
     Test.assertEqual(haState.getAreas().size(), 0);
     return true;
 }
+
+(:test)
+function allLightsStateIsAbsentWhenThereAreNoLights(logger as Test.Logger) as Boolean {
+    Test.assert(new HaState().allLightsState() == null);
+    return true;
+}
+
+(:test)
+function allLightsStateReadsAllOffWhenEveryLightIsOff(logger as Test.Logger) as Boolean {
+    var haState = HaStateTest.stateWithLights({
+        "light.a" => HaStateTest.light(false, "area.a"),
+        "light.b" => HaStateTest.light(false, "area.a")
+    });
+
+    Test.assert(haState.allLightsState() == :allOff);
+    return true;
+}
+
+(:test)
+function allLightsStateReadsSomeOnWhenOnlyPartAreOn(logger as Test.Logger) as Boolean {
+    var haState = HaStateTest.stateWithLights({
+        "light.a" => HaStateTest.light(true, "area.a"),
+        "light.b" => HaStateTest.light(false, "area.a")
+    });
+
+    Test.assert(haState.allLightsState() == :someOn);
+    return true;
+}
+
+(:test)
+function allLightsStateReadsAllOnWhenEveryLightIsOn(logger as Test.Logger) as Boolean {
+    var haState = HaStateTest.stateWithLights({
+        "light.a" => HaStateTest.light(true, "area.a"),
+        "light.b" => HaStateTest.light(true, "area.a")
+    });
+
+    Test.assert(haState.allLightsState() == :allOn);
+    return true;
+}
+
+(:test)
+function allLightsStateFollowsAnOptimisticOverride(logger as Test.Logger) as Boolean {
+    var haState = HaStateTest.stateWithLights({
+        "light.a" => HaStateTest.light(false, "area.a"),
+        "light.b" => HaStateTest.light(false, "area.a")
+    });
+
+    haState.override("light.a", true);
+
+    Test.assert(haState.allLightsState() == :someOn);
+    return true;
+}
