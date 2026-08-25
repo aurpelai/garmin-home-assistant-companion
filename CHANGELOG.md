@@ -5,6 +5,13 @@ All notable changes to this project are documented here.
 This file is compiled from change fragments by [changie](https://changie.dev);
 do not edit it by hand. Add a fragment with `changie new` in your PR instead.
 
+## [v0.10.0] - 2026-08-26
+
+### 🎉 New
+
+- The glance now shows average temperature and humidity alongside the light status.
+- The glance now refreshes in the background, even when the app is closed.
+
 ## [v0.9.0] - 2026-08-25
 
 ### 🎉 New
