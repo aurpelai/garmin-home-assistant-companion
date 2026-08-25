@@ -5,6 +5,12 @@ All notable changes to this project are documented here.
 This file is compiled from change fragments by [changie](https://changie.dev);
 do not edit it by hand. Add a fragment with `changie new` in your PR instead.
 
+## [v0.9.0] - 2026-08-25
+
+### 🎉 New
+
+- A glance view shows phone connection and whole-home light status without opening the app
+
 ## [v0.8.0] - 2026-08-25
 
 ### ✨ Improved
