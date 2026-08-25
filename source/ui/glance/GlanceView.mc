@@ -35,12 +35,12 @@ class GlanceView extends WatchUi.GlanceView {
 
         if (lights == null) {
             drawTitle(dc, height / 3);
-            drawPhone(dc, 2 * height / 3);
+            drawConnection(dc, 2 * height / 3);
             return;
         }
 
         drawTitle(dc, height / 4);
-        drawPhone(dc, height / 2);
+        drawConnection(dc, height / 2);
         drawLights(dc, 3 * height / 4, lights);
     }
 
@@ -49,7 +49,7 @@ class GlanceView extends WatchUi.GlanceView {
             Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
     }
 
-    private function drawPhone(dc as Graphics.Dc, y as Number) as Void {
+    private function drawConnection(dc as Graphics.Dc, y as Number) as Void {
         var connected = System.getDeviceSettings().phoneConnected;
         var icon = connected ? Rez.Drawables.GlanceCheck : Rez.Drawables.GlanceClose;
         var tint = connected ? Graphics.COLOR_GREEN : Graphics.COLOR_RED;
