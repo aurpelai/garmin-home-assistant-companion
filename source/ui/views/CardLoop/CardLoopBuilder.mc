@@ -65,7 +65,7 @@ module CardLoopBuilder {
             floorId,
             area.name,
             floorName,
-            SensorReading.fromMeans(haState.getMeans(area.id)),
+            SensorReading.fromMeans(haState.getAreaMeans(area.id)),
             haState.getLightCount(area.id));
     }
 
@@ -74,7 +74,7 @@ module CardLoopBuilder {
             floorId,
             floorName,
             haState.getZone(),
-            SensorReading.fromMeans(haState.getMeans(floorId)),
+            SensorReading.fromMeans(haState.getFloorMeans(floorId)),
             haState.getLightSummary(floorId));
     }
 }

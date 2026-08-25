@@ -6,8 +6,8 @@ import Toybox.Test;
 function lightsRoundTripThroughStorage(logger as Test.Logger) as Boolean {
     Application.Storage.clearValues();
 
-    GlanceSummary.setLights(GlanceSummary.SOME_ON);
-    Test.assert((GlanceSummary.getLights() as String).equals(GlanceSummary.SOME_ON));
+    GlanceSummary.setLights(LightSummary.SOME_ON);
+    Test.assert((GlanceSummary.getLights() as String).equals(LightSummary.SOME_ON));
 
     Application.Storage.clearValues();
     return true;
@@ -17,7 +17,7 @@ function lightsRoundTripThroughStorage(logger as Test.Logger) as Boolean {
 function writingAbsentClearsAnyStoredValue(logger as Test.Logger) as Boolean {
     Application.Storage.clearValues();
 
-    GlanceSummary.setLights(GlanceSummary.ALL_ON);
+    GlanceSummary.setLights(LightSummary.ALL_ON);
     GlanceSummary.setLights(null);
     Test.assert(GlanceSummary.getLights() == null);
 

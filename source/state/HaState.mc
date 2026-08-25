@@ -11,7 +11,8 @@ class HaState {
     private var _lightCounts as Dictionary<String, LightCount>;
     private var _lightSummaries as Dictionary<String, String>;
     private var _homeLightSummary as String or Null;
-    private var _means as Dictionary<String, Dictionary<String, String>>;
+    private var _areaMeans as Dictionary<String, Dictionary<String, String>>;
+    private var _floorMeans as Dictionary<String, Dictionary<String, String>>;
     private var _homeMeans as Dictionary<String, String>;
 
     function initialize() {
@@ -24,7 +25,8 @@ class HaState {
         _lightCounts = {};
         _lightSummaries = {};
         _homeLightSummary = null;
-        _means = {};
+        _areaMeans = {};
+        _floorMeans = {};
         _homeMeans = {};
     }
 
@@ -63,43 +65,35 @@ class HaState {
     function setSensorAggregates(areaMeans as Dictionary<String, Dictionary<String, String>>,
                                  floorMeans as Dictionary<String, Dictionary<String, String>>,
                                  home as Dictionary<String, String>) as Void {
-        _means = mergeMeans(areaMeans, floorMeans);
+        _areaMeans = areaMeans;
+        _floorMeans = floorMeans;
         _homeMeans = home;
     }
 
-    private function mergeMeans(areaMeans as Dictionary<String, Dictionary<String, String>>,
-                               floorMeans as Dictionary<String, Dictionary<String, String>>)
-            as Dictionary<String, Dictionary<String, String>> {
-        var merged = {} as Dictionary<String, Dictionary<String, String>>;
-
-        var areaIds = areaMeans.keys();
-        for (var index = 0; index < areaIds.size(); index++) {
-            merged.put(areaIds[index], areaMeans.get(areaIds[index]) as Dictionary<String, String>);
-        }
-
-        var floorIds = floorMeans.keys();
-        for (var index = 0; index < floorIds.size(); index++) {
-            merged.put(floorIds[index], floorMeans.get(floorIds[index]) as Dictionary<String, String>);
-        }
-
-        return merged;
-    }
-
-    function getLightCount(scopeId as String) as LightCount {
-        var count = _lightCounts.get(scopeId);
+    function getLightCount(areaId as String) as LightCount {
+        var count = _lightCounts.get(areaId);
         return count == null ? new LightCount(0, 0, 0) : count;
     }
 
-    function getLightSummary(scopeId as String) as String or Null {
-        return _lightSummaries.get(scopeId);
+    function getLightSummary(floorId as String) as String or Null {
+        return _lightSummaries.get(floorId);
     }
 
     function getHomeLightSummary() as String or Null {
         return _homeLightSummary;
     }
 
-    function getMeans(scopeId as String) as Dictionary<String, String> {
-        var means = _means.get(scopeId);
+    function getAreaMeans(areaId as String) as Dictionary<String, String> {
+        return meansOr(_areaMeans, areaId);
+    }
+
+    function getFloorMeans(floorId as String) as Dictionary<String, String> {
+        return meansOr(_floorMeans, floorId);
+    }
+
+    private function meansOr(source as Dictionary<String, Dictionary<String, String>>,
+                             scopeId as String) as Dictionary<String, String> {
+        var means = source.get(scopeId);
         return means == null ? ({} as Dictionary<String, String>) : means;
     }
 

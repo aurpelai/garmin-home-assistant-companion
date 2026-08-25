@@ -89,7 +89,8 @@ class Coordinator {
         _client.cancelAll();
         _client.discardRegistration();
         _haState = new HaState();
-        cacheGlanceSummary();
+        GlanceSummary.setLights(null);
+        GlanceSummary.setClimate(null);
         refresh();
     }
 
@@ -124,15 +125,17 @@ class Coordinator {
             } else if (target == FetchTarget.LIGHTS) {
                 _haState.setLights(HaPayload.parseLights(result));
                 _haState.setLightAggregates(
-                    HaPayload.parseLightCounts(result),
-                    HaPayload.parseLightSummaries(result),
+                    HaPayload.parseAreaLightCounts(result),
+                    HaPayload.parseFloorLightSummaries(result),
                     HaPayload.parseHomeLightSummary(result));
+                GlanceSummary.setLights(_haState.getHomeLightSummary());
             } else if (target == FetchTarget.SENSORS) {
                 _haState.setSensors(HaPayload.parseSensors(result));
                 _haState.setSensorAggregates(
                     HaPayload.parseMeans(result, "areas"),
                     HaPayload.parseMeans(result, "floors"),
                     HaPayload.parseHomeMeans(result));
+                GlanceSummary.setClimate(GlanceSummary.climateLine(_haState.getHomeMeans() as Dictionary));
             }
         }
 
@@ -173,8 +176,6 @@ class Coordinator {
     }
 
     private function updateDisplay() as Void {
-        cacheGlanceSummary();
-
         var view = _currentView;
 
         if (view == null) {
@@ -188,11 +189,6 @@ class Coordinator {
 
         view.rebuild(_haState);
         WatchUi.requestUpdate();
-    }
-
-    private function cacheGlanceSummary() as Void {
-        GlanceSummary.setLights(_haState.getHomeLightSummary());
-        GlanceSummary.setClimate(GlanceSummary.climateLine(_haState.getHomeMeans() as Dictionary));
     }
 
     private function showCardLoop() as Void {

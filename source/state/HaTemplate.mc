@@ -72,10 +72,12 @@ module HaTemplate {
             "{% set v = namespace(nums=[], unit=none) %}" +
             "{% for e in ids %}" +
             "{% if e.startswith('sensor.') and states[e] is not none and not is_hidden_entity(e) " +
-                "and state_attr(e, 'device_class') == cls " +
-                "and not is_state(e, 'unavailable') and not is_state(e, 'unknown') %}" +
-            "{% set v.nums = v.nums + [states(e) | float(0)] %}" +
+                "and state_attr(e, 'device_class') == cls %}" +
+            "{% set n = states(e) | float(none) %}" +
+            "{% if n is not none %}" +
+            "{% set v.nums = v.nums + [n] %}" +
             "{% set v.unit = state_attr(e, 'unit_of_measurement') %}" +
+            "{% endif %}" +
             "{% endif %}" +
             "{% endfor %}" +
             "{% if v.nums | count > 0 %}" +

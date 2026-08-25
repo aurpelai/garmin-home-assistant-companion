@@ -11,7 +11,7 @@ import Toybox.System;
 // it yields a queue-full transport error — so everything below serialises
 // through a single slot that a refresh and a service call compete for.
 class HaClient {
-    private const REGISTRATION_KEY = "webhookId";
+    private const REGISTRATION_KEY = Webhook.REGISTRATION_KEY;
 
     // UNVERIFIED: the device can't introspect its real model/OS, so every
     // install registers under these same constants.

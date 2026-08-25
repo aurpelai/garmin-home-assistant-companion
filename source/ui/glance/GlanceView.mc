@@ -68,11 +68,11 @@ class GlanceView extends WatchUi.GlanceView {
             return null;
         }
 
-        var icon = token.equals(GlanceSummary.SOME_ON)
+        var icon = token.equals(LightSummary.SOME_ON)
             ? Rez.Drawables.GlanceLightsSome : Rez.Drawables.GlanceLightsAll;
-        var tint = token.equals(GlanceSummary.ALL_OFF) ? Graphics.COLOR_LT_GRAY : Graphics.COLOR_YELLOW;
-        var text = token.equals(GlanceSummary.ALL_ON) ? Rez.Strings.GlanceAllLightsOn
-            : token.equals(GlanceSummary.SOME_ON) ? Rez.Strings.GlanceSomeLightsOn
+        var tint = token.equals(LightSummary.ALL_OFF) ? Graphics.COLOR_LT_GRAY : Graphics.COLOR_YELLOW;
+        var text = token.equals(LightSummary.ALL_ON) ? Rez.Strings.GlanceAllLightsOn
+            : token.equals(LightSummary.SOME_ON) ? Rez.Strings.GlanceSomeLightsOn
             : Rez.Strings.GlanceAllLightsOff;
 
         return new StatusRow(icon, tint, WatchUi.loadResource(text) as String);

@@ -34,9 +34,9 @@ class FloorCard extends Card {
         var centerX = dc.getWidth() / 2;
         var centerY = dc.getHeight() / 2;
 
-        if (summary.equals(GlanceSummary.ALL_ON)) {
+        if (summary.equals(LightSummary.ALL_ON)) {
             drawLightIcon(dc, centerX, centerY, LIGHTS_ALL, Graphics.COLOR_YELLOW);
-        } else if (summary.equals(GlanceSummary.SOME_ON)) {
+        } else if (summary.equals(LightSummary.SOME_ON)) {
             drawLightIcon(dc, centerX, centerY, LIGHTS_SOME, Graphics.COLOR_YELLOW);
         } else {
             drawLightIcon(dc, centerX, centerY, LIGHTS_ALL, Graphics.COLOR_LT_GRAY);

@@ -56,7 +56,7 @@ module HaPayload {
         return sensors;
     }
 
-    function parseLightCounts(payload as Object or Null) as Dictionary<String, LightCount> {
+    function parseAreaLightCounts(payload as Object or Null) as Dictionary<String, LightCount> {
         var entries = readEntries(payload, "areas");
         var out = {} as Dictionary<String, LightCount>;
         var ids = entries.keys();
@@ -73,27 +73,13 @@ module HaPayload {
         return out;
     }
 
-    function parseLightSummaries(payload as Object or Null) as Dictionary<String, String> {
-        var out = {} as Dictionary<String, String>;
+    function parseFloorLightSummaries(payload as Object or Null) as Dictionary<String, String> {
         if (!(payload instanceof Dictionary)) {
-            return out;
+            return {} as Dictionary<String, String>;
         }
 
         var raw = payload.get("floors");
-        if (!(raw instanceof Dictionary)) {
-            return out;
-        }
-
-        var ids = raw.keys();
-        for (var index = 0; index < ids.size(); index++) {
-            var id = ids[index];
-            var summary = asStringOrNull(raw.get(id));
-            if (id instanceof String && summary != null) {
-                out.put(id, summary);
-            }
-        }
-
-        return out;
+        return raw instanceof Dictionary ? asStringMap(raw) : ({} as Dictionary<String, String>);
     }
 
     function parseHomeLightSummary(payload as Object or Null) as String or Null {
@@ -214,16 +200,6 @@ module HaPayload {
 
     function asMemberIds(raw as Object or Null) as Array<String> or Null {
         return raw instanceof Array ? onlyStrings(raw) : null;
-    }
-
-    function asFloatOrNull(raw as Object or Null) as Float or Null {
-        if (raw instanceof Float) {
-            return raw;
-        }
-        if (raw instanceof Number) {
-            return raw.toFloat();
-        }
-        return null;
     }
 
     function asStringOrNull(raw as Object or Null) as String or Null {

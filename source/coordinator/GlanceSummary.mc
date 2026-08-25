@@ -8,10 +8,6 @@ module GlanceSummary {
     const LIGHTS_KEY = "glanceLights";
     const CLIMATE_KEY = "glanceClimate";
 
-    const ALL_ON = "all_on";
-    const SOME_ON = "some_on";
-    const ALL_OFF = "all_off";
-
     function setLights(token as String or Null) as Void {
         put(LIGHTS_KEY, token);
     }

@@ -234,17 +234,17 @@ function lightAggregatesDefaultToEmptyBeforeAFetch(logger as Test.Logger) as Boo
 }
 
 (:test)
-function sensorMeansShareOneScopeSpaceForAreasAndFloors(logger as Test.Logger) as Boolean {
+function areaAndFloorMeansDoNotCollideOnAnIdTheyShare(logger as Test.Logger) as Boolean {
     var haState = new HaState();
 
     haState.setSensorAggregates(
-        { "area.a" => { "temperature" => "21.6 °C" } },
-        { "floor.g" => { "humidity" => "52 %" } },
-        { "temperature" => "22.0 °C" });
+        { "shared" => { "temperature" => "18.0 °C" } },
+        { "shared" => { "temperature" => "22.0 °C" } },
+        { "temperature" => "20.0 °C" });
 
-    Test.assert((haState.getMeans("area.a").get("temperature") as String).equals("21.6 °C"));
-    Test.assert((haState.getMeans("floor.g").get("humidity") as String).equals("52 %"));
-    Test.assert((haState.getHomeMeans().get("temperature") as String).equals("22.0 °C"));
-    Test.assertEqual(haState.getMeans("area.ghost").size(), 0);
+    Test.assert((haState.getAreaMeans("shared").get("temperature") as String).equals("18.0 °C"));
+    Test.assert((haState.getFloorMeans("shared").get("temperature") as String).equals("22.0 °C"));
+    Test.assert((haState.getHomeMeans().get("temperature") as String).equals("20.0 °C"));
+    Test.assertEqual(haState.getAreaMeans("ghost").size(), 0);
     return true;
 }

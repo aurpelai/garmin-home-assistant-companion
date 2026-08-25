@@ -9,14 +9,12 @@ import Toybox.System;
 // just exits and leaves the last good summary in place rather than recovering.
 (:background)
 class GlanceService extends System.ServiceDelegate {
-    private const REGISTRATION_KEY = "webhookId";
-
     function initialize() {
         ServiceDelegate.initialize();
     }
 
     function onTemporalEvent() as Void {
-        var webhookId = Application.Storage.getValue(REGISTRATION_KEY) as String or Null;
+        var webhookId = Application.Storage.getValue(Webhook.REGISTRATION_KEY) as String or Null;
         if (webhookId == null || !Settings.isConfigured()) {
             Background.exit(null);
             return;
@@ -26,7 +24,8 @@ class GlanceService extends System.ServiceDelegate {
             Settings.getBaseUrl() + "/api/webhook/" + webhookId,
             {
                 "type" => "render_template",
-                "data" => { "home" => { "template" => HaTemplate.resolve(FetchTarget.GLANCE) } }
+                "data" => { ResponseType.TEMPLATE_RENDER_ROOT_KEY =>
+                    { "template" => HaTemplate.resolve(FetchTarget.GLANCE) } }
             },
             {
                 :method => Communications.HTTP_REQUEST_METHOD_POST,
@@ -41,7 +40,7 @@ class GlanceService extends System.ServiceDelegate {
 
     function onResponse(code as Number, data as Dictionary or String or Null) as Void {
         if (code >= 200 && code < 300 && data instanceof Dictionary) {
-            var rendered = data.get("home");
+            var rendered = data.get(ResponseType.TEMPLATE_RENDER_ROOT_KEY);
             var home = rendered instanceof String ? JsonParser.parse(rendered) : rendered;
             if (home instanceof Dictionary) {
                 var lights = home.get("lights");
