@@ -144,6 +144,26 @@ class HaState {
         return targets;
     }
 
+    function resolveLightSummary() as Symbol or Null {
+        var lights = _lights.values() as Array<LightModel>;
+        if (lights.size() == 0) {
+            return null;
+        }
+
+        var onCount = 0;
+        for (var index = 0; index < lights.size(); index++) {
+            if (lights[index].isOn()) {
+                onCount++;
+            }
+        }
+
+        if (onCount == 0) {
+            return :allOff;
+        }
+
+        return onCount == lights.size() ? :allOn : :someOn;
+    }
+
     function hasAnyOn(lights as Array<LightModel>) as Boolean {
         for (var index = 0; index < lights.size(); index++) {
             if (lights[index].isOn()) {

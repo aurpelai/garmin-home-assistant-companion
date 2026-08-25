@@ -7,7 +7,7 @@
             "spacing": 36
         }
     </jsonData>
-    <jsonData id="VectorFontSizes">
+    <jsonData id="VectorFontSizes" scope="glance">
         {
             "large": 48,
             "medium": 40,

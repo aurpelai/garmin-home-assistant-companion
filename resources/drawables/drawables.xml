@@ -3,7 +3,14 @@
     <!-- LauncherIcon is declared per-size in resources-launcher-<N>/drawables.xml
          (generated from icons/launcher_master.svg) and wired per device in
          monkey.jungle. Only shared, size-independent drawables live here. -->
-    <bitmap id="SelectHint" personality="system_icon_dark__hint_button_right_top system_loc__hint_button_right_top" />
+
+    <!-- Glance -->
+    <bitmap id="GlanceCheck" filename="check.svg" scaleX="6%" scaleY="6%" automaticPalette="false" scope="glance" />
+    <bitmap id="GlanceClose" filename="close.svg" scaleX="6%" scaleY="6%" automaticPalette="false" scope="glance" />
+    <bitmap id="GlanceLightsAll" filename="lightbulb-group.svg" scaleX="6%" scaleY="6%" automaticPalette="false" scope="glance" />
+    <bitmap id="GlanceLightsSome" filename="lightbulb-group-outline.svg" scaleX="6%" scaleY="6%" automaticPalette="false" scope="glance" />
+
+    <!-- Icons -->
     <bitmap id="LightbulbGroupSome" filename="lightbulb-group-outline.svg" scaleX="16%" scaleY="16%" automaticPalette="false" />
     <bitmap id="LightbulbGroupAll" filename="lightbulb-group.svg" scaleX="16%" scaleY="16%" automaticPalette="false" />
     <bitmap id="LightbulbOn" filename="lightbulb-on.svg" scaleX="12%" scaleY="12%" automaticPalette="false" />
@@ -12,4 +19,7 @@
     <bitmap id="Temperature" filename="thermometer.svg" scaleX="6%" scaleY="6%" automaticPalette="false" />
     <bitmap id="Humidity" filename="water-percent.svg" scaleX="6%" scaleY="6%" automaticPalette="false" />
     <bitmap id="Brightness" filename="brightness-5.svg" scaleX="6%" scaleY="6%" automaticPalette="false" />
+
+    <!-- UI -->
+    <bitmap id="SelectHint" personality="system_icon_dark__hint_button_right_top system_loc__hint_button_right_top" />
 </drawables>

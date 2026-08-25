@@ -97,6 +97,7 @@ class Coordinator {
         _client.cancelAll();
         _client.discardRegistration();
         _haState = new HaState();
+        cacheGlanceSummary();
         refresh();
     }
 
@@ -172,6 +173,8 @@ class Coordinator {
     }
 
     private function updateDisplay() as Void {
+        cacheGlanceSummary();
+
         var view = _currentView;
 
         if (view == null) {
@@ -185,6 +188,16 @@ class Coordinator {
 
         view.rebuild(_haState);
         WatchUi.requestUpdate();
+    }
+
+    private function cacheGlanceSummary() as Void {
+        var summary = _haState.resolveLightSummary();
+        var lightState = summary == null ? null
+            : summary == :allOn ? GlanceSummary.ALL_LIGHTS_ON
+            : summary == :someOn ? GlanceSummary.ALL_LIGHTS_SOME
+            : GlanceSummary.ALL_LIGHTS_OFF;
+
+        GlanceSummary.setLightState(lightState);
     }
 
     private function showCardLoop() as Void {

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <strings>
-    <string id="AppName">HA Companion</string>
+    <string id="AppName" scope="glance">HA Companion</string>
 
     <!-- Settings screen (shown in Garmin Connect Mobile) -->
     <string id="SettingHaBaseUrlTitle">Home Assistant URL</string>
@@ -16,6 +16,13 @@
     <string id="NothingFound">No supported entities found</string>
     <string id="RetryHint">Select to retry</string>
     <string id="Unavailable">Unavailable</string>
+
+    <!-- Glance -->
+    <string id="GlancePhoneConnected" scope="glance">Connected to phone</string>
+    <string id="GlancePhoneDisconnected" scope="glance">Not connected to phone</string>
+    <string id="GlanceAllLightsOn" scope="glance">All lights on</string>
+    <string id="GlanceSomeLightsOn" scope="glance">Some lights on</string>
+    <string id="GlanceAllLightsOff" scope="glance">All lights off</string>
 
     <!-- Errors -->
     <string id="ErrAuth">Auth failed — check your token</string>
