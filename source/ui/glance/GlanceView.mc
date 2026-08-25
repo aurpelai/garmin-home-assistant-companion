@@ -5,7 +5,7 @@ import Toybox.WatchUi;
 
 (:glance)
 class GlanceView extends WatchUi.GlanceView {
-    private const ICON_GAP = 4;
+    private const ICON_GAP = 8;
 
     private var _titleFont as Graphics.VectorFont;
     private var _statusFont as Graphics.VectorFont;
