@@ -2,6 +2,7 @@ import Toybox.Application;
 import Toybox.Lang;
 
 // The user config only: the URL and token the user edits in Properties.
+(:background)
 module Settings {
 
     function getBaseUrl() as String {

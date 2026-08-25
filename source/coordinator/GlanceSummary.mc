@@ -1,28 +1,44 @@
 import Toybox.Application;
 import Toybox.Lang;
 
-// The glance is a separate process with no access to HaState, so storage is
-// the only channel: the full app writes what the glance draws, the glance reads.
-(:glance)
+// The glance and the background service are separate processes with no access to
+// HaState, so storage is the only channel between them and the running app.
+(:glance, :background)
 module GlanceSummary {
-    enum AllLights {
-        ALL_LIGHTS_OFF = 0,
-        ALL_LIGHTS_SOME = 1,
-        ALL_LIGHTS_ON = 2,
+    const LIGHTS_KEY = "glanceLights";
+    const TEMPERATURE_KEY = "glanceTemperature";
+    const HUMIDITY_KEY = "glanceHumidity";
+
+    function setLightSummary(summary as String or Null) as Void {
+        set(LIGHTS_KEY, summary);
     }
 
-    const ALL_LIGHTS_KEY = "glanceAllLights";
+    function getLightSummary() as String or Null {
+        return Application.Storage.getValue(LIGHTS_KEY) as String or Null;
+    }
 
-    function setLightState(state as AllLights or Null) as Void {
-        if (state == null) {
-            Application.Storage.deleteValue(ALL_LIGHTS_KEY);
+    function setTemperature(value as Object or Null) as Void {
+        set(TEMPERATURE_KEY, value);
+    }
+
+    function setHumidity(value as Object or Null) as Void {
+        set(HUMIDITY_KEY, value);
+    }
+
+    function getTemperature() as String or Null {
+        return Application.Storage.getValue(TEMPERATURE_KEY) as String or Null;
+    }
+
+    function getHumidity() as String or Null {
+        return Application.Storage.getValue(HUMIDITY_KEY) as String or Null;
+    }
+
+    function set(key as String, value as Object or Null) as Void {
+        if (value instanceof String) {
+            Application.Storage.setValue(key, value);
             return;
         }
 
-        Application.Storage.setValue(ALL_LIGHTS_KEY, state);
-    }
-
-    function getLightState() as AllLights or Null {
-        return Application.Storage.getValue(ALL_LIGHTS_KEY) as AllLights or Null;
+        Application.Storage.deleteValue(key);
     }
 }

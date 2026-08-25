@@ -30,18 +30,88 @@ class GlanceView extends WatchUi.GlanceView {
         dc.clear();
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
 
+        var rows = buildStatusRows(dc);
         var height = dc.getHeight();
-        var lights = GlanceSummary.getLightState();
+        var count = rows.size() + 1;
 
-        if (lights == null) {
-            drawTitle(dc, height / 3);
-            drawConnection(dc, 2 * height / 3);
-            return;
+        drawTitle(dc, height / (count + 1));
+
+        for (var index = 0; index < rows.size(); index++) {
+            var y = (index + 2) * height / (count + 1);
+            var row = rows[index];
+            if (row instanceof MultiStatusRow) {
+                drawItems(dc, y, row.items);
+            } else {
+                drawItems(dc, y, [new StatusItem(row.icon, row.tint, row.text, 0)]);
+            }
+        }
+    }
+
+    private function buildStatusRows(dc as Graphics.Dc) as Array<StatusRow or MultiStatusRow> {
+        if (!System.getDeviceSettings().phoneConnected) {
+            return [new StatusRow(Rez.Drawables.GlanceClose, Graphics.COLOR_RED,
+                WatchUi.loadResource(Rez.Strings.GlancePhoneDisconnected) as String)];
         }
 
-        drawTitle(dc, height / 4);
-        drawConnection(dc, height / 2);
-        drawLights(dc, 3 * height / 4, lights);
+        var rows = [] as Array<StatusRow or MultiStatusRow>;
+
+        var lightRow = buildLightRow();
+        if (lightRow != null) {
+            rows.add(lightRow);
+        }
+
+        var climateRow = buildClimateRow(dc);
+        if (climateRow != null) {
+            rows.add(climateRow);
+        }
+
+        return rows;
+    }
+
+    private function buildLightRow() as StatusRow or Null {
+        var summary = GlanceSummary.getLightSummary();
+        if (summary == null) {
+            return null;
+        }
+
+        var icon = summary.equals(LightSummary.SOME_ON)
+            ? Rez.Drawables.GlanceLightsSome
+            : Rez.Drawables.GlanceLightsAll;
+        var tint = summary.equals(LightSummary.ALL_OFF)
+            ? Graphics.COLOR_LT_GRAY
+            : Graphics.COLOR_YELLOW;
+        var text = summary.equals(LightSummary.ALL_ON)
+            ? Rez.Strings.GlanceAllLightsOn
+            : summary.equals(LightSummary.SOME_ON)
+                ? Rez.Strings.GlanceSomeLightsOn
+                : Rez.Strings.GlanceAllLightsOff;
+
+        return new StatusRow(icon, tint, WatchUi.loadResource(text) as String);
+    }
+
+    private function buildClimateRow(dc as Graphics.Dc) as MultiStatusRow or Null {
+        var temperature = GlanceSummary.getTemperature();
+        var humidity = GlanceSummary.getHumidity();
+        var items = [] as Array<StatusItem>;
+
+        if (temperature != null) {
+            items.add(new StatusItem(
+                Rez.Drawables.GlanceThermometer,
+                Graphics.COLOR_ORANGE,
+                temperature,
+                0
+            ));
+        }
+        if (humidity != null) {
+            items.add(new StatusItem(
+                Rez.Drawables.GlanceHumidity,
+                Graphics.COLOR_BLUE,
+                humidity,
+                (dc.getWidth() / 2).toNumber()
+            ));
+        }
+
+        return items.size() == 0 ? null : new MultiStatusRow(items);
     }
 
     private function drawTitle(dc as Graphics.Dc, y as Number) as Void {
@@ -49,32 +119,13 @@ class GlanceView extends WatchUi.GlanceView {
             Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
     }
 
-    private function drawConnection(dc as Graphics.Dc, y as Number) as Void {
-        var connected = System.getDeviceSettings().phoneConnected;
-        var icon = connected ? Rez.Drawables.GlanceCheck : Rez.Drawables.GlanceClose;
-        var tint = connected ? Graphics.COLOR_GREEN : Graphics.COLOR_RED;
-        var text = connected ? Rez.Strings.GlancePhoneConnected : Rez.Strings.GlancePhoneDisconnected;
-
-        drawStatus(dc, y, WatchUi.loadResource(icon) as BitmapResource, tint,
-            WatchUi.loadResource(text) as String);
-    }
-
-    private function drawLights(dc as Graphics.Dc, y as Number, state as GlanceSummary.AllLights) as Void {
-        var filled = state != GlanceSummary.ALL_LIGHTS_SOME;
-        var icon = filled ? Rez.Drawables.GlanceLightsAll : Rez.Drawables.GlanceLightsSome;
-        var tint = state == GlanceSummary.ALL_LIGHTS_OFF ? Graphics.COLOR_LT_GRAY : Graphics.COLOR_YELLOW;
-        var text = state == GlanceSummary.ALL_LIGHTS_ON ? Rez.Strings.GlanceAllLightsOn
-            : state == GlanceSummary.ALL_LIGHTS_SOME ? Rez.Strings.GlanceSomeLightsOn
-            : Rez.Strings.GlanceAllLightsOff;
-
-        drawStatus(dc, y, WatchUi.loadResource(icon) as BitmapResource, tint,
-            WatchUi.loadResource(text) as String);
-    }
-
-    private function drawStatus(dc as Graphics.Dc, y as Number, icon as BitmapResource,
-                                tint as Number, text as String) as Void {
-        dc.drawBitmap2(0, y - icon.getHeight() / 2, icon, { :tintColor => tint });
-        dc.drawText(icon.getWidth() + ICON_GAP, y, _statusFont, text,
-            Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
+    private function drawItems(dc as Graphics.Dc, y as Number, items as Array<StatusItem>) as Void {
+        for (var index = 0; index < items.size(); index++) {
+            var item = items[index];
+            var icon = WatchUi.loadResource(item.icon) as BitmapResource;
+            dc.drawBitmap2(item.x, y - icon.getHeight() / 2, icon, { :tintColor => item.tint });
+            dc.drawText(item.x + icon.getWidth() + ICON_GAP, y, _statusFont, item.text,
+                Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
+        }
     }
 }

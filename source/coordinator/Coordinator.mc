@@ -89,7 +89,9 @@ class Coordinator {
         _client.cancelAll();
         _client.discardRegistration();
         _haState = new HaState();
-        cacheGlanceSummary();
+        GlanceSummary.setLightSummary(null);
+        GlanceSummary.setTemperature(null);
+        GlanceSummary.setHumidity(null);
         refresh();
     }
 
@@ -123,8 +125,20 @@ class Coordinator {
                 _haState.setFloors(HaPayload.parseFloors(result));
             } else if (target == FetchTarget.LIGHTS) {
                 _haState.setLights(HaPayload.parseLights(result));
+                _haState.setLightAggregates(
+                    HaPayload.parseAreaLightCounts(result),
+                    HaPayload.parseFloorLightSummaries(result),
+                    HaPayload.parseHomeLightSummary(result));
+                GlanceSummary.setLightSummary(_haState.getHomeLightSummary());
             } else if (target == FetchTarget.SENSORS) {
                 _haState.setSensors(HaPayload.parseSensors(result));
+                _haState.setSensorAggregates(
+                    HaPayload.parseAverages(result, "areas"),
+                    HaPayload.parseAverages(result, "floors"),
+                    HaPayload.parseHomeAverages(result));
+                var averages = _haState.getHomeAverages();
+                GlanceSummary.setTemperature(averages.get("temperature"));
+                GlanceSummary.setHumidity(averages.get("humidity"));
             }
         }
 
@@ -165,8 +179,6 @@ class Coordinator {
     }
 
     private function updateDisplay() as Void {
-        cacheGlanceSummary();
-
         var view = _currentView;
 
         if (view == null) {
@@ -180,16 +192,6 @@ class Coordinator {
 
         view.rebuild(_haState);
         WatchUi.requestUpdate();
-    }
-
-    private function cacheGlanceSummary() as Void {
-        var summary = _haState.resolveLightSummary();
-        var lightState = summary == null ? null
-            : summary == :allOn ? GlanceSummary.ALL_LIGHTS_ON
-            : summary == :someOn ? GlanceSummary.ALL_LIGHTS_SOME
-            : GlanceSummary.ALL_LIGHTS_OFF;
-
-        GlanceSummary.setLightState(lightState);
     }
 
     private function showCardLoop() as Void {
