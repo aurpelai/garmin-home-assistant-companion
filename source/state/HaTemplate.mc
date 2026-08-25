@@ -151,7 +151,7 @@ module HaTemplate {
             "and state_attr(e, 'device_class') in ['temperature', 'humidity', 'illuminance'] %}" +
         "{% set ns.out = dict(ns.out, **{e: dict(" +
             "friendly_state=states(e, true, true), " +
-            "device_class=state_attr(e, 'device_class'), name=entity_name(e), " +
+            "device_class=state_attr(e, 'device_class'), name=entity_name(e), area_id=a, " +
             "available=not is_state(e, 'unavailable') and not is_state(e, 'unknown'))}) %}" +
         "{% endif %}" +
         "{% endfor %}" +
