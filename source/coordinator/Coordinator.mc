@@ -197,7 +197,7 @@ class Coordinator {
             : state == :someOn ? GlanceSummary.ALL_LIGHTS_SOME
             : GlanceSummary.ALL_LIGHTS_OFF;
 
-        GlanceSummary.writeAllLights(token);
+        GlanceSummary.setLightState(token);
     }
 
     private function showCardLoop() as Void {

@@ -13,7 +13,7 @@ module GlanceSummary {
 
     const ALL_LIGHTS_KEY = "glanceAllLights";
 
-    function writeAllLights(state as AllLights or Null) as Void {
+    function setLightState(state as AllLights or Null) as Void {
         if (state == null) {
             Application.Storage.deleteValue(ALL_LIGHTS_KEY);
             return;
@@ -22,7 +22,7 @@ module GlanceSummary {
         Application.Storage.setValue(ALL_LIGHTS_KEY, state);
     }
 
-    function readAllLights() as AllLights or Null {
+    function getLightState() as AllLights or Null {
         return Application.Storage.getValue(ALL_LIGHTS_KEY) as AllLights or Null;
     }
 }

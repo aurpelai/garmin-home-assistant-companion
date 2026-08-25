@@ -30,7 +30,7 @@ class GlanceView extends WatchUi.GlanceView {
         dc.clear();
 
         var height = dc.getHeight();
-        var lights = GlanceSummary.readAllLights();
+        var lights = GlanceSummary.getLightState();
 
         if (lights == null) {
             drawTitle(dc, height / 3);
