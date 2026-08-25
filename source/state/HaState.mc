@@ -84,16 +84,12 @@ class HaState {
     }
 
     function getAreaAverages(areaId as String) as Dictionary<String, String> {
-        return averagesOr(_areaAverages, areaId);
+        var averages = _areaAverages.get(areaId);
+        return averages == null ? ({} as Dictionary<String, String>) : averages;
     }
 
     function getFloorAverages(floorId as String) as Dictionary<String, String> {
-        return averagesOr(_floorAverages, floorId);
-    }
-
-    private function averagesOr(source as Dictionary<String, Dictionary<String, String>>,
-                                scopeId as String) as Dictionary<String, String> {
-        var averages = source.get(scopeId);
+        var averages = _floorAverages.get(floorId);
         return averages == null ? ({} as Dictionary<String, String>) : averages;
     }
 
