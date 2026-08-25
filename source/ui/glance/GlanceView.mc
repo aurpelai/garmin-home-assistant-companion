@@ -69,20 +69,20 @@ class GlanceView extends WatchUi.GlanceView {
     }
 
     private function buildLightRow() as StatusRow or Null {
-        var token = GlanceSummary.getLights();
-        if (token == null) {
+        var summary = GlanceSummary.getLightSummary();
+        if (summary == null) {
             return null;
         }
 
-        var icon = token.equals(LightSummary.SOME_ON)
+        var icon = summary.equals(LightSummary.SOME_ON)
             ? Rez.Drawables.GlanceLightsSome
             : Rez.Drawables.GlanceLightsAll;
-        var tint = token.equals(LightSummary.ALL_OFF)
+        var tint = summary.equals(LightSummary.ALL_OFF)
             ? Graphics.COLOR_LT_GRAY
             : Graphics.COLOR_YELLOW;
-        var text = token.equals(LightSummary.ALL_ON)
+        var text = summary.equals(LightSummary.ALL_ON)
             ? Rez.Strings.GlanceAllLightsOn
-            : token.equals(LightSummary.SOME_ON)
+            : summary.equals(LightSummary.SOME_ON)
                 ? Rez.Strings.GlanceSomeLightsOn
                 : Rez.Strings.GlanceAllLightsOff;
 

@@ -44,7 +44,7 @@ class GlanceService extends System.ServiceDelegate {
             var home = rendered instanceof String ? JsonParser.parse(rendered) : rendered;
             if (home instanceof Dictionary) {
                 var lights = home.get("lights");
-                GlanceSummary.setLights(lights instanceof String ? lights : null);
+                GlanceSummary.setLightSummary(lights instanceof String ? lights : null);
 
                 var climate = home.get("climate");
                 GlanceSummary.setClimate(climate instanceof Dictionary ? climate : ({} as Dictionary));

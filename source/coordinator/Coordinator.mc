@@ -89,7 +89,7 @@ class Coordinator {
         _client.cancelAll();
         _client.discardRegistration();
         _haState = new HaState();
-        GlanceSummary.setLights(null);
+        GlanceSummary.setLightSummary(null);
         GlanceSummary.setClimate({});
         refresh();
     }
@@ -128,7 +128,7 @@ class Coordinator {
                     HaPayload.parseAreaLightCounts(result),
                     HaPayload.parseFloorLightSummaries(result),
                     HaPayload.parseHomeLightSummary(result));
-                GlanceSummary.setLights(_haState.getHomeLightSummary());
+                GlanceSummary.setLightSummary(_haState.getHomeLightSummary());
             } else if (target == FetchTarget.SENSORS) {
                 _haState.setSensors(HaPayload.parseSensors(result));
                 _haState.setSensorAggregates(
