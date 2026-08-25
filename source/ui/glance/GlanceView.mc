@@ -7,6 +7,8 @@ import Toybox.WatchUi;
 // here, while the all-lights line comes from the summary the full app cached.
 (:glance)
 class GlanceView extends WatchUi.GlanceView {
+    private const ICON_GAP = 4;
+
     private var _titleFont as Graphics.VectorFont;
     private var _statusFont as Graphics.VectorFont;
 
@@ -30,41 +32,50 @@ class GlanceView extends WatchUi.GlanceView {
         dc.clear();
 
         var height = dc.getHeight();
-        var lights = allLightsText();
-        var title = WatchUi.loadResource(Rez.Strings.AppName) as String;
+        var lights = GlanceSummary.readAllLights();
 
         if (lights == null) {
-            drawLine(dc, _titleFont, height / 3, title);
-            drawLine(dc, _statusFont, 2 * height / 3, phoneText());
+            drawTitle(dc, height / 3);
+            drawPhone(dc, 2 * height / 3);
             return;
         }
 
-        drawLine(dc, _titleFont, height / 4, title);
-        drawLine(dc, _statusFont, height / 2, phoneText());
-        drawLine(dc, _statusFont, 3 * height / 4, lights);
+        drawTitle(dc, height / 4);
+        drawPhone(dc, height / 2);
+        drawLights(dc, 3 * height / 4, lights);
     }
 
-    private function drawLine(dc as Graphics.Dc, font as Graphics.VectorFont, y as Number, text as String) as Void {
-        dc.drawText(0, y, font, text,
+    private function drawTitle(dc as Graphics.Dc, y as Number) as Void {
+        dc.drawText(0, y, _titleFont, WatchUi.loadResource(Rez.Strings.AppName) as String,
             Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
     }
 
-    private function phoneText() as String {
-        var id = System.getDeviceSettings().phoneConnected
-            ? Rez.Strings.GlancePhoneConnected
-            : Rez.Strings.GlancePhoneDisconnected;
-        return WatchUi.loadResource(id) as String;
+    private function drawPhone(dc as Graphics.Dc, y as Number) as Void {
+        var connected = System.getDeviceSettings().phoneConnected;
+        var icon = connected ? Rez.Drawables.GlanceCheck : Rez.Drawables.GlanceClose;
+        var tint = connected ? Graphics.COLOR_GREEN : Graphics.COLOR_RED;
+        var text = connected ? Rez.Strings.GlancePhoneConnected : Rez.Strings.GlancePhoneDisconnected;
+
+        drawStatus(dc, y, WatchUi.loadResource(icon) as BitmapResource, tint,
+            WatchUi.loadResource(text) as String);
     }
 
-    private function allLightsText() as String or Null {
-        var state = GlanceSummary.readAllLights();
-        if (state == null) {
-            return null;
-        }
-
-        var id = state == GlanceSummary.ALL_LIGHTS_ON ? Rez.Strings.GlanceAllLightsOn
+    private function drawLights(dc as Graphics.Dc, y as Number, state as GlanceSummary.AllLights) as Void {
+        var filled = state != GlanceSummary.ALL_LIGHTS_SOME;
+        var icon = filled ? Rez.Drawables.GlanceLightsAll : Rez.Drawables.GlanceLightsSome;
+        var tint = state == GlanceSummary.ALL_LIGHTS_OFF ? Graphics.COLOR_LT_GRAY : Graphics.COLOR_YELLOW;
+        var text = state == GlanceSummary.ALL_LIGHTS_ON ? Rez.Strings.GlanceAllLightsOn
             : state == GlanceSummary.ALL_LIGHTS_SOME ? Rez.Strings.GlanceSomeLightsOn
             : Rez.Strings.GlanceAllLightsOff;
-        return WatchUi.loadResource(id) as String;
+
+        drawStatus(dc, y, WatchUi.loadResource(icon) as BitmapResource, tint,
+            WatchUi.loadResource(text) as String);
+    }
+
+    private function drawStatus(dc as Graphics.Dc, y as Number, icon as BitmapResource,
+                                tint as Number, text as String) as Void {
+        dc.drawBitmap2(0, y - icon.getHeight() / 2, icon, { :tintColor => tint });
+        dc.drawText(icon.getWidth() + ICON_GAP, y, _statusFont, text,
+            Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
     }
 }

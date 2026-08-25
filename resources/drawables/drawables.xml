@@ -9,6 +9,10 @@
     <bitmap id="LightbulbOn" filename="lightbulb-on.svg" scaleX="12%" scaleY="12%" automaticPalette="false" />
     <bitmap id="LightbulbOff" filename="lightbulb-outline.svg" scaleX="10%" scaleY="10%" automaticPalette="false" />
     <bitmap id="LightbulbUnavailable" filename="lightbulb-off-outline.svg" scaleX="10%" scaleY="10%" automaticPalette="false" />
+    <bitmap id="GlanceCheck" filename="check.svg" scaleX="8%" scaleY="8%" automaticPalette="false" scope="glance" />
+    <bitmap id="GlanceClose" filename="close.svg" scaleX="8%" scaleY="8%" automaticPalette="false" scope="glance" />
+    <bitmap id="GlanceLightsAll" filename="lightbulb-group.svg" scaleX="8%" scaleY="8%" automaticPalette="false" scope="glance" />
+    <bitmap id="GlanceLightsSome" filename="lightbulb-group-outline.svg" scaleX="8%" scaleY="8%" automaticPalette="false" scope="glance" />
     <bitmap id="Temperature" filename="thermometer.svg" scaleX="6%" scaleY="6%" automaticPalette="false" />
     <bitmap id="Humidity" filename="water-percent.svg" scaleX="6%" scaleY="6%" automaticPalette="false" />
     <bitmap id="Brightness" filename="brightness-5.svg" scaleX="6%" scaleY="6%" automaticPalette="false" />
