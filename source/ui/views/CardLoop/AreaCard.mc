@@ -6,8 +6,8 @@ class AreaCard extends Card {
     private const LIGHT_INDICATOR_GAP = 4;
 
     private const LIGHTBULB_ON = WatchUi.loadResource(Rez.Drawables.LightbulbOn) as WatchUi.BitmapResource;
-    private const LIGHTBULB_OFF = WatchUi.loadResource(Rez.Drawables.LightbulbOutline) as WatchUi.BitmapResource;
-    private const LIGHTBULB_UNAVAILABLE = WatchUi.loadResource(Rez.Drawables.LightbulbOffOutline) as WatchUi.BitmapResource;
+    private const LIGHTBULB_OFF = WatchUi.loadResource(Rez.Drawables.LightbulbOff) as WatchUi.BitmapResource;
+    private const LIGHTBULB_UNAVAILABLE = WatchUi.loadResource(Rez.Drawables.LightbulbUnavailable) as WatchUi.BitmapResource;
 
     private var _floorName as String or Null;
     private var _lights as LightTally;

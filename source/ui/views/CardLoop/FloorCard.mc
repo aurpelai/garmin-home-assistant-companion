@@ -3,8 +3,8 @@ import Toybox.Lang;
 import Toybox.WatchUi;
 
 class FloorCard extends Card {
-    private const LIGHTS_ALL = WatchUi.loadResource(Rez.Drawables.LightbulbGroup) as WatchUi.BitmapResource;
-    private const LIGHTS_SOME = WatchUi.loadResource(Rez.Drawables.LightbulbGroupOutline) as WatchUi.BitmapResource;
+    private const LIGHTS_ALL = WatchUi.loadResource(Rez.Drawables.LightbulbGroupAll) as WatchUi.BitmapResource;
+    private const LIGHTS_SOME = WatchUi.loadResource(Rez.Drawables.LightbulbGroupSome) as WatchUi.BitmapResource;
 
     private var _zone as String or Null;
     private var _lights as LightTally;
