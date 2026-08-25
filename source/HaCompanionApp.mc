@@ -32,7 +32,7 @@ class HaCompanionApp extends Application.AppBase {
     }
 
     function getInitialView() as [WatchUi.Views] or [WatchUi.Views, WatchUi.InputDelegates] {
-        var coordinator = coordinator();
+        var coordinator = getOrCreateCoordinator();
 
         if (!Settings.isConfigured()) {
             return [new InfoView(WatchUi.loadResource(Rez.Strings.ErrNoConfig) as String, true, null),
@@ -50,7 +50,7 @@ class HaCompanionApp extends Application.AppBase {
         }
     }
 
-    private function coordinator() as Coordinator {
+    private function getOrCreateCoordinator() as Coordinator {
         if (_coordinator == null) {
             _coordinator = new Coordinator(new HaClient());
         }
