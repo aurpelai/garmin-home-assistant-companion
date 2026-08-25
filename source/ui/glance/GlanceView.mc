@@ -30,7 +30,7 @@ class GlanceView extends WatchUi.GlanceView {
         dc.clear();
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
 
-        var rows = statusRows(dc);
+        var rows = buildStatusRows(dc);
         var height = dc.getHeight();
         var count = rows.size() + 1;
 
@@ -47,7 +47,7 @@ class GlanceView extends WatchUi.GlanceView {
         }
     }
 
-    private function statusRows(dc as Graphics.Dc) as Array<StatusRow or MultiStatusRow> {
+    private function buildStatusRows(dc as Graphics.Dc) as Array<StatusRow or MultiStatusRow> {
         if (!System.getDeviceSettings().phoneConnected) {
             return [new StatusRow(Rez.Drawables.GlanceClose, Graphics.COLOR_RED,
                 WatchUi.loadResource(Rez.Strings.GlancePhoneDisconnected) as String)];
