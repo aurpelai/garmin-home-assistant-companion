@@ -8,13 +8,6 @@
 
     <!-- UI -->
     <string id="AllLights">All Lights</string>
-
-    <!-- Glance -->
-    <string id="GlancePhoneConnected" scope="glance">Connected to phone</string>
-    <string id="GlancePhoneDisconnected" scope="glance">Not connected to phone</string>
-    <string id="GlanceAllLightsOn" scope="glance">All lights on</string>
-    <string id="GlanceSomeLightsOn" scope="glance">Some lights on</string>
-    <string id="GlanceAllLightsOff" scope="glance">All lights off</string>
     <string id="GroupLightCount">Group • $1$ Lights</string>
     <string id="GroupLightCountOne">Group • 1 Light</string>
     <string id="GroupUnavailable">Group unavailable</string>
@@ -23,6 +16,13 @@
     <string id="NothingFound">No supported entities found</string>
     <string id="RetryHint">Select to retry</string>
     <string id="Unavailable">Unavailable</string>
+
+    <!-- Glance -->
+    <string id="GlancePhoneConnected" scope="glance">Connected to phone</string>
+    <string id="GlancePhoneDisconnected" scope="glance">Not connected to phone</string>
+    <string id="GlanceAllLightsOn" scope="glance">All lights on</string>
+    <string id="GlanceSomeLightsOn" scope="glance">Some lights on</string>
+    <string id="GlanceAllLightsOff" scope="glance">All lights off</string>
 
     <!-- Errors -->
     <string id="ErrAuth">Auth failed — check your token</string>

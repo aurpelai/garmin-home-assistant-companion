@@ -17,10 +17,6 @@ class HaCompanionApp extends Application.AppBase {
         _coordinator = null;
     }
 
-    function onStart(state as Dictionary or Null) as Void {
-        activate();
-    }
-
     function onActive(state as Dictionary or Null) as Void {
         activate();
     }
