@@ -90,7 +90,8 @@ class Coordinator {
         _client.discardRegistration();
         _haState = new HaState();
         GlanceSummary.setLightSummary(null);
-        GlanceSummary.setClimate({});
+        GlanceSummary.setTemperature(null);
+        GlanceSummary.setHumidity(null);
         refresh();
     }
 
@@ -135,7 +136,9 @@ class Coordinator {
                     HaPayload.parseAverages(result, "areas"),
                     HaPayload.parseAverages(result, "floors"),
                     HaPayload.parseHomeAverages(result));
-                GlanceSummary.setClimate(_haState.getHomeAverages() as Dictionary);
+                var averages = _haState.getHomeAverages();
+                GlanceSummary.setTemperature(averages.get("temperature"));
+                GlanceSummary.setHumidity(averages.get("humidity"));
             }
         }
 

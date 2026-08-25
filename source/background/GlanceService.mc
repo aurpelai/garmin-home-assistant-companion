@@ -47,7 +47,9 @@ class GlanceService extends System.ServiceDelegate {
                 GlanceSummary.setLightSummary(lights instanceof String ? lights : null);
 
                 var climate = home.get("climate");
-                GlanceSummary.setClimate(climate instanceof Dictionary ? climate : ({} as Dictionary));
+                var averages = climate instanceof Dictionary ? climate : ({} as Dictionary);
+                GlanceSummary.setTemperature(averages.get("temperature"));
+                GlanceSummary.setHumidity(averages.get("humidity"));
             }
         }
 
