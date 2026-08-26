@@ -12,7 +12,7 @@ class ResponseHandler {
     function onResponse(code as Number, data as Dictionary or String or Null) as Void {
         if (code < 200 || code >= 300) {
             System.println("HA request failed: responseType=" + _responseType + " code=" + code + " body=" + data);
-            _callback.invoke(null, code);
+            fail(code);
             return;
         }
         switch (_responseType) {
@@ -21,7 +21,7 @@ class ResponseHandler {
                 // never arrives as the expected envelope (see #68). That is the
                 // id being gone rather than an unreadable render.
                 if (!(data instanceof Dictionary)) {
-                    _callback.invoke(null, RequestError.UNUSABLE_WEBHOOK);
+                    fail(RequestError.UNUSABLE_WEBHOOK);
                     return;
                 }
 
@@ -30,7 +30,7 @@ class ResponseHandler {
                 var rendered = data.get(ResponseType.TEMPLATE_RENDER_ROOT_KEY);
                 var home = (rendered instanceof Lang.String) ? JsonParser.parse(rendered) : rendered;
                 if (home == null) {
-                    _callback.invoke(null, RequestError.UNREADABLE_BODY);
+                    fail(RequestError.UNREADABLE_BODY);
                 } else {
                     _callback.invoke(home, null);
                 }
@@ -40,12 +40,21 @@ class ResponseHandler {
                 if (webhookId instanceof Lang.String) {
                     _callback.invoke(webhookId, null);
                 } else {
-                    _callback.invoke(null, Communications.INVALID_HTTP_BODY_IN_NETWORK_RESPONSE);
+                    fail(Communications.INVALID_HTTP_BODY_IN_NETWORK_RESPONSE);
                 }
                 break;
             case ResponseType.SERVICE_CALL:
                 _callback.invoke(true, null);
                 break;
         }
+    }
+
+    // The response type is what distinguishes our own malformed registration
+    // body from a template failing on the Home Assistant side, and it is known
+    // only here — so the error is characterised at the point it occurs.
+    private function fail(reason as Number or Symbol) as Void {
+        _callback.invoke(null, new RequestError(reason, _responseType == ResponseType.REGISTRATION
+            ? RequestType.REGISTRATION
+            : RequestType.REQUEST));
     }
 }

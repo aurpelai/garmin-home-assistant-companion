@@ -11,7 +11,7 @@ class InfoDelegate extends WatchUi.BehaviorDelegate {
     }
 
     function onSelect() as Boolean {
-        WatchUi.switchToView(new LoadingView(_coordinator), new LoadingDelegate(), WatchUi.SLIDE_IMMEDIATE);
+        _coordinator.retry();
         return true;
     }
 
