@@ -81,14 +81,13 @@ class Card {
     private function drawReadings(dc as Graphics.Dc) as Void {
         for (var index = 0; index < readings.size(); index++) {
             var reading = readings[index];
-            var chip = new ReadingChip(reading);
 
             if ("temperature".equals(reading.deviceClass)) {
-                chip.draw(dc, getColumnX(dc, 6), getRowY(dc, 14));
+                new ReadingChip(reading, Graphics.COLOR_ORANGE).draw(dc, getColumnX(dc, 6), getRowY(dc, 14));
             } else if ("humidity".equals(reading.deviceClass)) {
-                chip.draw(dc, getColumnX(dc, 14), getRowY(dc, 14));
+                new ReadingChip(reading, Graphics.COLOR_BLUE).draw(dc, getColumnX(dc, 14), getRowY(dc, 14));
             } else if ("illuminance".equals(reading.deviceClass)) {
-                chip.draw(dc, dc.getWidth() / 2, getRowY(dc, 17));
+                new ReadingChip(reading, Graphics.COLOR_WHITE).draw(dc, dc.getWidth() / 2, getRowY(dc, 17));
             }
         }
     }
