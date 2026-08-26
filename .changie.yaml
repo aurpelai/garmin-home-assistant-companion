@@ -22,11 +22,17 @@ changeFormat: '- {{.Body}}'
 # per kind; the `changie new` picker shows the emoji label, which is harmless.
 #
 # Versions are a store-facing signal rather than semver over the code, so only a
-# new user-facing feature earns a minor: a refinement of something that already
-# worked is a patch, and a change users can't perceive never moves the number by
-# more than one. No kind maps to major — v1.0.0 is bumped by hand when the app is
-# store-ready. `auto` lets `changie batch auto` take the highest implied bump from
-# the pending fragments, so the author only chooses a kind — never types a version.
+# new user-facing feature earns a minor and a refinement of something that already
+# worked is a patch. No kind maps to major — v1.0.0 is bumped by hand when the app
+# is store-ready. `auto` lets `changie batch auto` take the highest implied bump
+# from the pending fragments, so the author only chooses a kind — never types a
+# version.
+#
+# 🧹 Maintenance is `none`: it contributes nothing a release could be cut for, and
+# a batch of only `none` fragments fails rather than bumping. 🛠️ Technical stays a
+# patch — it can be the only fragment on a change that genuinely warrants a
+# release but has no user-facing face, or where the paired fragment below was
+# forgotten.
 #
 # A technical change with a user-visible effect takes two fragments, one per
 # voice: the outcome for the store, the mechanism for us.
@@ -40,7 +46,7 @@ kinds:
   - label: "🛠️ Technical"
     auto: patch
   - label: "🧹 Maintenance"
-    auto: patch
+    auto: none
 
 # Fragment body is a single free-text line the author writes in `changie new`.
 body:
