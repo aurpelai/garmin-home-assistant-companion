@@ -1,0 +1,3 @@
+kind: "\U0001F9F9 Maintenance"
+body: A refinement to existing behaviour now implies a patch release instead of a minor one
+time: 2026-08-26T10:37:11.135807+03:00

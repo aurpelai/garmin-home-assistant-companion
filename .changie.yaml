@@ -12,22 +12,41 @@ versionExt: md
 # `{{.Version}}` renders with the `v` prefix, matching the git tag verbatim.
 versionFormat: '## [{{.Version}}] - {{.Time.Format "2006-01-02"}}'
 kindFormat: '### {{.Kind}}'
-# Hand-authored fragments only — no commit SHA or PR link, so CHANGELOG.md reads
-# as user-facing release notes, paste-ready for the Connect IQ Store "what's new".
+# Hand-authored fragments only — no commit SHA or PR link.
 changeFormat: '- {{.Body}}'
 
-# User-focused categories (not developer Added/Changed/Removed). The emoji lives
+# The first three kinds are user-facing, the last two engineering-facing; the
+# store "what's new" is the user-facing sections, so they come first — kinds
+# render in declaration order regardless of fragment timestamps. The emoji lives
 # in the label because kindFormat is one template for all kinds and can't vary
 # per kind; the `changie new` picker shows the emoji label, which is harmless.
-# `auto` lets `changie batch auto` pick the highest implied bump from the pending
-# fragments, so the author only chooses a kind — never types a version.
+#
+# Versions are a store-facing signal rather than semver over the code, so only a
+# new user-facing feature earns a minor and a refinement of something that already
+# worked is a patch. No kind maps to major — v1.0.0 is bumped by hand when the app
+# is store-ready. `auto` lets `changie batch auto` take the highest implied bump
+# from the pending fragments, so the author only chooses a kind — never types a
+# version.
+#
+# 🧹 Maintenance is `none`: it contributes nothing a release could be cut for, and
+# a batch of only `none` fragments fails rather than bumping. 🛠️ Technical stays a
+# patch — it can be the only fragment on a change that genuinely warrants a
+# release but has no user-facing face, or where the paired fragment below was
+# forgotten.
+#
+# A technical change with a user-visible effect takes two fragments, one per
+# voice: the outcome for the store, the mechanism for us.
 kinds:
   - label: "🎉 New"
     auto: minor
   - label: "✨ Improved"
-    auto: minor
+    auto: patch
   - label: "🔧 Fixed"
     auto: patch
+  - label: "🛠️ Technical"
+    auto: patch
+  - label: "🧹 Maintenance"
+    auto: none
 
 # Fragment body is a single free-text line the author writes in `changie new`.
 body:

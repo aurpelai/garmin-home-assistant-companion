@@ -9,8 +9,9 @@
 
 ## Changelog
 
-- [ ] Added a changelog fragment (`changie new`)
-- [ ] No fragment needed (internal-only: refactor, CI, docs)
+- [ ] Added a changelog fragment (`changie new`) — one per notable change, so a
+      technical change users can perceive takes two: the outcome and the mechanism
+- [ ] No fragment needed (nothing notable to record)
 
 ## Verification
 
