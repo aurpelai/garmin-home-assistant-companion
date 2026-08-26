@@ -16,10 +16,12 @@ class ReadingChip {
 
     private var _text as String;
     private var _icon as WatchUi.BitmapResource or Null;
+    private var _iconTint as Number;
 
-    function initialize(reading as SensorReading) {
+    function initialize(reading as SensorReading, iconTint as Number or Null) {
         _text = reading.text;
         _icon = resolveIcon(reading.deviceClass);
+        _iconTint = iconTint != null ? iconTint : Graphics.COLOR_LT_GRAY;
     }
 
     function draw(dc as Graphics.Dc, x as Number, y as Number) as Void {
@@ -45,7 +47,7 @@ class ReadingChip {
         if (icon != null) {
             Rendering.useAntiAlias(dc, true);
             dc.drawBitmap2(contentLeft, y + textHeight / 2 - icon.getHeight() / 2, icon, {
-                :tintColor => Graphics.COLOR_LT_GRAY
+                :tintColor => _iconTint
             });
         }
 
