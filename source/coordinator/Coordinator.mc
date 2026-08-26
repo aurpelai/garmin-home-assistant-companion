@@ -117,10 +117,18 @@ class Coordinator {
         updateDisplay();
     }
 
+    // The state is emptied here, so whatever is on screen would draw a home with
+    // nothing in it until the refresh settles.
     function discardRegistration() as Void {
         _client.cancelAll();
         _client.discardRegistration();
         _haState = new HaState();
+        retry();
+    }
+
+    function retry() as Void {
+        _currentView = null;
+        WatchUi.switchToView(new LoadingView(self), new LoadingDelegate(), WatchUi.SLIDE_IMMEDIATE);
         refresh();
     }
 

@@ -22,11 +22,6 @@ class WebhookRequest {
         _registered = false;
     }
 
-    function attempt(callback as Method) as Void {
-        _callback = callback;
-        post();
-    }
-
     function onPosted(result as Object or Null, error as RequestError or Null) as Void {
         if (error == null || error.reason != RequestError.UNUSABLE_WEBHOOK || _registered) {
             (_callback as Method).invoke(result, error);
@@ -43,6 +38,11 @@ class WebhookRequest {
             return;
         }
 
+        post();
+    }
+
+    function attempt(callback as Method) as Void {
+        _callback = callback;
         post();
     }
 

@@ -16,11 +16,6 @@ class RetryManager {
             : MAX_REQUEST_ATTEMPTS;
     }
 
-    function attempt() as Void {
-        _attemptsLeft--;
-        _request.invoke(method(:onAttempt));
-    }
-
     function onAttempt(result as Object or Null, error as RequestError or Null) as Void {
         if (error == null) {
             _callback.invoke(result, null);
@@ -33,5 +28,10 @@ class RetryManager {
         }
 
         attempt();
+    }
+
+    function attempt() as Void {
+        _attemptsLeft--;
+        _request.invoke(method(:onAttempt));
     }
 }
