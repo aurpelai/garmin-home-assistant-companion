@@ -5,6 +5,23 @@ All notable changes to this project are documented here.
 This file is compiled from change fragments by [changie](https://changie.dev);
 do not edit it by hand. Add a fragment with `changie new` in your PR instead.
 
+## [v0.10.1] - 2026-08-26
+
+### 🔧 Fixed
+
+- The glance now properly picks up new data as it arrives instead of ignoring it.
+- Changing the connection settings now clears the glance's data.
+
+### 🛠️ Technical
+
+- The glance redraws when new data arrives, and the background service is registered at app start.
+- The minimum Connect IQ version is now 5.1.0 to allow redrawing from the background.
+
+### 🧹 Maintenance
+
+- Changelog fragments can record technical and maintenance work, not just user-facing changes
+- A refinement to existing behaviour now implies a patch release instead of a minor one
+
 ## [v0.10.0] - 2026-08-26
 
 ### 🎉 New

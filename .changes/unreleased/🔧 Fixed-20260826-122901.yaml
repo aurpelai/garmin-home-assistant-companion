@@ -1,3 +1,0 @@
-kind: "\U0001F527 Fixed"
-body: The glance now properly picks up new data as it arrives instead of ignoring it.
-time: 2026-08-26T12:29:01.16244+03:00
