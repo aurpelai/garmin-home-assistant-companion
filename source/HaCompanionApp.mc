@@ -22,19 +22,29 @@ class HaCompanionApp extends Application.AppBase {
         _coordinator = null;
     }
 
-    function onActive(state as Dictionary or Null) as Void {
-        activate();
+    function onStart(state as Dictionary or Null) as Void {
         scheduleBackgroundRefresh();
     }
 
-    function getServiceDelegate() as [System.ServiceDelegate] {
-        return [new GlanceService()];
+    function onActive(state as Dictionary or Null) as Void {
+        activate();
     }
 
     function onSettingsChanged() as Void {
         if (_coordinator != null) {
             _coordinator.discardRegistration();
         }
+    }
+
+    // The background service writes the glance summary from its own process, so
+    // the storage callback is the only signal a visible glance gets that the
+    // cached values changed.
+    function onStorageChanged() as Void {
+        WatchUi.requestUpdate();
+    }
+
+    function getServiceDelegate() as [System.ServiceDelegate] {
+        return [new GlanceService()];
     }
 
     function getGlanceView() as [WatchUi.GlanceView] or [WatchUi.GlanceView, WatchUi.GlanceViewDelegate] or Null {
@@ -61,7 +71,7 @@ class HaCompanionApp extends Application.AppBase {
     }
 
     // Re-registering while an event is pending pushes it further out, so a
-    // frequently-activated app would never let the refresh fire.
+    // frequently-launched app would never let the refresh fire.
     private function scheduleBackgroundRefresh() as Void {
         if (!Settings.isConfigured() || Background.getTemporalEventRegisteredTime() != null) {
             return;
