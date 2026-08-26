@@ -121,7 +121,6 @@ class Coordinator {
         _client.cancelAll();
         _client.discardRegistration();
         _haState = new HaState();
-        GlanceSummary.clear();
         refresh();
     }
 
