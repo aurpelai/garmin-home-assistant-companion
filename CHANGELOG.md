@@ -5,6 +5,19 @@ All notable changes to this project are documented here.
 This file is compiled from change fragments by [changie](https://changie.dev);
 do not edit it by hand. Add a fragment with `changie new` in your PR instead.
 
+## [v0.10.2] - 2026-08-26
+
+### ✨ Improved
+
+- The sensor reading icons are clearer and easier to tell apart.
+
+### 🔧 Fixed
+
+- Messages and errors are no longer drawn over the previous screen.
+- Failed requests now show what went wrong instead of a generic error.
+- Reconnecting to Home Assistant now shows the loading screen.
+- Setup errors now name the actual problem.
+
 ## [v0.10.1] - 2026-08-26
 
 ### 🔧 Fixed
