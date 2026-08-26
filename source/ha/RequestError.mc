@@ -4,10 +4,10 @@ class RequestError {
     static const UNREADABLE_BODY = :unreadableBody;
     static const UNUSABLE_WEBHOOK = :unusableWebhook;
 
-    var reason as Object;
+    var reason as Number or Symbol;
     var requestType as Symbol;
 
-    function initialize(reason as Object, requestType as Symbol) {
+    function initialize(reason as Number or Symbol, requestType as Symbol) {
         self.reason = reason;
         self.requestType = requestType;
     }

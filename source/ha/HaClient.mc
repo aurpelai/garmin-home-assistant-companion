@@ -206,7 +206,7 @@ class HaClient {
         var webhookId = Application.Storage.getValue(Webhook.REGISTRATION_KEY) as String or Null;
 
         if (webhookId == null) {
-            callback.invoke(null, RequestError.UNUSABLE_WEBHOOK);
+            callback.invoke(null, new RequestError(RequestError.UNUSABLE_WEBHOOK, RequestType.REQUEST));
             return;
         }
 
@@ -215,7 +215,7 @@ class HaClient {
     }
 
     function onRegistrationReply(epoch as Number, webhookId as String or Null,
-                                 error as Number or Null) as Void {
+                                 error as RequestError or Null) as Void {
         if (epoch != _registrationEpoch || _registrationCallback == null) {
             return;
         }

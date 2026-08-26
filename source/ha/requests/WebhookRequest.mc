@@ -27,9 +27,9 @@ class WebhookRequest {
         post();
     }
 
-    function onPosted(result as Object or Null, reason as Object or Null) as Void {
-        if (reason != RequestError.UNUSABLE_WEBHOOK || _registered) {
-            (_callback as Method).invoke(result, reason);
+    function onPosted(result as Object or Null, error as RequestError or Null) as Void {
+        if (error == null || error.reason != RequestError.UNUSABLE_WEBHOOK || _registered) {
+            (_callback as Method).invoke(result, error);
             return;
         }
 

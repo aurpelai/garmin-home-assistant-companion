@@ -9,7 +9,7 @@ class RegistrationReply {
         _epoch = epoch;
     }
 
-    function onReply(webhookId as String or Null, error as Number or Null) as Void {
+    function onReply(webhookId as String or Null, error as RequestError or Null) as Void {
         _client.onRegistrationReply(_epoch, webhookId, error);
     }
 }

@@ -48,7 +48,7 @@ class MockHaClient extends HaClient {
         fireSuccessAt(webhookCallbacks.size() - 1, payload);
     }
 
-    function fireFetchFailure(reason as Object) as Void {
+    function fireFetchFailure(reason as Number or Symbol) as Void {
         fireFailureAt(webhookCallbacks.size() - 1, reason);
     }
 
@@ -56,8 +56,8 @@ class MockHaClient extends HaClient {
         webhookCallbacks[index].invoke(result, null);
     }
 
-    function fireFailureAt(index as Number, reason as Object) as Void {
-        webhookCallbacks[index].invoke(null, reason);
+    function fireFailureAt(index as Number, reason as Number or Symbol) as Void {
+        webhookCallbacks[index].invoke(null, new RequestError(reason, RequestType.REQUEST));
     }
 
     function fireRegisterSuccess(webhookId as String) as Void {
@@ -65,8 +65,8 @@ class MockHaClient extends HaClient {
         (_registerCallback as Method).invoke(webhookId, null);
     }
 
-    function fireRegisterFailure(reason as Object) as Void {
-        (_registerCallback as Method).invoke(null, reason);
+    function fireRegisterFailure(reason as Number or Symbol) as Void {
+        (_registerCallback as Method).invoke(null, new RequestError(reason, RequestType.REGISTRATION));
     }
 }
 
@@ -122,7 +122,7 @@ function onResponseNormalizesNon200ToError(logger as Test.Logger) as Boolean {
     handler.onResponse(401, null);
 
     Test.assert(capture.result == null);
-    Test.assertEqual(capture.error as Number, 401);
+    Test.assertEqual((capture.error as RequestError).reason as Number, 401);
     return true;
 }
 
@@ -147,13 +147,13 @@ function aFetchBodyThatCannotBeReadIsAFailureNotAnEmptyHome(logger as Test.Logge
     new ResponseHandler(missingSection.method(:onResult), ResponseType.TEMPLATE_RENDER).onResponse(200, {});
 
     Test.assert(missingSection.result == null);
-    Test.assertEqual(missingSection.error as Symbol, RequestError.UNREADABLE_BODY);
+    Test.assertEqual((missingSection.error as RequestError).reason as Symbol, RequestError.UNREADABLE_BODY);
 
     var unparsable = new ResultCapture();
     new ResponseHandler(unparsable.method(:onResult), ResponseType.TEMPLATE_RENDER).onResponse(200, { ResponseType.TEMPLATE_RENDER_ROOT_KEY => "{not json" });
 
     Test.assert(unparsable.result == null);
-    Test.assertEqual(unparsable.error as Symbol, RequestError.UNREADABLE_BODY);
+    Test.assertEqual((unparsable.error as RequestError).reason as Symbol, RequestError.UNREADABLE_BODY);
 
     var empty = new ResultCapture();
     new ResponseHandler(empty.method(:onResult), ResponseType.TEMPLATE_RENDER).onResponse(200, { ResponseType.TEMPLATE_RENDER_ROOT_KEY => "{}" });
@@ -169,7 +169,7 @@ function aDeadWebhooksEmptyBodyIsUnusableRatherThanUnreadable(logger as Test.Log
     new ResponseHandler(capture.method(:onResult), ResponseType.TEMPLATE_RENDER).onResponse(200, null);
 
     Test.assert(capture.result == null);
-    Test.assertEqual(capture.error as Symbol, RequestError.UNUSABLE_WEBHOOK);
+    Test.assertEqual((capture.error as RequestError).reason as Symbol, RequestError.UNUSABLE_WEBHOOK);
     return true;
 }
 
