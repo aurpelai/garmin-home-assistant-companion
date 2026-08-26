@@ -212,10 +212,12 @@ class HaClient {
         new WebhookRequest(self, body, ResponseType.TEMPLATE_RENDER).attempt(callback);
     }
 
-    // Declaring a response type makes the system parse the body as that type and
-    // report a parse failure instead of the status, so an auth rejection arrives
-    // as an invalid-body error rather than a 401. Letting the response's own
-    // Content-Type decide keeps the status intact.
+    // No response type is declared: the system then parses by the response's own
+    // Content-Type, which keeps the HTTP status intact — declaring one makes an
+    // auth rejection arrive as an invalid-body error rather than a 401. A dead
+    // webhook's empty 200 carries no Content-Type at all and still arrives as a
+    // 200 with a null body, so the re-registration path is unaffected (verified
+    // against a live instance on 2026-08-26).
     function post(path as String, body as Dictionary, handler as ResponseHandler) as Void {
         var options = {
             :method => Communications.HTTP_REQUEST_METHOD_POST,
