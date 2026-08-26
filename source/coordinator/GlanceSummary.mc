@@ -9,12 +9,14 @@ module GlanceSummary {
     const TEMPERATURE_KEY = "glanceTemperature";
     const HUMIDITY_KEY = "glanceHumidity";
 
-    function setLightSummary(summary as String or Null) as Void {
-        set(LIGHTS_KEY, summary);
+    function clear() as Void {
+        setLightSummary(null);
+        setTemperature(null);
+        setHumidity(null);
     }
 
-    function getLightSummary() as String or Null {
-        return Application.Storage.getValue(LIGHTS_KEY) as String or Null;
+    function setLightSummary(summary as String or Null) as Void {
+        set(LIGHTS_KEY, summary);
     }
 
     function setTemperature(value as Object or Null) as Void {
@@ -23,6 +25,10 @@ module GlanceSummary {
 
     function setHumidity(value as Object or Null) as Void {
         set(HUMIDITY_KEY, value);
+    }
+
+    function getLightSummary() as String or Null {
+        return Application.Storage.getValue(LIGHTS_KEY) as String or Null;
     }
 
     function getTemperature() as String or Null {

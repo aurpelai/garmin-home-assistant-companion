@@ -19,6 +19,7 @@
 
     <!-- Glance -->
     <string id="GlancePhoneDisconnected" scope="glance">Not connected to phone</string>
+    <string id="GlanceSetupIncomplete" scope="glance">Setup incomplete</string>
     <string id="GlanceAllLightsOn" scope="glance">All lights on</string>
     <string id="GlanceSomeLightsOn" scope="glance">Some lights on</string>
     <string id="GlanceAllLightsOff" scope="glance">All lights off</string>
