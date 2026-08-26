@@ -49,7 +49,7 @@ class GlanceView extends WatchUi.GlanceView {
 
     private function buildStatusRows(dc as Graphics.Dc) as Array<StatusRow or MultiStatusRow> {
         if (!System.getDeviceSettings().phoneConnected) {
-            return [new StatusRow(Rez.Drawables.GlanceClose, Graphics.COLOR_RED,
+            return [new StatusRow(Rez.Drawables.GlanceError, Graphics.COLOR_RED,
                 WatchUi.loadResource(Rez.Strings.GlancePhoneDisconnected) as String)];
         }
 
@@ -63,6 +63,11 @@ class GlanceView extends WatchUi.GlanceView {
         var climateRow = buildClimateRow(dc);
         if (climateRow != null) {
             rows.add(climateRow);
+        }
+
+        if (rows.size() == 0) {
+            return [new StatusRow(Rez.Drawables.GlanceInfo, Graphics.COLOR_YELLOW,
+                WatchUi.loadResource(Rez.Strings.GlanceSetupIncomplete) as String)];
         }
 
         return rows;

@@ -30,7 +30,11 @@ class HaCompanionApp extends Application.AppBase {
         activate();
     }
 
+    // The cached summary came from the old configuration, so it is suspect
+    // whatever changed — and the glance may be the only thing running to see it.
     function onSettingsChanged() as Void {
+        GlanceSummary.clear();
+
         if (_coordinator != null) {
             _coordinator.discardRegistration();
         }

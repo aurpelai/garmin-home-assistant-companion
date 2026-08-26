@@ -5,7 +5,8 @@
          monkey.jungle. Only shared, size-independent drawables live here. -->
 
     <!-- Glance -->
-    <bitmap id="GlanceClose" filename="close.svg" scaleX="6%" scaleY="6%" automaticPalette="false" scope="glance" />
+    <bitmap id="GlanceError" filename="close-circle-outline.svg" scaleX="6%" scaleY="6%" automaticPalette="false" scope="glance" />
+    <bitmap id="GlanceInfo" filename="information-outline.svg" scaleX="6%" scaleY="6%" automaticPalette="false" scope="glance" />
     <bitmap id="GlanceLightsAll" filename="lightbulb-group.svg" scaleX="6%" scaleY="6%" automaticPalette="false" scope="glance" />
     <bitmap id="GlanceLightsSome" filename="lightbulb-group-outline.svg" scaleX="6%" scaleY="6%" automaticPalette="false" scope="glance" />
     <bitmap id="GlanceThermometer" filename="thermometer.svg" scaleX="6%" scaleY="6%" automaticPalette="false" scope="glance" />

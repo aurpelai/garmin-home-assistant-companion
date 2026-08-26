@@ -33,6 +33,46 @@ class Coordinator {
         }
     }
 
+    function onToggleSettled(error as RequestError or Null) as Void {
+        if (error != null) {
+            toast(ErrorMessage.resolve(error));
+        }
+
+        refresh();
+    }
+
+    function onFetchTarget(target as Symbol, result as Object or Null, isLastTarget as Boolean) as Void {
+        if (result != null) {
+            if (target == FetchTarget.STRUCTURE) {
+                _haState.setZone(HaPayload.parseZone(result));
+                _haState.setAreas(HaPayload.parseAreas(result));
+                _haState.setFloors(HaPayload.parseFloors(result));
+            } else if (target == FetchTarget.LIGHTS) {
+                _haState.setLights(HaPayload.parseLights(result));
+                _haState.setLightAggregates(
+                    HaPayload.parseAreaLightCounts(result),
+                    HaPayload.parseFloorLightSummaries(result),
+                    HaPayload.parseHomeLightSummary(result));
+                GlanceSummary.setLightSummary(_haState.getHomeLightSummary());
+            } else if (target == FetchTarget.SENSORS) {
+                _haState.setSensors(HaPayload.parseSensors(result));
+                _haState.setSensorAggregates(
+                    HaPayload.parseAverages(result, "areas"),
+                    HaPayload.parseAverages(result, "floors"),
+                    HaPayload.parseHomeAverages(result));
+                var averages = _haState.getHomeAverages();
+                GlanceSummary.setTemperature(averages.get("temperature"));
+                GlanceSummary.setHumidity(averages.get("humidity"));
+            }
+        }
+
+        updateDisplay();
+
+        if (isLastTarget) {
+            showDestination();
+        }
+    }
+
     function showAreaMenu(areaId as String) as Void {
         var model = AreaEntityMenuBuilder.build(_haState, areaId);
         if (model == null) {
@@ -77,21 +117,11 @@ class Coordinator {
         updateDisplay();
     }
 
-    function onToggleSettled(error as RequestError or Null) as Void {
-        if (error != null) {
-            toast(ErrorMessage.resolve(error));
-        }
-
-        refresh();
-    }
-
     function discardRegistration() as Void {
         _client.cancelAll();
         _client.discardRegistration();
         _haState = new HaState();
-        GlanceSummary.setLightSummary(null);
-        GlanceSummary.setTemperature(null);
-        GlanceSummary.setHumidity(null);
+        GlanceSummary.clear();
         refresh();
     }
 
@@ -115,38 +145,6 @@ class Coordinator {
         }
 
         _client.refresh(method(:onFetchTarget));
-    }
-
-    function onFetchTarget(target as Symbol, result as Object or Null, isLastTarget as Boolean) as Void {
-        if (result != null) {
-            if (target == FetchTarget.STRUCTURE) {
-                _haState.setZone(HaPayload.parseZone(result));
-                _haState.setAreas(HaPayload.parseAreas(result));
-                _haState.setFloors(HaPayload.parseFloors(result));
-            } else if (target == FetchTarget.LIGHTS) {
-                _haState.setLights(HaPayload.parseLights(result));
-                _haState.setLightAggregates(
-                    HaPayload.parseAreaLightCounts(result),
-                    HaPayload.parseFloorLightSummaries(result),
-                    HaPayload.parseHomeLightSummary(result));
-                GlanceSummary.setLightSummary(_haState.getHomeLightSummary());
-            } else if (target == FetchTarget.SENSORS) {
-                _haState.setSensors(HaPayload.parseSensors(result));
-                _haState.setSensorAggregates(
-                    HaPayload.parseAverages(result, "areas"),
-                    HaPayload.parseAverages(result, "floors"),
-                    HaPayload.parseHomeAverages(result));
-                var averages = _haState.getHomeAverages();
-                GlanceSummary.setTemperature(averages.get("temperature"));
-                GlanceSummary.setHumidity(averages.get("humidity"));
-            }
-        }
-
-        updateDisplay();
-
-        if (isLastTarget) {
-            showDestination();
-        }
     }
 
     private function showDestination() as Void {
