@@ -51,6 +51,64 @@ class HaClient {
         _lastRefreshCompletedAt = null;
     }
 
+    function onChangeSettled(result as Object or Null, spentError as RequestError or Null) as Void {
+        _requestInFlight = false;
+        _changeInFlight = false;
+
+        if (_pendingChangeCallback == null) {
+            return;
+        }
+
+        var callback = _pendingChangeCallback as Method;
+        _pendingChangeCallback = null;
+
+        if (spentError != null) {
+            _changeQueue = [];
+        }
+
+        callback.invoke(result, spentError);
+        startNextRequest();
+    }
+
+    function onTargetSettled(result as Object or Null, spentError as RequestError or Null) as Void {
+        _requestInFlight = false;
+
+        if (_currentTarget == null || _onRefreshTarget == null) {
+            return;
+        }
+
+        var target = _currentTarget as Symbol;
+        var onTarget = _onRefreshTarget as Method;
+
+        if (_refreshError == null) {
+            _refreshError = spentError;
+        }
+
+        var isLastTarget = !isRefreshing();
+
+        if (isLastTarget && _refreshError == null) {
+            _lastRefreshCompletedAt = System.getTimer();
+        }
+
+        onTarget.invoke(target, result, isLastTarget);
+        startNextRequest();
+    }
+
+    function onRegistrationReply(epoch as Number, webhookId as String or Null,
+                                 error as RequestError or Null) as Void {
+        if (epoch != _registrationEpoch || _registrationCallback == null) {
+            return;
+        }
+
+        if (error == null) {
+            setRegistration(webhookId as String);
+        }
+
+        var callback = _registrationCallback as Method;
+        _registrationCallback = null;
+        callback.invoke(webhookId, error);
+    }
+
     function isRefreshing() as Boolean {
         return _pendingFetchTargets.size() > 0;
     }
@@ -101,6 +159,80 @@ class HaClient {
         _onRefreshTarget = null;
     }
 
+    function registerWithHomeAssistant(callback as Method) as Void {
+        new RetryManager(method(:attemptRegistration), callback, RequestType.REGISTRATION).attempt();
+    }
+
+    function attemptRegistration(callback as Method) as Void {
+        var body = {
+            "device_id" => DEVICE_ID,
+            "app_id" => APP_ID,
+            "app_name" => APP_NAME,
+            "app_version" => APP_VERSION,
+            "device_name" => DEVICE_NAME,
+            "manufacturer" => MANUFACTURER,
+            "model" => MODEL,
+            "os_name" => OS_NAME,
+            "os_version" => OS_VERSION,
+            "supports_encryption" => false,
+            "app_data" => {}
+        };
+        discardRegistration();
+        _registrationCallback = callback;
+        _registrationEpoch++;
+        post("/api/mobile_app/registrations", body,
+             new ResponseHandler(new RegistrationReply(self, _registrationEpoch).method(:onReply),
+                                 ResponseType.REGISTRATION));
+    }
+
+    function attemptRequest(body as Dictionary, callback as Method, responseType as Symbol) as Void {
+        var webhookId = Application.Storage.getValue(Webhook.REGISTRATION_KEY) as String or Null;
+
+        if (webhookId == null) {
+            callback.invoke(null, new RequestError(RequestError.UNUSABLE_WEBHOOK, RequestType.REQUEST));
+            return;
+        }
+
+        post("/api/webhook/" + webhookId, body, new ResponseHandler(callback, responseType));
+    }
+
+    function discardRegistration() as Void {
+        Application.Storage.deleteValue(Webhook.REGISTRATION_KEY);
+    }
+
+    function postTemplate(template as String, callback as Method) as Void {
+        var body = {
+            "type" => "render_template",
+            "data" => {
+                ResponseType.TEMPLATE_RENDER_ROOT_KEY => {
+                    "template" => template
+                }
+            }
+        };
+        new WebhookRequest(self, body, ResponseType.TEMPLATE_RENDER).attempt(callback);
+    }
+
+    // Declaring a response type makes the system parse the body as that type and
+    // report a parse failure instead of the status, so an auth rejection arrives
+    // as an invalid-body error rather than a 401. Letting the response's own
+    // Content-Type decide keeps the status intact.
+    function post(path as String, body as Dictionary, handler as ResponseHandler) as Void {
+        var options = {
+            :method => Communications.HTTP_REQUEST_METHOD_POST,
+            :headers => {
+                "Authorization" => "Bearer " + Settings.getToken(),
+                "Content-Type" => Communications.REQUEST_CONTENT_TYPE_JSON
+            }
+        };
+
+        Communications.makeWebRequest(
+            Settings.getBaseUrl() + path,
+            body as Dictionary<Object, Object>,
+            options,
+            handler.method(:onResponse)
+        );
+    }
+
     private function queueChange(request as Method, callback as Method) as Void {
         _changeQueue.add(new QueuedChange(request, callback));
         startNextRequest();
@@ -131,143 +263,7 @@ class HaClient {
         }
     }
 
-    function onChangeSettled(result as Object or Null, spentError as RequestError or Null) as Void {
-        _requestInFlight = false;
-        _changeInFlight = false;
-
-        if (_pendingChangeCallback == null) {
-            return;
-        }
-
-        var callback = _pendingChangeCallback as Method;
-        _pendingChangeCallback = null;
-
-        if (spentError != null) {
-            _changeQueue = [];
-        }
-
-        callback.invoke(result, spentError);
-        startNextRequest();
-    }
-
-    function onTargetSettled(result as Object or Null, spentError as RequestError or Null) as Void {
-        _requestInFlight = false;
-
-        if (_currentTarget == null || _onRefreshTarget == null) {
-            return;
-        }
-
-        var target = _currentTarget as Symbol;
-        var onTarget = _onRefreshTarget as Method;
-
-        if (_refreshError == null) {
-            _refreshError = spentError;
-        }
-
-        var isLastTarget = !isRefreshing();
-
-        if (isLastTarget && _refreshError == null) {
-            _lastRefreshCompletedAt = System.getTimer();
-        }
-
-        onTarget.invoke(target, result, isLastTarget);
-        startNextRequest();
-    }
-
-    function registerWithHomeAssistant(callback as Method) as Void {
-        new RetryManager(method(:attemptRegistration), callback, RequestType.REGISTRATION).attempt();
-    }
-
-    function attemptRegistration(callback as Method) as Void {
-        var body = {
-            "device_id" => DEVICE_ID,
-            "app_id" => APP_ID,
-            "app_name" => APP_NAME,
-            "app_version" => APP_VERSION,
-            "device_name" => DEVICE_NAME,
-            "manufacturer" => MANUFACTURER,
-            "model" => MODEL,
-            "os_name" => OS_NAME,
-            "os_version" => OS_VERSION,
-            "supports_encryption" => false,
-            "app_data" => {}
-        };
-        discardRegistration();
-        _registrationCallback = callback;
-        _registrationEpoch++;
-        post("/api/mobile_app/registrations", body,
-             new ResponseHandler(new RegistrationReply(self, _registrationEpoch).method(:onReply),
-                                 ResponseType.REGISTRATION),
-             Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON);
-    }
-
-    function attemptRequest(body as Dictionary, callback as Method, responseType as Symbol,
-                            responseContentType as Communications.HttpResponseContentType) as Void {
-        var webhookId = Application.Storage.getValue(Webhook.REGISTRATION_KEY) as String or Null;
-
-        if (webhookId == null) {
-            callback.invoke(null, new RequestError(RequestError.UNUSABLE_WEBHOOK, RequestType.REQUEST));
-            return;
-        }
-
-        post("/api/webhook/" + webhookId, body, new ResponseHandler(callback, responseType),
-             responseContentType);
-    }
-
-    function onRegistrationReply(epoch as Number, webhookId as String or Null,
-                                 error as RequestError or Null) as Void {
-        if (epoch != _registrationEpoch || _registrationCallback == null) {
-            return;
-        }
-
-        if (error == null) {
-            setRegistration(webhookId as String);
-        }
-
-        var callback = _registrationCallback as Method;
-        _registrationCallback = null;
-        callback.invoke(webhookId, error);
-    }
-
-    function discardRegistration() as Void {
-        Application.Storage.deleteValue(Webhook.REGISTRATION_KEY);
-    }
-
     private function setRegistration(webhookId as String) as Void {
         Application.Storage.setValue(Webhook.REGISTRATION_KEY, webhookId);
-    }
-
-    function postTemplate(template as String, callback as Method) as Void {
-        var body = {
-            "type" => "render_template",
-            "data" => {
-                ResponseType.TEMPLATE_RENDER_ROOT_KEY => {
-                    "template" => template
-                }
-            }
-        };
-        // The webhook answers a JSON object of the named renders it was sent, so
-        // the response is application/json, not the rendered string alone (see #73).
-        new WebhookRequest(self, body, ResponseType.TEMPLATE_RENDER,
-                           Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON).attempt(callback);
-    }
-
-    function post(path as String, body as Dictionary, handler as ResponseHandler,
-                  responseContentType as Communications.HttpResponseContentType) as Void {
-        var options = {
-            :method => Communications.HTTP_REQUEST_METHOD_POST,
-            :headers => {
-                "Authorization" => "Bearer " + Settings.getToken(),
-                "Content-Type" => Communications.REQUEST_CONTENT_TYPE_JSON
-            },
-            :responseType => responseContentType
-        };
-
-        Communications.makeWebRequest(
-            Settings.getBaseUrl() + path,
-            body as Dictionary<Object, Object>,
-            options,
-            handler.method(:onResponse)
-        );
     }
 }

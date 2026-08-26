@@ -8,16 +8,13 @@ class WebhookRequest {
     private var _client as HaClient;
     private var _body as Dictionary;
     private var _responseType as Symbol;
-    private var _responseContentType as Communications.HttpResponseContentType;
     private var _callback as Method or Null;
     private var _registered as Boolean;
 
-    function initialize(client as HaClient, body as Dictionary, responseType as Symbol,
-                        responseContentType as Communications.HttpResponseContentType) {
+    function initialize(client as HaClient, body as Dictionary, responseType as Symbol) {
         _client = client;
         _body = body;
         _responseType = responseType;
-        _responseContentType = responseContentType;
         _callback = null;
         _registered = false;
     }
@@ -47,6 +44,6 @@ class WebhookRequest {
     }
 
     private function post() as Void {
-        _client.attemptRequest(_body, method(:onPosted), _responseType, _responseContentType);
+        _client.attemptRequest(_body, method(:onPosted), _responseType);
     }
 }

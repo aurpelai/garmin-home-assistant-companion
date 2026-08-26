@@ -32,8 +32,7 @@ class GlanceService extends System.ServiceDelegate {
                 :headers => {
                     "Authorization" => "Bearer " + Settings.getToken(),
                     "Content-Type" => Communications.REQUEST_CONTENT_TYPE_JSON
-                },
-                :responseType => Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON
+                }
             },
             method(:onResponse));
     }

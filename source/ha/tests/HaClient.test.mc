@@ -35,8 +35,7 @@ class MockHaClient extends HaClient {
         registerCount++;
     }
 
-    function attemptRequest(body as Dictionary, callback as Method, responseType as Symbol,
-                            responseContentType as Communications.HttpResponseContentType) as Void {
+    function attemptRequest(body as Dictionary, callback as Method, responseType as Symbol) as Void {
         webhookCallbacks.add(callback);
     }
 
@@ -79,8 +78,7 @@ class RegisteringHaClient extends HaClient {
         HaClient.initialize();
     }
 
-    function post(path as String, body as Dictionary, handler as ResponseHandler,
-                  responseContentType as Communications.HttpResponseContentType) as Void {
+    function post(path as String, body as Dictionary, handler as ResponseHandler) as Void {
         _postedHandlers.add(handler);
         postCount++;
     }
@@ -98,8 +96,7 @@ class RegisteringHaClient extends HaClient {
 (:test)
 class WebhookRequestUnderTest {
     static function of(client as HaClient) as WebhookRequest {
-        return new WebhookRequest(client, {}, ResponseType.TEMPLATE_RENDER,
-                                  Communications.HTTP_RESPONSE_CONTENT_TYPE_JSON);
+        return new WebhookRequest(client, {}, ResponseType.TEMPLATE_RENDER);
     }
 }
 
