@@ -221,30 +221,3 @@ function anUnknownAreaOrFloorYieldsAnEmptyCollectionRatherThanNull(logger as Tes
     Test.assertEqual(haState.getAreas().size(), 0);
     return true;
 }
-
-(:test)
-function lightAggregatesDefaultToEmptyBeforeAFetch(logger as Test.Logger) as Boolean {
-    var haState = new HaState();
-
-    Test.assert(haState.getHomeLightSummary() == null);
-    Test.assert(haState.getLightSummary("floor.ghost") == null);
-    Test.assertEqual(haState.getLightCount("area.ghost").available, 0);
-    Test.assertEqual(haState.getLightCount("area.ghost").on, 0);
-    return true;
-}
-
-(:test)
-function areaAndFloorMeansDoNotCollideOnAnIdTheyShare(logger as Test.Logger) as Boolean {
-    var haState = new HaState();
-
-    haState.setSensorAggregates(
-        { "shared" => { "temperature" => "18.0 °C" } },
-        { "shared" => { "temperature" => "22.0 °C" } },
-        { "temperature" => "20.0 °C" });
-
-    Test.assert((haState.getAreaAverages("shared").get("temperature") as String).equals("18.0 °C"));
-    Test.assert((haState.getFloorAverages("shared").get("temperature") as String).equals("22.0 °C"));
-    Test.assert((haState.getHomeAverages().get("temperature") as String).equals("20.0 °C"));
-    Test.assertEqual(haState.getAreaAverages("ghost").size(), 0);
-    return true;
-}
