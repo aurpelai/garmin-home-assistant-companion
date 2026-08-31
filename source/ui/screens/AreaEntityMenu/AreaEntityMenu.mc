@@ -43,7 +43,7 @@ class AreaEntityMenu extends WatchUi.Menu2 {
         _coordinator.onViewHidden(self);
     }
 
-    function isObsolete(haState as HaState) as Boolean {
+    function hasPerished(haState as HaState) as Boolean {
         return haState.getArea(_areaId) == null;
     }
 

@@ -141,8 +141,9 @@ class Coordinator {
     }
 
     private function showInfoView(message as String, detail as String or Null) as Void {
-        _currentView = null;
-        WatchUi.switchToView(new InfoView(message, true, detail), new InfoDelegate(self), WatchUi.SLIDE_IMMEDIATE);
+        var infoView = new InfoView(self, message, true, detail);
+        _currentView = infoView;
+        WatchUi.switchToView(infoView, new InfoDelegate(self), WatchUi.SLIDE_IMMEDIATE);
     }
 
     private function refresh() as Void {
@@ -190,13 +191,15 @@ class Coordinator {
             return;
         }
 
-        if (view.isObsolete(_haState)) {
+        if (view has :hasPerished && (view as Perishable).hasPerished(_haState)) {
             showCardLoop();
             return;
         }
 
-        view.rebuild(_haState);
-        WatchUi.requestUpdate();
+        if (view has :rebuild) {
+            (view as Refreshable).rebuild(_haState);
+            WatchUi.requestUpdate();
+        }
     }
 
     private function showCardLoop() as Void {

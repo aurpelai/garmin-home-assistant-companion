@@ -31,7 +31,7 @@ class FloorEntityMenu extends WatchUi.Menu2 {
         _coordinator.onViewHidden(self);
     }
 
-    function isObsolete(haState as HaState) as Boolean {
+    function hasPerished(haState as HaState) as Boolean {
         return haState.getFloor(_floorId) == null;
     }
 

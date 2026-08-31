@@ -143,12 +143,12 @@ function anAreaWithNothingInItShowsOneInertRow(logger as Test.Logger) as Boolean
 }
 
 (:test)
-function aVanishedAreaMakesItsMenuObsolete(logger as Test.Logger) as Boolean {
+function aVanishedAreaMakesItsMenuPerish(logger as Test.Logger) as Boolean {
     var menu = AreaEntityMenuTest.menuOf(AreaEntityMenuTest.stateOf({
         "light.a" => { "state" => true, "area_id" => "area.room" }
     }, {} as Dictionary));
 
-    Test.assert(menu.isObsolete(new HaState()));
+    Test.assert(menu.hasPerished(new HaState()));
     return true;
 }
 

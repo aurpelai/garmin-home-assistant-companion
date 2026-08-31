@@ -32,10 +32,7 @@ class LoadingView extends WatchUi.View {
         _coordinator.onViewHidden(self);
     }
 
-    function isObsolete(haState as HaState) as Boolean {
+    function hasPerished(haState as HaState) as Boolean {
         return haState.hasAreas();
-    }
-
-    function rebuild(haState as HaState) as Void {
     }
 }
