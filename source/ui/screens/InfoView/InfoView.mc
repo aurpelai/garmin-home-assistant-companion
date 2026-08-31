@@ -32,7 +32,7 @@ class InfoView extends WatchUi.View {
     }
 
     function onShow() as Void {
-        _coordinator.onViewShown(self);
+        _coordinator.onMessageShown(self);
     }
 
     function onHide() as Void {

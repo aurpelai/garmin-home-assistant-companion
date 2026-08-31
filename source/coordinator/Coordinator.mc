@@ -27,6 +27,12 @@ class Coordinator {
         }
     }
 
+    // A message screen is terminal — its only way forward is the user's manual
+    // retry — so it is tracked but never refreshes itself.
+    function onMessageShown(view as Screen) as Void {
+        _currentView = view;
+    }
+
     function onViewHidden(view as Screen) as Void {
         if (_currentView == view) {
             _currentView = null;

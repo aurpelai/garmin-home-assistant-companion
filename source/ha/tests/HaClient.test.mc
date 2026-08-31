@@ -56,11 +56,34 @@ class FakeRequestGateway {
     }
 }
 
+// Holds the scheduled retry so a test can run it on demand, standing in for the
+// real Scheduler's timer, which never fires inside the test harness.
+(:test)
+class FakeScheduler {
+    private var _pending as Method or Null = null;
+
+    function schedule(action as Method() as Void, delayMs as Number) as Void {
+        _pending = action;
+    }
+
+    function cancel() as Void {
+        _pending = null;
+    }
+
+    function runScheduled() as Void {
+        var action = _pending;
+        _pending = null;
+        if (action != null) {
+            action.invoke();
+        }
+    }
+}
+
 (:test)
 class ClientFixture {
-    static function clientWith(gateway as FakeRequestGateway) as HaClient {
+    static function clientWith(gateway as FakeRequestGateway, scheduler as FakeScheduler) as HaClient {
         Application.Storage.clearValues();
-        return new HaClient(gateway);
+        return new HaClient(gateway, scheduler);
     }
 
     // A fetch's raw success payload for an empty home: the render webhook returns
@@ -175,7 +198,8 @@ function onResponseNormalizesRegistrationSuccessToWebhookId(logger as Test.Logge
 (:test)
 function aSuccessfulRegistrationPersistsTheIdForLaterRequests(logger as Test.Logger) as Boolean {
     var gateway = new FakeRequestGateway();
-    var client = ClientFixture.clientWith(gateway);
+    var scheduler = new FakeScheduler();
+    var client = ClientFixture.clientWith(gateway, scheduler);
     var capture = new ResultCapture();
 
     client.registerWithHomeAssistant(capture.method(:onResult));
@@ -191,7 +215,8 @@ function aSuccessfulRegistrationPersistsTheIdForLaterRequests(logger as Test.Log
 (:test)
 function aSupersededRegistrationsReplyStoresNothing(logger as Test.Logger) as Boolean {
     var gateway = new FakeRequestGateway();
-    var client = ClientFixture.clientWith(gateway);
+    var scheduler = new FakeScheduler();
+    var client = ClientFixture.clientWith(gateway, scheduler);
     var capture = new ResultCapture();
 
     client.registerWithHomeAssistant(capture.method(:onResult));
@@ -208,11 +233,13 @@ function aSupersededRegistrationsReplyStoresNothing(logger as Test.Logger) as Bo
 (:test)
 function aFailedRegistrationLeavesNoIdBehind(logger as Test.Logger) as Boolean {
     var gateway = new FakeRequestGateway();
-    var client = ClientFixture.clientWith(gateway);
+    var scheduler = new FakeScheduler();
+    var client = ClientFixture.clientWith(gateway, scheduler);
     var capture = new ResultCapture();
 
     client.registerWithHomeAssistant(capture.method(:onResult));
     gateway.reply(0, 400, null);
+    scheduler.runScheduled();
     gateway.reply(1, 400, null);
 
     var error = capture.error as RequestError;
@@ -226,7 +253,8 @@ function aFailedRegistrationLeavesNoIdBehind(logger as Test.Logger) as Boolean {
 (:test)
 function aRequestInterruptedByADeadWebhookCompletesOnceRegisteringRescuesIt(logger as Test.Logger) as Boolean {
     var gateway = new FakeRequestGateway();
-    var client = ClientFixture.clientWith(gateway);
+    var scheduler = new FakeScheduler();
+    var client = ClientFixture.clientWith(gateway, scheduler);
     Registration.seed("stale-id");
     var capture = new ResultCapture();
 
@@ -245,17 +273,21 @@ function aRequestInterruptedByADeadWebhookCompletesOnceRegisteringRescuesIt(logg
 (:test)
 function anUnusableWebhookThatKeepsComingBackSurfacesAsARequestFailure(logger as Test.Logger) as Boolean {
     var gateway = new FakeRequestGateway();
-    var client = ClientFixture.clientWith(gateway);
+    var scheduler = new FakeScheduler();
+    var client = ClientFixture.clientWith(gateway, scheduler);
     Registration.seed("stale-id");
     var capture = new ResultCapture();
 
     new RetryManager(WebhookRequestUnderTest.of(client).method(:attempt), capture.method(:onResult),
-                     RequestType.REQUEST).attempt();
+                     scheduler, RequestType.REQUEST).attempt();
     gateway.reply(0, 200, null);
     gateway.reply(1, 201, { "webhook_id" => "fresh-id" });
     gateway.reply(2, 200, null);
+    scheduler.runScheduled();
     gateway.reply(3, 200, null);
+    scheduler.runScheduled();
     gateway.reply(4, 200, null);
+    scheduler.runScheduled();
     gateway.reply(5, 200, null);
 
     Test.assertEqual(gateway.count(), 6);
@@ -270,15 +302,19 @@ function anUnusableWebhookThatKeepsComingBackSurfacesAsARequestFailure(logger as
 (:test)
 function aGenuineNotFoundLeavesTheRegistrationAlone(logger as Test.Logger) as Boolean {
     var gateway = new FakeRequestGateway();
-    var client = ClientFixture.clientWith(gateway);
+    var scheduler = new FakeScheduler();
+    var client = ClientFixture.clientWith(gateway, scheduler);
     Registration.seed("good-id");
     var capture = new ResultCapture();
 
     new RetryManager(WebhookRequestUnderTest.of(client).method(:attempt), capture.method(:onResult),
-                     RequestType.REQUEST).attempt();
+                     scheduler, RequestType.REQUEST).attempt();
     gateway.reply(0, HttpStatus.NOT_FOUND, null);
+    scheduler.runScheduled();
     gateway.reply(1, HttpStatus.NOT_FOUND, null);
+    scheduler.runScheduled();
     gateway.reply(2, HttpStatus.NOT_FOUND, null);
+    scheduler.runScheduled();
     gateway.reply(3, HttpStatus.NOT_FOUND, null);
 
     for (var index = 0; index < gateway.count(); index++) {
@@ -295,7 +331,8 @@ function aGenuineNotFoundLeavesTheRegistrationAlone(logger as Test.Logger) as Bo
 (:test)
 function aToggleWithNoRegistrationRegistersAndThenGoesOut(logger as Test.Logger) as Boolean {
     var gateway = new FakeRequestGateway();
-    var client = ClientFixture.clientWith(gateway);
+    var scheduler = new FakeScheduler();
+    var client = ClientFixture.clientWith(gateway, scheduler);
     var capture = new ResultCapture();
 
     client.queueLightToggle("light.a", capture.method(:onResult));
@@ -317,14 +354,17 @@ function aToggleWithNoRegistrationRegistersAndThenGoesOut(logger as Test.Logger)
 (:test)
 function retryManagerReissuesOnAnyOtherFailureUpToTheThreshold(logger as Test.Logger) as Boolean {
     var gateway = new FakeRequestGateway();
-    var client = ClientFixture.clientWith(gateway);
+    var scheduler = new FakeScheduler();
+    var client = ClientFixture.clientWith(gateway, scheduler);
     Registration.seed("some-id");
     var capture = new ResultCapture();
 
     new RetryManager(WebhookRequestUnderTest.of(client).method(:attempt), capture.method(:onResult),
-                     RequestType.REQUEST).attempt();
+                     scheduler, RequestType.REQUEST).attempt();
     gateway.reply(0, -1, null);
+    scheduler.runScheduled();
     gateway.reply(1, -1, null);
+    scheduler.runScheduled();
     gateway.reply(2, 200, ClientFixture.emptyRenderPayload());
 
     Test.assertEqual(gateway.count(), 3);
@@ -336,15 +376,19 @@ function retryManagerReissuesOnAnyOtherFailureUpToTheThreshold(logger as Test.Lo
 (:test)
 function retryManagerSurfacesTheFailureOnceItsThresholdIsSpent(logger as Test.Logger) as Boolean {
     var gateway = new FakeRequestGateway();
-    var client = ClientFixture.clientWith(gateway);
+    var scheduler = new FakeScheduler();
+    var client = ClientFixture.clientWith(gateway, scheduler);
     Registration.seed("some-id");
     var capture = new ResultCapture();
 
     new RetryManager(WebhookRequestUnderTest.of(client).method(:attempt), capture.method(:onResult),
-                     RequestType.REQUEST).attempt();
+                     scheduler, RequestType.REQUEST).attempt();
     gateway.reply(0, -1, null);
+    scheduler.runScheduled();
     gateway.reply(1, -1, null);
+    scheduler.runScheduled();
     gateway.reply(2, -1, null);
+    scheduler.runScheduled();
     gateway.reply(3, -1, null);
 
     Test.assert(capture.result == null);
@@ -358,13 +402,15 @@ function retryManagerSurfacesTheFailureOnceItsThresholdIsSpent(logger as Test.Lo
 (:test)
 function aRegistrationFailureInsideFetchRecoveryStaysARegistrationFailure(logger as Test.Logger) as Boolean {
     var gateway = new FakeRequestGateway();
-    var client = ClientFixture.clientWith(gateway);
+    var scheduler = new FakeScheduler();
+    var client = ClientFixture.clientWith(gateway, scheduler);
     Registration.seed("stale-id");
     var capture = new ResultCapture();
 
     WebhookRequestUnderTest.of(client).attempt(capture.method(:onResult));
     gateway.reply(0, 200, null);
     gateway.reply(1, HttpStatus.BAD_REQUEST, null);
+    scheduler.runScheduled();
     gateway.reply(2, HttpStatus.BAD_REQUEST, null);
 
     Test.assert(gateway.isRegistration(1));
@@ -379,7 +425,8 @@ function aRegistrationFailureInsideFetchRecoveryStaysARegistrationFailure(logger
 (:test)
 function registeringClearsTheStaleIdBeforeAskingForAFreshOne(logger as Test.Logger) as Boolean {
     var gateway = new FakeRequestGateway();
-    var client = ClientFixture.clientWith(gateway);
+    var scheduler = new FakeScheduler();
+    var client = ClientFixture.clientWith(gateway, scheduler);
     Registration.seed("stale-id");
 
     client.registerWithHomeAssistant(new ResultCapture().method(:onResult));
@@ -405,7 +452,8 @@ class TargetLog {
 (:test)
 function aChangeQueuesRatherThanBeingDropped(logger as Test.Logger) as Boolean {
     var gateway = new FakeRequestGateway();
-    var client = ClientFixture.clientWith(gateway);
+    var scheduler = new FakeScheduler();
+    var client = ClientFixture.clientWith(gateway, scheduler);
     Registration.seed("some-id");
     var first = new ResultCapture();
     var second = new ResultCapture();
@@ -431,7 +479,8 @@ function aChangeQueuesRatherThanBeingDropped(logger as Test.Logger) as Boolean {
 (:test)
 function changesGoOutBeforeFetches(logger as Test.Logger) as Boolean {
     var gateway = new FakeRequestGateway();
-    var client = ClientFixture.clientWith(gateway);
+    var scheduler = new FakeScheduler();
+    var client = ClientFixture.clientWith(gateway, scheduler);
     Registration.seed("some-id");
     var log = new TargetLog();
 
@@ -453,7 +502,8 @@ function changesGoOutBeforeFetches(logger as Test.Logger) as Boolean {
 (:test)
 function aRefreshTriggeredWhileOneIsIncompleteIsDropped(logger as Test.Logger) as Boolean {
     var gateway = new FakeRequestGateway();
-    var client = ClientFixture.clientWith(gateway);
+    var scheduler = new FakeScheduler();
+    var client = ClientFixture.clientWith(gateway, scheduler);
     Registration.seed("some-id");
     var log = new TargetLog();
 
@@ -473,7 +523,8 @@ function aRefreshTriggeredWhileOneIsIncompleteIsDropped(logger as Test.Logger) a
 (:test)
 function aReplyDoesNotStartARefreshWhileChangesAreQueued(logger as Test.Logger) as Boolean {
     var gateway = new FakeRequestGateway();
-    var client = ClientFixture.clientWith(gateway);
+    var scheduler = new FakeScheduler();
+    var client = ClientFixture.clientWith(gateway, scheduler);
     Registration.seed("some-id");
     var log = new TargetLog();
 
@@ -488,7 +539,8 @@ function aReplyDoesNotStartARefreshWhileChangesAreQueued(logger as Test.Logger) 
 (:test)
 function theQueueDrainsOnlyOnceTheThresholdIsExhausted(logger as Test.Logger) as Boolean {
     var gateway = new FakeRequestGateway();
-    var client = ClientFixture.clientWith(gateway);
+    var scheduler = new FakeScheduler();
+    var client = ClientFixture.clientWith(gateway, scheduler);
     Registration.seed("some-id");
     var first = new ResultCapture();
     var second = new ResultCapture();
@@ -497,8 +549,11 @@ function theQueueDrainsOnlyOnceTheThresholdIsExhausted(logger as Test.Logger) as
     client.queueLightToggle("light.b", second.method(:onResult));
 
     gateway.reply(0, -1, null);
+    scheduler.runScheduled();
     gateway.reply(1, -1, null);
+    scheduler.runScheduled();
     gateway.reply(2, -1, null);
+    scheduler.runScheduled();
 
     Test.assertEqual(gateway.count(), 4);
     Test.assert(first.error == null);
@@ -518,7 +573,8 @@ function theQueueDrainsOnlyOnceTheThresholdIsExhausted(logger as Test.Logger) as
 (:test)
 function cancellingClearsTheQueueAndTheSlotTogether(logger as Test.Logger) as Boolean {
     var gateway = new FakeRequestGateway();
-    var client = ClientFixture.clientWith(gateway);
+    var scheduler = new FakeScheduler();
+    var client = ClientFixture.clientWith(gateway, scheduler);
     Registration.seed("some-id");
     var second = new ResultCapture();
 
@@ -530,29 +586,34 @@ function cancellingClearsTheQueueAndTheSlotTogether(logger as Test.Logger) as Bo
 
     Test.assert(!client.hasOutstandingChanges());
 
-    gateway.reply(1, 200, null);
+    // The scheduled retry is dropped, so running it posts nothing.
+    scheduler.runScheduled();
 
     Test.assert(second.result == null);
     Test.assert(second.error == null);
 
     client.queueLightToggle("light.c", new ResultCapture().method(:onResult));
 
-    Test.assertEqual(gateway.count(), 3);
+    Test.assertEqual(gateway.count(), 2);
     return true;
 }
 
 (:test)
 function aRefreshWhereOneTargetFailsNeverStampsCompletion(logger as Test.Logger) as Boolean {
     var gateway = new FakeRequestGateway();
-    var client = ClientFixture.clientWith(gateway);
+    var scheduler = new FakeScheduler();
+    var client = ClientFixture.clientWith(gateway, scheduler);
     Registration.seed("some-id");
     var log = new TargetLog();
 
     client.refresh(log.method(:onTarget));
     gateway.reply(0, 200, ClientFixture.emptyRenderPayload());
     gateway.reply(1, -1, null);
+    scheduler.runScheduled();
     gateway.reply(2, -1, null);
+    scheduler.runScheduled();
     gateway.reply(3, -1, null);
+    scheduler.runScheduled();
     gateway.reply(4, -1, null);
     gateway.reply(5, 200, ClientFixture.emptyRenderPayload());
 
@@ -567,7 +628,8 @@ function aRefreshWhereOneTargetFailsNeverStampsCompletion(logger as Test.Logger)
 (:test)
 function aRefreshKeepsTheFirstErrorNotTheLast(logger as Test.Logger) as Boolean {
     var gateway = new FakeRequestGateway();
-    var client = ClientFixture.clientWith(gateway);
+    var scheduler = new FakeScheduler();
+    var client = ClientFixture.clientWith(gateway, scheduler);
     Registration.seed("some-id");
     var log = new TargetLog();
 
@@ -575,9 +637,11 @@ function aRefreshKeepsTheFirstErrorNotTheLast(logger as Test.Logger) as Boolean 
 
     for (var index = 0; index < 4; index++) {
         gateway.reply(index, 401, null);
+        scheduler.runScheduled();
     }
     for (var index = 4; index < 8; index++) {
         gateway.reply(index, -1, null);
+        scheduler.runScheduled();
     }
     gateway.reply(8, 200, ClientFixture.emptyRenderPayload());
 
