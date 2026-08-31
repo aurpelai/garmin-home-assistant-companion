@@ -155,26 +155,26 @@ class Coordinator {
     }
 
     private function showDestination() as Void {
-        var result = _client.refreshResult();
+        var error = _client.refreshError();
 
         if (_haState.hasAreas()) {
             if (_currentView == null) {
                 showCardLoop();
             }
 
-            if (result.error != null) {
+            if (error != null) {
                 toast(Rez.Strings.ErrRefresh);
             }
 
             return;
         }
 
-        if (result.error != null) {
-            showError(result.error as RequestError);
+        if (error != null) {
+            showError(error);
             return;
         }
 
-        if (result.hasEverCompleted) {
+        if (_client.hasEverRefreshed()) {
             showMessage(Rez.Strings.NothingFound);
         }
     }

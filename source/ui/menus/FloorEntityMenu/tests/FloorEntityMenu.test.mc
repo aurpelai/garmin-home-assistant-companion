@@ -35,7 +35,7 @@ module FloorEntityMenuTest {
 
     function menuOf(haState as HaState) as FloorEntityMenu {
         var model = FloorEntityMenuBuilder.build(haState, "floor.up") as FloorEntityMenuModel;
-        return new FloorEntityMenu(new Coordinator(new HaClient()), "floor.up", model);
+        return new FloorEntityMenu(new Coordinator(new HaClient(new WebRequestSender())), "floor.up", model);
     }
 }
 
