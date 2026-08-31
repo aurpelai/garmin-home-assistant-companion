@@ -5,6 +5,19 @@ All notable changes to this project are documented here.
 This file is compiled from change fragments by [changie](https://changie.dev);
 do not edit it by hand. Add a fragment with `changie new` in your PR instead.
 
+## [v0.10.3] - 2026-08-31
+
+### 🔧 Fixed
+
+- An incorrect token no longer crashes the app or retries without end, settling on the error screen instead.
+
+### 🛠️ Technical
+
+- HaClient sends requests through a RequestGateway seam instead of calling Communications directly, and the redundant request-wrapper shims are folded away.
+- The precomputed per-place counts and averages move out of HaState into a dedicated Aggregates module, leaving HaState as the entity core.
+- The Screen interface splits into Perishable and Refreshable capabilities so each screen implements only what it truly does.
+- Retries defer through a shared scheduler so the call stack unwinds between attempts instead of recursing.
+
 ## [v0.10.2] - 2026-08-26
 
 ### ✨ Improved

@@ -1,3 +1,0 @@
-kind: "\U0001F6E0️ Technical"
-body: Retries defer through a shared scheduler so the call stack unwinds between attempts instead of recursing.
-time: 2026-08-31T18:38:30.956901+03:00
