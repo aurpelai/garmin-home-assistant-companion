@@ -10,7 +10,7 @@ import Toybox.Lang;
 // webhook's empty 200 carries no Content-Type at all and still arrives as a
 // 200 with a null body, so the re-registration path is unaffected (verified
 // against a live instance on 2026-08-26).
-class WebRequestSender {
+class WebRequestGateway {
     function post(path as String, body as Dictionary, handler as ResponseHandler) as Void {
         var options = {
             :method => Communications.HTTP_REQUEST_METHOD_POST,

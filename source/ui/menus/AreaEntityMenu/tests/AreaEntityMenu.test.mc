@@ -27,7 +27,7 @@ module AreaEntityMenuTest {
 
     function menuOf(haState as HaState) as AreaEntityMenu {
         var model = AreaEntityMenuBuilder.build(haState, "area.room") as AreaEntityMenuModel;
-        return new AreaEntityMenu(new Coordinator(new HaClient(new WebRequestSender())), "area.room", model);
+        return new AreaEntityMenu(new Coordinator(new HaClient(new WebRequestGateway())), "area.room", model);
     }
 
     function itemOf(menu as AreaEntityMenu, rowId as String) as WatchUi.MenuItem {

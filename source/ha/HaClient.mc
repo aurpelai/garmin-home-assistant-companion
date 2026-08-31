@@ -24,7 +24,7 @@ class HaClient {
 
     private const REFRESH_TARGETS = [FetchTarget.STRUCTURE, FetchTarget.LIGHTS, FetchTarget.SENSORS];
 
-    private var _sender as RequestSender;
+    private var _gateway as RequestGateway;
 
     private var _requestInFlight as Boolean;
     private var _changeInFlight as Boolean;
@@ -38,8 +38,8 @@ class HaClient {
     private var _refreshError as RequestError or Null;
     private var _lastRefreshCompletedAt as Number or Null;
 
-    function initialize(sender as RequestSender) {
-        _sender = sender;
+    function initialize(gateway as RequestGateway) {
+        _gateway = gateway;
         _requestInFlight = false;
         _changeInFlight = false;
         _changeQueue = [];
@@ -153,7 +153,7 @@ class HaClient {
     // UNVERIFIED: Connect IQ still delivers a cancelled request's reply, so the
     // callbacks are nulled to drop it.
     function cancelAll() as Void {
-        _sender.cancelAll();
+        _gateway.cancelAll();
         _changeQueue = [];
         _pendingFetchTargets = [];
         _requestInFlight = false;
@@ -207,7 +207,7 @@ class HaClient {
     }
 
     private function post(path as String, body as Dictionary, handler as ResponseHandler) as Void {
-        _sender.post(path, body, handler);
+        _gateway.post(path, body, handler);
     }
 
     private function serviceCallRequest(service as String, targetKey as String, targetId as String) as Method {
