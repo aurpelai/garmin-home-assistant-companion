@@ -3,11 +3,8 @@ import Toybox.Graphics;
 import Toybox.Lang;
 import Toybox.WatchUi;
 
-// A message addressed to the user — not configured, nothing found, an error —
-// holding no state of its own. Deliberately neither Perishable nor Refreshable:
-// a message must not vanish because a background fetch changed something, so a
-// fresh fetch leaves it untouched and only the user dismisses it. It is still a
-// tracked Screen so the coordinator knows a message is up.
+// A message addressed to the user, held until the user dismisses it: state
+// changing underneath must neither replace it nor refresh it.
 class InfoView extends WatchUi.View {
     private var _coordinator as Coordinator;
     private var _textArea as WatchUi.TextArea;
