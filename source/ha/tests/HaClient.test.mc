@@ -1,5 +1,4 @@
 import Toybox.Application;
-import Toybox.Communications;
 import Toybox.Lang;
 import Toybox.Test;
 
@@ -15,81 +14,59 @@ class Registration {
 }
 
 (:test)
-class MockHaClient extends HaClient {
-    private var _registerCallback as Method?;
+class SentRequest {
+    public var path as String;
+    public var body as Dictionary;
+    public var handler as ResponseHandler;
 
-    public var webhookCallbacks as Array<Method> = [];
-    public var registerCount as Number;
-
-    function initialize() {
-        HaClient.initialize();
-        registerCount = 0;
-    }
-
-    function fetchOnce(callback as Method) as Void {
-        webhookCallbacks.add(callback);
-    }
-
-    function attemptRegistration(callback as Method) as Void {
-        _registerCallback = callback;
-        registerCount++;
-    }
-
-    function attemptRequest(body as Dictionary, callback as Method, responseType as Symbol) as Void {
-        webhookCallbacks.add(callback);
-    }
-
-    function fetchCount() as Number {
-        return webhookCallbacks.size();
-    }
-
-    function fireFetchSuccess(payload as Dictionary) as Void {
-        fireSuccessAt(webhookCallbacks.size() - 1, payload);
-    }
-
-    function fireFetchFailure(reason as Number or Symbol) as Void {
-        fireFailureAt(webhookCallbacks.size() - 1, reason);
-    }
-
-    function fireSuccessAt(index as Number, result as Object) as Void {
-        webhookCallbacks[index].invoke(result, null);
-    }
-
-    function fireFailureAt(index as Number, reason as Number or Symbol) as Void {
-        webhookCallbacks[index].invoke(null, new RequestError(reason, RequestType.REQUEST));
-    }
-
-    function fireRegisterSuccess(webhookId as String) as Void {
-        Registration.seed(webhookId);
-        (_registerCallback as Method).invoke(webhookId, null);
-    }
-
-    function fireRegisterFailure(reason as Number or Symbol) as Void {
-        (_registerCallback as Method).invoke(null, new RequestError(reason, RequestType.REGISTRATION));
+    function initialize(path as String, body as Dictionary, handler as ResponseHandler) {
+        self.path = path;
+        self.body = body;
+        self.handler = handler;
     }
 }
 
 (:test)
-class RegisteringHaClient extends HaClient {
-    public var postCount as Number = 0;
-    private var _postedHandlers as Array<ResponseHandler> = [];
-
-    function initialize() {
-        HaClient.initialize();
-    }
+class FakeRequestGateway {
+    public var sent as Array<SentRequest> = [];
+    public var cancellations as Number = 0;
 
     function post(path as String, body as Dictionary, handler as ResponseHandler) as Void {
-        _postedHandlers.add(handler);
-        postCount++;
+        sent.add(new SentRequest(path, body, handler));
     }
 
-    function fireResponse(code as Number, body as Dictionary or String or Null) as Void {
-        fireResponseAt(_postedHandlers.size() - 1, code, body);
+    function cancelAll() as Void {
+        cancellations++;
     }
 
-    function fireResponseAt(index as Number, code as Number,
-                            body as Dictionary or String or Null) as Void {
-        _postedHandlers[index].onResponse(code, body);
+    function count() as Number {
+        return sent.size();
+    }
+
+    function isRegistration(index as Number) as Boolean {
+        return (sent[index] as SentRequest).path.find("/registrations") != null;
+    }
+
+    function reply(index as Number, code as Number, body as Dictionary or String or Null) as Void {
+        (sent[index] as SentRequest).handler.onResponse(code, body);
+    }
+
+    function replyLast(code as Number, body as Dictionary or String or Null) as Void {
+        reply(sent.size() - 1, code, body);
+    }
+}
+
+(:test)
+class ClientFixture {
+    static function clientWith(gateway as FakeRequestGateway) as HaClient {
+        Application.Storage.clearValues();
+        return new HaClient(gateway);
+    }
+
+    // A fetch's raw success payload for an empty home: the render webhook returns
+    // the rendered value as a JSON string under its root key.
+    static function emptyRenderPayload() as Dictionary {
+        return { ResponseType.TEMPLATE_RENDER_ROOT_KEY => "{}" };
     }
 }
 
@@ -197,31 +174,31 @@ function onResponseNormalizesRegistrationSuccessToWebhookId(logger as Test.Logge
 
 (:test)
 function aSuccessfulRegistrationPersistsTheIdForLaterRequests(logger as Test.Logger) as Boolean {
-    Application.Storage.clearValues();
-    var client = new RegisteringHaClient();
+    var gateway = new FakeRequestGateway();
+    var client = ClientFixture.clientWith(gateway);
     var capture = new ResultCapture();
 
     client.registerWithHomeAssistant(capture.method(:onResult));
-    client.fireResponse(201, { "webhook_id" => "fresh-id" });
+    gateway.replyLast(201, { "webhook_id" => "fresh-id" });
 
     Test.assertEqual(capture.result as String, "fresh-id");
 
-    client.postTemplate("{{ 1 }}", new ResultCapture().method(:onResult));
-    Test.assertEqual(client.postCount, 2);
+    client.queueLightToggle("light.a", new ResultCapture().method(:onResult));
+    Test.assertEqual(gateway.count(), 2);
     return true;
 }
 
 (:test)
 function aSupersededRegistrationsReplyStoresNothing(logger as Test.Logger) as Boolean {
-    Application.Storage.clearValues();
-    var client = new RegisteringHaClient();
+    var gateway = new FakeRequestGateway();
+    var client = ClientFixture.clientWith(gateway);
     var capture = new ResultCapture();
 
     client.registerWithHomeAssistant(capture.method(:onResult));
     client.cancelAll();
 
     client.registerWithHomeAssistant(new ResultCapture().method(:onResult));
-    client.fireResponseAt(0, 201, { "webhook_id" => "abandoned-id" });
+    gateway.reply(0, 201, { "webhook_id" => "abandoned-id" });
 
     Test.assert(capture.result == null);
     Test.assert(Registration.stored() == null);
@@ -230,36 +207,36 @@ function aSupersededRegistrationsReplyStoresNothing(logger as Test.Logger) as Bo
 
 (:test)
 function aFailedRegistrationLeavesNoIdBehind(logger as Test.Logger) as Boolean {
-    Application.Storage.clearValues();
-    var client = new RegisteringHaClient();
+    var gateway = new FakeRequestGateway();
+    var client = ClientFixture.clientWith(gateway);
     var capture = new ResultCapture();
 
     client.registerWithHomeAssistant(capture.method(:onResult));
-    client.fireResponse(400, null);
-    client.fireResponseAt(1, 400, null);
+    gateway.reply(0, 400, null);
+    gateway.reply(1, 400, null);
 
     var error = capture.error as RequestError;
     Test.assertEqual(error.reason as Number, HttpStatus.BAD_REQUEST);
     Test.assertEqual(error.requestType, RequestType.REGISTRATION);
     Test.assert(Registration.stored() == null);
-    Test.assertEqual(client.postCount, 2);
+    Test.assertEqual(gateway.count(), 2);
     return true;
 }
 
 (:test)
 function aRequestInterruptedByADeadWebhookCompletesOnceRegisteringRescuesIt(logger as Test.Logger) as Boolean {
-    Application.Storage.clearValues();
-    var client = new MockHaClient();
+    var gateway = new FakeRequestGateway();
+    var client = ClientFixture.clientWith(gateway);
     Registration.seed("stale-id");
     var capture = new ResultCapture();
 
     WebhookRequestUnderTest.of(client).attempt(capture.method(:onResult));
-    client.fireFetchFailure(RequestError.UNUSABLE_WEBHOOK);
-    client.fireRegisterSuccess("fresh-id");
-    client.fireFetchSuccess({} as Dictionary);
+    gateway.reply(0, 200, null);
+    gateway.reply(1, 201, { "webhook_id" => "fresh-id" });
+    gateway.reply(2, 200, ClientFixture.emptyRenderPayload());
 
-    Test.assertEqual(client.fetchCount(), 2);
-    Test.assertEqual(client.registerCount, 1);
+    Test.assertEqual(gateway.count(), 3);
+    Test.assert(gateway.isRegistration(1));
     Test.assert(capture.result instanceof Dictionary);
     Test.assert(capture.error == null);
     return true;
@@ -267,22 +244,22 @@ function aRequestInterruptedByADeadWebhookCompletesOnceRegisteringRescuesIt(logg
 
 (:test)
 function anUnusableWebhookThatKeepsComingBackSurfacesAsARequestFailure(logger as Test.Logger) as Boolean {
-    Application.Storage.clearValues();
-    var client = new MockHaClient();
+    var gateway = new FakeRequestGateway();
+    var client = ClientFixture.clientWith(gateway);
+    Registration.seed("stale-id");
     var capture = new ResultCapture();
 
     new RetryManager(WebhookRequestUnderTest.of(client).method(:attempt), capture.method(:onResult),
                      RequestType.REQUEST).attempt();
-    client.fireFetchFailure(RequestError.UNUSABLE_WEBHOOK);
-    client.fireRegisterSuccess("fresh-id");
-    client.fireFetchFailure(RequestError.UNUSABLE_WEBHOOK);
-    client.fireFetchFailure(RequestError.UNUSABLE_WEBHOOK);
-    client.fireFetchFailure(RequestError.UNUSABLE_WEBHOOK);
-    client.fireFetchFailure(RequestError.UNUSABLE_WEBHOOK);
+    gateway.reply(0, 200, null);
+    gateway.reply(1, 201, { "webhook_id" => "fresh-id" });
+    gateway.reply(2, 200, null);
+    gateway.reply(3, 200, null);
+    gateway.reply(4, 200, null);
+    gateway.reply(5, 200, null);
 
-    Test.assertEqual(client.fetchCount(), 5);
-    Test.assertEqual(client.registerCount, 1);
-    Test.assert(capture.result == null);
+    Test.assertEqual(gateway.count(), 6);
+    Test.assert(gateway.isRegistration(1));
 
     var error = capture.error as RequestError;
     Test.assertEqual(error.reason as Symbol, RequestError.UNUSABLE_WEBHOOK);
@@ -292,18 +269,21 @@ function anUnusableWebhookThatKeepsComingBackSurfacesAsARequestFailure(logger as
 
 (:test)
 function aGenuineNotFoundLeavesTheRegistrationAlone(logger as Test.Logger) as Boolean {
-    Application.Storage.clearValues();
-    var client = new MockHaClient();
+    var gateway = new FakeRequestGateway();
+    var client = ClientFixture.clientWith(gateway);
     Registration.seed("good-id");
     var capture = new ResultCapture();
 
-    new RetryManager(client.method(:fetchOnce), capture.method(:onResult), RequestType.REQUEST).attempt();
-    client.fireFetchFailure(HttpStatus.NOT_FOUND);
-    client.fireFetchFailure(HttpStatus.NOT_FOUND);
-    client.fireFetchFailure(HttpStatus.NOT_FOUND);
-    client.fireFetchFailure(HttpStatus.NOT_FOUND);
+    new RetryManager(WebhookRequestUnderTest.of(client).method(:attempt), capture.method(:onResult),
+                     RequestType.REQUEST).attempt();
+    gateway.reply(0, HttpStatus.NOT_FOUND, null);
+    gateway.reply(1, HttpStatus.NOT_FOUND, null);
+    gateway.reply(2, HttpStatus.NOT_FOUND, null);
+    gateway.reply(3, HttpStatus.NOT_FOUND, null);
 
-    Test.assertEqual(client.registerCount, 0);
+    for (var index = 0; index < gateway.count(); index++) {
+        Test.assert(!gateway.isRegistration(index));
+    }
     Test.assertEqual(Registration.stored() as String, "good-id");
 
     var error = capture.error as RequestError;
@@ -314,19 +294,20 @@ function aGenuineNotFoundLeavesTheRegistrationAlone(logger as Test.Logger) as Bo
 
 (:test)
 function aToggleWithNoRegistrationRegistersAndThenGoesOut(logger as Test.Logger) as Boolean {
-    Application.Storage.clearValues();
-    var client = new RegisteringHaClient();
+    var gateway = new FakeRequestGateway();
+    var client = ClientFixture.clientWith(gateway);
     var capture = new ResultCapture();
 
-    new ServiceCall(client, "toggle", "entity_id", "light.a").attempt(capture.method(:onResult));
+    client.queueLightToggle("light.a", capture.method(:onResult));
 
-    Test.assertEqual(client.postCount, 1);
+    Test.assertEqual(gateway.count(), 1);
+    Test.assert(gateway.isRegistration(0));
 
-    client.fireResponse(201, { "webhook_id" => "fresh-id" });
+    gateway.reply(0, 201, { "webhook_id" => "fresh-id" });
 
-    Test.assertEqual(client.postCount, 2);
+    Test.assertEqual(gateway.count(), 2);
 
-    client.fireResponseAt(1, 200, null);
+    gateway.reply(1, 200, null);
 
     Test.assertEqual(capture.result as Boolean, true);
     Test.assert(capture.error == null);
@@ -335,18 +316,18 @@ function aToggleWithNoRegistrationRegistersAndThenGoesOut(logger as Test.Logger)
 
 (:test)
 function retryManagerReissuesOnAnyOtherFailureUpToTheThreshold(logger as Test.Logger) as Boolean {
-    Application.Storage.clearValues();
-    var client = new MockHaClient();
+    var gateway = new FakeRequestGateway();
+    var client = ClientFixture.clientWith(gateway);
     Registration.seed("some-id");
     var capture = new ResultCapture();
 
-    new RetryManager(client.method(:fetchOnce), capture.method(:onResult), RequestType.REQUEST).attempt();
-    client.fireFetchFailure(-1);
-    client.fireFetchFailure(-1);
-    client.fireFetchSuccess({} as Dictionary);
+    new RetryManager(WebhookRequestUnderTest.of(client).method(:attempt), capture.method(:onResult),
+                     RequestType.REQUEST).attempt();
+    gateway.reply(0, -1, null);
+    gateway.reply(1, -1, null);
+    gateway.reply(2, 200, ClientFixture.emptyRenderPayload());
 
-    Test.assertEqual(client.fetchCount(), 3);
-    Test.assertEqual(client.registerCount, 0);
+    Test.assertEqual(gateway.count(), 3);
     Test.assert(capture.result instanceof Dictionary);
     Test.assert(capture.error == null);
     return true;
@@ -354,16 +335,17 @@ function retryManagerReissuesOnAnyOtherFailureUpToTheThreshold(logger as Test.Lo
 
 (:test)
 function retryManagerSurfacesTheFailureOnceItsThresholdIsSpent(logger as Test.Logger) as Boolean {
-    Application.Storage.clearValues();
-    var client = new MockHaClient();
+    var gateway = new FakeRequestGateway();
+    var client = ClientFixture.clientWith(gateway);
     Registration.seed("some-id");
     var capture = new ResultCapture();
 
-    new RetryManager(client.method(:fetchOnce), capture.method(:onResult), RequestType.REQUEST).attempt();
-    client.fireFetchFailure(-1);
-    client.fireFetchFailure(-1);
-    client.fireFetchFailure(-1);
-    client.fireFetchFailure(-1);
+    new RetryManager(WebhookRequestUnderTest.of(client).method(:attempt), capture.method(:onResult),
+                     RequestType.REQUEST).attempt();
+    gateway.reply(0, -1, null);
+    gateway.reply(1, -1, null);
+    gateway.reply(2, -1, null);
+    gateway.reply(3, -1, null);
 
     Test.assert(capture.result == null);
 
@@ -375,17 +357,18 @@ function retryManagerSurfacesTheFailureOnceItsThresholdIsSpent(logger as Test.Lo
 
 (:test)
 function aRegistrationFailureInsideFetchRecoveryStaysARegistrationFailure(logger as Test.Logger) as Boolean {
-    Application.Storage.clearValues();
-    var client = new MockHaClient();
+    var gateway = new FakeRequestGateway();
+    var client = ClientFixture.clientWith(gateway);
+    Registration.seed("stale-id");
     var capture = new ResultCapture();
 
     WebhookRequestUnderTest.of(client).attempt(capture.method(:onResult));
-    client.fireFetchFailure(RequestError.UNUSABLE_WEBHOOK);
-    client.fireRegisterFailure(HttpStatus.BAD_REQUEST);
-    client.fireRegisterFailure(HttpStatus.BAD_REQUEST);
+    gateway.reply(0, 200, null);
+    gateway.reply(1, HttpStatus.BAD_REQUEST, null);
+    gateway.reply(2, HttpStatus.BAD_REQUEST, null);
 
-    Test.assertEqual(client.registerCount, 2);
-    Test.assertEqual(client.fetchCount(), 1);
+    Test.assert(gateway.isRegistration(1));
+    Test.assert(gateway.isRegistration(2));
 
     var error = capture.error as RequestError;
     Test.assertEqual(error.reason as Number, HttpStatus.BAD_REQUEST);
@@ -395,13 +378,13 @@ function aRegistrationFailureInsideFetchRecoveryStaysARegistrationFailure(logger
 
 (:test)
 function registeringClearsTheStaleIdBeforeAskingForAFreshOne(logger as Test.Logger) as Boolean {
-    Application.Storage.clearValues();
+    var gateway = new FakeRequestGateway();
+    var client = ClientFixture.clientWith(gateway);
     Registration.seed("stale-id");
-    var client = new RegisteringHaClient();
 
     client.registerWithHomeAssistant(new ResultCapture().method(:onResult));
 
-    Test.assertEqual(client.postCount, 1);
+    Test.assertEqual(gateway.count(), 1);
     Test.assert(Registration.stored() == null);
     return true;
 }
@@ -421,8 +404,8 @@ class TargetLog {
 
 (:test)
 function aChangeQueuesRatherThanBeingDropped(logger as Test.Logger) as Boolean {
-    Application.Storage.clearValues();
-    var client = new MockHaClient();
+    var gateway = new FakeRequestGateway();
+    var client = ClientFixture.clientWith(gateway);
     Registration.seed("some-id");
     var first = new ResultCapture();
     var second = new ResultCapture();
@@ -430,15 +413,15 @@ function aChangeQueuesRatherThanBeingDropped(logger as Test.Logger) as Boolean {
     client.queueLightToggle("light.a", first.method(:onResult));
     client.queueLightToggle("light.b", second.method(:onResult));
 
-    Test.assertEqual(client.fetchCount(), 1);
+    Test.assertEqual(gateway.count(), 1);
 
-    client.fireSuccessAt(0, true);
+    gateway.reply(0, 200, null);
 
-    Test.assertEqual(client.fetchCount(), 2);
+    Test.assertEqual(gateway.count(), 2);
     Test.assertEqual(first.result as Boolean, true);
     Test.assert(client.hasOutstandingChanges());
 
-    client.fireSuccessAt(1, true);
+    gateway.reply(1, 200, null);
 
     Test.assertEqual(second.result as Boolean, true);
     Test.assert(!client.hasOutstandingChanges());
@@ -447,20 +430,20 @@ function aChangeQueuesRatherThanBeingDropped(logger as Test.Logger) as Boolean {
 
 (:test)
 function changesGoOutBeforeFetches(logger as Test.Logger) as Boolean {
-    Application.Storage.clearValues();
-    var client = new MockHaClient();
+    var gateway = new FakeRequestGateway();
+    var client = ClientFixture.clientWith(gateway);
     Registration.seed("some-id");
     var log = new TargetLog();
 
     client.refresh(log.method(:onTarget));
     client.queueLightToggle("light.a", new ResultCapture().method(:onResult));
 
-    client.fireSuccessAt(0, {} as Dictionary);
+    gateway.reply(0, 200, ClientFixture.emptyRenderPayload());
 
     Test.assertEqual(log.targets.size(), 1);
     Test.assert(client.hasOutstandingChanges());
 
-    client.fireSuccessAt(1, true);
+    gateway.reply(1, 200, null);
 
     Test.assert(!client.hasOutstandingChanges());
     Test.assertEqual(log.targets.size(), 1);
@@ -469,19 +452,19 @@ function changesGoOutBeforeFetches(logger as Test.Logger) as Boolean {
 
 (:test)
 function aRefreshTriggeredWhileOneIsIncompleteIsDropped(logger as Test.Logger) as Boolean {
-    Application.Storage.clearValues();
-    var client = new MockHaClient();
+    var gateway = new FakeRequestGateway();
+    var client = ClientFixture.clientWith(gateway);
     Registration.seed("some-id");
     var log = new TargetLog();
 
     client.refresh(log.method(:onTarget));
     client.refresh(log.method(:onTarget));
 
-    client.fireSuccessAt(0, {} as Dictionary);
-    client.fireSuccessAt(1, {} as Dictionary);
-    client.fireSuccessAt(2, {} as Dictionary);
+    gateway.reply(0, 200, ClientFixture.emptyRenderPayload());
+    gateway.reply(1, 200, ClientFixture.emptyRenderPayload());
+    gateway.reply(2, 200, ClientFixture.emptyRenderPayload());
 
-    Test.assertEqual(client.fetchCount(), 3);
+    Test.assertEqual(gateway.count(), 3);
     Test.assertEqual(log.targets.size(), 3);
     Test.assert(!client.isRefreshing());
     return true;
@@ -489,8 +472,8 @@ function aRefreshTriggeredWhileOneIsIncompleteIsDropped(logger as Test.Logger) a
 
 (:test)
 function aReplyDoesNotStartARefreshWhileChangesAreQueued(logger as Test.Logger) as Boolean {
-    Application.Storage.clearValues();
-    var client = new MockHaClient();
+    var gateway = new FakeRequestGateway();
+    var client = ClientFixture.clientWith(gateway);
     Registration.seed("some-id");
     var log = new TargetLog();
 
@@ -504,8 +487,8 @@ function aReplyDoesNotStartARefreshWhileChangesAreQueued(logger as Test.Logger) 
 
 (:test)
 function theQueueDrainsOnlyOnceTheThresholdIsExhausted(logger as Test.Logger) as Boolean {
-    Application.Storage.clearValues();
-    var client = new MockHaClient();
+    var gateway = new FakeRequestGateway();
+    var client = ClientFixture.clientWith(gateway);
     Registration.seed("some-id");
     var first = new ResultCapture();
     var second = new ResultCapture();
@@ -513,19 +496,19 @@ function theQueueDrainsOnlyOnceTheThresholdIsExhausted(logger as Test.Logger) as
     client.queueLightToggle("light.a", first.method(:onResult));
     client.queueLightToggle("light.b", second.method(:onResult));
 
-    client.fireFailureAt(0, -1);
-    client.fireFailureAt(1, -1);
-    client.fireFailureAt(2, -1);
+    gateway.reply(0, -1, null);
+    gateway.reply(1, -1, null);
+    gateway.reply(2, -1, null);
 
-    Test.assertEqual(client.fetchCount(), 4);
+    Test.assertEqual(gateway.count(), 4);
     Test.assert(first.error == null);
     Test.assert(second.result == null);
     Test.assert(second.error == null);
 
-    client.fireFailureAt(3, -1);
+    gateway.reply(3, -1, null);
 
     Test.assertEqual((first.error as RequestError).reason as Number, -1);
-    Test.assertEqual(client.fetchCount(), 4);
+    Test.assertEqual(gateway.count(), 4);
     Test.assert(!client.hasOutstandingChanges());
     Test.assert(second.result == null);
     Test.assert(second.error == null);
@@ -534,73 +517,71 @@ function theQueueDrainsOnlyOnceTheThresholdIsExhausted(logger as Test.Logger) as
 
 (:test)
 function cancellingClearsTheQueueAndTheSlotTogether(logger as Test.Logger) as Boolean {
-    Application.Storage.clearValues();
-    var client = new MockHaClient();
+    var gateway = new FakeRequestGateway();
+    var client = ClientFixture.clientWith(gateway);
     Registration.seed("some-id");
     var second = new ResultCapture();
 
     client.queueLightToggle("light.a", new ResultCapture().method(:onResult));
     client.queueLightToggle("light.b", second.method(:onResult));
-    client.fireFailureAt(0, -1);
+    gateway.reply(0, -1, null);
 
     client.cancelAll();
 
     Test.assert(!client.hasOutstandingChanges());
 
-    client.fireSuccessAt(1, true);
+    gateway.reply(1, 200, null);
 
     Test.assert(second.result == null);
     Test.assert(second.error == null);
 
     client.queueLightToggle("light.c", new ResultCapture().method(:onResult));
 
-    Test.assertEqual(client.fetchCount(), 3);
+    Test.assertEqual(gateway.count(), 3);
     return true;
 }
 
 (:test)
 function aRefreshWhereOneTargetFailsNeverStampsCompletion(logger as Test.Logger) as Boolean {
-    Application.Storage.clearValues();
-    var client = new MockHaClient();
+    var gateway = new FakeRequestGateway();
+    var client = ClientFixture.clientWith(gateway);
     Registration.seed("some-id");
     var log = new TargetLog();
 
     client.refresh(log.method(:onTarget));
-    client.fireSuccessAt(0, {} as Dictionary);
-    client.fireFailureAt(1, -1);
-    client.fireFailureAt(2, -1);
-    client.fireFailureAt(3, -1);
-    client.fireFailureAt(4, -1);
-    client.fireSuccessAt(5, {} as Dictionary);
+    gateway.reply(0, 200, ClientFixture.emptyRenderPayload());
+    gateway.reply(1, -1, null);
+    gateway.reply(2, -1, null);
+    gateway.reply(3, -1, null);
+    gateway.reply(4, -1, null);
+    gateway.reply(5, 200, ClientFixture.emptyRenderPayload());
 
     Test.assertEqual(log.targets.size(), 3);
 
-    var result = client.refreshResult();
-    Test.assertEqual((result.error as RequestError).reason as Number, -1);
-    Test.assert(!result.hasEverCompleted);
+    Test.assertEqual((client.getError() as RequestError).reason as Number, -1);
+    Test.assert(!client.hasEverRefreshed());
     Test.assert(client.msSinceLastRefresh() == null);
     return true;
 }
 
 (:test)
 function aRefreshKeepsTheFirstErrorNotTheLast(logger as Test.Logger) as Boolean {
-    Application.Storage.clearValues();
-    var client = new MockHaClient();
+    var gateway = new FakeRequestGateway();
+    var client = ClientFixture.clientWith(gateway);
     Registration.seed("some-id");
     var log = new TargetLog();
 
     client.refresh(log.method(:onTarget));
 
     for (var index = 0; index < 4; index++) {
-        client.fireFailureAt(index, 401);
+        gateway.reply(index, 401, null);
     }
     for (var index = 4; index < 8; index++) {
-        client.fireFailureAt(index, -1);
+        gateway.reply(index, -1, null);
     }
-    client.fireSuccessAt(8, {} as Dictionary);
+    gateway.reply(8, 200, ClientFixture.emptyRenderPayload());
 
     Test.assertEqual(log.targets.size(), 3);
-    Test.assertEqual((client.refreshResult().error as RequestError).reason as Number, 401);
+    Test.assertEqual((client.getError() as RequestError).reason as Number, 401);
     return true;
 }
-

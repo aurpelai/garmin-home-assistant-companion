@@ -1,0 +1,3 @@
+kind: "\U0001F6E0️ Technical"
+body: HaClient sends requests through a RequestGateway seam instead of calling Communications directly, and the redundant request-wrapper shims are folded away.
+time: 2026-08-31T14:32:40.640427+03:00

@@ -1,5 +1,4 @@
 import Toybox.Application;
-import Toybox.Communications;
 import Toybox.Lang;
 import Toybox.System;
 
@@ -25,6 +24,8 @@ class HaClient {
 
     private const REFRESH_TARGETS = [FetchTarget.STRUCTURE, FetchTarget.LIGHTS, FetchTarget.SENSORS];
 
+    private var _gateway as RequestGateway;
+
     private var _requestInFlight as Boolean;
     private var _changeInFlight as Boolean;
     private var _changeQueue as Array<QueuedChange>;
@@ -34,10 +35,11 @@ class HaClient {
     private var _pendingFetchTargets as Array<Symbol>;
     private var _currentTarget as Symbol or Null;
     private var _onRefreshTarget as Method or Null;
-    private var _refreshError as RequestError or Null;
+    private var _error as RequestError or Null;
     private var _lastRefreshCompletedAt as Number or Null;
 
-    function initialize() {
+    function initialize(gateway as RequestGateway) {
+        _gateway = gateway;
         _requestInFlight = false;
         _changeInFlight = false;
         _changeQueue = [];
@@ -47,7 +49,7 @@ class HaClient {
         _pendingFetchTargets = [];
         _currentTarget = null;
         _onRefreshTarget = null;
-        _refreshError = null;
+        _error = null;
         _lastRefreshCompletedAt = null;
     }
 
@@ -80,13 +82,13 @@ class HaClient {
         var target = _currentTarget as Symbol;
         var onTarget = _onRefreshTarget as Method;
 
-        if (_refreshError == null) {
-            _refreshError = spentError;
+        if (_error == null) {
+            _error = spentError;
         }
 
         var isLastTarget = !isRefreshing();
 
-        if (isLastTarget && _refreshError == null) {
+        if (isLastTarget && _error == null) {
             _lastRefreshCompletedAt = System.getTimer();
         }
 
@@ -121,8 +123,12 @@ class HaClient {
         return _lastRefreshCompletedAt == null ? null : System.getTimer() - (_lastRefreshCompletedAt as Number);
     }
 
-    function refreshResult() as RefreshResult {
-        return new RefreshResult(_refreshError, _lastRefreshCompletedAt != null);
+    function getError() as RequestError or Null {
+        return _error;
+    }
+
+    function hasEverRefreshed() as Boolean {
+        return _lastRefreshCompletedAt != null;
     }
 
     function refresh(onTarget as Method) as Void {
@@ -131,23 +137,23 @@ class HaClient {
         }
 
         _pendingFetchTargets = REFRESH_TARGETS.slice(0, null) as Array<Symbol>;
-        _refreshError = null;
+        _error = null;
         _onRefreshTarget = onTarget;
         startNextRequest();
     }
 
     function queueLightToggle(entityId as String, callback as Method) as Void {
-        queueChange(new ServiceCall(self, "toggle", "entity_id", entityId).method(:attempt), callback);
+        queueChange(buildServiceCallRequest("toggle", "entity_id", entityId), callback);
     }
 
     function queueFloorLights(floorId as String, service as String, callback as Method) as Void {
-        queueChange(new ServiceCall(self, service, "floor_id", floorId).method(:attempt), callback);
+        queueChange(buildServiceCallRequest(service, "floor_id", floorId), callback);
     }
 
     // UNVERIFIED: Connect IQ still delivers a cancelled request's reply, so the
     // callbacks are nulled to drop it.
     function cancelAll() as Void {
-        Communications.cancelAllRequests();
+        _gateway.cancelAll();
         _changeQueue = [];
         _pendingFetchTargets = [];
         _requestInFlight = false;
@@ -200,39 +206,36 @@ class HaClient {
         Application.Storage.deleteValue(Webhook.REGISTRATION_KEY);
     }
 
-    function postTemplate(template as String, callback as Method) as Void {
+    private function post(path as String, body as Dictionary, handler as ResponseHandler) as Void {
+        _gateway.post(path, body, handler);
+    }
+
+    private function buildServiceCallRequest(service as String, targetKey as String, targetId as String) as Method {
+        var body = {
+            "type" => "call_service",
+            "data" => {
+                "domain" => "light",
+                "service" => service,
+                "service_data" => {
+                    targetKey => targetId
+                }
+            }
+        };
+
+        return new WebhookRequest(self, body, ResponseType.SERVICE_CALL).method(:attempt);
+    }
+
+    private function buildTemplateRenderRequest(target as Symbol) as Method {
         var body = {
             "type" => "render_template",
             "data" => {
                 ResponseType.TEMPLATE_RENDER_ROOT_KEY => {
-                    "template" => template
+                    "template" => HaTemplate.resolve(target)
                 }
             }
         };
-        new WebhookRequest(self, body, ResponseType.TEMPLATE_RENDER).attempt(callback);
-    }
 
-    // No response type is declared: the system then parses by the response's own
-    // Content-Type, which keeps the HTTP status intact — declaring one makes an
-    // auth rejection arrive as an invalid-body error rather than a 401. A dead
-    // webhook's empty 200 carries no Content-Type at all and still arrives as a
-    // 200 with a null body, so the re-registration path is unaffected (verified
-    // against a live instance on 2026-08-26).
-    function post(path as String, body as Dictionary, handler as ResponseHandler) as Void {
-        var options = {
-            :method => Communications.HTTP_REQUEST_METHOD_POST,
-            :headers => {
-                "Authorization" => "Bearer " + Settings.getToken(),
-                "Content-Type" => Communications.REQUEST_CONTENT_TYPE_JSON
-            }
-        };
-
-        Communications.makeWebRequest(
-            Settings.getBaseUrl() + path,
-            body as Dictionary<Object, Object>,
-            options,
-            handler.method(:onResponse)
-        );
+        return new WebhookRequest(self, body, ResponseType.TEMPLATE_RENDER).method(:attempt);
     }
 
     private function queueChange(request as Method, callback as Method) as Void {
@@ -260,8 +263,7 @@ class HaClient {
             _pendingFetchTargets = _pendingFetchTargets.slice(1, null) as Array<Symbol>;
             _requestInFlight = true;
             _currentTarget = target;
-            new RetryManager(new TemplateRender(self, HaTemplate.resolve(target)).method(:attempt),
-                             method(:onTargetSettled), RequestType.REQUEST).attempt();
+            new RetryManager(buildTemplateRenderRequest(target), method(:onTargetSettled), RequestType.REQUEST).attempt();
         }
     }
 
