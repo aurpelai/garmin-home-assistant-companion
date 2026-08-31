@@ -7,13 +7,7 @@ class HaState {
     private var _lightsByArea as Dictionary<String, Array<LightModel>>;
     private var _sensorsByArea as Dictionary<String, Array<SensorModel>>;
     private var _zone as String or Null;
-
-    private var _lightCounts as Dictionary<String, LightCount>;
-    private var _lightSummaries as Dictionary<String, String>;
-    private var _homeLightSummary as String or Null;
-    private var _areaAverages as Dictionary<String, Dictionary<String, String>>;
-    private var _floorAverages as Dictionary<String, Dictionary<String, String>>;
-    private var _homeAverages as Dictionary<String, String>;
+    private var _aggregates as Aggregates;
 
     function initialize() {
         _lights = {};
@@ -22,12 +16,7 @@ class HaState {
         _lightsByArea = {};
         _sensorsByArea = {};
         _zone = null;
-        _lightCounts = {};
-        _lightSummaries = {};
-        _homeLightSummary = null;
-        _areaAverages = {};
-        _floorAverages = {};
-        _homeAverages = {};
+        _aggregates = new Aggregates();
     }
 
     function setZone(zone as String or Null) as Void {
@@ -57,44 +46,29 @@ class HaState {
     function setLightAggregates(counts as Dictionary<String, LightCount>,
                                 summaries as Dictionary<String, String>,
                                 home as String or Null) as Void {
-        _lightCounts = counts;
-        _lightSummaries = summaries;
-        _homeLightSummary = home;
+        _aggregates.setLights(counts, summaries, home);
     }
 
     function setSensorAggregates(areaAverages as Dictionary<String, Dictionary<String, String>>,
                                  floorAverages as Dictionary<String, Dictionary<String, String>>,
                                  home as Dictionary<String, String>) as Void {
-        _areaAverages = areaAverages;
-        _floorAverages = floorAverages;
-        _homeAverages = home;
+        _aggregates.setSensors(areaAverages, floorAverages, home);
     }
 
-    function getLightCount(areaId as String) as LightCount {
-        var count = _lightCounts.get(areaId);
-        return count == null ? new LightCount(0, 0, 0) : count;
+    function buildAreaAggregate(areaId as String) as AreaAggregate {
+        return _aggregates.buildAreaAggregate(areaId);
     }
 
-    function getLightSummary(floorId as String) as String or Null {
-        return _lightSummaries.get(floorId);
+    function buildFloorAggregate(floorId as String) as FloorAggregate {
+        return _aggregates.buildFloorAggregate(floorId);
     }
 
     function getHomeLightSummary() as String or Null {
-        return _homeLightSummary;
-    }
-
-    function getAreaAverages(areaId as String) as Dictionary<String, String> {
-        var averages = _areaAverages.get(areaId);
-        return averages == null ? ({} as Dictionary<String, String>) : averages;
-    }
-
-    function getFloorAverages(floorId as String) as Dictionary<String, String> {
-        var averages = _floorAverages.get(floorId);
-        return averages == null ? ({} as Dictionary<String, String>) : averages;
+        return _aggregates.getHomeLightSummary();
     }
 
     function getHomeAverages() as Dictionary<String, String> {
-        return _homeAverages;
+        return _aggregates.getHomeAverages();
     }
 
     function hasAreas() as Boolean {

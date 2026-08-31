@@ -60,21 +60,25 @@ module CardLoopBuilder {
 
     function buildAreaCard(haState as HaState, area as AreaModel, floorId as String or Null,
                            floorName as String or Null) as AreaCard {
+        var aggregate = haState.buildAreaAggregate(area.id);
+
         return new AreaCard(
             area.id,
             floorId,
             area.name,
             floorName,
-            SensorReading.build(haState.getAreaAverages(area.id)),
-            haState.getLightCount(area.id));
+            SensorReading.build(aggregate.averages),
+            aggregate.lightCount);
     }
 
     function buildFloorCard(haState as HaState, floorId as String, floorName as String) as FloorCard {
+        var aggregate = haState.buildFloorAggregate(floorId);
+
         return new FloorCard(
             floorId,
             floorName,
             haState.getZone(),
-            SensorReading.build(haState.getFloorAverages(floorId)),
-            haState.getLightSummary(floorId));
+            SensorReading.build(aggregate.averages),
+            aggregate.lightSummary);
     }
 }
