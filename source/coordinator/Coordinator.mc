@@ -141,9 +141,9 @@ class Coordinator {
     }
 
     private function showInfoView(message as String, detail as String or Null) as Void {
-        var info = new InfoView(self, message, true, detail);
-        _currentView = info;
-        WatchUi.switchToView(info, new InfoDelegate(self), WatchUi.SLIDE_IMMEDIATE);
+        var infoView = new InfoView(self, message, true, detail);
+        _currentView = infoView;
+        WatchUi.switchToView(infoView, new InfoDelegate(self), WatchUi.SLIDE_IMMEDIATE);
     }
 
     private function refresh() as Void {
