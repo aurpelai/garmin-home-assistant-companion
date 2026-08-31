@@ -114,9 +114,9 @@ function aVanishedCardFallsBackToTheFloorItSatUnder(logger as Test.Logger) as Bo
 }
 
 (:test)
-function theCardLoopIsNeverObsolete(logger as Test.Logger) as Boolean {
+function theCardLoopNeverPerishes(logger as Test.Logger) as Boolean {
     var loop = CardLoopTest.loopOf(CardLoopTest.twoFloors());
 
-    Test.assert(!loop.isObsolete(new HaState()));
+    Test.assert(!(loop has :hasPerished));
     return true;
 }

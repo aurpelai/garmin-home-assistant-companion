@@ -3,13 +3,22 @@ import Toybox.Graphics;
 import Toybox.Lang;
 import Toybox.WatchUi;
 
+// A message addressed to the user — not configured, nothing found, an error —
+// holding no state of its own. Deliberately neither Perishable nor Refreshable:
+// a message must not vanish because a background fetch changed something, so a
+// fresh fetch leaves it untouched and only the user dismisses it. It is still a
+// tracked Screen so the coordinator knows a message is up rather than going
+// blind, as it did when this view was left untracked.
 class InfoView extends WatchUi.View {
-    hidden var textArea as WatchUi.TextArea;
-    hidden var selectable as Boolean;
-    hidden var detail as String or Null;
+    private var _coordinator as Coordinator;
+    private var textArea as WatchUi.TextArea;
+    private var selectable as Boolean;
+    private var detail as String or Null;
 
-    function initialize(message as String, selectable as Boolean, detail as String or Null) {
+    function initialize(coordinator as Coordinator, message as String, selectable as Boolean,
+                        detail as String or Null) {
         View.initialize();
+        _coordinator = coordinator;
         self.selectable = selectable;
         self.detail = detail;
 
@@ -24,6 +33,14 @@ class InfoView extends WatchUi.View {
             :justification => Graphics.TEXT_JUSTIFY_CENTER,
             :font => [Graphics.FONT_TINY, Graphics.FONT_XTINY],
         });
+    }
+
+    function onShow() as Void {
+        _coordinator.onViewShown(self);
+    }
+
+    function onHide() as Void {
+        _coordinator.onViewHidden(self);
     }
 
     function onUpdate(dc as Graphics.Dc) as Void {
