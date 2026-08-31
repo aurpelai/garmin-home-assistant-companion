@@ -25,6 +25,7 @@ class HaClient {
     private const REFRESH_TARGETS = [FetchTarget.STRUCTURE, FetchTarget.LIGHTS, FetchTarget.SENSORS];
 
     private var _gateway as RequestGateway;
+    private var _scheduler as Scheduler;
 
     private var _requestInFlight as Boolean;
     private var _changeInFlight as Boolean;
@@ -38,8 +39,9 @@ class HaClient {
     private var _error as RequestError or Null;
     private var _lastRefreshCompletedAt as Number or Null;
 
-    function initialize(gateway as RequestGateway) {
+    function initialize(gateway as RequestGateway, scheduler as Scheduler) {
         _gateway = gateway;
+        _scheduler = scheduler;
         _requestInFlight = false;
         _changeInFlight = false;
         _changeQueue = [];
@@ -154,6 +156,7 @@ class HaClient {
     // callbacks are nulled to drop it.
     function cancelAll() as Void {
         _gateway.cancelAll();
+        _scheduler.cancel();
         _changeQueue = [];
         _pendingFetchTargets = [];
         _requestInFlight = false;
@@ -166,7 +169,7 @@ class HaClient {
     }
 
     function registerWithHomeAssistant(callback as Method) as Void {
-        new RetryManager(method(:attemptRegistration), callback, RequestType.REGISTRATION).attempt();
+        new RetryManager(method(:attemptRegistration), callback, _scheduler, RequestType.REGISTRATION).attempt();
     }
 
     function attemptRegistration(callback as Method) as Void {
@@ -254,7 +257,7 @@ class HaClient {
             _requestInFlight = true;
             _changeInFlight = true;
             _pendingChangeCallback = next.callback;
-            new RetryManager(next.request, method(:onChangeSettled), RequestType.REQUEST).attempt();
+            new RetryManager(next.request, method(:onChangeSettled), _scheduler, RequestType.REQUEST).attempt();
             return;
         }
 
@@ -263,7 +266,7 @@ class HaClient {
             _pendingFetchTargets = _pendingFetchTargets.slice(1, null) as Array<Symbol>;
             _requestInFlight = true;
             _currentTarget = target;
-            new RetryManager(buildTemplateRenderRequest(target), method(:onTargetSettled), RequestType.REQUEST).attempt();
+            new RetryManager(buildTemplateRenderRequest(target), method(:onTargetSettled), _scheduler, RequestType.REQUEST).attempt();
         }
     }
 
