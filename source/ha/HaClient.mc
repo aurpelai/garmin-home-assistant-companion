@@ -143,11 +143,11 @@ class HaClient {
     }
 
     function queueLightToggle(entityId as String, callback as Method) as Void {
-        queueChange(serviceCallRequest("toggle", "entity_id", entityId), callback);
+        queueChange(buildServiceCallRequest("toggle", "entity_id", entityId), callback);
     }
 
     function queueFloorLights(floorId as String, service as String, callback as Method) as Void {
-        queueChange(serviceCallRequest(service, "floor_id", floorId), callback);
+        queueChange(buildServiceCallRequest(service, "floor_id", floorId), callback);
     }
 
     // UNVERIFIED: Connect IQ still delivers a cancelled request's reply, so the
@@ -210,7 +210,7 @@ class HaClient {
         _gateway.post(path, body, handler);
     }
 
-    private function serviceCallRequest(service as String, targetKey as String, targetId as String) as Method {
+    private function buildServiceCallRequest(service as String, targetKey as String, targetId as String) as Method {
         var body = {
             "type" => "call_service",
             "data" => {
@@ -225,7 +225,7 @@ class HaClient {
         return new WebhookRequest(self, body, ResponseType.SERVICE_CALL).method(:attempt);
     }
 
-    private function templateRenderRequest(target as Symbol) as Method {
+    private function buildTemplateRenderRequest(target as Symbol) as Method {
         var body = {
             "type" => "render_template",
             "data" => {
@@ -263,7 +263,7 @@ class HaClient {
             _pendingFetchTargets = _pendingFetchTargets.slice(1, null) as Array<Symbol>;
             _requestInFlight = true;
             _currentTarget = target;
-            new RetryManager(templateRenderRequest(target), method(:onTargetSettled), RequestType.REQUEST).attempt();
+            new RetryManager(buildTemplateRenderRequest(target), method(:onTargetSettled), RequestType.REQUEST).attempt();
         }
     }
 
