@@ -35,7 +35,7 @@ class HaClient {
     private var _pendingFetchTargets as Array<Symbol>;
     private var _currentTarget as Symbol or Null;
     private var _onRefreshTarget as Method or Null;
-    private var _refreshError as RequestError or Null;
+    private var _error as RequestError or Null;
     private var _lastRefreshCompletedAt as Number or Null;
 
     function initialize(gateway as RequestGateway) {
@@ -49,7 +49,7 @@ class HaClient {
         _pendingFetchTargets = [];
         _currentTarget = null;
         _onRefreshTarget = null;
-        _refreshError = null;
+        _error = null;
         _lastRefreshCompletedAt = null;
     }
 
@@ -82,13 +82,13 @@ class HaClient {
         var target = _currentTarget as Symbol;
         var onTarget = _onRefreshTarget as Method;
 
-        if (_refreshError == null) {
-            _refreshError = spentError;
+        if (_error == null) {
+            _error = spentError;
         }
 
         var isLastTarget = !isRefreshing();
 
-        if (isLastTarget && _refreshError == null) {
+        if (isLastTarget && _error == null) {
             _lastRefreshCompletedAt = System.getTimer();
         }
 
@@ -123,8 +123,8 @@ class HaClient {
         return _lastRefreshCompletedAt == null ? null : System.getTimer() - (_lastRefreshCompletedAt as Number);
     }
 
-    function refreshError() as RequestError or Null {
-        return _refreshError;
+    function getError() as RequestError or Null {
+        return _error;
     }
 
     function hasEverRefreshed() as Boolean {
@@ -137,7 +137,7 @@ class HaClient {
         }
 
         _pendingFetchTargets = REFRESH_TARGETS.slice(0, null) as Array<Symbol>;
-        _refreshError = null;
+        _error = null;
         _onRefreshTarget = onTarget;
         startNextRequest();
     }

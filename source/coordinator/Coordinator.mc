@@ -155,7 +155,7 @@ class Coordinator {
     }
 
     private function showDestination() as Void {
-        var error = _client.refreshError();
+        var error = _client.getError();
 
         if (_haState.hasAreas()) {
             if (_currentView == null) {

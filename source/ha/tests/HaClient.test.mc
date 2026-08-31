@@ -558,7 +558,7 @@ function aRefreshWhereOneTargetFailsNeverStampsCompletion(logger as Test.Logger)
 
     Test.assertEqual(log.targets.size(), 3);
 
-    Test.assertEqual((client.refreshError() as RequestError).reason as Number, -1);
+    Test.assertEqual((client.getError() as RequestError).reason as Number, -1);
     Test.assert(!client.hasEverRefreshed());
     Test.assert(client.msSinceLastRefresh() == null);
     return true;
@@ -582,6 +582,6 @@ function aRefreshKeepsTheFirstErrorNotTheLast(logger as Test.Logger) as Boolean 
     gateway.reply(8, 200, ClientFixture.emptyRenderPayload());
 
     Test.assertEqual(log.targets.size(), 3);
-    Test.assertEqual((client.refreshError() as RequestError).reason as Number, 401);
+    Test.assertEqual((client.getError() as RequestError).reason as Number, 401);
     return true;
 }
