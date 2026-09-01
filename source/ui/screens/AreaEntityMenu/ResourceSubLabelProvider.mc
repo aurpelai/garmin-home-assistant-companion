@@ -16,7 +16,7 @@ class ResourceSubLabelProvider {
         return WatchUi.loadResource(Rez.Strings.GroupUnavailable) as String;
     }
 
-    function getGroupCount(domain as String, memberCount as Number) as String {
+    function resolveGroupLabel(domain as String, memberCount as Number) as String {
         var isFan = domain.equals("fan");
 
         if (memberCount == 1) {

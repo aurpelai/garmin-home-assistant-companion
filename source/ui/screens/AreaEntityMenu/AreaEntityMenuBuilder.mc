@@ -54,7 +54,7 @@ module AreaEntityMenuBuilder {
         }
 
         if (memberIds != null) {
-            return provider.getGroupCount(toggleable instanceof FanModel ? "fan" : "light", memberIds.size());
+            return provider.resolveGroupLabel(toggleable instanceof FanModel ? "fan" : "light", memberIds.size());
         }
 
         if (!toggleable.isOn()) {

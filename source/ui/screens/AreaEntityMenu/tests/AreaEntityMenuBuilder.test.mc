@@ -17,7 +17,7 @@ class FakeSubLabelProvider {
         return "Group unavailable";
     }
 
-    function getGroupCount(domain as String, memberCount as Number) as String {
+    function resolveGroupLabel(domain as String, memberCount as Number) as String {
         return "Group of " + memberCount + " " + domain;
     }
 }
