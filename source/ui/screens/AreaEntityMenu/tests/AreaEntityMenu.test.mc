@@ -77,20 +77,36 @@ function anEntityMissingFromTheModelKeepsTheItemItHad(logger as Test.Logger) as 
 }
 
 (:test)
-function aLightSublabelPicksUnavailableOverAGroupCount(logger as Test.Logger) as Boolean {
-    var group = new LightRowModel("light.grp", "Group", false, false, 3);
+function aToggleSublabelPicksUnavailableOverAGroupCountOrAValue(logger as Test.Logger) as Boolean {
+    var group = new ToggleRowModel("light.grp", "Group", false, false, 3, null);
+    var fan = new ToggleRowModel("fan.a", "Fan", false, false, null, "33 %");
 
-    Test.assertEqual(AreaEntityMenu.toLightSubLabel(group) as String, "Group unavailable");
+    Test.assertEqual(AreaEntityMenu.toToggleSubLabel(group) as String, "Group unavailable");
+    Test.assertEqual(AreaEntityMenu.toToggleSubLabel(fan) as String, "Unavailable");
     return true;
 }
 
 (:test)
-function anAvailableGroupShowsItsMemberCount(logger as Test.Logger) as Boolean {
-    var one = new LightRowModel("light.one", "One", true, true, 1);
-    var many = new LightRowModel("light.many", "Many", true, true, 4);
+function anAvailableGroupShowsItsMemberCountInItsOwnDomainsWords(logger as Test.Logger) as Boolean {
+    var oneLight = new ToggleRowModel("light.one", "One", true, true, 1, null);
+    var manyLights = new ToggleRowModel("light.many", "Many", true, true, 4, null);
+    var oneFan = new ToggleRowModel("fan.one", "One", true, true, 1, null);
+    var manyFans = new ToggleRowModel("fan.many", "Many", true, true, 4, null);
 
-    Test.assertEqual(AreaEntityMenu.toLightSubLabel(one) as String, "Group • 1 Light");
-    Test.assertEqual(AreaEntityMenu.toLightSubLabel(many) as String, "Group • 4 Lights");
+    Test.assertEqual(AreaEntityMenu.toToggleSubLabel(oneLight) as String, "Group • 1 Light");
+    Test.assertEqual(AreaEntityMenu.toToggleSubLabel(manyLights) as String, "Group • 4 Lights");
+    Test.assertEqual(AreaEntityMenu.toToggleSubLabel(oneFan) as String, "Group • 1 Fan");
+    Test.assertEqual(AreaEntityMenu.toToggleSubLabel(manyFans) as String, "Group • 4 Fans");
+    return true;
+}
+
+(:test)
+function aPlainToggleRowShowsItsValueSublabelOrNothing(logger as Test.Logger) as Boolean {
+    var fan = new ToggleRowModel("fan.a", "Fan", true, true, null, "33 %");
+    var light = new ToggleRowModel("light.a", "Light", true, true, null, null);
+
+    Test.assertEqual(AreaEntityMenu.toToggleSubLabel(fan) as String, "33 %");
+    Test.assert(AreaEntityMenu.toToggleSubLabel(light) == null);
     return true;
 }
 

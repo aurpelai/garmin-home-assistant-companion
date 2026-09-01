@@ -2,18 +2,22 @@ import Toybox.Lang;
 
 class HaState {
     private var _lights as Dictionary<String, LightModel>;
+    private var _fans as Dictionary<String, FanModel>;
     private var _areas as Dictionary<String, AreaModel>;
     private var _floors as Array<FloorModel>;
     private var _lightsByArea as Dictionary<String, Array<LightModel>>;
+    private var _fansByArea as Dictionary<String, Array<FanModel>>;
     private var _sensorsByArea as Dictionary<String, Array<SensorModel>>;
     private var _zone as String or Null;
     private var _aggregates as Aggregates;
 
     function initialize() {
         _lights = {};
+        _fans = {};
         _areas = {};
         _floors = [];
         _lightsByArea = {};
+        _fansByArea = {};
         _sensorsByArea = {};
         _zone = null;
         _aggregates = new Aggregates();
@@ -37,6 +41,11 @@ class HaState {
     function setLights(lights as Dictionary<String, LightModel>) as Void {
         _lights = lights;
         _lightsByArea = groupByArea(lights.values() as Array<EntityModel>) as Dictionary<String, Array<LightModel>>;
+    }
+
+    function setFans(fans as Dictionary<String, FanModel>) as Void {
+        _fans = fans;
+        _fansByArea = groupByArea(fans.values() as Array<EntityModel>) as Dictionary<String, Array<FanModel>>;
     }
 
     function setSensors(sensors as Dictionary<String, SensorModel>) as Void {
@@ -106,6 +115,11 @@ class HaState {
         return lights == null ? [] as Array<LightModel> : lights;
     }
 
+    function getFansInArea(areaId as String) as Array<FanModel> {
+        var fans = _fansByArea.get(areaId);
+        return fans == null ? [] as Array<FanModel> : fans;
+    }
+
     function getSensorsInArea(areaId as String) as Array<SensorModel> {
         var sensors = _sensorsByArea.get(areaId);
         return sensors == null ? [] as Array<SensorModel> : sensors;
@@ -145,13 +159,13 @@ class HaState {
     }
 
     function isOn(entityId as String) as Boolean {
-        var light = _lights.get(entityId);
-        return light != null && light.isOn();
+        var toggleable = getToggleable(entityId);
+        return toggleable != null && toggleable.isOn();
     }
 
     function isPending(entityId as String) as Boolean {
-        var light = _lights.get(entityId);
-        return light != null && light.isPending();
+        var toggleable = getToggleable(entityId);
+        return toggleable != null && toggleable.isPending();
     }
 
     function override(entityId as String, isOn as Boolean) as Void {
@@ -163,8 +177,8 @@ class HaState {
     }
 
     function getToggleTargets(entityId as String) as Array<String> {
-        var light = _lights.get(entityId);
-        var memberIds = light == null ? null : light.memberIds;
+        var toggleable = getToggleable(entityId);
+        var memberIds = toggleable == null ? null : toggleable.memberIds;
         var targets = [entityId] as Array<String>;
 
         if (memberIds != null) {
@@ -206,12 +220,26 @@ class HaState {
 
     private function overrideAll(entityIds as Array<String>, isOn as Boolean) as Void {
         for (var index = 0; index < entityIds.size(); index++) {
-            var light = _lights.get(entityIds[index]);
+            var toggleable = getToggleable(entityIds[index]);
 
-            if (light != null) {
-                (light as LightModel).assumed = isOn;
+            if (toggleable != null) {
+                toggleable.assumed = isOn;
             }
         }
+    }
+
+    private function getToggleable(entityId as String) as ToggleableModel or Null {
+        var light = _lights.get(entityId);
+        if (light != null) {
+            return light;
+        }
+
+        var fan = _fans.get(entityId);
+        if (fan != null) {
+            return fan;
+        }
+
+        return null;
     }
 
     private function groupByArea(models as Array<EntityModel>)

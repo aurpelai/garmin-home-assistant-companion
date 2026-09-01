@@ -140,3 +140,23 @@ function jsonFeedsHaStateEndToEndWithRawNonAscii(logger as Test.Logger) as Boole
     Test.assertEqual(sensor.friendlyState, "21.5 °C");
     return true;
 }
+
+// A fan as HA's `| tojson` delivers it: the percentage survives the off state,
+// and a raw non-ASCII name survives the round trip into HaState.
+(:test)
+function jsonFeedsHaStateEndToEndWithAFan(logger as Test.Logger) as Boolean {
+    var fans = "{\"fans\": {\"fan.bedroom\": {\"state\": false, " +
+            "\"name\": \"Ventilátor\", \"area_id\": \"area.bedroom\", " +
+            "\"available\": true, \"speed\": \"10 %\"}}}";
+
+    var haState = new HaState();
+    haState.setFans(HaPayload.parseFans(JsonParser.parse(fans)));
+
+    var fan = haState.getFansInArea("area.bedroom")[0];
+    Test.assertEqual(fan.id, "fan.bedroom");
+    Test.assertEqual(fan.name, "Ventilátor");
+    Test.assertEqual(fan.state, false);
+    Test.assertEqual(fan.speed as String, "10 %");
+    Test.assert(!haState.isOn("fan.bedroom"));
+    return true;
+}

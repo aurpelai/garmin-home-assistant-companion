@@ -15,10 +15,10 @@ class AreaEntityMenu extends WatchUi.Menu2 {
         _coordinator = coordinator;
         _areaId = areaId;
 
-        for (var index = 0; index < model.lights.size(); index++) {
-            var row = model.lights[index];
+        for (var index = 0; index < model.toggles.size(); index++) {
+            var row = model.toggles[index];
             addItem(new WatchUi.ToggleMenuItem(
-                resolveLabel(row.name, row.rowId), toLightSubLabel(row), row.rowId, row.isOn, null));
+                resolveLabel(row.name, row.rowId), toToggleSubLabel(row), row.rowId, row.isOn, null));
         }
 
         for (var index = 0; index < model.sensors.size(); index++) {
@@ -27,7 +27,7 @@ class AreaEntityMenu extends WatchUi.Menu2 {
                 resolveLabel(row.name, row.rowId), toSensorSubLabel(row), row.rowId, null));
         }
 
-        if (model.lights.size() == 0 && model.sensors.size() == 0) {
+        if (model.toggles.size() == 0 && model.sensors.size() == 0) {
             addItem(new WatchUi.MenuItem(
                 WatchUi.loadResource(Rez.Strings.NoEntitiesInArea) as String, null, :none, null));
         }
@@ -57,13 +57,13 @@ class AreaEntityMenu extends WatchUi.Menu2 {
     function setModel(model as AreaEntityMenuModel) as Void {
         setTitle(model.title);
 
-        for (var index = 0; index < model.lights.size(); index++) {
-            var row = model.lights[index];
+        for (var index = 0; index < model.toggles.size(); index++) {
+            var row = model.toggles[index];
             var item = findItem(row.rowId);
 
             if (item != null) {
                 (item as WatchUi.ToggleMenuItem).setEnabled(row.isOn);
-                item.setSubLabel(toLightSubLabel(row));
+                item.setSubLabel(toToggleSubLabel(row));
             }
         }
 
@@ -86,7 +86,7 @@ class AreaEntityMenu extends WatchUi.Menu2 {
         return name == null || (name as String).length() == 0 ? rowId : name as String;
     }
 
-    static function toLightSubLabel(row as LightRowModel) as String or Null {
+    static function toToggleSubLabel(row as ToggleRowModel) as String or Null {
         var memberCount = row.memberCount;
 
         if (!row.isAvailable) {
@@ -95,14 +95,10 @@ class AreaEntityMenu extends WatchUi.Menu2 {
         }
 
         if (memberCount == null) {
-            return null;
+            return row.subLabel;
         }
 
-        if (memberCount == 1) {
-            return WatchUi.loadResource(Rez.Strings.GroupLightCountOne) as String;
-        }
-
-        return Lang.format(WatchUi.loadResource(Rez.Strings.GroupLightCount) as String, [memberCount]);
+        return toGroupCountLabel(EntityId.domainOf(row.rowId), memberCount);
     }
 
     static function toSensorSubLabel(row as SensorRowModel) as String {
@@ -113,5 +109,17 @@ class AreaEntityMenu extends WatchUi.Menu2 {
         }
 
         return friendlyState as String;
+    }
+
+    private static function toGroupCountLabel(domain as String, memberCount as Number) as String {
+        var isFan = domain.equals("fan");
+
+        if (memberCount == 1) {
+            return WatchUi.loadResource(
+                isFan ? Rez.Strings.GroupFanCountOne : Rez.Strings.GroupLightCountOne) as String;
+        }
+
+        return Lang.format(WatchUi.loadResource(
+            isFan ? Rez.Strings.GroupFanCount : Rez.Strings.GroupLightCount) as String, [memberCount]);
     }
 }

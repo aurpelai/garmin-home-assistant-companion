@@ -9,6 +9,11 @@ module EntitySorterTest {
         return new LightModel(id, false, name, available, "area.a", memberIds);
     }
 
+    function fan(id as String, name as String, available as Boolean,
+                 memberIds as Array<String> or Null) as FanModel {
+        return new FanModel(id, false, name, available, "area.a", memberIds, null);
+    }
+
     function sensor(id as String, deviceClass as String) as SensorModel {
         return new SensorModel(id, "1", deviceClass, id, true, "area.a");
     }
@@ -20,12 +25,12 @@ module EntitySorterTest {
 
 (:test)
 function lightsAreSortedAvailableFirstThenGroupsThenByName(logger as Test.Logger) as Boolean {
-    var sorted = EntitySorter.sortLights([
+    var sorted = EntitySorter.sortToggleables([
         EntitySorterTest.light("light.dark", "Aaa Broken", false, null),
         EntitySorterTest.light("light.aaa", "Aaa", true, null),
         EntitySorterTest.light("light.mid", "Ähtäri", true, null),
         EntitySorterTest.light("light.zzz_group", "Zzz", true, ["light.aaa"])
-    ]);
+    ] as Array<ToggleableModel>);
 
     Test.assertEqual(sorted.size(), 4);
     Test.assertEqual(sorted[0].id, "light.zzz_group");
@@ -36,11 +41,28 @@ function lightsAreSortedAvailableFirstThenGroupsThenByName(logger as Test.Logger
 }
 
 (:test)
+function fansAreSortedByTheSameRulesAsLights(logger as Test.Logger) as Boolean {
+    var sorted = EntitySorter.sortToggleables([
+        EntitySorterTest.fan("fan.dark", "Aaa Broken", false, null),
+        EntitySorterTest.fan("fan.aaa", "Aaa", true, null),
+        EntitySorterTest.fan("fan.mid", "Ähtäri", true, null),
+        EntitySorterTest.fan("fan.zzz_group", "Zzz", true, ["fan.aaa"])
+    ] as Array<ToggleableModel>);
+
+    Test.assertEqual(sorted.size(), 4);
+    Test.assertEqual(sorted[0].id, "fan.zzz_group");
+    Test.assertEqual(sorted[1].id, "fan.aaa");
+    Test.assertEqual(sorted[2].id, "fan.mid");
+    Test.assertEqual(sorted[3].id, "fan.dark");
+    return true;
+}
+
+(:test)
 function anUnavailableGroupLeadsItsBucketEvenWithNoReachableMembers(logger as Test.Logger) as Boolean {
-    var sorted = EntitySorter.sortLights([
+    var sorted = EntitySorter.sortToggleables([
         EntitySorterTest.light("light.dark", "Aaa Broken", false, null),
         EntitySorterTest.light("light.dead_group", "Zzz Group", false, [] as Array<String>)
-    ]);
+    ] as Array<ToggleableModel>);
 
     Test.assertEqual(sorted[0].id, "light.dead_group");
     Test.assertEqual(sorted[1].id, "light.dark");
@@ -49,10 +71,10 @@ function anUnavailableGroupLeadsItsBucketEvenWithNoReachableMembers(logger as Te
 
 (:test)
 function lightsWithEqualNamesAreSortedByIdRatherThanArbitrarily(logger as Test.Logger) as Boolean {
-    var sorted = EntitySorter.sortLights([
+    var sorted = EntitySorter.sortToggleables([
         EntitySorterTest.light("light.b", "Lampe", true, null),
         EntitySorterTest.light("light.a", "Lampe", true, null)
-    ]);
+    ] as Array<ToggleableModel>);
 
     Test.assertEqual(sorted[0].id, "light.a");
     Test.assertEqual(sorted[1].id, "light.b");

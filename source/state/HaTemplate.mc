@@ -136,6 +136,30 @@ module HaTemplate {
         "{{ dict(lights=ns.out, areas=ns.areas, floors=ns.floors, " +
             "home=(lightSummary(ns.home) | trim or none)) | tojson }}";
 
+    // Per entity only, mirroring the lights walk: the percentage comes through
+    // whatever the state, formatted here so the watch shows it verbatim.
+    const FANS = PRELUDE +
+        "{% set ns = namespace(out={}) %}" +
+        "{% for a in areas() %}" +
+        "{% for e in area_entities(a) | reject('is_hidden_entity') | list %}" +
+        "{% if e.startswith('fan.') and states[e] is not none %}" +
+        "{% set members = expand(e) | rejectattr('entity_id', 'is_hidden_entity') " +
+            "| map(attribute='entity_id') | list %}" +
+        "{% if e not in groups or members | count > 0 or is_state(e, 'unavailable') %}" +
+        "{% set p = state_attr(e, 'percentage') | default(none) %}" +
+        "{% set fan = dict(state=is_state(e, 'on'), name=states[e].name, area_id=a, " +
+            "available=not is_state(e, 'unavailable'), " +
+            "speed=(p | round | int ~ ' %') if p is not none else none) %}" +
+        "{% if e in groups %}" +
+        "{% set fan = dict(fan, memberIds=members) %}" +
+        "{% endif %}" +
+        "{% set ns.out = dict(ns.out, **{e: fan}) %}" +
+        "{% endif %}" +
+        "{% endif %}" +
+        "{% endfor %}" +
+        "{% endfor %}" +
+        "{{ dict(fans=ns.out) | tojson }}";
+
     // `states(e, true, true)` keeps HA's own display precision and unit as a
     // string, so the menu shows exactly what the user's dashboard shows for a
     // single sensor.
@@ -183,6 +207,9 @@ module HaTemplate {
         }
         if (target == FetchTarget.LIGHTS) {
             return LIGHTS;
+        }
+        if (target == FetchTarget.FANS) {
+            return FANS;
         }
         if (target == FetchTarget.GLANCE) {
             return GLANCE;

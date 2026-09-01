@@ -91,6 +91,10 @@ class ClientFixture {
     static function emptyRenderPayload() as Dictionary {
         return { ResponseType.TEMPLATE_RENDER_ROOT_KEY => "{}" };
     }
+
+    static function domainOf(gateway as FakeRequestGateway, index as Number) as String {
+        return ((gateway.sent[index] as SentRequest).body.get("data") as Dictionary).get("domain") as String;
+    }
 }
 
 (:test)
@@ -207,7 +211,7 @@ function aSuccessfulRegistrationPersistsTheIdForLaterRequests(logger as Test.Log
 
     Test.assertEqual(capture.result as String, "fresh-id");
 
-    client.queueLightToggle("light.a", new ResultCapture().method(:onResult));
+    client.queueToggle("light.a", new ResultCapture().method(:onResult));
     Test.assertEqual(gateway.count(), 2);
     return true;
 }
@@ -335,7 +339,7 @@ function aToggleWithNoRegistrationRegistersAndThenGoesOut(logger as Test.Logger)
     var client = ClientFixture.clientWith(gateway, scheduler);
     var capture = new ResultCapture();
 
-    client.queueLightToggle("light.a", capture.method(:onResult));
+    client.queueToggle("light.a", capture.method(:onResult));
 
     Test.assertEqual(gateway.count(), 1);
     Test.assert(gateway.isRegistration(0));
@@ -458,8 +462,8 @@ function aChangeQueuesRatherThanBeingDropped(logger as Test.Logger) as Boolean {
     var first = new ResultCapture();
     var second = new ResultCapture();
 
-    client.queueLightToggle("light.a", first.method(:onResult));
-    client.queueLightToggle("light.b", second.method(:onResult));
+    client.queueToggle("light.a", first.method(:onResult));
+    client.queueToggle("light.b", second.method(:onResult));
 
     Test.assertEqual(gateway.count(), 1);
 
@@ -485,7 +489,7 @@ function changesGoOutBeforeFetches(logger as Test.Logger) as Boolean {
     var log = new TargetLog();
 
     client.refresh(log.method(:onTarget));
-    client.queueLightToggle("light.a", new ResultCapture().method(:onResult));
+    client.queueToggle("light.a", new ResultCapture().method(:onResult));
 
     gateway.reply(0, 200, ClientFixture.emptyRenderPayload());
 
@@ -513,9 +517,10 @@ function aRefreshTriggeredWhileOneIsIncompleteIsDropped(logger as Test.Logger) a
     gateway.reply(0, 200, ClientFixture.emptyRenderPayload());
     gateway.reply(1, 200, ClientFixture.emptyRenderPayload());
     gateway.reply(2, 200, ClientFixture.emptyRenderPayload());
+    gateway.reply(3, 200, ClientFixture.emptyRenderPayload());
 
-    Test.assertEqual(gateway.count(), 3);
-    Test.assertEqual(log.targets.size(), 3);
+    Test.assertEqual(gateway.count(), 4);
+    Test.assertEqual(log.targets.size(), 4);
     Test.assert(!client.isRefreshing());
     return true;
 }
@@ -528,8 +533,8 @@ function aReplyDoesNotStartARefreshWhileChangesAreQueued(logger as Test.Logger) 
     Registration.seed("some-id");
     var log = new TargetLog();
 
-    client.queueLightToggle("light.a", new ResultCapture().method(:onResult));
-    client.queueLightToggle("light.b", new ResultCapture().method(:onResult));
+    client.queueToggle("light.a", new ResultCapture().method(:onResult));
+    client.queueToggle("light.b", new ResultCapture().method(:onResult));
     client.refresh(log.method(:onTarget));
 
     Test.assertEqual(log.targets.size(), 0);
@@ -545,8 +550,8 @@ function theQueueDrainsOnlyOnceTheThresholdIsExhausted(logger as Test.Logger) as
     var first = new ResultCapture();
     var second = new ResultCapture();
 
-    client.queueLightToggle("light.a", first.method(:onResult));
-    client.queueLightToggle("light.b", second.method(:onResult));
+    client.queueToggle("light.a", first.method(:onResult));
+    client.queueToggle("light.b", second.method(:onResult));
 
     gateway.reply(0, -1, null);
     scheduler.runScheduled();
@@ -578,8 +583,8 @@ function cancellingClearsTheQueueAndTheSlotTogether(logger as Test.Logger) as Bo
     Registration.seed("some-id");
     var second = new ResultCapture();
 
-    client.queueLightToggle("light.a", new ResultCapture().method(:onResult));
-    client.queueLightToggle("light.b", second.method(:onResult));
+    client.queueToggle("light.a", new ResultCapture().method(:onResult));
+    client.queueToggle("light.b", second.method(:onResult));
     gateway.reply(0, -1, null);
 
     client.cancelAll();
@@ -592,7 +597,7 @@ function cancellingClearsTheQueueAndTheSlotTogether(logger as Test.Logger) as Bo
     Test.assert(second.result == null);
     Test.assert(second.error == null);
 
-    client.queueLightToggle("light.c", new ResultCapture().method(:onResult));
+    client.queueToggle("light.c", new ResultCapture().method(:onResult));
 
     Test.assertEqual(gateway.count(), 2);
     return true;
@@ -616,8 +621,9 @@ function aRefreshWhereOneTargetFailsNeverStampsCompletion(logger as Test.Logger)
     scheduler.runScheduled();
     gateway.reply(4, -1, null);
     gateway.reply(5, 200, ClientFixture.emptyRenderPayload());
+    gateway.reply(6, 200, ClientFixture.emptyRenderPayload());
 
-    Test.assertEqual(log.targets.size(), 3);
+    Test.assertEqual(log.targets.size(), 4);
 
     Test.assertEqual((client.getError() as RequestError).reason as Number, -1);
     Test.assert(!client.hasEverRefreshed());
@@ -644,8 +650,28 @@ function aRefreshKeepsTheFirstErrorNotTheLast(logger as Test.Logger) as Boolean 
         scheduler.runScheduled();
     }
     gateway.reply(8, 200, ClientFixture.emptyRenderPayload());
+    gateway.reply(9, 200, ClientFixture.emptyRenderPayload());
 
-    Test.assertEqual(log.targets.size(), 3);
+    Test.assertEqual(log.targets.size(), 4);
     Test.assertEqual((client.getError() as RequestError).reason as Number, 401);
+    return true;
+}
+
+(:test)
+function aToggleCallsTheDomainOfTheEntityItTargets(logger as Test.Logger) as Boolean {
+    var gateway = new FakeRequestGateway();
+    var scheduler = new FakeScheduler();
+    var client = ClientFixture.clientWith(gateway, scheduler);
+    Registration.seed("some-id");
+
+    client.queueToggle("fan.ceiling", new ResultCapture().method(:onResult));
+    gateway.reply(0, 200, null);
+    client.queueToggle("light.a", new ResultCapture().method(:onResult));
+    gateway.reply(1, 200, null);
+    client.queueFloorLights("floor.g", "turn_on", new ResultCapture().method(:onResult));
+
+    Test.assertEqual(ClientFixture.domainOf(gateway, 0), "fan");
+    Test.assertEqual(ClientFixture.domainOf(gateway, 1), "light");
+    Test.assertEqual(ClientFixture.domainOf(gateway, 2), "light");
     return true;
 }

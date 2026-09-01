@@ -60,6 +60,8 @@ class Coordinator {
                     HaPayload.parseFloorLightSummaries(result),
                     HaPayload.parseHomeLightSummary(result));
                 GlanceSummary.setLightSummary(_haState.getHomeLightSummary());
+            } else if (target == FetchTarget.FANS) {
+                _haState.setFans(HaPayload.parseFans(result));
             } else if (target == FetchTarget.SENSORS) {
                 _haState.setSensors(HaPayload.parseSensors(result));
                 _haState.setSensorAggregates(
@@ -105,7 +107,7 @@ class Coordinator {
         }
 
         _haState.override(entityId, !_haState.isOn(entityId));
-        _client.queueLightToggle(entityId, new ToggleReply(self).method(:onSettled));
+        _client.queueToggle(entityId, new ToggleReply(self).method(:onSettled));
         updateDisplay();
     }
 
