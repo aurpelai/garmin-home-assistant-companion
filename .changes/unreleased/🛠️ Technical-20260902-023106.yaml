@@ -1,0 +1,3 @@
+kind: "\U0001F6E0️ Technical"
+body: Lights and fans now share one toggleable model, row, and sort, and the service call derives its domain from the entity id.
+time: 2026-09-02T02:31:06.329702+03:00
