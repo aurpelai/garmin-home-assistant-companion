@@ -21,6 +21,6 @@ module FloorEntityMenuBuilder {
         }
 
         return [new ToggleRowModel(FloorEntityMenuModel.LIGHTS_ROW_ID, null,
-            haState.hasAnyOn(lights), true, null, null)] as Array<ToggleRowModel>;
+            haState.hasAnyOn(lights), null)] as Array<ToggleRowModel>;
     }
 }

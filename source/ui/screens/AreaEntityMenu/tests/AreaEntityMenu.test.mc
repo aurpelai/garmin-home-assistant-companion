@@ -26,8 +26,10 @@ module AreaEntityMenuTest {
     }
 
     function menuOf(haState as HaState) as AreaEntityMenu {
-        var model = AreaEntityMenuBuilder.build(haState, "area.room") as AreaEntityMenuModel;
-        return new AreaEntityMenu(new Coordinator(new HaClient(new WebRequestGateway(), new TimerScheduler())), "area.room", model);
+        var provider = new FakeSubLabelProvider();
+        var model = AreaEntityMenuBuilder.build(haState, "area.room", provider) as AreaEntityMenuModel;
+        return new AreaEntityMenu(new Coordinator(new HaClient(new WebRequestGateway(), new TimerScheduler())),
+            "area.room", model, provider);
     }
 
     function itemOf(menu as AreaEntityMenu, rowId as String) as WatchUi.MenuItem {
@@ -77,50 +79,18 @@ function anEntityMissingFromTheModelKeepsTheItemItHad(logger as Test.Logger) as 
 }
 
 (:test)
-function aToggleSublabelPicksUnavailableOverAGroupCountOrAValue(logger as Test.Logger) as Boolean {
-    var group = new ToggleRowModel("light.grp", "Group", false, false, 3, null);
-    var fan = new ToggleRowModel("fan.a", "Fan", false, false, null, "33 %");
+function aRowShowsItsResolvedSublabelVerbatimAndTracksItAcrossRebuilds(logger as Test.Logger) as Boolean {
+    var menu = AreaEntityMenuTest.menuOf(AreaEntityMenuTest.stateOf({
+        "light.a" => { "state" => true, "area_id" => "area.room", "brightness" => "50 %" }
+    }, {} as Dictionary));
 
-    Test.assertEqual(AreaEntityMenu.toToggleSubLabel(group) as String, "Group unavailable");
-    Test.assertEqual(AreaEntityMenu.toToggleSubLabel(fan) as String, "Unavailable");
-    return true;
-}
+    Test.assertEqual(AreaEntityMenuTest.itemOf(menu, "light.a").getSubLabel() as String, "50 %");
 
-(:test)
-function anAvailableGroupShowsItsMemberCountInItsOwnDomainsWords(logger as Test.Logger) as Boolean {
-    var oneLight = new ToggleRowModel("light.one", "One", true, true, 1, "50 %");
-    var manyLights = new ToggleRowModel("light.many", "Many", true, true, 4, null);
-    var oneFan = new ToggleRowModel("fan.one", "One", true, true, 1, "33 %");
-    var manyFans = new ToggleRowModel("fan.many", "Many", true, true, 4, null);
+    menu.rebuild(AreaEntityMenuTest.stateOf({
+        "light.a" => { "state" => false, "area_id" => "area.room" }
+    }, {} as Dictionary));
 
-    Test.assertEqual(AreaEntityMenu.toToggleSubLabel(oneLight) as String, "Group • 1 Light");
-    Test.assertEqual(AreaEntityMenu.toToggleSubLabel(manyLights) as String, "Group • 4 Lights");
-    Test.assertEqual(AreaEntityMenu.toToggleSubLabel(oneFan) as String, "Group • 1 Fan");
-    Test.assertEqual(AreaEntityMenu.toToggleSubLabel(manyFans) as String, "Group • 4 Fans");
-    return true;
-}
-
-(:test)
-function aPlainToggleRowShowsItsValueSublabelOrNothing(logger as Test.Logger) as Boolean {
-    var fan = new ToggleRowModel("fan.a", "Fan", true, true, null, "33 %");
-    var light = new ToggleRowModel("light.a", "Light", true, true, null, "50 %");
-    var bare = new ToggleRowModel("light.b", "Light", true, true, null, null);
-
-    Test.assertEqual(AreaEntityMenu.toToggleSubLabel(fan) as String, "33 %");
-    Test.assertEqual(AreaEntityMenu.toToggleSubLabel(light) as String, "50 %");
-    Test.assert(AreaEntityMenu.toToggleSubLabel(bare) == null);
-    return true;
-}
-
-(:test)
-function aSensorSublabelPicksUnavailableOverTheDisplayValue(logger as Test.Logger) as Boolean {
-    // UNVERIFIED: Home Assistant formats an unavailable sensor as the word
-    // unavailable followed by its unit.
-    var dead = new SensorRowModel("sensor.t", "Temp", "unavailable °C", false);
-    var live = new SensorRowModel("sensor.t", "Temp", "21.5 °C", true);
-
-    Test.assertEqual(AreaEntityMenu.toSensorSubLabel(dead), "Unavailable");
-    Test.assertEqual(AreaEntityMenu.toSensorSubLabel(live), "21.5 °C");
+    Test.assertEqual(AreaEntityMenuTest.itemOf(menu, "light.a").getSubLabel() as String, "Off");
     return true;
 }
 

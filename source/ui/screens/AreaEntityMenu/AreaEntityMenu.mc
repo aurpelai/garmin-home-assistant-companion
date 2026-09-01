@@ -9,22 +9,25 @@ import Toybox.WatchUi;
 class AreaEntityMenu extends WatchUi.Menu2 {
     private var _coordinator as Coordinator;
     private var _areaId as String;
+    private var _subLabelProvider as SubLabelProvider;
 
-    function initialize(coordinator as Coordinator, areaId as String, model as AreaEntityMenuModel) {
+    function initialize(coordinator as Coordinator, areaId as String, model as AreaEntityMenuModel,
+                        subLabelProvider as SubLabelProvider) {
         Menu2.initialize({ :title => model.title });
         _coordinator = coordinator;
         _areaId = areaId;
+        _subLabelProvider = subLabelProvider;
 
         for (var index = 0; index < model.toggles.size(); index++) {
             var row = model.toggles[index];
             addItem(new WatchUi.ToggleMenuItem(
-                resolveLabel(row.name, row.rowId), toToggleSubLabel(row), row.rowId, row.isOn, null));
+                resolveLabel(row.name, row.rowId), row.subLabel, row.rowId, row.isOn, null));
         }
 
         for (var index = 0; index < model.sensors.size(); index++) {
             var row = model.sensors[index];
             addItem(new WatchUi.MenuItem(
-                resolveLabel(row.name, row.rowId), toSensorSubLabel(row), row.rowId, null));
+                resolveLabel(row.name, row.rowId), row.subLabel, row.rowId, null));
         }
 
         if (model.toggles.size() == 0 && model.sensors.size() == 0) {
@@ -48,7 +51,7 @@ class AreaEntityMenu extends WatchUi.Menu2 {
     }
 
     function rebuild(haState as HaState) as Void {
-        var model = AreaEntityMenuBuilder.build(haState, _areaId);
+        var model = AreaEntityMenuBuilder.build(haState, _areaId, _subLabelProvider);
         if (model != null) {
             setModel(model);
         }
@@ -63,7 +66,7 @@ class AreaEntityMenu extends WatchUi.Menu2 {
 
             if (item != null) {
                 (item as WatchUi.ToggleMenuItem).setEnabled(row.isOn);
-                item.setSubLabel(toToggleSubLabel(row));
+                item.setSubLabel(row.subLabel);
             }
         }
 
@@ -72,7 +75,7 @@ class AreaEntityMenu extends WatchUi.Menu2 {
             var item = findItem(row.rowId);
 
             if (item != null) {
-                item.setSubLabel(toSensorSubLabel(row));
+                item.setSubLabel(row.subLabel);
             }
         }
     }
@@ -84,42 +87,5 @@ class AreaEntityMenu extends WatchUi.Menu2 {
 
     static function resolveLabel(name as String or Null, rowId as String) as String {
         return name == null || (name as String).length() == 0 ? rowId : name as String;
-    }
-
-    static function toToggleSubLabel(row as ToggleRowModel) as String or Null {
-        var memberCount = row.memberCount;
-
-        if (!row.isAvailable) {
-            return WatchUi.loadResource(
-                memberCount == null ? Rez.Strings.Unavailable : Rez.Strings.GroupUnavailable) as String;
-        }
-
-        if (memberCount == null) {
-            return row.subLabel;
-        }
-
-        return toGroupCountLabel(EntityId.domainOf(row.rowId), memberCount);
-    }
-
-    static function toSensorSubLabel(row as SensorRowModel) as String {
-        var friendlyState = row.friendlyState;
-
-        if (!row.isAvailable || friendlyState == null) {
-            return WatchUi.loadResource(Rez.Strings.Unavailable) as String;
-        }
-
-        return friendlyState as String;
-    }
-
-    private static function toGroupCountLabel(domain as String, memberCount as Number) as String {
-        var isFan = domain.equals("fan");
-
-        if (memberCount == 1) {
-            return WatchUi.loadResource(
-                isFan ? Rez.Strings.GroupFanCountOne : Rez.Strings.GroupLightCountOne) as String;
-        }
-
-        return Lang.format(WatchUi.loadResource(
-            isFan ? Rez.Strings.GroupFanCount : Rez.Strings.GroupLightCount) as String, [memberCount]);
     }
 }

@@ -3,14 +3,11 @@ import Toybox.Lang;
 class SensorRowModel {
     public var rowId as String;
     public var name as String or Null;
-    public var friendlyState as String or Null;
-    public var isAvailable as Boolean;
+    public var subLabel as String;
 
-    function initialize(rowId as String, name as String or Null, friendlyState as String or Null,
-                        isAvailable as Boolean) {
+    function initialize(rowId as String, name as String or Null, subLabel as String) {
         self.rowId = rowId;
         self.name = name;
-        self.friendlyState = friendlyState;
-        self.isAvailable = isAvailable;
+        self.subLabel = subLabel;
     }
 }
