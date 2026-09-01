@@ -30,7 +30,7 @@ class GlanceView extends WatchUi.GlanceView {
         dc.clear();
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
 
-        var rows = buildStatusRows(dc);
+        var rows = buildStatusRows();
         var height = dc.getHeight();
         var count = rows.size() + 1;
 
@@ -38,36 +38,31 @@ class GlanceView extends WatchUi.GlanceView {
 
         for (var index = 0; index < rows.size(); index++) {
             var y = (index + 2) * height / (count + 1);
-            var row = rows[index];
-            if (row instanceof MultiStatusRow) {
-                drawItems(dc, y, row.items);
-            } else {
-                drawItems(dc, y, [new StatusItem(row.icon, row.tint, row.text, 0)]);
-            }
+            drawItems(dc, y, rows[index].items);
         }
     }
 
-    private function buildStatusRows(dc as Graphics.Dc) as Array<StatusRow or MultiStatusRow> {
+    private function buildStatusRows() as Array<StatusRow> {
         if (!System.getDeviceSettings().phoneConnected) {
-            return [new StatusRow(Rez.Drawables.GlanceError, Graphics.COLOR_RED,
-                WatchUi.loadResource(Rez.Strings.GlancePhoneDisconnected) as String)];
+            return [new StatusRow([new StatusItem(Rez.Drawables.GlanceError, Graphics.COLOR_RED,
+                WatchUi.loadResource(Rez.Strings.GlancePhoneDisconnected) as String)])];
         }
 
-        var rows = [] as Array<StatusRow or MultiStatusRow>;
+        var rows = [] as Array<StatusRow>;
 
         var lightRow = buildLightRow();
         if (lightRow != null) {
             rows.add(lightRow);
         }
 
-        var climateRow = buildClimateRow(dc);
+        var climateRow = buildClimateRow();
         if (climateRow != null) {
             rows.add(climateRow);
         }
 
         if (rows.size() == 0) {
-            return [new StatusRow(Rez.Drawables.GlanceInfo, Graphics.COLOR_YELLOW,
-                WatchUi.loadResource(Rez.Strings.GlanceSetupIncomplete) as String)];
+            return [new StatusRow([new StatusItem(Rez.Drawables.GlanceInfo, Graphics.COLOR_YELLOW,
+                WatchUi.loadResource(Rez.Strings.GlanceSetupIncomplete) as String)])];
         }
 
         return rows;
@@ -91,10 +86,10 @@ class GlanceView extends WatchUi.GlanceView {
                 ? Rez.Strings.GlanceSomeLightsOn
                 : Rez.Strings.GlanceAllLightsOff;
 
-        return new StatusRow(icon, tint, WatchUi.loadResource(text) as String);
+        return new StatusRow([new StatusItem(icon, tint, WatchUi.loadResource(text) as String)]);
     }
 
-    private function buildClimateRow(dc as Graphics.Dc) as MultiStatusRow or Null {
+    private function buildClimateRow() as StatusRow or Null {
         var temperature = GlanceSummary.getTemperature();
         var humidity = GlanceSummary.getHumidity();
         var items = [] as Array<StatusItem>;
@@ -103,20 +98,18 @@ class GlanceView extends WatchUi.GlanceView {
             items.add(new StatusItem(
                 Rez.Drawables.GlanceThermometer,
                 Graphics.COLOR_ORANGE,
-                temperature,
-                0
+                temperature
             ));
         }
         if (humidity != null) {
             items.add(new StatusItem(
                 Rez.Drawables.GlanceHumidity,
                 Graphics.COLOR_BLUE,
-                humidity,
-                (dc.getWidth() / 2).toNumber()
+                humidity
             ));
         }
 
-        return items.size() == 0 ? null : new MultiStatusRow(items);
+        return items.size() == 0 ? null : new StatusRow(items);
     }
 
     private function drawTitle(dc as Graphics.Dc, y as Number) as Void {
@@ -125,11 +118,14 @@ class GlanceView extends WatchUi.GlanceView {
     }
 
     private function drawItems(dc as Graphics.Dc, y as Number, items as Array<StatusItem>) as Void {
+        var columnWidth = dc.getWidth() / items.size();
+
         for (var index = 0; index < items.size(); index++) {
             var item = items[index];
+            var x = columnWidth * index;
             var icon = WatchUi.loadResource(item.icon) as BitmapResource;
-            dc.drawBitmap2(item.x, y - icon.getHeight() / 2, icon, { :tintColor => item.tint });
-            dc.drawText(item.x + icon.getWidth() + ICON_GAP, y, _statusFont, item.text,
+            dc.drawBitmap2(x, y - icon.getHeight() / 2, icon, { :tintColor => item.tint });
+            dc.drawText(x + icon.getWidth() + ICON_GAP, y, _statusFont, item.text,
                 Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
         }
     }
