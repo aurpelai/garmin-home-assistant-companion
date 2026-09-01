@@ -2,13 +2,9 @@ import Toybox.Lang;
 
 (:glance)
 class StatusRow {
-    public var icon as ResourceId;
-    public var tint as Number;
-    public var text as String;
+    public var items as Array<StatusItem>;
 
-    function initialize(icon as ResourceId, tint as Number, text as String) {
-        self.icon = icon;
-        self.tint = tint;
-        self.text = text;
+    function initialize(items as Array<StatusItem>) {
+        self.items = items;
     }
 }
