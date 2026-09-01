@@ -23,6 +23,43 @@ module AreaEntityMenuModelTest {
     function fan(state as Boolean, speed as String or Null) as Dictionary {
         return { "state" => state, "area_id" => "area.room", "available" => true, "speed" => speed };
     }
+
+    function light(state as Boolean, brightness as String or Null) as Dictionary {
+        return { "state" => state, "area_id" => "area.room", "available" => true, "brightness" => brightness };
+    }
+}
+
+(:test)
+function aLightYieldsAToggleRowThatShowsItsBrightnessOnlyWhileOn(logger as Test.Logger) as Boolean {
+    var haState = AreaEntityMenuModelTest.stateOf(AreaEntityMenuModelTest.oneRoom(), {
+        "light.on" => AreaEntityMenuModelTest.light(true, "50 %"),
+        "light.off" => AreaEntityMenuModelTest.light(false, null)
+    }, {} as Dictionary, {} as Dictionary);
+    var toggles = (AreaEntityMenuBuilder.build(haState, "area.room") as AreaEntityMenuModel).toggles;
+
+    Test.assertEqual(toggles[0].rowId, "light.off");
+    Test.assert(toggles[0].subLabel == null);
+    Test.assertEqual(toggles[1].rowId, "light.on");
+    Test.assertEqual(toggles[1].subLabel as String, "50 %");
+    return true;
+}
+
+(:test)
+function aGroupRowNeverCarriesAValueEvenWhenHomeAssistantReportsOne(logger as Test.Logger) as Boolean {
+    var haState = AreaEntityMenuModelTest.stateOf(AreaEntityMenuModelTest.oneRoom(), {
+        "light.grp" => { "state" => true, "area_id" => "area.room", "available" => true,
+            "memberIds" => ["light.a", "light.b"], "brightness" => "50 %" }
+    }, {
+        "fan.grp" => { "state" => true, "area_id" => "area.room", "available" => true,
+            "memberIds" => ["fan.a", "fan.b"], "speed" => "33 %" }
+    }, {} as Dictionary);
+    var toggles = (AreaEntityMenuBuilder.build(haState, "area.room") as AreaEntityMenuModel).toggles;
+
+    Test.assertEqual(toggles[0].memberCount as Number, 2);
+    Test.assert(toggles[0].subLabel == null);
+    Test.assertEqual(toggles[1].memberCount as Number, 2);
+    Test.assert(toggles[1].subLabel == null);
+    return true;
 }
 
 (:test)

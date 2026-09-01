@@ -115,8 +115,10 @@ module HaTemplate {
         "{% set members = expand(e) | rejectattr('entity_id', 'is_hidden_entity') " +
             "| map(attribute='entity_id') | list %}" +
         "{% if e not in groups or members | count > 0 or is_state(e, 'unavailable') %}" +
+        "{% set b = state_attr(e, 'brightness') | default(none) %}" +
         "{% set light = dict(state=is_state(e, 'on'), name=states[e].name, area_id=a, " +
-            "available=not is_state(e, 'unavailable')) %}" +
+            "available=not is_state(e, 'unavailable'), " +
+            "brightness=((b / 255 * 100) | round | int ~ ' %') if b is not none else none) %}" +
         "{% if e in groups %}" +
         "{% set light = dict(light, memberIds=members) %}" +
         "{% endif %}" +
@@ -136,8 +138,9 @@ module HaTemplate {
         "{{ dict(lights=ns.out, areas=ns.areas, floors=ns.floors, " +
             "home=(lightSummary(ns.home) | trim or none)) | tojson }}";
 
-    // Per entity only, mirroring the lights walk: the percentage comes through
-    // whatever the state, formatted here so the watch shows it verbatim.
+    // Per entity only, mirroring the lights walk. Like brightness, the percentage
+    // comes through whatever the state and is formatted here so the watch shows
+    // it verbatim.
     const FANS = PRELUDE +
         "{% set ns = namespace(out={}) %}" +
         "{% for a in areas() %}" +

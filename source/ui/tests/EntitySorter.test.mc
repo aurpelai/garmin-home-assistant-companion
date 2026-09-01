@@ -6,7 +6,7 @@ module EntitySorterTest {
 
     function light(id as String, name as String, available as Boolean,
                    memberIds as Array<String> or Null) as LightModel {
-        return new LightModel(id, false, name, available, "area.a", memberIds);
+        return new LightModel(id, false, name, available, "area.a", memberIds, null);
     }
 
     function fan(id as String, name as String, available as Boolean,

@@ -92,7 +92,7 @@ class ClientFixture {
         return { ResponseType.TEMPLATE_RENDER_ROOT_KEY => "{}" };
     }
 
-    static function domainOf(gateway as FakeRequestGateway, index as Number) as String {
+    static function sentDomain(gateway as FakeRequestGateway, index as Number) as String {
         return ((gateway.sent[index] as SentRequest).body.get("data") as Dictionary).get("domain") as String;
     }
 }
@@ -670,8 +670,8 @@ function aToggleCallsTheDomainOfTheEntityItTargets(logger as Test.Logger) as Boo
     gateway.reply(1, 200, null);
     client.queueFloorLights("floor.g", "turn_on", new ResultCapture().method(:onResult));
 
-    Test.assertEqual(ClientFixture.domainOf(gateway, 0), "fan");
-    Test.assertEqual(ClientFixture.domainOf(gateway, 1), "light");
-    Test.assertEqual(ClientFixture.domainOf(gateway, 2), "light");
+    Test.assertEqual(ClientFixture.sentDomain(gateway, 0), "fan");
+    Test.assertEqual(ClientFixture.sentDomain(gateway, 1), "light");
+    Test.assertEqual(ClientFixture.sentDomain(gateway, 2), "light");
     return true;
 }

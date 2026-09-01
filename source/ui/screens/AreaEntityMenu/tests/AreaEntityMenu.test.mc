@@ -88,9 +88,9 @@ function aToggleSublabelPicksUnavailableOverAGroupCountOrAValue(logger as Test.L
 
 (:test)
 function anAvailableGroupShowsItsMemberCountInItsOwnDomainsWords(logger as Test.Logger) as Boolean {
-    var oneLight = new ToggleRowModel("light.one", "One", true, true, 1, null);
+    var oneLight = new ToggleRowModel("light.one", "One", true, true, 1, "50 %");
     var manyLights = new ToggleRowModel("light.many", "Many", true, true, 4, null);
-    var oneFan = new ToggleRowModel("fan.one", "One", true, true, 1, null);
+    var oneFan = new ToggleRowModel("fan.one", "One", true, true, 1, "33 %");
     var manyFans = new ToggleRowModel("fan.many", "Many", true, true, 4, null);
 
     Test.assertEqual(AreaEntityMenu.toToggleSubLabel(oneLight) as String, "Group • 1 Light");
@@ -103,10 +103,12 @@ function anAvailableGroupShowsItsMemberCountInItsOwnDomainsWords(logger as Test.
 (:test)
 function aPlainToggleRowShowsItsValueSublabelOrNothing(logger as Test.Logger) as Boolean {
     var fan = new ToggleRowModel("fan.a", "Fan", true, true, null, "33 %");
-    var light = new ToggleRowModel("light.a", "Light", true, true, null, null);
+    var light = new ToggleRowModel("light.a", "Light", true, true, null, "50 %");
+    var bare = new ToggleRowModel("light.b", "Light", true, true, null, null);
 
     Test.assertEqual(AreaEntityMenu.toToggleSubLabel(fan) as String, "33 %");
-    Test.assert(AreaEntityMenu.toToggleSubLabel(light) == null);
+    Test.assertEqual(AreaEntityMenu.toToggleSubLabel(light) as String, "50 %");
+    Test.assert(AreaEntityMenu.toToggleSubLabel(bare) == null);
     return true;
 }
 

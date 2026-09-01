@@ -25,7 +25,8 @@ module HaPayload {
                 asString(entry.get("name")),
                 asAvailable(entry.get("available")),
                 asStringOrNull(entry.get("area_id")),
-                asMemberIds(entry.get("memberIds"))));
+                asMemberIds(entry.get("memberIds")),
+                asStringOrNull(entry.get("brightness"))));
         }
 
         return lights;

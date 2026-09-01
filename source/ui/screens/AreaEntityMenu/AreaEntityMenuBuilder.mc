@@ -43,6 +43,12 @@ module AreaEntityMenuBuilder {
     }
 
     function toSubLabel(toggleable as ToggleableModel) as String or Null {
-        return toggleable instanceof FanModel && toggleable.isOn() ? (toggleable as FanModel).speed : null;
+        if (toggleable.memberIds != null || !toggleable.isOn()) {
+            return null;
+        }
+
+        return toggleable instanceof FanModel
+            ? (toggleable as FanModel).speed
+            : (toggleable as LightModel).brightness;
     }
 }

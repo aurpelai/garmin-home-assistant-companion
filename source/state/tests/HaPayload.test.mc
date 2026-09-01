@@ -130,6 +130,20 @@ function memberIdsArePresentOnGroupsOnly(logger as Test.Logger) as Boolean {
 }
 
 (:test)
+function aLightCarriesTheBrightnessHomeAssistantFormattedOrNone(logger as Test.Logger) as Boolean {
+    var parsed = HaPayload.parseLights(HaPayloadTest.lightsPayload({
+        "light.lit" => { "state" => true, "area_id" => "area.a", "brightness" => "50 %" },
+        "light.dark" => { "state" => false, "area_id" => "area.a", "brightness" => null },
+        "light.mute" => { "state" => false, "area_id" => "area.a" }
+    }));
+
+    Test.assertEqual((parsed.get("light.lit") as LightModel).brightness as String, "50 %");
+    Test.assert((parsed.get("light.dark") as LightModel).brightness == null);
+    Test.assert((parsed.get("light.mute") as LightModel).brightness == null);
+    return true;
+}
+
+(:test)
 function aFanParsesLikeALightPlusItsSpeed(logger as Test.Logger) as Boolean {
     var parsed = HaPayload.parseFans(HaPayloadTest.fansPayload({
         "fan.ceiling" => { "state" => true, "name" => "Deckenventilator", "area_id" => "area.kitchen",
