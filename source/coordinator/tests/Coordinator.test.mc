@@ -54,8 +54,8 @@ module CoordinatorTest {
         haState.setZone(HaPayload.parseZone(structurePayload));
         haState.setAreas(HaPayload.parseAreas(structurePayload));
         haState.setFloors(HaPayload.parseFloors(structurePayload));
-        haState.setLights(HaPayload.parseLights(JsonParser.parse(lights)));
-        haState.setFans(HaPayload.parseFans(JsonParser.parse(fans)));
+        haState.setToggleables(Domain.LIGHT, HaPayload.parseLights(JsonParser.parse(lights)));
+        haState.setToggleables(Domain.FAN, HaPayload.parseFans(JsonParser.parse(fans)));
         return haState;
     }
 
