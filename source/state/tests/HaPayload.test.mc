@@ -47,22 +47,9 @@ function sensorWithoutFriendlyStateIsAbsent(logger as Test.Logger) as Boolean {
 function malformedAggregatePayloadsYieldEmptyRatherThanThrow(logger as Test.Logger) as Boolean {
     var junk = { "areas" => "garbage", "floors" => 7, "home" => ["nope"] };
 
-    Test.assertEqual(HaPayload.parseAreaLightCounts(junk).size(), 0);
-    Test.assertEqual(HaPayload.parseFloorLightSummaries(junk).size(), 0);
     Test.assert(HaPayload.parseHomeLightSummary(junk) == null);
     Test.assertEqual(HaPayload.parseAverages(junk, "areas").size(), 0);
     Test.assertEqual(HaPayload.parseHomeAverages(junk).size(), 0);
-    Test.assert(HaPayload.parseAreaLightCounts(null) != null);
-    return true;
-}
-
-(:test)
-function nonStringAggregateValuesAreDroppedNotStored(logger as Test.Logger) as Boolean {
-    var lights = { "floors" => { "floor.g" => 5, "floor.h" => "some_on" } };
-    var summaries = HaPayload.parseFloorLightSummaries(lights);
-
-    Test.assertEqual(summaries.size(), 1);
-    Test.assert((summaries.get("floor.h") as String).equals("some_on"));
     return true;
 }
 

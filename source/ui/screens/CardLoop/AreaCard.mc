@@ -10,21 +10,21 @@ class AreaCard extends Card {
     private const LIGHTBULB_UNAVAILABLE = WatchUi.loadResource(Rez.Drawables.LightbulbUnavailable) as WatchUi.BitmapResource;
 
     private var _floorName as String or Null;
-    private var _lights as LightCount;
+    public var lights as ToggleableCount;
 
     function initialize(id as String, floorId as String or Null, name as String,
                         floorName as String or Null, readings as Array<SensorReading>,
-                        lights as LightCount) {
+                        lights as ToggleableCount) {
         Card.initialize(id, floorId, name, readings);
         _floorName = floorName;
-        _lights = lights;
+        self.lights = lights;
     }
 
     function draw(dc as Graphics.Dc) as Void {
         drawFrame(dc, _floorName);
 
-        if (_lights.available + _lights.unavailable > 0) {
-            drawLightIndicators(dc, _lights);
+        if (lights.available + lights.unavailable > 0) {
+            drawLightIndicators(dc, lights);
         }
     }
 
@@ -32,7 +32,7 @@ class AreaCard extends Card {
         coordinator.showAreaMenu(id);
     }
 
-    private function drawLightIndicators(dc as Graphics.Dc, lights as LightCount) as Void {
+    private function drawLightIndicators(dc as Graphics.Dc, lights as ToggleableCount) as Void {
         var totalCount = lights.available + lights.unavailable;
         var step = LIGHTBULB_ON.getWidth() + LIGHT_INDICATOR_GAP;
         var firstX = dc.getWidth() / 2 - (totalCount - 1) * step / 2;

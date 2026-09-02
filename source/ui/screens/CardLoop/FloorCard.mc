@@ -7,7 +7,7 @@ class FloorCard extends Card {
     private const LIGHTS_SOME = WatchUi.loadResource(Rez.Drawables.LightbulbGroupSome) as WatchUi.BitmapResource;
 
     private var _zone as String or Null;
-    private var _lights as String or Null;
+    public var lights as String or Null;
 
     // A floor is its own floor: passing the id as both is what lets the card loop
     // fall back to the floor when a focused area card disappears.
@@ -15,14 +15,14 @@ class FloorCard extends Card {
                         readings as Array<SensorReading>, lights as String or Null) {
         Card.initialize(id, id, name, readings);
         _zone = zone;
-        _lights = lights;
+        self.lights = lights;
     }
 
     function draw(dc as Graphics.Dc) as Void {
         drawFrame(dc, _zone);
 
-        if (_lights != null) {
-            drawLightSummary(dc, _lights);
+        if (lights != null) {
+            drawLightSummary(dc, lights);
         }
     }
 

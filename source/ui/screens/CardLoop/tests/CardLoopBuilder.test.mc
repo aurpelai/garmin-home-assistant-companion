@@ -34,6 +34,16 @@ module CardLoopModelTest {
         return ids;
     }
 
+    function cardOf(model as CardLoopModel, cardId as String) as Card or Null {
+        for (var index = 0; index < model.cards.size(); index++) {
+            if (model.cards[index].id.equals(cardId)) {
+                return model.cards[index];
+            }
+        }
+
+        return null;
+    }
+
     function readingOf(model as CardLoopModel, cardId as String, deviceClass as String) as String {
         for (var index = 0; index < model.cards.size(); index++) {
             var card = model.cards[index];
@@ -94,10 +104,9 @@ function aCardShowsTheMeansHomeAssistantComputedForItsScope(logger as Test.Logge
     }, {} as Dictionary, {
         "sensor.room" => CardLoopModelTest.sensor("temperature", "area.room")
     });
-    haState.setSensorAggregates(
+    haState.setSensorAverages(
         { "area.room" => { "temperature" => "21.0 °C" } },
-        { "floor.g" => { "temperature" => "21.0 °C" } },
-        { "temperature" => "21.0 °C" });
+        { "floor.g" => { "temperature" => "21.0 °C" } });
     var model = CardLoopBuilder.build(haState);
 
     Test.assertEqual(CardLoopModelTest.readingOf(model, "area.room", "temperature"), "21.0 °C");
@@ -117,6 +126,59 @@ function anAreaWithNoEntitiesGetsNoCardAndTakesItsEmptyFloorWithIt(logger as Tes
     Test.assertEqual(
         CardLoopModelTest.cardIds(CardLoopBuilder.build(haState)).toString(),
         ["area.stocked"].toString());
+    return true;
+}
+
+(:test)
+function anOptimisticallyToggledLightMovesTheCardCountAndFloorSummary(logger as Test.Logger) as Boolean {
+    var haState = CardLoopModelTest.stateOf({
+        "areas" => { "area.room" => { "name" => "Room" } },
+        "floors" => { "floor.g" => { "name" => "Ground", "order" => 0, "areas" => ["area.room"] } }
+    }, {
+        "light.room" => CardLoopModelTest.light(false, "area.room")
+    }, {} as Dictionary);
+    haState.override("light.room", true);
+
+    var model = CardLoopBuilder.build(haState);
+    var area = CardLoopModelTest.cardOf(model, "area.room") as AreaCard;
+    var floor = CardLoopModelTest.cardOf(model, "floor.g") as FloorCard;
+
+    Test.assertEqual(area.lights.on, 1);
+    Test.assertEqual(area.lights.available, 1);
+    Test.assert((floor.lights as String).equals(LightSummary.ALL_ON));
+    return true;
+}
+
+(:test)
+function aGroupAndItsMembersMoveTheCountByPhysicalMembersOnly(logger as Test.Logger) as Boolean {
+    var haState = CardLoopModelTest.stateOf({
+        "areas" => { "area.room" => { "name" => "Room" } }
+    }, {
+        "light.group" => { "state" => true, "area_id" => "area.room", "available" => true,
+            "memberIds" => ["light.one", "light.two"] },
+        "light.one" => CardLoopModelTest.light(true, "area.room"),
+        "light.two" => CardLoopModelTest.light(false, "area.room")
+    }, {} as Dictionary);
+
+    var area = CardLoopModelTest.cardOf(CardLoopBuilder.build(haState), "area.room") as AreaCard;
+
+    Test.assertEqual(area.lights.available, 2);
+    Test.assertEqual(area.lights.on, 1);
+    return true;
+}
+
+(:test)
+function aFloorWithNoAvailableLightsYieldsNoSummary(logger as Test.Logger) as Boolean {
+    var haState = CardLoopModelTest.stateOf({
+        "areas" => { "area.room" => { "name" => "Room" } },
+        "floors" => { "floor.g" => { "name" => "Ground", "order" => 0, "areas" => ["area.room"] } }
+    }, {
+        "light.dead" => { "state" => false, "area_id" => "area.room", "available" => false }
+    }, {} as Dictionary);
+
+    var floor = CardLoopModelTest.cardOf(CardLoopBuilder.build(haState), "floor.g") as FloorCard;
+
+    Test.assert(floor.lights == null);
     return true;
 }
 

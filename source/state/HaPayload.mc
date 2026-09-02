@@ -78,32 +78,6 @@ module HaPayload {
         return sensors;
     }
 
-    function parseAreaLightCounts(payload as Object or Null) as Dictionary<String, LightCount> {
-        var entries = readEntries(payload, "areas");
-        var out = {} as Dictionary<String, LightCount>;
-        var ids = entries.keys();
-
-        for (var index = 0; index < ids.size(); index++) {
-            var id = ids[index] as String;
-            var entry = entries.get(id) as Dictionary;
-            out.put(id, new LightCount(
-                asNumber(entry.get("on")),
-                asNumber(entry.get("available")),
-                asNumber(entry.get("unavailable"))));
-        }
-
-        return out;
-    }
-
-    function parseFloorLightSummaries(payload as Object or Null) as Dictionary<String, String> {
-        if (!(payload instanceof Dictionary)) {
-            return {} as Dictionary<String, String>;
-        }
-
-        var raw = payload.get("floors");
-        return raw instanceof Dictionary ? asStringMap(raw) : ({} as Dictionary<String, String>);
-    }
-
     function parseHomeLightSummary(payload as Object or Null) as String or Null {
         return asStringOrNull(payload instanceof Dictionary ? payload.get("home") : null);
     }
