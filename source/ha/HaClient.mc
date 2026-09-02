@@ -145,7 +145,7 @@ class HaClient {
     }
 
     function queueToggle(entityId as String, callback as Method) as Void {
-        queueChange(buildServiceCallRequest(EntityId.getDomain(entityId), "toggle", "entity_id", entityId), callback);
+        queueChange(buildServiceCallRequest(Entity.resolveDomain(entityId), "toggle", "entity_id", entityId), callback);
     }
 
     function queueFloorLights(floorId as String, service as String, callback as Method) as Void {
