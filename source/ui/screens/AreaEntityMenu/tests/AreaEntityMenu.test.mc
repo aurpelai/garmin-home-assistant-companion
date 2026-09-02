@@ -19,7 +19,7 @@ module AreaEntityMenuTest {
         haState.setFloors(HaPayload.parseFloors({
             "areas" => { "area.room" => { "name" => "Room" } }
         }));
-        haState.setLights(HaPayload.parseLights({ "lights" => lights }));
+        haState.setToggleables(Domain.LIGHT, HaPayload.parseLights({ "lights" => lights }));
         haState.setSensors(HaPayload.parseSensors({ "sensors" => sensors }));
 
         return haState;
@@ -152,7 +152,7 @@ function aDomainArrivingAfterTheMenuOpenedAddsNoRow(logger as Test.Logger) as Bo
     haState.setFloors(HaPayload.parseFloors({
         "areas" => { "area.room" => { "name" => "Room" } }
     }));
-    haState.setLights(HaPayload.parseLights({
+    haState.setToggleables(Domain.LIGHT, HaPayload.parseLights({
         "lights" => { "light.a" => { "state" => true, "area_id" => "area.room" } }
     }));
 
@@ -187,7 +187,7 @@ function theEmptyRowOutlivesTheEntitiesArriving(logger as Test.Logger) as Boolea
     Test.assertEqual((menu.getItem(0) as WatchUi.MenuItem).getLabel() as String,
         "No entities in the area");
 
-    haState.setLights(HaPayload.parseLights({
+    haState.setToggleables(Domain.LIGHT, HaPayload.parseLights({
         "lights" => { "light.a" => { "state" => true, "area_id" => "area.room" } }
     }));
     menu.rebuild(haState);

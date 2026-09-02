@@ -4,10 +4,10 @@ import Toybox.Lang;
 // and the floor aggregate. A further domain is an added field.
 class AreaEntities {
     public var area as AreaModel;
-    public var lights as Array<LightModel>;
+    public var lights as Array<ToggleableModel>;
     public var sensors as Array<SensorModel>;
 
-    function initialize(area as AreaModel, lights as Array<LightModel>,
+    function initialize(area as AreaModel, lights as Array<ToggleableModel>,
                         sensors as Array<SensorModel>) {
         self.area = area;
         self.lights = lights;

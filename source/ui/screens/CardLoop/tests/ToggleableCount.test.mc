@@ -55,7 +55,7 @@ function anUnavailableLightLandsInUnavailableNotAvailable(logger as Test.Logger)
 (:test)
 function anOptimisticallyOnLightCountsAsOn(logger as Test.Logger) as Boolean {
     var light = ToggleableCountTest.light(false, true);
-    light.assumed = true;
+    light.assumedState = true;
 
     var count = ToggleableCount.build([light] as Array<ToggleableModel>);
 

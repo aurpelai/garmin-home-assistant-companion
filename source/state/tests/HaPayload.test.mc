@@ -69,7 +69,18 @@ function everyParsedModelCarriesTheIdItIsKeyedUnder(logger as Test.Logger) as Bo
     Test.assertEqual((HaPayload.parseAreas(structure).get("area.kitchen") as AreaModel).id, "area.kitchen");
     Test.assertEqual(HaPayload.parseFloors(structure)[0].id, "floor.g");
     Test.assertEqual((lights.get("light.kitchen") as LightModel).id, "light.kitchen");
+    Test.assertEqual((lights.get("light.kitchen") as LightModel).domain, Domain.LIGHT);
     Test.assertEqual((sensors.get("sensor.warm") as SensorModel).id, "sensor.warm");
+    return true;
+}
+
+(:test)
+function aStateThatIsNotABooleanReadsAsOff(logger as Test.Logger) as Boolean {
+    var parsed = HaPayload.parseLights(HaPayloadTest.lightsPayload({
+        "light.odd" => { "state" => "on", "area_id" => "area.a" }
+    }));
+
+    Test.assert(!(parsed.get("light.odd") as LightModel).state);
     return true;
 }
 
@@ -140,6 +151,7 @@ function aFanParsesLikeALightPlusItsSpeed(logger as Test.Logger) as Boolean {
     var fan = parsed.get("fan.ceiling") as FanModel;
 
     Test.assertEqual(fan.id, "fan.ceiling");
+    Test.assertEqual(fan.domain, Domain.FAN);
     Test.assert(fan.state);
     Test.assertEqual(fan.name, "Deckenventilator");
     Test.assertEqual(fan.areaId as String, "area.kitchen");
@@ -182,17 +194,17 @@ function eitherArrivalOrderOfTheTargetsProducesTheSameState(logger as Test.Logge
 
     var structureFirst = new HaState();
     HaPayloadTest.applyStructure(structureFirst, structure);
-    structureFirst.setLights(HaPayload.parseLights(lights));
+    structureFirst.setToggleables(Domain.LIGHT, HaPayload.parseLights(lights));
 
     var lightsFirst = new HaState();
-    lightsFirst.setLights(HaPayload.parseLights(lights));
+    lightsFirst.setToggleables(Domain.LIGHT, HaPayload.parseLights(lights));
     HaPayloadTest.applyStructure(lightsFirst, structure);
 
     Test.assertEqual(structureFirst.getZone() as String, lightsFirst.getZone() as String);
     Test.assertEqual((structureFirst.getArea("area.kitchen") as AreaModel).name,
                      (lightsFirst.getArea("area.kitchen") as AreaModel).name);
-    Test.assertEqual(structureFirst.getLightsInArea("area.kitchen").size(),
-                     lightsFirst.getLightsInArea("area.kitchen").size());
+    Test.assertEqual(structureFirst.getToggleablesInArea("area.kitchen", Domain.LIGHT).size(),
+                     lightsFirst.getToggleablesInArea("area.kitchen", Domain.LIGHT).size());
     Test.assertEqual(structureFirst.isOn("light.kitchen"), lightsFirst.isOn("light.kitchen"));
     return true;
 }

@@ -149,7 +149,7 @@ class HaClient {
     }
 
     function queueFloorLights(floorId as String, service as String, callback as Method) as Void {
-        queueChange(buildServiceCallRequest("light", service, "floor_id", floorId), callback);
+        queueChange(buildServiceCallRequest(Domain.LIGHT, service, "floor_id", floorId), callback);
     }
 
     // UNVERIFIED: Connect IQ still delivers a cancelled request's reply, so the

@@ -17,7 +17,7 @@ class ResourceSubLabelProvider {
     }
 
     function resolveGroupLabel(domain as String, memberCount as Number) as String {
-        var isFan = domain.equals("fan");
+        var isFan = domain.equals(Domain.FAN);
 
         if (memberCount == 1) {
             return WatchUi.loadResource(

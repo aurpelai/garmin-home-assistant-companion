@@ -47,7 +47,7 @@ module CardLoopBuilder {
         var filtered = [] as Array<AreaEntities>;
 
         for (var index = 0; index < areas.size(); index++) {
-            var lights = haState.getLightsInArea(areas[index].id);
+            var lights = haState.getToggleablesInArea(areas[index].id, Domain.LIGHT);
             var sensors = haState.getSensorsInArea(areas[index].id);
 
             if (lights.size() > 0 || sensors.size() > 0) {
@@ -66,7 +66,7 @@ module CardLoopBuilder {
             area.name,
             floorName,
             SensorReading.build(haState.getAreaSensorAverages(area.id)),
-            ToggleableCount.build(haState.getLightsInArea(area.id) as Array<ToggleableModel>));
+            ToggleableCount.build(haState.getToggleablesInArea(area.id, Domain.LIGHT)));
     }
 
     function buildFloorCard(haState as HaState, floorId as String, floorName as String) as FloorCard {
@@ -76,7 +76,7 @@ module CardLoopBuilder {
             haState.getZone(),
             SensorReading.build(haState.getFloorSensorAverages(floorId)),
             resolveLightSummary(ToggleableCount.build(
-                haState.getLightsInFloor(floorId) as Array<ToggleableModel>)));
+                haState.getToggleablesInFloor(floorId, Domain.LIGHT))));
     }
 
     function resolveLightSummary(count as ToggleableCount) as String or Null {

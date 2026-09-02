@@ -6,22 +6,22 @@ module HaStateTest {
 
     function stateWithLights(entries as Dictionary) as HaState {
         var haState = new HaState();
-        haState.setLights(HaPayload.parseLights({ "lights" => entries }));
+        haState.setToggleables(Domain.LIGHT, HaPayload.parseLights({ "lights" => entries }));
         return haState;
     }
 
     function setLights(haState as HaState, entries as Dictionary) as Void {
-        haState.setLights(HaPayload.parseLights({ "lights" => entries }));
+        haState.setToggleables(Domain.LIGHT, HaPayload.parseLights({ "lights" => entries }));
     }
 
     function stateWithFans(entries as Dictionary) as HaState {
         var haState = new HaState();
-        haState.setFans(HaPayload.parseFans({ "fans" => entries }));
+        haState.setToggleables(Domain.FAN, HaPayload.parseFans({ "fans" => entries }));
         return haState;
     }
 
     function setFans(haState as HaState, entries as Dictionary) as Void {
-        haState.setFans(HaPayload.parseFans({ "fans" => entries }));
+        haState.setToggleables(Domain.FAN, HaPayload.parseFans({ "fans" => entries }));
     }
 
     function setStructure(haState as HaState, payload as Dictionary) as Void {
@@ -83,7 +83,7 @@ function aFanGroupScopeCoversTheGroupItselfAndItsMembers(logger as Test.Logger) 
 }
 
 (:test)
-function aFanAndALightAreLookedUpEachInItsOwnCollection(logger as Test.Logger) as Boolean {
+function anAreaIsReadOneDomainAtATime(logger as Test.Logger) as Boolean {
     var haState = HaStateTest.stateWithLights({ "light.a" => HaStateTest.light(true, "area.a") });
     HaStateTest.setFans(haState, { "fan.a" => HaStateTest.fan(false, "area.a") });
 
@@ -93,9 +93,29 @@ function aFanAndALightAreLookedUpEachInItsOwnCollection(logger as Test.Logger) a
     Test.assert(haState.isPending("fan.a"));
     Test.assert(haState.isOn("light.a"));
     Test.assert(!haState.isPending("light.a"));
-    Test.assertEqual(haState.getLightsInArea("area.a").size(), 1);
-    Test.assertEqual(haState.getFansInArea("area.a").size(), 1);
-    Test.assertEqual(haState.getFansInArea("area.a")[0].id, "fan.a");
+    Test.assertEqual(haState.getToggleablesInArea("area.a", Domain.LIGHT).size(), 1);
+    Test.assertEqual(haState.getToggleablesInArea("area.a", Domain.FAN).size(), 1);
+    Test.assertEqual(haState.getToggleablesInArea("area.a", Domain.FAN)[0].id, "fan.a");
+    return true;
+}
+
+(:test)
+function aFetchOfOneDomainReplacesOnlyThatDomain(logger as Test.Logger) as Boolean {
+    var haState = HaStateTest.stateWithLights({
+        "light.a" => HaStateTest.light(true, "area.a"),
+        "light.gone" => HaStateTest.light(true, "area.a")
+    });
+    HaStateTest.setFans(haState, { "fan.a" => HaStateTest.fan(false, "area.a") });
+
+    haState.override("fan.a", true);
+    HaStateTest.setLights(haState, { "light.a" => HaStateTest.light(false, "area.a") });
+
+    Test.assertEqual(haState.getToggleablesInArea("area.a", Domain.LIGHT).size(), 1);
+    Test.assert(!haState.isOn("light.a"));
+    Test.assert(!haState.isOn("light.gone"));
+    Test.assertEqual(haState.getToggleablesInArea("area.a", Domain.FAN).size(), 1);
+    Test.assert(haState.isOn("fan.a"));
+    Test.assert(haState.isPending("fan.a"));
     return true;
 }
 
@@ -138,7 +158,7 @@ function arrivingLightsAnswerEveryAssumptionTheyReplace(logger as Test.Logger) a
 
     Test.assert(!haState.isPending("light.a"));
     Test.assert(!haState.isOn("light.a"));
-    Test.assertEqual(haState.getLightsInArea("area.a").size(), 1);
+    Test.assertEqual(haState.getToggleablesInArea("area.a", Domain.LIGHT).size(), 1);
     return true;
 }
 
@@ -194,7 +214,7 @@ function aGroupWithNoMembersStillOverridesItself(logger as Test.Logger) as Boole
 (:test)
 function anAreasLightsReadCurrentAfterATapRatherThanTheirHandedOutValue(logger as Test.Logger) as Boolean {
     var haState = HaStateTest.stateWithLights({ "light.a" => HaStateTest.light(false, "area.a") });
-    var held = haState.getLightsInArea("area.a");
+    var held = haState.getToggleablesInArea("area.a", Domain.LIGHT);
 
     haState.override("light.a", true);
 
@@ -237,6 +257,7 @@ function aFloorScopeCoversEveryLightInItsAreasAndNothingOutside(logger as Test.L
         "light.hall" => HaStateTest.light(false, "area.hall"),
         "light.elsewhere" => HaStateTest.light(false, "area.attic")
     });
+    HaStateTest.setFans(haState, { "fan.kitchen" => HaStateTest.fan(false, "area.kitchen") });
 
     haState.overrideFloorLights("floor.ground", true);
 
@@ -245,6 +266,8 @@ function aFloorScopeCoversEveryLightInItsAreasAndNothingOutside(logger as Test.L
     Test.assert(haState.isOn("light.broken"));
     Test.assert(haState.isOn("light.hall"));
     Test.assert(!haState.isPending("light.elsewhere"));
+    Test.assert(!haState.isPending("fan.kitchen"));
+    Test.assertEqual(haState.getToggleablesInFloor("floor.ground", Domain.LIGHT).size(), 4);
     return true;
 }
 
@@ -257,9 +280,9 @@ function areaMembershipIsIndexedFromEachEntitysOwnAreaId(logger as Test.Logger) 
         "light.bedroom" => HaStateTest.light(false, "area.bedroom")
     });
 
-    Test.assertEqual(haState.getLightsInArea("area.kitchen").size(), 2);
-    Test.assertEqual(haState.getLightsInArea("area.bedroom").size(), 1);
-    Test.assertEqual(haState.getLightsInArea("area.bedroom")[0].id, "light.bedroom");
+    Test.assertEqual(haState.getToggleablesInArea("area.kitchen", Domain.LIGHT).size(), 2);
+    Test.assertEqual(haState.getToggleablesInArea("area.bedroom", Domain.LIGHT).size(), 1);
+    Test.assertEqual(haState.getToggleablesInArea("area.bedroom", Domain.LIGHT)[0].id, "light.bedroom");
     return true;
 }
 
@@ -284,10 +307,10 @@ function aFloorResolvesOnlyTheAreasTheRegistryStillKnows(logger as Test.Logger) 
 function anUnknownAreaOrFloorYieldsAnEmptyCollectionRatherThanNull(logger as Test.Logger) as Boolean {
     var haState = new HaState();
 
-    Test.assertEqual(haState.getLightsInArea("area.ghost").size(), 0);
-    Test.assertEqual(haState.getFansInArea("area.ghost").size(), 0);
+    Test.assertEqual(haState.getToggleablesInArea("area.ghost", Domain.LIGHT).size(), 0);
+    Test.assertEqual(haState.getToggleablesInArea("area.ghost", Domain.FAN).size(), 0);
     Test.assertEqual(haState.getSensorsInArea("area.ghost").size(), 0);
-    Test.assertEqual(haState.getLightsInFloor("floor.ghost").size(), 0);
+    Test.assertEqual(haState.getToggleablesInFloor("floor.ghost", Domain.LIGHT).size(), 0);
     Test.assertEqual(haState.getAreasInFloor("floor.ghost").size(), 0);
     Test.assertEqual(haState.getAreas().size(), 0);
     return true;
