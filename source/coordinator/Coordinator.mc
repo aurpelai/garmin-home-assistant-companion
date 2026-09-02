@@ -44,7 +44,7 @@ class Coordinator {
 
     function onToggleSettled(error as RequestError or Null) as Void {
         if (error != null) {
-            toast(ErrorMessage.resolve(error));
+            WatchUi.showToast(ErrorMessage.resolve(error), null);
         }
 
         refresh();
@@ -170,7 +170,7 @@ class Coordinator {
             }
 
             if (error != null) {
-                toast(Rez.Strings.ErrRefresh);
+                WatchUi.showToast(Rez.Strings.ErrRefresh, null);
             }
 
             return;
@@ -184,10 +184,6 @@ class Coordinator {
         if (_client.hasEverRefreshed()) {
             showMessage(Rez.Strings.NothingFound);
         }
-    }
-
-    private function toast(id as ResourceId) as Void {
-        WatchUi.showToast(WatchUi.loadResource(id) as String, null);
     }
 
     private function updateDisplay() as Void {
