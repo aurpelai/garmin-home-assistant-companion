@@ -1,35 +1,71 @@
 import Toybox.Lang;
 
+// Pure: touches no WatchUi, fetches nothing, and mutates no HaState.
 module AreaEntityMenuBuilder {
 
-    function build(haState as HaState, areaId as String) as AreaEntityMenuModel or Null {
+    function build(haState as HaState, areaId as String,
+                   provider as SubLabelProvider) as AreaEntityMenuModel or Null {
         var area = haState.getArea(areaId);
         if (area == null) {
             return null;
         }
 
-        var sortedLights = EntitySorter.sortLights(haState.getLightsInArea(areaId));
-        var lights = [] as Array<LightRowModel>;
+        var toggles = buildToggleRows(haState.getLightsInArea(areaId) as Array<ToggleableModel>, provider);
+        toggles.addAll(buildToggleRows(haState.getFansInArea(areaId) as Array<ToggleableModel>, provider));
 
-        for (var index = 0; index < sortedLights.size(); index++) {
-            var light = sortedLights[index];
+        return new AreaEntityMenuModel(area.name, toggles,
+            buildSensorRows(haState.getSensorsInArea(areaId), provider));
+    }
 
-            lights.add(new LightRowModel(
-                light.id,
-                light.name,
-                light.isOn(),
-                light.available,
-                light.memberIds == null ? null : (light.memberIds as Array<String>).size()));
+    function buildToggleRows(toggleables as Array<ToggleableModel>,
+                             provider as SubLabelProvider) as Array<ToggleRowModel> {
+        var sorted = EntitySorter.sortToggleables(toggleables);
+        var rows = [] as Array<ToggleRowModel>;
+
+        for (var index = 0; index < sorted.size(); index++) {
+            var toggleable = sorted[index];
+            rows.add(new ToggleRowModel(toggleable.id, toggleable.name, toggleable.isOn(),
+                resolveToggleSubLabel(toggleable, provider)));
         }
 
-        var groupedSensors = EntitySorter.groupSensorsByDeviceClass(haState.getSensorsInArea(areaId));
-        var sensors = [] as Array<SensorRowModel>;
+        return rows;
+    }
 
-        for (var index = 0; index < groupedSensors.size(); index++) {
-            var sensor = groupedSensors[index];
-            sensors.add(new SensorRowModel(sensor.id, sensor.name, sensor.friendlyState, sensor.available));
+    function buildSensorRows(sensors as Array<SensorModel>,
+                             provider as SubLabelProvider) as Array<SensorRowModel> {
+        var grouped = EntitySorter.groupSensorsByDeviceClass(sensors);
+        var rows = [] as Array<SensorRowModel>;
+
+        for (var index = 0; index < grouped.size(); index++) {
+            var sensor = grouped[index];
+            rows.add(new SensorRowModel(sensor.id, sensor.name, resolveSensorSubLabel(sensor, provider)));
         }
 
-        return new AreaEntityMenuModel(area.name, lights, sensors);
+        return rows;
+    }
+
+    function resolveToggleSubLabel(toggleable as ToggleableModel,
+                                   provider as SubLabelProvider) as String or Null {
+        var memberIds = toggleable.memberIds;
+
+        if (!toggleable.available) {
+            return memberIds == null ? provider.getUnavailable() : provider.getGroupUnavailable();
+        }
+
+        if (memberIds != null) {
+            return provider.resolveGroupLabel(toggleable instanceof FanModel ? "fan" : "light", memberIds.size());
+        }
+
+        if (!toggleable.isOn()) {
+            return provider.getOff();
+        }
+
+        return toggleable instanceof FanModel
+            ? (toggleable as FanModel).speed
+            : (toggleable as LightModel).brightness;
+    }
+
+    function resolveSensorSubLabel(sensor as SensorModel, provider as SubLabelProvider) as String {
+        return sensor.available ? sensor.friendlyState : provider.getUnavailable();
     }
 }

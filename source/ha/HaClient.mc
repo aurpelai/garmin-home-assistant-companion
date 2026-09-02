@@ -22,7 +22,7 @@ class HaClient {
     private const OS_NAME = "Connect IQ";
     private const OS_VERSION = "1";
 
-    private const REFRESH_TARGETS = [FetchTarget.STRUCTURE, FetchTarget.LIGHTS, FetchTarget.SENSORS];
+    private const REFRESH_TARGETS = [FetchTarget.STRUCTURE, FetchTarget.LIGHTS, FetchTarget.FANS, FetchTarget.SENSORS];
 
     private var _gateway as RequestGateway;
     private var _scheduler as Scheduler;
@@ -144,12 +144,12 @@ class HaClient {
         startNextRequest();
     }
 
-    function queueLightToggle(entityId as String, callback as Method) as Void {
-        queueChange(buildServiceCallRequest("toggle", "entity_id", entityId), callback);
+    function queueToggle(entityId as String, callback as Method) as Void {
+        queueChange(buildServiceCallRequest(Entity.resolveDomain(entityId), "toggle", "entity_id", entityId), callback);
     }
 
     function queueFloorLights(floorId as String, service as String, callback as Method) as Void {
-        queueChange(buildServiceCallRequest(service, "floor_id", floorId), callback);
+        queueChange(buildServiceCallRequest("light", service, "floor_id", floorId), callback);
     }
 
     // UNVERIFIED: Connect IQ still delivers a cancelled request's reply, so the
@@ -213,11 +213,12 @@ class HaClient {
         _gateway.post(path, body, handler);
     }
 
-    private function buildServiceCallRequest(service as String, targetKey as String, targetId as String) as Method {
+    private function buildServiceCallRequest(domain as String, service as String, targetKey as String,
+                                             targetId as String) as Method {
         var body = {
             "type" => "call_service",
             "data" => {
-                "domain" => "light",
+                "domain" => domain,
                 "service" => service,
                 "service_data" => {
                     targetKey => targetId

@@ -14,6 +14,16 @@ module HaStateTest {
         haState.setLights(HaPayload.parseLights({ "lights" => entries }));
     }
 
+    function stateWithFans(entries as Dictionary) as HaState {
+        var haState = new HaState();
+        haState.setFans(HaPayload.parseFans({ "fans" => entries }));
+        return haState;
+    }
+
+    function setFans(haState as HaState, entries as Dictionary) as Void {
+        haState.setFans(HaPayload.parseFans({ "fans" => entries }));
+    }
+
     function setStructure(haState as HaState, payload as Dictionary) as Void {
         haState.setZone(HaPayload.parseZone(payload));
         haState.setAreas(HaPayload.parseAreas(payload));
@@ -27,6 +37,66 @@ module HaStateTest {
     function unavailableLight(areaId as String) as Dictionary {
         return { "state" => false, "area_id" => areaId, "available" => false };
     }
+
+    function fan(state as Boolean, areaId as String) as Dictionary {
+        return { "state" => state, "area_id" => areaId, "available" => true, "speed" => "50 %" };
+    }
+}
+
+(:test)
+function anOverrideDrivesAFanExactlyAsItDrivesALight(logger as Test.Logger) as Boolean {
+    var haState = HaStateTest.stateWithFans({ "fan.a" => HaStateTest.fan(false, "area.a") });
+
+    Test.assert(!haState.isOn("fan.a"));
+    Test.assert(!haState.isPending("fan.a"));
+
+    haState.override("fan.a", true);
+
+    Test.assert(haState.isOn("fan.a"));
+    Test.assert(haState.isPending("fan.a"));
+    Test.assert(haState.hasAnyPending(haState.getToggleTargets("fan.a")));
+
+    HaStateTest.setFans(haState, { "fan.a" => HaStateTest.fan(true, "area.a") });
+
+    Test.assert(haState.isOn("fan.a"));
+    Test.assert(!haState.isPending("fan.a"));
+    return true;
+}
+
+(:test)
+function aFanGroupScopeCoversTheGroupItselfAndItsMembers(logger as Test.Logger) as Boolean {
+    var haState = HaStateTest.stateWithFans({
+        "fan.group" => { "state" => false, "area_id" => "area.a", "available" => true,
+            "memberIds" => ["fan.one", "fan.two"] },
+        "fan.one" => HaStateTest.fan(false, "area.a"),
+        "fan.two" => HaStateTest.fan(false, "area.a")
+    });
+
+    haState.override("fan.group", true);
+
+    Test.assertEqual(haState.getToggleTargets("fan.group").size(), 3);
+    Test.assert(haState.isOn("fan.group"));
+    Test.assert(haState.isOn("fan.one"));
+    Test.assert(haState.isOn("fan.two"));
+    Test.assert(haState.isPending("fan.two"));
+    return true;
+}
+
+(:test)
+function aFanAndALightAreLookedUpEachInItsOwnCollection(logger as Test.Logger) as Boolean {
+    var haState = HaStateTest.stateWithLights({ "light.a" => HaStateTest.light(true, "area.a") });
+    HaStateTest.setFans(haState, { "fan.a" => HaStateTest.fan(false, "area.a") });
+
+    haState.override("fan.a", true);
+
+    Test.assert(haState.isOn("fan.a"));
+    Test.assert(haState.isPending("fan.a"));
+    Test.assert(haState.isOn("light.a"));
+    Test.assert(!haState.isPending("light.a"));
+    Test.assertEqual(haState.getLightsInArea("area.a").size(), 1);
+    Test.assertEqual(haState.getFansInArea("area.a").size(), 1);
+    Test.assertEqual(haState.getFansInArea("area.a")[0].id, "fan.a");
+    return true;
 }
 
 (:test)
@@ -215,6 +285,7 @@ function anUnknownAreaOrFloorYieldsAnEmptyCollectionRatherThanNull(logger as Tes
     var haState = new HaState();
 
     Test.assertEqual(haState.getLightsInArea("area.ghost").size(), 0);
+    Test.assertEqual(haState.getFansInArea("area.ghost").size(), 0);
     Test.assertEqual(haState.getSensorsInArea("area.ghost").size(), 0);
     Test.assertEqual(haState.getLightsInFloor("floor.ghost").size(), 0);
     Test.assertEqual(haState.getAreasInFloor("floor.ghost").size(), 0);

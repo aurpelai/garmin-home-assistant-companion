@@ -9,25 +9,28 @@ import Toybox.WatchUi;
 class AreaEntityMenu extends WatchUi.Menu2 {
     private var _coordinator as Coordinator;
     private var _areaId as String;
+    private var _subLabelProvider as SubLabelProvider;
 
-    function initialize(coordinator as Coordinator, areaId as String, model as AreaEntityMenuModel) {
+    function initialize(coordinator as Coordinator, areaId as String, model as AreaEntityMenuModel,
+                        subLabelProvider as SubLabelProvider) {
         Menu2.initialize({ :title => model.title });
         _coordinator = coordinator;
         _areaId = areaId;
+        _subLabelProvider = subLabelProvider;
 
-        for (var index = 0; index < model.lights.size(); index++) {
-            var row = model.lights[index];
+        for (var index = 0; index < model.toggles.size(); index++) {
+            var row = model.toggles[index];
             addItem(new WatchUi.ToggleMenuItem(
-                resolveLabel(row.name, row.rowId), toLightSubLabel(row), row.rowId, row.isOn, null));
+                resolveLabel(row.name, row.rowId), row.subLabel, row.rowId, row.isOn, null));
         }
 
         for (var index = 0; index < model.sensors.size(); index++) {
             var row = model.sensors[index];
             addItem(new WatchUi.MenuItem(
-                resolveLabel(row.name, row.rowId), toSensorSubLabel(row), row.rowId, null));
+                resolveLabel(row.name, row.rowId), row.subLabel, row.rowId, null));
         }
 
-        if (model.lights.size() == 0 && model.sensors.size() == 0) {
+        if (model.toggles.size() == 0 && model.sensors.size() == 0) {
             addItem(new WatchUi.MenuItem(
                 WatchUi.loadResource(Rez.Strings.NoEntitiesInArea) as String, null, :none, null));
         }
@@ -48,7 +51,7 @@ class AreaEntityMenu extends WatchUi.Menu2 {
     }
 
     function rebuild(haState as HaState) as Void {
-        var model = AreaEntityMenuBuilder.build(haState, _areaId);
+        var model = AreaEntityMenuBuilder.build(haState, _areaId, _subLabelProvider);
         if (model != null) {
             setModel(model);
         }
@@ -57,13 +60,13 @@ class AreaEntityMenu extends WatchUi.Menu2 {
     function setModel(model as AreaEntityMenuModel) as Void {
         setTitle(model.title);
 
-        for (var index = 0; index < model.lights.size(); index++) {
-            var row = model.lights[index];
+        for (var index = 0; index < model.toggles.size(); index++) {
+            var row = model.toggles[index];
             var item = findItem(row.rowId);
 
             if (item != null) {
                 (item as WatchUi.ToggleMenuItem).setEnabled(row.isOn);
-                item.setSubLabel(toLightSubLabel(row));
+                item.setSubLabel(row.subLabel);
             }
         }
 
@@ -72,7 +75,7 @@ class AreaEntityMenu extends WatchUi.Menu2 {
             var item = findItem(row.rowId);
 
             if (item != null) {
-                item.setSubLabel(toSensorSubLabel(row));
+                item.setSubLabel(row.subLabel);
             }
         }
     }
@@ -84,34 +87,5 @@ class AreaEntityMenu extends WatchUi.Menu2 {
 
     static function resolveLabel(name as String or Null, rowId as String) as String {
         return name == null || (name as String).length() == 0 ? rowId : name as String;
-    }
-
-    static function toLightSubLabel(row as LightRowModel) as String or Null {
-        var memberCount = row.memberCount;
-
-        if (!row.isAvailable) {
-            return WatchUi.loadResource(
-                memberCount == null ? Rez.Strings.Unavailable : Rez.Strings.GroupUnavailable) as String;
-        }
-
-        if (memberCount == null) {
-            return null;
-        }
-
-        if (memberCount == 1) {
-            return WatchUi.loadResource(Rez.Strings.GroupLightCountOne) as String;
-        }
-
-        return Lang.format(WatchUi.loadResource(Rez.Strings.GroupLightCount) as String, [memberCount]);
-    }
-
-    static function toSensorSubLabel(row as SensorRowModel) as String {
-        var friendlyState = row.friendlyState;
-
-        if (!row.isAvailable || friendlyState == null) {
-            return WatchUi.loadResource(Rez.Strings.Unavailable) as String;
-        }
-
-        return friendlyState as String;
     }
 }

@@ -14,6 +14,10 @@ module HaPayloadTest {
         haState.setFloors(HaPayload.parseFloors(payload));
     }
 
+    function fansPayload(entries as Dictionary) as Dictionary {
+        return { "fans" => entries };
+    }
+
     function sensorsPayload(entries as Dictionary) as Dictionary {
         return { "sensors" => entries };
     }
@@ -126,6 +130,63 @@ function memberIdsArePresentOnGroupsOnly(logger as Test.Logger) as Boolean {
 }
 
 (:test)
+function aLightCarriesTheBrightnessHomeAssistantFormattedOrNone(logger as Test.Logger) as Boolean {
+    var parsed = HaPayload.parseLights(HaPayloadTest.lightsPayload({
+        "light.lit" => { "state" => true, "area_id" => "area.a", "brightness" => "50 %" },
+        "light.dark" => { "state" => false, "area_id" => "area.a", "brightness" => null },
+        "light.mute" => { "state" => false, "area_id" => "area.a" }
+    }));
+
+    Test.assertEqual((parsed.get("light.lit") as LightModel).brightness as String, "50 %");
+    Test.assert((parsed.get("light.dark") as LightModel).brightness == null);
+    Test.assert((parsed.get("light.mute") as LightModel).brightness == null);
+    return true;
+}
+
+(:test)
+function aFanParsesLikeALightPlusItsSpeed(logger as Test.Logger) as Boolean {
+    var parsed = HaPayload.parseFans(HaPayloadTest.fansPayload({
+        "fan.ceiling" => { "state" => true, "name" => "Deckenventilator", "area_id" => "area.kitchen",
+            "available" => false, "speed" => "66 %" },
+        "fan.group" => { "state" => false, "area_id" => "area.a", "memberIds" => ["fan.one", "fan.two"] }
+    }));
+    var fan = parsed.get("fan.ceiling") as FanModel;
+
+    Test.assertEqual(fan.id, "fan.ceiling");
+    Test.assert(fan.state);
+    Test.assertEqual(fan.name, "Deckenventilator");
+    Test.assertEqual(fan.areaId as String, "area.kitchen");
+    Test.assert(!fan.available);
+    Test.assertEqual(fan.speed as String, "66 %");
+    Test.assert(fan.memberIds == null);
+    Test.assertEqual(((parsed.get("fan.group") as FanModel).memberIds as Array<String>).size(), 2);
+    return true;
+}
+
+(:test)
+function anOffFanKeepsTheSpeedHomeAssistantStillReports(logger as Test.Logger) as Boolean {
+    var parsed = HaPayload.parseFans(HaPayloadTest.fansPayload({
+        "fan.idle" => { "state" => false, "area_id" => "area.a", "speed" => "10 %" }
+    }));
+
+    Test.assertEqual((parsed.get("fan.idle") as FanModel).speed as String, "10 %");
+    return true;
+}
+
+(:test)
+function aFanWithNoSpeedIsStillPresent(logger as Test.Logger) as Boolean {
+    var parsed = HaPayload.parseFans(HaPayloadTest.fansPayload({
+        "fan.absent" => { "state" => true, "area_id" => "area.a" },
+        "fan.null" => { "state" => true, "area_id" => "area.a", "speed" => null }
+    }));
+
+    Test.assertEqual(parsed.size(), 2);
+    Test.assert((parsed.get("fan.absent") as FanModel).speed == null);
+    Test.assert((parsed.get("fan.null") as FanModel).speed == null);
+    return true;
+}
+
+(:test)
 function eitherArrivalOrderOfTheTargetsProducesTheSameState(logger as Test.Logger) as Boolean {
     var structure = { "zone" => "Kotitalo", "areas" => { "area.kitchen" => { "name" => "Küche" } } };
     var lights = HaPayloadTest.lightsPayload({
@@ -152,6 +213,7 @@ function eitherArrivalOrderOfTheTargetsProducesTheSameState(logger as Test.Logge
 (:test)
 function unusableInputParsesToAnEmptyTargetRatherThanThrowing(logger as Test.Logger) as Boolean {
     Test.assertEqual(HaPayload.parseLights(null).size(), 0);
+    Test.assertEqual(HaPayload.parseFans({ "fans" => "not a map" }).size(), 0);
     Test.assertEqual(HaPayload.parseSensors("not a payload").size(), 0);
     Test.assertEqual(HaPayload.parseAreas({ "areas" => "not a map" }).size(), 0);
     Test.assert(HaPayload.parseZone(null) == null);

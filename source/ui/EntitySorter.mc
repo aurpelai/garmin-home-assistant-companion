@@ -14,15 +14,15 @@ module EntitySorter {
         return sorted;
     }
 
-    function sortLights(lights as Array<LightModel>) as Array<LightModel> {
-        var available = [] as Array<LightModel>;
-        var unavailable = [] as Array<LightModel>;
+    function sortToggleables(toggleables as Array<ToggleableModel>) as Array<ToggleableModel> {
+        var available = [] as Array<ToggleableModel>;
+        var unavailable = [] as Array<ToggleableModel>;
 
-        for (var index = 0; index < lights.size(); index++) {
-            if (lights[index].available) {
-                available.add(lights[index]);
+        for (var index = 0; index < toggleables.size(); index++) {
+            if (toggleables[index].available) {
+                available.add(toggleables[index]);
             } else {
-                unavailable.add(lights[index]);
+                unavailable.add(toggleables[index]);
             }
         }
 
@@ -55,25 +55,25 @@ module EntitySorter {
         return grouped;
     }
 
-    function sortGroupsFirst(lights as Array<LightModel>) as Array<LightModel> {
-        var groups = [] as Array<LightModel>;
-        var plain = [] as Array<LightModel>;
+    function sortGroupsFirst(toggleables as Array<ToggleableModel>) as Array<ToggleableModel> {
+        var groups = [] as Array<ToggleableModel>;
+        var plain = [] as Array<ToggleableModel>;
 
-        for (var index = 0; index < lights.size(); index++) {
-            if (lights[index].memberIds != null) {
-                groups.add(lights[index]);
+        for (var index = 0; index < toggleables.size(); index++) {
+            if (toggleables[index].memberIds != null) {
+                groups.add(toggleables[index]);
             } else {
-                plain.add(lights[index]);
+                plain.add(toggleables[index]);
             }
         }
 
-        var sorted = sortByLightName(groups);
-        sorted.addAll(sortByLightName(plain));
+        var sorted = sortByName(groups);
+        sorted.addAll(sortByName(plain));
         return sorted;
     }
 
-    function sortByLightName(lights as Array<LightModel>) as Array<LightModel> {
-        var sorted = lights.slice(0, null);
+    function sortByName(toggleables as Array<ToggleableModel>) as Array<ToggleableModel> {
+        var sorted = toggleables.slice(0, null);
         sorted.sort(new LabelComparator());
 
         return sorted;

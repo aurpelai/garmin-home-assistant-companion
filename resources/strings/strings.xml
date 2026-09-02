@@ -8,12 +8,15 @@
 
     <!-- UI -->
     <string id="AllLights">All Lights</string>
+    <string id="GroupFanCount">Group • $1$ Fans</string>
+    <string id="GroupFanCountOne">Group • 1 Fan</string>
     <string id="GroupLightCount">Group • $1$ Lights</string>
     <string id="GroupLightCountOne">Group • 1 Light</string>
     <string id="GroupUnavailable">Group unavailable</string>
     <string id="Loading">Loading</string>
     <string id="NoEntitiesInArea">No entities in the area</string>
     <string id="NothingFound">No supported entities found</string>
+    <string id="Off">Off</string>
     <string id="RetryHint">Select to retry</string>
     <string id="Unavailable">Unavailable</string>
 

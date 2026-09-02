@@ -3,7 +3,7 @@
 [![CI](https://github.com/aurpelai/garmin-home-assistant-companion/actions/workflows/ci.yml/badge.svg)](https://github.com/aurpelai/garmin-home-assistant-companion/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-A Garmin Connect IQ watch app for controlling and monitoring Home Assistant from your wrist. Open an area to toggle its lights, individually or as a group, and to read its temperature, humidity, and light level. More entity types are planned.
+A Garmin Connect IQ watch app for controlling and monitoring Home Assistant from your wrist. Open an area to toggle its lights and fans, individually or as a group, see their brightness and speed, and read its temperature, humidity, and light level. More entity types are planned.
 
 The app presents your home as floors and areas, following how you've organised them in Home Assistant, so an entity you haven't put in an area doesn't appear on the watch. Beyond that the app follows your setup: hidden entities stay hidden, and readings appear exactly as Home Assistant formats them.
 
@@ -14,7 +14,7 @@ Nothing to configure beyond your Home Assistant URL and a token — no YAML, no 
 **Watch side**
 
 - A supported Garmin watch: Fenix 7 (and S/X/Pro variants), Fenix 8 / 8 Pro / 8 Solar / E, Enduro 3, Venu 3 / 3S, Forerunner 265, or Vivoactive 5 / 6. See `manifest.xml` for the full product list.
-- minApiLevel 5.0.0.
+- minApiLevel 5.1.0.
 - On Bluetooth-only watches, Garmin Connect Mobile (GCM) must be installed, paired, and running in the background — it provides the network transport. WiFi/LTE watches can work standalone.
 
 **Home Assistant side**

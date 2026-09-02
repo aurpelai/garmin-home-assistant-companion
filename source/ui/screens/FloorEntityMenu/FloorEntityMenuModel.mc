@@ -8,9 +8,9 @@ class FloorEntityMenuModel {
     static const LIGHTS_ROW_ID = "all-lights";
 
     public var title as String;
-    public var lights as Array<LightRowModel>;
+    public var lights as Array<ToggleRowModel>;
 
-    function initialize(title as String, lights as Array<LightRowModel>) {
+    function initialize(title as String, lights as Array<ToggleRowModel>) {
         self.title = title;
         self.lights = lights;
     }

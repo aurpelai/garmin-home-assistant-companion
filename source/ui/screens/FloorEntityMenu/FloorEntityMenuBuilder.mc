@@ -13,14 +13,14 @@ module FloorEntityMenuBuilder {
         return new FloorEntityMenuModel(floor.name, buildLightRows(haState, floorId));
     }
 
-    function buildLightRows(haState as HaState, floorId as String) as Array<LightRowModel> {
+    function buildLightRows(haState as HaState, floorId as String) as Array<ToggleRowModel> {
         var lights = haState.getLightsInFloor(floorId);
 
         if (lights.size() == 0) {
-            return [] as Array<LightRowModel>;
+            return [] as Array<ToggleRowModel>;
         }
 
-        return [new LightRowModel(FloorEntityMenuModel.LIGHTS_ROW_ID, null,
-            haState.hasAnyOn(lights), true, null)] as Array<LightRowModel>;
+        return [new ToggleRowModel(FloorEntityMenuModel.LIGHTS_ROW_ID, null,
+            haState.hasAnyOn(lights), null)] as Array<ToggleRowModel>;
     }
 }

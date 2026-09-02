@@ -26,8 +26,10 @@ module AreaEntityMenuTest {
     }
 
     function menuOf(haState as HaState) as AreaEntityMenu {
-        var model = AreaEntityMenuBuilder.build(haState, "area.room") as AreaEntityMenuModel;
-        return new AreaEntityMenu(new Coordinator(new HaClient(new WebRequestGateway(), new TimerScheduler())), "area.room", model);
+        var provider = new FakeSubLabelProvider();
+        var model = AreaEntityMenuBuilder.build(haState, "area.room", provider) as AreaEntityMenuModel;
+        return new AreaEntityMenu(new Coordinator(new HaClient(new WebRequestGateway(), new TimerScheduler())),
+            "area.room", model, provider);
     }
 
     function itemOf(menu as AreaEntityMenu, rowId as String) as WatchUi.MenuItem {
@@ -77,32 +79,18 @@ function anEntityMissingFromTheModelKeepsTheItemItHad(logger as Test.Logger) as 
 }
 
 (:test)
-function aLightSublabelPicksUnavailableOverAGroupCount(logger as Test.Logger) as Boolean {
-    var group = new LightRowModel("light.grp", "Group", false, false, 3);
+function aRowShowsItsResolvedSublabelVerbatimAndTracksItAcrossRebuilds(logger as Test.Logger) as Boolean {
+    var menu = AreaEntityMenuTest.menuOf(AreaEntityMenuTest.stateOf({
+        "light.a" => { "state" => true, "area_id" => "area.room", "brightness" => "50 %" }
+    }, {} as Dictionary));
 
-    Test.assertEqual(AreaEntityMenu.toLightSubLabel(group) as String, "Group unavailable");
-    return true;
-}
+    Test.assertEqual(AreaEntityMenuTest.itemOf(menu, "light.a").getSubLabel() as String, "50 %");
 
-(:test)
-function anAvailableGroupShowsItsMemberCount(logger as Test.Logger) as Boolean {
-    var one = new LightRowModel("light.one", "One", true, true, 1);
-    var many = new LightRowModel("light.many", "Many", true, true, 4);
+    menu.rebuild(AreaEntityMenuTest.stateOf({
+        "light.a" => { "state" => false, "area_id" => "area.room" }
+    }, {} as Dictionary));
 
-    Test.assertEqual(AreaEntityMenu.toLightSubLabel(one) as String, "Group • 1 Light");
-    Test.assertEqual(AreaEntityMenu.toLightSubLabel(many) as String, "Group • 4 Lights");
-    return true;
-}
-
-(:test)
-function aSensorSublabelPicksUnavailableOverTheDisplayValue(logger as Test.Logger) as Boolean {
-    // UNVERIFIED: Home Assistant formats an unavailable sensor as the word
-    // unavailable followed by its unit.
-    var dead = new SensorRowModel("sensor.t", "Temp", "unavailable °C", false);
-    var live = new SensorRowModel("sensor.t", "Temp", "21.5 °C", true);
-
-    Test.assertEqual(AreaEntityMenu.toSensorSubLabel(dead), "Unavailable");
-    Test.assertEqual(AreaEntityMenu.toSensorSubLabel(live), "21.5 °C");
+    Test.assertEqual(AreaEntityMenuTest.itemOf(menu, "light.a").getSubLabel() as String, "Off");
     return true;
 }
 

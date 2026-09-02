@@ -2,13 +2,13 @@ import Toybox.Lang;
 
 class AreaEntityMenuModel {
     public var title as String;
-    public var lights as Array<LightRowModel>;
+    public var toggles as Array<ToggleRowModel>;
     public var sensors as Array<SensorRowModel>;
 
-    function initialize(title as String, lights as Array<LightRowModel>,
+    function initialize(title as String, toggles as Array<ToggleRowModel>,
                         sensors as Array<SensorRowModel>) {
         self.title = title;
-        self.lights = lights;
+        self.toggles = toggles;
         self.sensors = sensors;
     }
 }

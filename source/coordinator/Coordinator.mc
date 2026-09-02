@@ -7,11 +7,13 @@ class Coordinator {
     private var _client as HaClient;
     private var _haState as HaState;
     private var _currentView as Screen or Null;
+    private var _subLabelProvider as SubLabelProvider;
 
     function initialize(client as HaClient) {
         _client = client;
         _haState = new HaState();
         _currentView = null;
+        _subLabelProvider = new ResourceSubLabelProvider();
     }
 
     function onActivate() as Void {
@@ -60,6 +62,8 @@ class Coordinator {
                     HaPayload.parseFloorLightSummaries(result),
                     HaPayload.parseHomeLightSummary(result));
                 GlanceSummary.setLightSummary(_haState.getHomeLightSummary());
+            } else if (target == FetchTarget.FANS) {
+                _haState.setFans(HaPayload.parseFans(result));
             } else if (target == FetchTarget.SENSORS) {
                 _haState.setSensors(HaPayload.parseSensors(result));
                 _haState.setSensorAggregates(
@@ -80,12 +84,12 @@ class Coordinator {
     }
 
     function showAreaMenu(areaId as String) as Void {
-        var model = AreaEntityMenuBuilder.build(_haState, areaId);
+        var model = AreaEntityMenuBuilder.build(_haState, areaId, _subLabelProvider);
         if (model == null) {
             return;
         }
 
-        var menu = new AreaEntityMenu(self, areaId, model);
+        var menu = new AreaEntityMenu(self, areaId, model, _subLabelProvider);
         WatchUi.pushView(menu, new AreaEntityMenuDelegate(self), WatchUi.SLIDE_LEFT);
     }
 
@@ -105,7 +109,7 @@ class Coordinator {
         }
 
         _haState.override(entityId, !_haState.isOn(entityId));
-        _client.queueLightToggle(entityId, new ToggleReply(self).method(:onSettled));
+        _client.queueToggle(entityId, new ToggleReply(self).method(:onSettled));
         updateDisplay();
     }
 

@@ -25,10 +25,32 @@ module HaPayload {
                 asString(entry.get("name")),
                 asAvailable(entry.get("available")),
                 asStringOrNull(entry.get("area_id")),
-                asMemberIds(entry.get("memberIds"))));
+                asMemberIds(entry.get("memberIds")),
+                asStringOrNull(entry.get("brightness"))));
         }
 
         return lights;
+    }
+
+    function parseFans(payload as Object or Null) as Dictionary<String, FanModel> {
+        var entries = readEntries(payload, "fans");
+        var fans = {} as Dictionary<String, FanModel>;
+        var entityIds = entries.keys();
+
+        for (var index = 0; index < entityIds.size(); index++) {
+            var entityId = entityIds[index] as String;
+            var entry = entries.get(entityId) as Dictionary;
+            fans.put(entityId, new FanModel(
+                entityId,
+                entry.get("state") instanceof Boolean ? entry.get("state") as Boolean : false,
+                asString(entry.get("name")),
+                asAvailable(entry.get("available")),
+                asStringOrNull(entry.get("area_id")),
+                asMemberIds(entry.get("memberIds")),
+                asStringOrNull(entry.get("speed"))));
+        }
+
+        return fans;
     }
 
     function parseSensors(payload as Object or Null) as Dictionary<String, SensorModel> {
