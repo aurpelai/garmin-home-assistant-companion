@@ -44,18 +44,6 @@ module HaTemplate {
             "{% endfor %}" +
             "{{ ns.out | tojson }}" +
         "{% endmacro %}" +
-        "{% macro lightCounts(ids) %}" +
-            "{% set c = namespace(on=0, available=0, unavailable=0) %}" +
-            "{% for e in physical(ids) | from_json %}" +
-            "{% if is_state(e, 'unavailable') %}" +
-            "{% set c.unavailable = c.unavailable + 1 %}" +
-            "{% else %}" +
-            "{% set c.available = c.available + 1 %}" +
-            "{% if is_state(e, 'on') %}{% set c.on = c.on + 1 %}{% endif %}" +
-            "{% endif %}" +
-            "{% endfor %}" +
-            "{{ dict(on=c.on, available=c.available, unavailable=c.unavailable) | tojson }}" +
-        "{% endmacro %}" +
         "{% macro lightSummary(ids) %}" +
             "{% set lit = namespace(on=0, total=0) %}" +
             "{% for e in physical(ids) | from_json %}" +
@@ -102,14 +90,10 @@ module HaTemplate {
     // unavailable group is kept (its members are down, not gone); only an
     // available group that expands to nothing — every member hidden — is left out.
     const LIGHTS = PRELUDE +
-        "{% set ns = namespace(out={}, areas={}, floors={}, home=[]) %}" +
+        "{% set ns = namespace(out={}, home=[]) %}" +
         "{% for a in areas() %}" +
         "{% set ids = area_entities(a) | list %}" +
         "{% set ns.home = ns.home + ids %}" +
-        "{% set counts = lightCounts(ids) | from_json %}" +
-        "{% if counts.available + counts.unavailable > 0 %}" +
-        "{% set ns.areas = dict(ns.areas, **{a: counts}) %}" +
-        "{% endif %}" +
         "{% for e in ids | reject('is_hidden_entity') | list %}" +
         "{% if e.startswith('light.') and states[e] is not none %}" +
         "{% set members = expand(e) | rejectattr('entity_id', 'is_hidden_entity') " +
@@ -127,16 +111,7 @@ module HaTemplate {
         "{% endif %}" +
         "{% endfor %}" +
         "{% endfor %}" +
-        "{% for f in floors() %}" +
-        "{% set fids = namespace(l=[]) %}" +
-        "{% for a in floor_areas(f) | default([]) | list %}" +
-        "{% set fids.l = fids.l + (area_entities(a) | list) %}" +
-        "{% endfor %}" +
-        "{% set s = lightSummary(fids.l) | trim %}" +
-        "{% if s | length > 0 %}{% set ns.floors = dict(ns.floors, **{f: s}) %}{% endif %}" +
-        "{% endfor %}" +
-        "{{ dict(lights=ns.out, areas=ns.areas, floors=ns.floors, " +
-            "home=(lightSummary(ns.home) | trim or none)) | tojson }}";
+        "{{ dict(lights=ns.out, home=(lightSummary(ns.home) | trim or none)) | tojson }}";
 
     // The percentage is emitted whatever the state, so an off fan keeps its last
     // speed; the view, not the render, decides what an off fan shows.

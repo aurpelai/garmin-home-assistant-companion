@@ -60,25 +60,38 @@ module CardLoopBuilder {
 
     function buildAreaCard(haState as HaState, area as AreaModel, floorId as String or Null,
                            floorName as String or Null) as AreaCard {
-        var aggregate = haState.buildAreaAggregate(area.id);
-
         return new AreaCard(
             area.id,
             floorId,
             area.name,
             floorName,
-            SensorReading.build(aggregate.averages),
-            aggregate.lightCount);
+            SensorReading.build(haState.getAreaSensorAverages(area.id)),
+            ToggleableCount.build(haState.getLightsInArea(area.id) as Array<ToggleableModel>));
     }
 
     function buildFloorCard(haState as HaState, floorId as String, floorName as String) as FloorCard {
-        var aggregate = haState.buildFloorAggregate(floorId);
-
         return new FloorCard(
             floorId,
             floorName,
             haState.getZone(),
-            SensorReading.build(aggregate.averages),
-            aggregate.lightSummary);
+            SensorReading.build(haState.getFloorSensorAverages(floorId)),
+            resolveLightSummary(ToggleableCount.build(
+                haState.getLightsInFloor(floorId) as Array<ToggleableModel>)));
+    }
+
+    function resolveLightSummary(count as ToggleableCount) as String or Null {
+        if (count.available == 0) {
+            return null;
+        }
+
+        if (count.on == count.available) {
+            return LightSummary.ALL_ON;
+        }
+
+        if (count.on == 0) {
+            return LightSummary.ALL_OFF;
+        }
+
+        return LightSummary.SOME_ON;
     }
 }

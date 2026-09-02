@@ -22,6 +22,7 @@ class Coordinator {
 
     function onViewShown(view as Screen) as Void {
         _currentView = view;
+        updateDisplay();
 
         var age = _client.msSinceLastRefresh();
         if (age == null || age > STALE_AFTER_MS) {
@@ -57,22 +58,17 @@ class Coordinator {
                 _haState.setFloors(HaPayload.parseFloors(result));
             } else if (target == FetchTarget.LIGHTS) {
                 _haState.setLights(HaPayload.parseLights(result));
-                _haState.setLightAggregates(
-                    HaPayload.parseAreaLightCounts(result),
-                    HaPayload.parseFloorLightSummaries(result),
-                    HaPayload.parseHomeLightSummary(result));
-                GlanceSummary.setLightSummary(_haState.getHomeLightSummary());
+                GlanceSummary.setLightSummary(HaPayload.parseHomeLightSummary(result));
             } else if (target == FetchTarget.FANS) {
                 _haState.setFans(HaPayload.parseFans(result));
             } else if (target == FetchTarget.SENSORS) {
                 _haState.setSensors(HaPayload.parseSensors(result));
-                _haState.setSensorAggregates(
+                _haState.setSensorAverages(
                     HaPayload.parseAverages(result, "areas"),
-                    HaPayload.parseAverages(result, "floors"),
-                    HaPayload.parseHomeAverages(result));
-                var averages = _haState.getHomeAverages();
-                GlanceSummary.setTemperature(averages.get("temperature"));
-                GlanceSummary.setHumidity(averages.get("humidity"));
+                    HaPayload.parseAverages(result, "floors"));
+                var home = HaPayload.parseHomeAverages(result);
+                GlanceSummary.setTemperature(home.get("temperature"));
+                GlanceSummary.setHumidity(home.get("humidity"));
             }
         }
 
