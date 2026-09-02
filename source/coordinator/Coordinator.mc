@@ -22,6 +22,7 @@ class Coordinator {
 
     function onViewShown(view as Screen) as Void {
         _currentView = view;
+        updateDisplay();
 
         var age = _client.msSinceLastRefresh();
         if (age == null || age > STALE_AFTER_MS) {
