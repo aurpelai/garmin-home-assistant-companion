@@ -315,3 +315,17 @@ function anUnknownAreaOrFloorYieldsAnEmptyCollectionRatherThanNull(logger as Tes
     Test.assertEqual(haState.getAreas().size(), 0);
     return true;
 }
+
+(:test)
+function anAreaHasEntitiesWhenAnyStoredDomainOrASensorLandsInIt(logger as Test.Logger) as Boolean {
+    var haState = new HaState();
+    haState.setToggleables(Domain.FAN, HaPayload.parseFans({ "fans" => {
+        "fan.a" => HaStateTest.fan(false, "area.fans") } }));
+    haState.setSensors(HaPayload.parseSensors({ "sensors" => {
+        "sensor.t" => { "friendly_state" => "21 °C", "device_class" => "temperature", "area_id" => "area.sensors" } } }));
+
+    Test.assert(haState.hasEntitiesInArea("area.fans"));
+    Test.assert(haState.hasEntitiesInArea("area.sensors"));
+    Test.assert(!haState.hasEntitiesInArea("area.empty"));
+    return true;
+}

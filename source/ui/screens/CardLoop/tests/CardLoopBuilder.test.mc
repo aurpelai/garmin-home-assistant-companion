@@ -130,6 +130,21 @@ function anAreaWithNoEntitiesGetsNoCardAndTakesItsEmptyFloorWithIt(logger as Tes
 }
 
 (:test)
+function anAreaWhoseOnlyEntityIsAFanGetsACardAndHeadsItsFloor(logger as Test.Logger) as Boolean {
+    var haState = CardLoopModelTest.stateOf({
+        "areas" => { "area.room" => { "name" => "Room" } },
+        "floors" => { "floor.g" => { "name" => "Ground", "order" => 0, "areas" => ["area.room"] } }
+    }, {} as Dictionary, {} as Dictionary);
+    haState.setToggleables(Domain.FAN, HaPayload.parseFans({ "fans" => {
+        "fan.room" => { "state" => false, "area_id" => "area.room", "available" => true } } }));
+
+    Test.assertEqual(
+        CardLoopModelTest.cardIds(CardLoopBuilder.build(haState)).toString(),
+        ["floor.g", "area.room"].toString());
+    return true;
+}
+
+(:test)
 function anOptimisticallyToggledLightMovesTheCardCountAndFloorSummary(logger as Test.Logger) as Boolean {
     var haState = CardLoopModelTest.stateOf({
         "areas" => { "area.room" => { "name" => "Room" } },

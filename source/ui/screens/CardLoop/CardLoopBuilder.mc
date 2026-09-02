@@ -10,17 +10,17 @@ module CardLoopBuilder {
 
         for (var index = 0; index < floors.size(); index++) {
             var floor = floors[index];
-            var entities = filterAreasWithEntities(
+            var floorAreas = filterAreasWithEntities(
                 haState, EntitySorter.sortAreas(haState.getAreasInFloor(floor.id)));
-            if (entities.size() == 0) {
+            if (floorAreas.size() == 0) {
                 continue;
             }
 
             cards.add(buildFloorCard(haState, floor.id, floor.name));
 
-            for (var areaIndex = 0; areaIndex < entities.size(); areaIndex++) {
-                floored.put(entities[areaIndex].area.id, true);
-                cards.add(buildAreaCard(haState, entities[areaIndex].area, floor.id, floor.name));
+            for (var areaIndex = 0; areaIndex < floorAreas.size(); areaIndex++) {
+                floored.put(floorAreas[areaIndex].id, true);
+                cards.add(buildAreaCard(haState, floorAreas[areaIndex], floor.id, floor.name));
             }
         }
 
@@ -33,25 +33,21 @@ module CardLoopBuilder {
             }
         }
 
-        var unflooredEntities = filterAreasWithEntities(haState, EntitySorter.sortAreas(unfloored));
+        var unflooredAreas = filterAreasWithEntities(haState, EntitySorter.sortAreas(unfloored));
 
-        for (var index = 0; index < unflooredEntities.size(); index++) {
-            cards.add(buildAreaCard(haState, unflooredEntities[index].area, null, null));
+        for (var index = 0; index < unflooredAreas.size(); index++) {
+            cards.add(buildAreaCard(haState, unflooredAreas[index], null, null));
         }
 
         return new CardLoopModel(cards);
     }
 
-    function filterAreasWithEntities(haState as HaState,
-                                     areas as Array<AreaModel>) as Array<AreaEntities> {
-        var filtered = [] as Array<AreaEntities>;
+    function filterAreasWithEntities(haState as HaState, areas as Array<AreaModel>) as Array<AreaModel> {
+        var filtered = [] as Array<AreaModel>;
 
         for (var index = 0; index < areas.size(); index++) {
-            var lights = haState.getToggleablesInArea(areas[index].id, Domain.LIGHT);
-            var sensors = haState.getSensorsInArea(areas[index].id);
-
-            if (lights.size() > 0 || sensors.size() > 0) {
-                filtered.add(new AreaEntities(areas[index], lights, sensors));
+            if (haState.hasEntitiesInArea(areas[index].id)) {
+                filtered.add(areas[index]);
             }
         }
 
