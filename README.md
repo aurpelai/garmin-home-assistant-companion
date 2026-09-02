@@ -14,7 +14,7 @@ Nothing to configure beyond your Home Assistant URL and a token — no YAML, no 
 **Watch side**
 
 - A supported Garmin watch: Fenix 7 (and S/X/Pro variants), Fenix 8 / 8 Pro / 8 Solar / E, Enduro 3, Venu 3 / 3S, Forerunner 265, or Vivoactive 5 / 6. See `manifest.xml` for the full product list.
-- minApiLevel 5.0.0.
+- minApiLevel 5.1.0.
 - On Bluetooth-only watches, Garmin Connect Mobile (GCM) must be installed, paired, and running in the background — it provides the network transport. WiFi/LTE watches can work standalone.
 
 **Home Assistant side**
