@@ -5,7 +5,7 @@
 
 A Garmin Connect IQ watch app for controlling and monitoring Home Assistant from your wrist. Open an area to toggle its lights and fans, individually or as a group, see their brightness and speed, and read its temperature, humidity, and light level. More entity types are planned.
 
-The app presents your home as floors and areas, following how you've organised them in Home Assistant, so an entity you haven't put in an area doesn't appear on the watch. Beyond that the app follows your setup: hidden entities stay hidden, and readings appear exactly as Home Assistant formats them.
+The app presents your home as floors and areas, following how you've organised them in Home Assistant, so an entity you haven't put in an area doesn't appear on the watch. An entity group shows up in the area it belongs to; a group that spans areas — or belongs to none, like an "all lights" group — isn't shown as its own control, and its members are counted in their own areas instead. Beyond that the app follows your setup: hidden entities stay hidden, and readings appear exactly as Home Assistant formats them.
 
 Nothing to configure beyond your Home Assistant URL and a token — no YAML, no helper entities.
 
