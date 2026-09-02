@@ -1,8 +1,8 @@
 import Toybox.Lang;
 import Toybox.Test;
 
-// Hands out plain strings in place of Rez.Strings, so a test reads the exact
-// text a row would show and sees which resource, with which arguments, it came from.
+// Returns strings that encode which resource and arguments they came from, so a
+// builder test asserts the resolution without loading Rez.Strings.
 (:test)
 class FakeSubLabelProvider {
     function getOff() as String {

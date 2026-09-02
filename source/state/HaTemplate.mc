@@ -138,9 +138,8 @@ module HaTemplate {
         "{{ dict(lights=ns.out, areas=ns.areas, floors=ns.floors, " +
             "home=(lightSummary(ns.home) | trim or none)) | tojson }}";
 
-    // Per entity only, mirroring the lights walk. Like brightness, the percentage
-    // comes through whatever the state and is formatted here so the watch shows
-    // it verbatim.
+    // The percentage is emitted whatever the state, so an off fan keeps its last
+    // speed; the view, not the render, decides what an off fan shows.
     const FANS = PRELUDE +
         "{% set ns = namespace(out={}) %}" +
         "{% for a in areas() %}" +

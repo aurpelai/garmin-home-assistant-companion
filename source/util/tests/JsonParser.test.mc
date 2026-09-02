@@ -141,8 +141,6 @@ function jsonFeedsHaStateEndToEndWithRawNonAscii(logger as Test.Logger) as Boole
     return true;
 }
 
-// A fan as HA's `| tojson` delivers it: the percentage survives the off state,
-// and a raw non-ASCII name survives the round trip into HaState.
 (:test)
 function jsonFeedsHaStateEndToEndWithAFan(logger as Test.Logger) as Boolean {
     var fans = "{\"fans\": {\"fan.bedroom\": {\"state\": false, " +
