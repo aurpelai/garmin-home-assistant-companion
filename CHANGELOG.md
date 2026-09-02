@@ -5,6 +5,22 @@ All notable changes to this project are documented here.
 This file is compiled from change fragments by [changie](https://changie.dev);
 do not edit it by hand. Add a fragment with `changie new` in your PR instead.
 
+## [v0.11.1] - 2026-09-02
+
+### 🔧 Fixed
+
+- Area and floor light indicators now update instantly when you toggle a light
+- Areas with any entities are now shown
+
+### 🛠️ Technical
+
+- Derive light counts and summaries on the watch instead of fetching precomputed aggregates
+- HaState stores toggleables by domain and ToggleableModel becomes the base class of LightModel and FanModel
+
+### 🧹 Maintenance
+
+- Cover the coordinator's refresh and toggle decisions with unit tests
+
 ## [v0.11.0] - 2026-09-02
 
 ### 🎉 New
