@@ -143,6 +143,22 @@ class HaState {
         return _areas.size() > 0;
     }
 
+    function hasEntitiesInArea(areaId as String) as Boolean {
+        if (getSensorsInArea(areaId).size() > 0) {
+            return true;
+        }
+
+        var domains = _toggleablesByDomainAndArea.keys();
+
+        for (var index = 0; index < domains.size(); index++) {
+            if (getToggleablesInArea(areaId, domains[index] as String).size() > 0) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     function isOn(entityId as String) as Boolean {
         var toggleable = getToggleable(entityId);
         return toggleable != null && toggleable.isOn();
