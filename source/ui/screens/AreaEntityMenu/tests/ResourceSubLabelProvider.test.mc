@@ -1,0 +1,23 @@
+import Toybox.Lang;
+import Toybox.Test;
+
+(:test)
+function aGroupLabelCountsItsMembersInTheDomainsOwnWords(logger as Test.Logger) as Boolean {
+    var provider = new ResourceSubLabelProvider();
+
+    Test.assertEqual(provider.resolveGroupLabel("light", 1), "Group • 1 Light");
+    Test.assertEqual(provider.resolveGroupLabel("light", 4), "Group • 4 Lights");
+    Test.assertEqual(provider.resolveGroupLabel("fan", 1), "Group • 1 Fan");
+    Test.assertEqual(provider.resolveGroupLabel("fan", 3), "Group • 3 Fans");
+    return true;
+}
+
+(:test)
+function theFixedSublabelsReadAsTheirResourceStrings(logger as Test.Logger) as Boolean {
+    var provider = new ResourceSubLabelProvider();
+
+    Test.assertEqual(provider.getOff(), "Off");
+    Test.assertEqual(provider.getUnavailable(), "Unavailable");
+    Test.assertEqual(provider.getGroupUnavailable(), "Group unavailable");
+    return true;
+}
