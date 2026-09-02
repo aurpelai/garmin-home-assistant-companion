@@ -1,0 +1,3 @@
+kind: "\U0001F6E0️ Technical"
+body: HaState stores toggleables by domain and ToggleableModel becomes the base class of LightModel and FanModel
+time: 2026-09-02T21:40:50.059917+03:00

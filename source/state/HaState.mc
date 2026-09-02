@@ -1,23 +1,19 @@
 import Toybox.Lang;
 
 class HaState {
-    private var _lights as Dictionary<String, LightModel>;
-    private var _fans as Dictionary<String, FanModel>;
+    private var _toggleablesByDomain as Dictionary<String, Dictionary<String, ToggleableModel>>;
+    private var _toggleablesByDomainAndArea as Dictionary<String, Dictionary<String, Array<ToggleableModel>>>;
     private var _areas as Dictionary<String, AreaModel>;
     private var _floors as Array<FloorModel>;
-    private var _lightsByArea as Dictionary<String, Array<LightModel>>;
-    private var _fansByArea as Dictionary<String, Array<FanModel>>;
     private var _sensorsByArea as Dictionary<String, Array<SensorModel>>;
     private var _zone as String or Null;
     private var _sensorAverages as SensorAverages;
 
     function initialize() {
-        _lights = {};
-        _fans = {};
+        _toggleablesByDomain = {};
+        _toggleablesByDomainAndArea = {};
         _areas = {};
         _floors = [];
-        _lightsByArea = {};
-        _fansByArea = {};
         _sensorsByArea = {};
         _zone = null;
         _sensorAverages = new SensorAverages();
@@ -37,15 +33,11 @@ class HaState {
 
     // A fetch clears pending overrides only by replacing the models wholesale;
     // the fresh ones come back with no assumption. Updating them in place instead
-    // would leave a tapped light pending forever.
-    function setLights(lights as Dictionary<String, LightModel>) as Void {
-        _lights = lights;
-        _lightsByArea = groupByArea(lights.values() as Array<EntityModel>) as Dictionary<String, Array<LightModel>>;
-    }
-
-    function setFans(fans as Dictionary<String, FanModel>) as Void {
-        _fans = fans;
-        _fansByArea = groupByArea(fans.values() as Array<EntityModel>) as Dictionary<String, Array<FanModel>>;
+    // would leave a tapped entity pending forever.
+    function setToggleables(domain as String, toggleables as Dictionary<String, ToggleableModel>) as Void {
+        _toggleablesByDomain.put(domain, toggleables);
+        _toggleablesByDomainAndArea.put(domain,
+            groupByArea(toggleables.values() as Array<EntityModel>) as Dictionary<String, Array<ToggleableModel>>);
     }
 
     function setSensors(sensors as Dictionary<String, SensorModel>) as Void {
@@ -63,10 +55,6 @@ class HaState {
 
     function getFloorSensorAverages(floorId as String) as Dictionary<String, String> {
         return _sensorAverages.getFloor(floorId);
-    }
-
-    function hasAreas() as Boolean {
-        return _areas.size() > 0;
     }
 
     function getArea(areaId as String) as AreaModel or Null {
@@ -95,14 +83,10 @@ class HaState {
         return _zone;
     }
 
-    function getLightsInArea(areaId as String) as Array<LightModel> {
-        var lights = _lightsByArea.get(areaId);
-        return lights == null ? [] as Array<LightModel> : lights;
-    }
-
-    function getFansInArea(areaId as String) as Array<FanModel> {
-        var fans = _fansByArea.get(areaId);
-        return fans == null ? [] as Array<FanModel> : fans;
+    function getToggleablesInArea(areaId as String, domain as String) as Array<ToggleableModel> {
+        var byArea = _toggleablesByDomainAndArea.get(domain);
+        var toggleables = byArea == null ? null : byArea.get(areaId);
+        return toggleables == null ? [] as Array<ToggleableModel> : toggleables;
     }
 
     function getSensorsInArea(areaId as String) as Array<SensorModel> {
@@ -110,19 +94,19 @@ class HaState {
         return sensors == null ? [] as Array<SensorModel> : sensors;
     }
 
-    function getLightsInFloor(floorId as String) as Array<LightModel> {
+    function getToggleablesInFloor(floorId as String, domain as String) as Array<ToggleableModel> {
         var floor = getFloor(floorId);
-        var lights = [] as Array<LightModel>;
+        var toggleables = [] as Array<ToggleableModel>;
 
         if (floor == null) {
-            return lights;
+            return toggleables;
         }
 
         for (var index = 0; index < floor.areas.size(); index++) {
-            lights.addAll(getLightsInArea(floor.areas[index]));
+            toggleables.addAll(getToggleablesInArea(floor.areas[index], domain));
         }
 
-        return lights;
+        return toggleables;
     }
 
     function getAreasInFloor(floorId as String) as Array<AreaModel> {
@@ -143,24 +127,6 @@ class HaState {
         return areas;
     }
 
-    function isOn(entityId as String) as Boolean {
-        var toggleable = getToggleable(entityId);
-        return toggleable != null && toggleable.isOn();
-    }
-
-    function isPending(entityId as String) as Boolean {
-        var toggleable = getToggleable(entityId);
-        return toggleable != null && toggleable.isPending();
-    }
-
-    function override(entityId as String, isOn as Boolean) as Void {
-        overrideAll(getToggleTargets(entityId), isOn);
-    }
-
-    function overrideFloorLights(floorId as String, isOn as Boolean) as Void {
-        overrideAll(toLightIds(getLightsInFloor(floorId)), isOn);
-    }
-
     function getToggleTargets(entityId as String) as Array<String> {
         var toggleable = getToggleable(entityId);
         var memberIds = toggleable == null ? null : toggleable.memberIds;
@@ -173,24 +139,38 @@ class HaState {
         return targets;
     }
 
-    function hasAnyOn(lights as Array<LightModel>) as Boolean {
-        for (var index = 0; index < lights.size(); index++) {
-            if (lights[index].isOn()) {
+    function hasAreas() as Boolean {
+        return _areas.size() > 0;
+    }
+
+    function isOn(entityId as String) as Boolean {
+        var toggleable = getToggleable(entityId);
+        return toggleable != null && toggleable.isOn();
+    }
+
+    function isPending(entityId as String) as Boolean {
+        var toggleable = getToggleable(entityId);
+        return toggleable != null && toggleable.isPending();
+    }
+
+    function toIds(toggleables as Array<ToggleableModel>) as Array<String> {
+        var ids = [] as Array<String>;
+
+        for (var index = 0; index < toggleables.size(); index++) {
+            ids.add(toggleables[index].id);
+        }
+
+        return ids;
+    }
+
+    function hasAnyOn(toggleables as Array<ToggleableModel>) as Boolean {
+        for (var index = 0; index < toggleables.size(); index++) {
+            if (toggleables[index].isOn()) {
                 return true;
             }
         }
 
         return false;
-    }
-
-    function toLightIds(lights as Array<LightModel>) as Array<String> {
-        var ids = [] as Array<String>;
-
-        for (var index = 0; index < lights.size(); index++) {
-            ids.add(lights[index].id);
-        }
-
-        return ids;
     }
 
     function hasAnyPending(entityIds as Array<String>) as Boolean {
@@ -203,28 +183,27 @@ class HaState {
         return false;
     }
 
+    function override(entityId as String, isOn as Boolean) as Void {
+        overrideAll(getToggleTargets(entityId), isOn);
+    }
+
+    function overrideFloorLights(floorId as String, isOn as Boolean) as Void {
+        overrideAll(toIds(getToggleablesInFloor(floorId, Domain.LIGHT)), isOn);
+    }
+
     private function overrideAll(entityIds as Array<String>, isOn as Boolean) as Void {
         for (var index = 0; index < entityIds.size(); index++) {
             var toggleable = getToggleable(entityIds[index]);
 
             if (toggleable != null) {
-                toggleable.assumed = isOn;
+                toggleable.assumedState = isOn;
             }
         }
     }
 
     private function getToggleable(entityId as String) as ToggleableModel or Null {
-        var light = _lights.get(entityId);
-        if (light != null) {
-            return light;
-        }
-
-        var fan = _fans.get(entityId);
-        if (fan != null) {
-            return fan;
-        }
-
-        return null;
+        var byId = _toggleablesByDomain.get(Entity.resolveDomain(entityId));
+        return byId == null ? null : byId.get(entityId);
     }
 
     private function groupByArea(models as Array<EntityModel>)

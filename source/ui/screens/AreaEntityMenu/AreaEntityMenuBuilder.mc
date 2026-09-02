@@ -10,8 +10,8 @@ module AreaEntityMenuBuilder {
             return null;
         }
 
-        var toggles = buildToggleRows(haState.getLightsInArea(areaId) as Array<ToggleableModel>, provider);
-        toggles.addAll(buildToggleRows(haState.getFansInArea(areaId) as Array<ToggleableModel>, provider));
+        var toggles = buildToggleRows(haState.getToggleablesInArea(areaId, Domain.LIGHT), provider);
+        toggles.addAll(buildToggleRows(haState.getToggleablesInArea(areaId, Domain.FAN), provider));
 
         return new AreaEntityMenuModel(area.name, toggles,
             buildSensorRows(haState.getSensorsInArea(areaId), provider));
@@ -53,7 +53,7 @@ module AreaEntityMenuBuilder {
         }
 
         if (memberIds != null) {
-            return provider.resolveGroupLabel(toggleable instanceof FanModel ? "fan" : "light", memberIds.size());
+            return provider.resolveGroupLabel(toggleable.domain, memberIds.size());
         }
 
         if (!toggleable.isOn()) {

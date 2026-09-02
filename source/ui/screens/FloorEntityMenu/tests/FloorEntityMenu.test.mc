@@ -28,7 +28,7 @@ module FloorEntityMenuTest {
                 "floor.up" => { "name" => "Up", "order" => 0, "areas" => ["area.room"] }
             }
         }));
-        haState.setLights(HaPayload.parseLights({ "lights" => lights }));
+        haState.setToggleables(Domain.LIGHT, HaPayload.parseLights({ "lights" => lights }));
 
         return haState;
     }

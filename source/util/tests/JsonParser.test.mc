@@ -108,9 +108,9 @@ function jsonFeedsHaStateEndToEnd(logger as Test.Logger) as Boolean {
             "\"available\": true, \"memberIds\": [\"light.a\", \"light.b\", \"light.c\"]}}}";
 
     var haState = new HaState();
-    haState.setLights(HaPayload.parseLights(JsonParser.parse(payload)));
+    haState.setToggleables(Domain.LIGHT, HaPayload.parseLights(JsonParser.parse(payload)));
 
-    var lights = haState.getLightsInArea("area.bedroom");
+    var lights = haState.getToggleablesInArea("area.bedroom", Domain.LIGHT);
     Test.assertEqual(lights.size(), 1);
     Test.assertEqual(lights[0].id, "light.bedroom_lights");
     Test.assertEqual(lights[0].name, "Bedroom Lights");
@@ -148,9 +148,9 @@ function jsonFeedsHaStateEndToEndWithAFan(logger as Test.Logger) as Boolean {
             "\"available\": true, \"speed\": \"10 %\"}}}";
 
     var haState = new HaState();
-    haState.setFans(HaPayload.parseFans(JsonParser.parse(fans)));
+    haState.setToggleables(Domain.FAN, HaPayload.parseFans(JsonParser.parse(fans)));
 
-    var fan = haState.getFansInArea("area.bedroom")[0];
+    var fan = haState.getToggleablesInArea("area.bedroom", Domain.FAN)[0] as FanModel;
     Test.assertEqual(fan.id, "fan.bedroom");
     Test.assertEqual(fan.name, "Ventilátor");
     Test.assertEqual(fan.state, false);

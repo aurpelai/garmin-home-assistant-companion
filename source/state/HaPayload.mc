@@ -11,46 +11,55 @@ module HaPayload {
         return asStringOrNull(payload instanceof Dictionary ? payload.get("zone") : null);
     }
 
-    function parseLights(payload as Object or Null) as Dictionary<String, LightModel> {
-        var entries = readEntries(payload, "lights");
-        var lights = {} as Dictionary<String, LightModel>;
-        var entityIds = entries.keys();
-
-        for (var index = 0; index < entityIds.size(); index++) {
-            var entityId = entityIds[index] as String;
-            var entry = entries.get(entityId) as Dictionary;
-            lights.put(entityId, new LightModel(
-                entityId,
-                entry.get("state") instanceof Boolean ? entry.get("state") as Boolean : false,
-                asString(entry.get("name")),
-                asAvailable(entry.get("available")),
-                asStringOrNull(entry.get("area_id")),
-                asMemberIds(entry.get("memberIds")),
-                asStringOrNull(entry.get("brightness"))));
-        }
-
-        return lights;
+    // A constructor cannot be passed and `method(:x)` does not compile at module
+    // scope, so each domain hands parseToggleables its builder as an explicit
+    // Lang.Method.
+    function parseLights(payload as Object or Null) as Dictionary<String, ToggleableModel> {
+        return parseToggleables(payload, "lights", new Lang.Method(HaPayload, :buildLight));
     }
 
-    function parseFans(payload as Object or Null) as Dictionary<String, FanModel> {
-        var entries = readEntries(payload, "fans");
-        var fans = {} as Dictionary<String, FanModel>;
+    function parseFans(payload as Object or Null) as Dictionary<String, ToggleableModel> {
+        return parseToggleables(payload, "fans", new Lang.Method(HaPayload, :buildFan));
+    }
+
+    function parseToggleables(payload as Object or Null, key as String,
+                              build as Method(entityId as String, state as Boolean, name as String,
+                                              available as Boolean, areaId as String or Null,
+                                              memberIds as Array<String> or Null,
+                                              entry as Dictionary) as ToggleableModel)
+            as Dictionary<String, ToggleableModel> {
+        var entries = readEntries(payload, key);
+        var toggleables = {} as Dictionary<String, ToggleableModel>;
         var entityIds = entries.keys();
 
         for (var index = 0; index < entityIds.size(); index++) {
             var entityId = entityIds[index] as String;
             var entry = entries.get(entityId) as Dictionary;
-            fans.put(entityId, new FanModel(
+            toggleables.put(entityId, build.invoke(
                 entityId,
-                entry.get("state") instanceof Boolean ? entry.get("state") as Boolean : false,
+                asBoolean(entry.get("state")),
                 asString(entry.get("name")),
                 asAvailable(entry.get("available")),
                 asStringOrNull(entry.get("area_id")),
                 asMemberIds(entry.get("memberIds")),
-                asStringOrNull(entry.get("speed"))));
+                entry));
         }
 
-        return fans;
+        return toggleables;
+    }
+
+    function buildLight(entityId as String, state as Boolean, name as String, available as Boolean,
+                        areaId as String or Null, memberIds as Array<String> or Null,
+                        entry as Dictionary) as LightModel {
+        return new LightModel(entityId, state, name, available, areaId, memberIds,
+            asStringOrNull(entry.get("brightness")));
+    }
+
+    function buildFan(entityId as String, state as Boolean, name as String, available as Boolean,
+                      areaId as String or Null, memberIds as Array<String> or Null,
+                      entry as Dictionary) as FanModel {
+        return new FanModel(entityId, state, name, available, areaId, memberIds,
+            asStringOrNull(entry.get("speed")));
     }
 
     function parseSensors(payload as Object or Null) as Dictionary<String, SensorModel> {
@@ -192,6 +201,10 @@ module HaPayload {
 
     function asAvailable(raw as Object or Null) as Boolean {
         return raw instanceof Boolean ? raw : true;
+    }
+
+    function asBoolean(raw as Object or Null) as Boolean {
+        return raw instanceof Boolean ? raw : false;
     }
 
     function asMemberIds(raw as Object or Null) as Array<String> or Null {

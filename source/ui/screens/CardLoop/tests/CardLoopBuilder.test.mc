@@ -10,7 +10,7 @@ module CardLoopModelTest {
         haState.setZone(HaPayload.parseZone(structure));
         haState.setAreas(HaPayload.parseAreas(structure));
         haState.setFloors(HaPayload.parseFloors(structure));
-        haState.setLights(HaPayload.parseLights({ "lights" => lights }));
+        haState.setToggleables(Domain.LIGHT, HaPayload.parseLights({ "lights" => lights }));
         haState.setSensors(HaPayload.parseSensors({ "sensors" => sensors }));
         return haState;
     }

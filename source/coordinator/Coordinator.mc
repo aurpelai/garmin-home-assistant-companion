@@ -57,10 +57,10 @@ class Coordinator {
                 _haState.setAreas(HaPayload.parseAreas(result));
                 _haState.setFloors(HaPayload.parseFloors(result));
             } else if (target == FetchTarget.LIGHTS) {
-                _haState.setLights(HaPayload.parseLights(result));
+                _haState.setToggleables(Domain.LIGHT, HaPayload.parseLights(result));
                 GlanceSummary.setLightSummary(HaPayload.parseHomeLightSummary(result));
             } else if (target == FetchTarget.FANS) {
-                _haState.setFans(HaPayload.parseFans(result));
+                _haState.setToggleables(Domain.FAN, HaPayload.parseFans(result));
             } else if (target == FetchTarget.SENSORS) {
                 _haState.setSensors(HaPayload.parseSensors(result));
                 _haState.setSensorAverages(
@@ -110,8 +110,8 @@ class Coordinator {
     }
 
     function toggleFloorLights(floorId as String) as Void {
-        var lights = _haState.getLightsInFloor(floorId);
-        if (lights.size() == 0 || _haState.hasAnyPending(_haState.toLightIds(lights))) {
+        var lights = _haState.getToggleablesInFloor(floorId, Domain.LIGHT);
+        if (lights.size() == 0 || _haState.hasAnyPending(_haState.toIds(lights))) {
             return;
         }
 
