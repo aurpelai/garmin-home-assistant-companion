@@ -86,14 +86,25 @@ class ClientFixture {
         return new HaClient(gateway, scheduler);
     }
 
-    // A fetch's raw success payload for an empty home: the render webhook returns
-    // the rendered value as a JSON string under its root key.
+    // The render webhook returns the rendered value as a JSON string under its root key.
+    static function renderPayload(json as String) as Dictionary {
+        return { ResponseType.TEMPLATE_RENDER_ROOT_KEY => json };
+    }
+
     static function emptyRenderPayload() as Dictionary {
-        return { ResponseType.TEMPLATE_RENDER_ROOT_KEY => "{}" };
+        return renderPayload("{}");
     }
 
     static function sentDomain(gateway as FakeRequestGateway, index as Number) as String {
-        return ((gateway.sent[index] as SentRequest).body.get("data") as Dictionary).get("domain") as String;
+        return sentServiceData(gateway, index).get("domain") as String;
+    }
+
+    static function sentService(gateway as FakeRequestGateway, index as Number) as String {
+        return sentServiceData(gateway, index).get("service") as String;
+    }
+
+    private static function sentServiceData(gateway as FakeRequestGateway, index as Number) as Dictionary {
+        return (gateway.sent[index] as SentRequest).body.get("data") as Dictionary;
     }
 }
 
