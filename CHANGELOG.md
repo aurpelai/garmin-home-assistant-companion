@@ -5,6 +5,21 @@ All notable changes to this project are documented here.
 This file is compiled from change fragments by [changie](https://changie.dev);
 do not edit it by hand. Add a fragment with `changie new` in your PR instead.
 
+## [v0.11.0] - 2026-09-02
+
+### 🎉 New
+
+- Fans can now be turned on and off from each area.
+
+### 🔧 Fixed
+
+- A humidity-only glance row now lines up on the left like every other status row instead of floating in the middle.
+
+### 🛠️ Technical
+
+- Collapsed the glance status-row types into one and moved item placement into the renderer.
+- Lights and fans now share one toggleable model, row, and sort, and the service call derives its domain from the entity id.
+
 ## [v0.10.3] - 2026-08-31
 
 ### 🔧 Fixed
