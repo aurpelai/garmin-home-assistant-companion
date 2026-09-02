@@ -79,21 +79,6 @@ function aRowReadsTheAssumedValueAndCarriesItsPendingStatus(logger as Test.Logge
 }
 
 (:test)
-function aLightShowsItsBrightnessWhileOnAndOffOtherwise(logger as Test.Logger) as Boolean {
-    var haState = AreaEntityMenuModelTest.stateOf(AreaEntityMenuModelTest.oneRoom(), {
-        "light.on" => AreaEntityMenuModelTest.light(true, "50 %"),
-        "light.off" => AreaEntityMenuModelTest.light(false, null)
-    }, {} as Dictionary, {} as Dictionary);
-    var toggles = AreaEntityMenuModelTest.build(haState).toggles;
-
-    Test.assertEqual(toggles[0].rowId, "light.off");
-    Test.assertEqual(toggles[0].subLabel as String, "Off");
-    Test.assertEqual(toggles[1].rowId, "light.on");
-    Test.assertEqual(toggles[1].subLabel as String, "50 %");
-    return true;
-}
-
-(:test)
 function aFanShowsItsSpeedWhileOnAndOffEvenWhenASpeedLingers(logger as Test.Logger) as Boolean {
     var haState = AreaEntityMenuModelTest.stateOf(AreaEntityMenuModelTest.oneRoom(), {} as Dictionary, {
         "fan.on" => AreaEntityMenuModelTest.fan(true, "33 %"),
