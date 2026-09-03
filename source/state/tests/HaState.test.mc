@@ -329,3 +329,25 @@ function anAreaHasEntitiesWhenAnyStoredDomainOrASensorLandsInIt(logger as Test.L
     Test.assert(!haState.hasEntitiesInArea("area.empty"));
     return true;
 }
+
+(:test)
+function theStoredStateIsTheSameWhicheverOrderTheTargetsArriveIn(logger as Test.Logger) as Boolean {
+    var structure = { "zone" => "Kotitalo", "areas" => { "area.kitchen" => { "name" => "Küche" } } };
+    var lights = { "light.kitchen" => HaStateTest.light(true, "area.kitchen") };
+
+    var structureFirst = new HaState();
+    HaStateTest.setStructure(structureFirst, structure);
+    HaStateTest.setLights(structureFirst, lights);
+
+    var lightsFirst = new HaState();
+    HaStateTest.setLights(lightsFirst, lights);
+    HaStateTest.setStructure(lightsFirst, structure);
+
+    Test.assertEqual(structureFirst.getZone() as String, lightsFirst.getZone() as String);
+    Test.assertEqual((structureFirst.getArea("area.kitchen") as AreaModel).name,
+                     (lightsFirst.getArea("area.kitchen") as AreaModel).name);
+    Test.assertEqual(structureFirst.getToggleablesInArea("area.kitchen", Domain.LIGHT).size(),
+                     lightsFirst.getToggleablesInArea("area.kitchen", Domain.LIGHT).size());
+    Test.assertEqual(structureFirst.isOn("light.kitchen"), lightsFirst.isOn("light.kitchen"));
+    return true;
+}

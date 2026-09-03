@@ -209,30 +209,6 @@ function aFanWithNoSpeedIsStillPresent(logger as Test.Logger) as Boolean {
 }
 
 (:test)
-function eitherArrivalOrderOfTheTargetsProducesTheSameState(logger as Test.Logger) as Boolean {
-    var structure = { "zone" => "Kotitalo", "areas" => { "area.kitchen" => { "name" => "Küche" } } };
-    var lights = HaPayloadTest.lightsPayload({
-        "light.kitchen" => { "state" => true, "name" => "Küchenlicht", "area_id" => "area.kitchen" }
-    });
-
-    var structureFirst = new HaState();
-    HaPayloadTest.applyStructure(structureFirst, structure);
-    structureFirst.setToggleables(Domain.LIGHT, HaPayload.parseLights(lights));
-
-    var lightsFirst = new HaState();
-    lightsFirst.setToggleables(Domain.LIGHT, HaPayload.parseLights(lights));
-    HaPayloadTest.applyStructure(lightsFirst, structure);
-
-    Test.assertEqual(structureFirst.getZone() as String, lightsFirst.getZone() as String);
-    Test.assertEqual((structureFirst.getArea("area.kitchen") as AreaModel).name,
-                     (lightsFirst.getArea("area.kitchen") as AreaModel).name);
-    Test.assertEqual(structureFirst.getToggleablesInArea("area.kitchen", Domain.LIGHT).size(),
-                     lightsFirst.getToggleablesInArea("area.kitchen", Domain.LIGHT).size());
-    Test.assertEqual(structureFirst.isOn("light.kitchen"), lightsFirst.isOn("light.kitchen"));
-    return true;
-}
-
-(:test)
 function unusableInputParsesToAnEmptyTargetRatherThanThrowing(logger as Test.Logger) as Boolean {
     Test.assertEqual(HaPayload.parseLights(null).size(), 0);
     Test.assertEqual(HaPayload.parseFans({ "fans" => "not a map" }).size(), 0);

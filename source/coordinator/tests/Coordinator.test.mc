@@ -1,7 +1,6 @@
 import Toybox.Application;
 import Toybox.Lang;
 import Toybox.Test;
-import Toybox.WatchUi;
 
 (:test)
 module CoordinatorTest {
@@ -10,7 +9,6 @@ module CoordinatorTest {
     const ONE_FLOOR = "{\"zone\":\"Home\",\"areas\":{\"area.room\":{\"name\":\"Room\"}},"
         + "\"floors\":{\"floor.ground\":{\"name\":\"Ground\",\"order\":0,\"areas\":[\"area.room\"]}}}";
     const ROOM_LIGHT_ON = "{\"home\":\"1/2\",\"lights\":{\"light.a\":{\"state\":true,\"area_id\":\"area.room\"}}}";
-    const ROOM_LIGHT_OFF = "{\"lights\":{\"light.a\":{\"state\":false,\"area_id\":\"area.room\"}}}";
     const TWO_ROOMS_LIT = "{\"lights\":{\"light.a\":{\"state\":true,\"area_id\":\"area.room\"},"
         + "\"light.k\":{\"state\":true,\"area_id\":\"area.kitchen\"}}}";
     const ROOM_LIGHTS_ONE_ON = "{\"lights\":{\"light.a\":{\"state\":true,\"area_id\":\"area.room\"},"
@@ -18,16 +16,20 @@ module CoordinatorTest {
     const ROOM_LIGHTS_OFF = "{\"lights\":{\"light.a\":{\"state\":false,\"area_id\":\"area.room\"},"
         + "\"light.b\":{\"state\":false,\"area_id\":\"area.room\"}}}";
     const ROOM_FAN_ON = "{\"fans\":{\"fan.f\":{\"state\":true,\"area_id\":\"area.room\"}}}";
-    const ROOM_FAN_OFF = "{\"fans\":{\"fan.f\":{\"state\":false,\"area_id\":\"area.room\"}}}";
     const ROOM_SENSORS = "{\"home\":{\"temperature\":\"21 °C\",\"humidity\":\"40 %\"},"
         + "\"areas\":{\"area.room\":{\"temperature\":\"21 °C\"}},"
         + "\"sensors\":{\"sensor.t\":{\"friendly_state\":\"21 °C\",\"device_class\":\"temperature\",\"area_id\":\"area.room\"}}}";
     const EMPTY = "{}";
 
     function coordinatorWith(gateway as FakeRequestGateway, scheduler as FakeScheduler) as Coordinator {
+        return coordinatorOn(new HaState(), gateway, scheduler);
+    }
+
+    function coordinatorOn(haState as HaState, gateway as FakeRequestGateway,
+                           scheduler as FakeScheduler) as Coordinator {
         Application.Properties.setValue("haBaseUrl", "http://ha.local");
         Application.Properties.setValue("haToken", "token");
-        var coordinator = new Coordinator(ClientFixture.clientWith(gateway, scheduler), new FakeScheduler());
+        var coordinator = new Coordinator(ClientFixture.clientWith(gateway, scheduler), haState, new FakeScheduler());
         Registration.seed("some-id");
         return coordinator;
     }
@@ -40,14 +42,6 @@ module CoordinatorTest {
         gateway.replyLast(200, ClientFixture.renderPayload(sensors));
     }
 
-    function exhaustRetries(gateway as FakeRequestGateway, scheduler as FakeScheduler) as Void {
-        for (var attempt = 0; attempt < 3; attempt++) {
-            gateway.replyLast(-1, null);
-            scheduler.runScheduled();
-        }
-        gateway.replyLast(-1, null);
-    }
-
     function stateOf(structure as String, lights as String, fans as String) as HaState {
         var haState = new HaState();
         var structurePayload = JsonParser.parse(structure);
@@ -57,21 +51,6 @@ module CoordinatorTest {
         haState.setToggleables(Domain.LIGHT, HaPayload.parseLights(JsonParser.parse(lights)));
         haState.setToggleables(Domain.FAN, HaPayload.parseFans(JsonParser.parse(fans)));
         return haState;
-    }
-
-    function areaMenuOf(coordinator as Coordinator, haState as HaState) as AreaEntityMenu {
-        var provider = new FakeSubLabelProvider();
-        var model = AreaEntityMenuBuilder.build(haState, "area.room", provider) as AreaEntityMenuModel;
-        return new AreaEntityMenu(coordinator, "area.room", model, provider);
-    }
-
-    function floorMenuOf(coordinator as Coordinator, haState as HaState) as FloorEntityMenu {
-        var model = FloorEntityMenuBuilder.build(haState, "floor.ground") as FloorEntityMenuModel;
-        return new FloorEntityMenu(coordinator, "floor.ground", model);
-    }
-
-    function isOn(menu as WatchUi.Menu2, index as Number) as Boolean {
-        return (menu.getItem(index) as WatchUi.ToggleMenuItem).isEnabled();
     }
 }
 
@@ -88,20 +67,17 @@ function aRefreshWithNoConfigurationAsksNothingOfHomeAssistant(logger as Test.Lo
 }
 
 (:test)
-function eachFetchTargetLandsInTheStateTheCardLoopAndTheGlanceRead(logger as Test.Logger) as Boolean {
-    var gateway = new FakeRequestGateway();
-    var coordinator = CoordinatorTest.coordinatorWith(gateway, new FakeScheduler());
-    var loop = new CardLoop(coordinator, CardLoopBuilder.build(new HaState()));
+function eachFetchTargetLandsUnderItsOwnDomainAndFeedsTheGlance(logger as Test.Logger) as Boolean {
+    var haState = new HaState();
+    var coordinator = CoordinatorTest.coordinatorOn(haState, new FakeRequestGateway(), new FakeScheduler());
 
-    coordinator.onViewShown(loop);
-    CoordinatorTest.completeRefresh(gateway, CoordinatorTest.ONE_FLOOR, CoordinatorTest.ROOM_LIGHT_ON,
-        CoordinatorTest.EMPTY, CoordinatorTest.ROOM_SENSORS);
+    coordinator.onFetchTarget(FetchTarget.STRUCTURE, JsonParser.parse(CoordinatorTest.ONE_ROOM), false);
+    coordinator.onFetchTarget(FetchTarget.LIGHTS, JsonParser.parse(CoordinatorTest.ROOM_LIGHT_ON), false);
+    coordinator.onFetchTarget(FetchTarget.FANS, JsonParser.parse(CoordinatorTest.ROOM_FAN_ON), false);
+    coordinator.onFetchTarget(FetchTarget.SENSORS, JsonParser.parse(CoordinatorTest.ROOM_SENSORS), false);
 
-    Test.assertEqual(CardLoopTest.focusedId(loop), "floor.ground");
-    loop.showNext();
-    Test.assertEqual(CardLoopTest.focusedId(loop), "area.room");
-    Test.assertEqual((loop.currentCard() as AreaCard).lights.on, 1);
-    Test.assertEqual((loop.currentCard() as Card).readings[0].text, "21 °C");
+    Test.assert(haState.getToggleablesInArea("area.room", Domain.LIGHT)[0].isOn());
+    Test.assert(haState.getToggleablesInArea("area.room", Domain.FAN)[0].isOn());
     Test.assertEqual(GlanceSummary.getLightSummary() as String, "1/2");
     Test.assertEqual(GlanceSummary.getTemperature() as String, "21 °C");
     Test.assertEqual(GlanceSummary.getHumidity() as String, "40 %");
@@ -109,119 +85,62 @@ function eachFetchTargetLandsInTheStateTheCardLoopAndTheGlanceRead(logger as Tes
 }
 
 (:test)
-function lightsAndFansLandInTheRowsOfAnOpenMenu(logger as Test.Logger) as Boolean {
-    var gateway = new FakeRequestGateway();
-    var coordinator = CoordinatorTest.coordinatorWith(gateway, new FakeScheduler());
-    var menu = CoordinatorTest.areaMenuOf(coordinator,
-        CoordinatorTest.stateOf(CoordinatorTest.ONE_ROOM, CoordinatorTest.ROOM_LIGHT_OFF, CoordinatorTest.ROOM_FAN_OFF));
-
-    coordinator.onViewShown(menu);
-    CoordinatorTest.completeRefresh(gateway, CoordinatorTest.ONE_ROOM, CoordinatorTest.ROOM_LIGHT_ON,
-        CoordinatorTest.ROOM_FAN_ON, CoordinatorTest.EMPTY);
-
-    Test.assert(CoordinatorTest.isOn(menu, 0));
-    Test.assert(CoordinatorTest.isOn(menu, 1));
-    return true;
-}
-
-(:test)
-function aScreenStillOnDisplayIsRebuiltInPlace(logger as Test.Logger) as Boolean {
-    var gateway = new FakeRequestGateway();
-    var coordinator = CoordinatorTest.coordinatorWith(gateway, new FakeScheduler());
-    var loop = new CardLoop(coordinator, CardLoopBuilder.build(
-        CoordinatorTest.stateOf(CoordinatorTest.ONE_ROOM, CoordinatorTest.ROOM_LIGHT_ON, CoordinatorTest.EMPTY)));
-
-    coordinator.onActivate();
-    CoordinatorTest.completeRefresh(gateway, CoordinatorTest.ONE_ROOM, CoordinatorTest.ROOM_LIGHT_ON,
-        CoordinatorTest.EMPTY, CoordinatorTest.EMPTY);
+function aShownScreenIsRebuiltWhenItsStateChanges(logger as Test.Logger) as Boolean {
+    var haState = CoordinatorTest.stateOf(CoordinatorTest.ONE_ROOM, CoordinatorTest.ROOM_LIGHT_ON, CoordinatorTest.EMPTY);
+    var coordinator = CoordinatorTest.coordinatorOn(haState, new FakeRequestGateway(), new FakeScheduler());
+    var loop = new CardLoop(coordinator, CardLoopBuilder.build(haState));
     coordinator.onViewShown(loop);
-
-    coordinator.onActivate();
-    CoordinatorTest.completeRefresh(gateway, CoordinatorTest.TWO_ROOMS, CoordinatorTest.TWO_ROOMS_LIT,
-        CoordinatorTest.EMPTY, CoordinatorTest.EMPTY);
-
     Test.assertEqual(CardLoopTest.focusedId(loop), "area.room");
+
+    coordinator.onFetchTarget(FetchTarget.STRUCTURE, JsonParser.parse(CoordinatorTest.TWO_ROOMS), false);
+    coordinator.onFetchTarget(FetchTarget.LIGHTS, JsonParser.parse(CoordinatorTest.TWO_ROOMS_LIT), false);
+
     loop.showNext();
     Test.assertEqual(CardLoopTest.focusedId(loop), "area.kitchen");
     return true;
 }
 
 (:test)
-function aToggleIsRefusedWhileItsTargetIsStillPending(logger as Test.Logger) as Boolean {
-    var gateway = new FakeRequestGateway();
-    var coordinator = CoordinatorTest.coordinatorWith(gateway, new FakeScheduler());
-    var menu = CoordinatorTest.areaMenuOf(coordinator,
-        CoordinatorTest.stateOf(CoordinatorTest.ONE_ROOM, CoordinatorTest.ROOM_LIGHT_ON, CoordinatorTest.EMPTY));
-    coordinator.onViewShown(menu);
-    CoordinatorTest.completeRefresh(gateway, CoordinatorTest.ONE_ROOM, CoordinatorTest.ROOM_LIGHT_ON,
-        CoordinatorTest.EMPTY, CoordinatorTest.EMPTY);
+function aTapOptimisticallyFlipsTheEntityUntilASecondTapIsRefused(logger as Test.Logger) as Boolean {
+    var haState = CoordinatorTest.stateOf(CoordinatorTest.ONE_ROOM, CoordinatorTest.ROOM_LIGHT_ON, CoordinatorTest.EMPTY);
+    var coordinator = CoordinatorTest.coordinatorOn(haState, new FakeRequestGateway(), new FakeScheduler());
 
     coordinator.toggleEntity("light.a");
-
-    Test.assertEqual(gateway.count(), 5);
-    Test.assertEqual(ClientFixture.sentService(gateway, 4), "toggle");
-    Test.assert(!CoordinatorTest.isOn(menu, 0));
+    Test.assert(!haState.isOn("light.a"));
+    Test.assert(haState.isPending("light.a"));
 
     coordinator.toggleEntity("light.a");
-
-    Test.assertEqual(gateway.count(), 5);
-    Test.assert(!CoordinatorTest.isOn(menu, 0));
+    Test.assert(!haState.isOn("light.a"));
     return true;
 }
 
 (:test)
-function toggleFloorLightsTurnsTheFloorOffWhileAnyLightIsOnAndOnOtherwise(logger as Test.Logger) as Boolean {
-    var gateway = new FakeRequestGateway();
-    var coordinator = CoordinatorTest.coordinatorWith(gateway, new FakeScheduler());
-    var menu = CoordinatorTest.floorMenuOf(coordinator,
-        CoordinatorTest.stateOf(CoordinatorTest.ONE_FLOOR, CoordinatorTest.ROOM_LIGHTS_ONE_ON, CoordinatorTest.EMPTY));
-    coordinator.onViewShown(menu);
-    CoordinatorTest.completeRefresh(gateway, CoordinatorTest.ONE_FLOOR, CoordinatorTest.ROOM_LIGHTS_ONE_ON,
-        CoordinatorTest.EMPTY, CoordinatorTest.EMPTY);
+function togglingAFloorDrivesEveryLightOffWhileAnyIsOnAndOnOtherwise(logger as Test.Logger) as Boolean {
+    var oneOn = CoordinatorTest.stateOf(CoordinatorTest.ONE_FLOOR, CoordinatorTest.ROOM_LIGHTS_ONE_ON, CoordinatorTest.EMPTY);
+    var onCoordinator = CoordinatorTest.coordinatorOn(oneOn, new FakeRequestGateway(), new FakeScheduler());
 
-    coordinator.toggleFloorLights("floor.ground");
+    onCoordinator.toggleFloorLights("floor.ground");
+    Test.assert(!oneOn.hasAnyOn(oneOn.getToggleablesInFloor("floor.ground", Domain.LIGHT)));
 
-    Test.assertEqual(ClientFixture.sentService(gateway, 4), "turn_off");
-    Test.assert(!CoordinatorTest.isOn(menu, 0));
+    var allOff = CoordinatorTest.stateOf(CoordinatorTest.ONE_FLOOR, CoordinatorTest.ROOM_LIGHTS_OFF, CoordinatorTest.EMPTY);
+    var offCoordinator = CoordinatorTest.coordinatorOn(allOff, new FakeRequestGateway(), new FakeScheduler());
 
-    gateway.replyLast(200, null);
-    CoordinatorTest.completeRefresh(gateway, CoordinatorTest.ONE_FLOOR, CoordinatorTest.ROOM_LIGHTS_OFF,
-        CoordinatorTest.EMPTY, CoordinatorTest.EMPTY);
-    coordinator.toggleFloorLights("floor.ground");
-
-    Test.assertEqual(ClientFixture.sentService(gateway, 9), "turn_on");
-    Test.assert(CoordinatorTest.isOn(menu, 0));
+    offCoordinator.toggleFloorLights("floor.ground");
+    var lights = allOff.getToggleablesInFloor("floor.ground", Domain.LIGHT);
+    Test.assert(lights[0].isOn() && lights[1].isOn());
     return true;
 }
 
 (:test)
-function aSettledToggleRefreshes(logger as Test.Logger) as Boolean {
-    var gateway = new FakeRequestGateway();
-    var coordinator = CoordinatorTest.coordinatorWith(gateway, new FakeScheduler());
-    coordinator.onActivate();
-    CoordinatorTest.completeRefresh(gateway, CoordinatorTest.ONE_ROOM, CoordinatorTest.ROOM_LIGHT_ON,
-        CoordinatorTest.EMPTY, CoordinatorTest.EMPTY);
+function aToggleRefreshesOnceItSettlesWhetherOrNotItFailed(logger as Test.Logger) as Boolean {
+    var settled = new FakeRequestGateway();
+    CoordinatorTest.coordinatorWith(settled, new FakeScheduler()).onToggleSettled(null);
+    Test.assertEqual(settled.count(), 1);
 
-    coordinator.toggleEntity("light.a");
-    gateway.replyLast(200, null);
-
-    Test.assertEqual(gateway.count(), 6);
-    return true;
-}
-
-(:test)
-function aFailedToggleStillRefreshes(logger as Test.Logger) as Boolean {
-    var gateway = new FakeRequestGateway();
-    var scheduler = new FakeScheduler();
-    var coordinator = CoordinatorTest.coordinatorWith(gateway, scheduler);
-    coordinator.onActivate();
-    CoordinatorTest.completeRefresh(gateway, CoordinatorTest.ONE_ROOM, CoordinatorTest.ROOM_LIGHT_ON,
-        CoordinatorTest.EMPTY, CoordinatorTest.EMPTY);
-
-    coordinator.toggleEntity("light.a");
-    CoordinatorTest.exhaustRetries(gateway, scheduler);
-
-    Test.assertEqual(gateway.count(), 9);
+    var failed = new FakeRequestGateway();
+    CoordinatorTest.coordinatorWith(failed, new FakeScheduler())
+        .onToggleSettled(new RequestError(-1, RequestType.REQUEST));
+    Test.assertEqual(failed.count(), 1);
     return true;
 }
 

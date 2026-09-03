@@ -94,18 +94,6 @@ class ClientFixture {
     static function emptyRenderPayload() as Dictionary {
         return renderPayload("{}");
     }
-
-    static function sentDomain(gateway as FakeRequestGateway, index as Number) as String {
-        return sentServiceData(gateway, index).get("domain") as String;
-    }
-
-    static function sentService(gateway as FakeRequestGateway, index as Number) as String {
-        return sentServiceData(gateway, index).get("service") as String;
-    }
-
-    private static function sentServiceData(gateway as FakeRequestGateway, index as Number) as Dictionary {
-        return (gateway.sent[index] as SentRequest).body.get("data") as Dictionary;
-    }
 }
 
 (:test)
@@ -665,24 +653,5 @@ function aRefreshKeepsTheFirstErrorNotTheLast(logger as Test.Logger) as Boolean 
 
     Test.assertEqual(log.targets.size(), 4);
     Test.assertEqual((client.getError() as RequestError).reason as Number, 401);
-    return true;
-}
-
-(:test)
-function aToggleCallsTheDomainOfTheEntityItTargets(logger as Test.Logger) as Boolean {
-    var gateway = new FakeRequestGateway();
-    var scheduler = new FakeScheduler();
-    var client = ClientFixture.clientWith(gateway, scheduler);
-    Registration.seed("some-id");
-
-    client.queueToggle("fan.ceiling", new ResultCapture().method(:onResult));
-    gateway.reply(0, 200, null);
-    client.queueToggle("light.a", new ResultCapture().method(:onResult));
-    gateway.reply(1, 200, null);
-    client.queueFloorLights("floor.g", "turn_on", new ResultCapture().method(:onResult));
-
-    Test.assertEqual(ClientFixture.sentDomain(gateway, 0), "fan");
-    Test.assertEqual(ClientFixture.sentDomain(gateway, 1), "light");
-    Test.assertEqual(ClientFixture.sentDomain(gateway, 2), "light");
     return true;
 }

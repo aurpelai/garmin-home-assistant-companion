@@ -33,7 +33,7 @@ make test    # build + run unit tests in the running simulator
 make clean   # remove build output
 ```
 
-`make sim` opens the simulator and exits, so `make run` and `make test` can follow in the same shell — they just need the simulator already open. Tests cover the pure logic that doesn't require a network; networking is verified in the simulator or on-device instead.
+`make sim` opens the simulator and exits, so `make run` and `make test` can follow in the same shell — they just need the simulator already open. Tests cover the pure logic that doesn't require a network; networking is verified in the simulator or on-device instead. See [docs/testing.md](docs/testing.md) for what we test and why.
 
 ## Continuous integration
 

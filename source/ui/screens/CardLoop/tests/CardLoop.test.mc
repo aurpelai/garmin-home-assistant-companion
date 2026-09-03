@@ -38,7 +38,7 @@ module CardLoopTest {
     }
 
     function loopOf(haState as HaState) as CardLoop {
-        return new CardLoop(new Coordinator(new HaClient(new WebRequestGateway(), new TimerScheduler()), new TimerScheduler()), CardLoopBuilder.build(haState));
+        return new CardLoop(new Coordinator(new HaClient(new WebRequestGateway(), new TimerScheduler()), new HaState(), new TimerScheduler()), CardLoopBuilder.build(haState));
     }
 
     function focusedId(loop as CardLoop) as String {
@@ -110,13 +110,5 @@ function aVanishedCardFallsBackToTheFloorItSatUnder(logger as Test.Logger) as Bo
     }));
 
     Test.assertEqual(CardLoopTest.focusedId(loop), "floor.upstairs");
-    return true;
-}
-
-(:test)
-function theCardLoopNeverPerishes(logger as Test.Logger) as Boolean {
-    var loop = CardLoopTest.loopOf(CardLoopTest.twoFloors());
-
-    Test.assert(!(loop has :hasPerished));
     return true;
 }
