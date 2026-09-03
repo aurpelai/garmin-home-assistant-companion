@@ -44,6 +44,20 @@ module HaStateTest {
 }
 
 (:test)
+function clearingEmptiesEveryStoredTarget(logger as Test.Logger) as Boolean {
+    var haState = HaStateTest.stateWithLights({ "light.a" => HaStateTest.light(true, "area.room") });
+    HaStateTest.setStructure(haState, { "zone" => "Home", "areas" => { "area.room" => { "name" => "Room" } } });
+
+    haState.clear();
+
+    Test.assert(!haState.hasAreas());
+    Test.assertEqual(haState.getToggleablesInArea("area.room", Domain.LIGHT).size(), 0);
+    Test.assert(haState.getArea("area.room") == null);
+    Test.assert(haState.getZone() == null);
+    return true;
+}
+
+(:test)
 function anOverrideDrivesAFanExactlyAsItDrivesALight(logger as Test.Logger) as Boolean {
     var haState = HaStateTest.stateWithFans({ "fan.a" => HaStateTest.fan(false, "area.a") });
 

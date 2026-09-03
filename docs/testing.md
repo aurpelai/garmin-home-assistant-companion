@@ -29,10 +29,12 @@ is fine, but only when **all** of these hold:
   exists for no reason but the test, the test is driving the design — not allowed.
   (Constructor-injecting a collaborator that production also injects is real
   composition, not test-only wiring.)
-- **No assertions on what we send to Home Assistant.** Asserting `sentService`,
-  `sentField`, or `sentDomain` tests Home Assistant's contract, which we assume
-  is always correct. We test that our state changed, not that our outgoing call
-  was shaped a certain way. This holds for flow tests and unit tests alike.
+- **No assertions on the shape of a service call.** Asserting `sentService`,
+  `sentField`, or `sentDomain` — the domain, service, and payload of a call —
+  tests Home Assistant's contract, which we assume is always correct. Whether a
+  request went out at all, how many, and which endpoint (a registration versus a
+  webhook) is our own orchestration and is fair to assert; the body we hand
+  Home Assistant is not.
 - **It pins something no other test covers.** A flow that re-asserts what the
   unit tests of its collaborators already pin is redundant and comes out — even
   though it would otherwise be allowed.

@@ -8,12 +8,6 @@ module HaPayloadTest {
         return { "lights" => entries };
     }
 
-    function applyStructure(haState as HaState, payload as Dictionary) as Void {
-        haState.setZone(HaPayload.parseZone(payload));
-        haState.setAreas(HaPayload.parseAreas(payload));
-        haState.setFloors(HaPayload.parseFloors(payload));
-    }
-
     function fansPayload(entries as Dictionary) as Dictionary {
         return { "fans" => entries };
     }

@@ -102,25 +102,30 @@ function aShownScreenIsRebuiltWhenItsStateChanges(logger as Test.Logger) as Bool
 
 (:test)
 function aTapOptimisticallyFlipsTheEntityUntilASecondTapIsRefused(logger as Test.Logger) as Boolean {
+    var gateway = new FakeRequestGateway();
     var haState = CoordinatorTest.stateOf(CoordinatorTest.ONE_ROOM, CoordinatorTest.ROOM_LIGHT_ON, CoordinatorTest.EMPTY);
-    var coordinator = CoordinatorTest.coordinatorOn(haState, new FakeRequestGateway(), new FakeScheduler());
+    var coordinator = CoordinatorTest.coordinatorOn(haState, gateway, new FakeScheduler());
 
     coordinator.toggleEntity("light.a");
     Test.assert(!haState.isOn("light.a"));
     Test.assert(haState.isPending("light.a"));
+    Test.assertEqual(gateway.count(), 1);
 
     coordinator.toggleEntity("light.a");
     Test.assert(!haState.isOn("light.a"));
+    Test.assertEqual(gateway.count(), 1);
     return true;
 }
 
 (:test)
 function togglingAFloorDrivesEveryLightOffWhileAnyIsOnAndOnOtherwise(logger as Test.Logger) as Boolean {
+    var gateway = new FakeRequestGateway();
     var oneOn = CoordinatorTest.stateOf(CoordinatorTest.ONE_FLOOR, CoordinatorTest.ROOM_LIGHTS_ONE_ON, CoordinatorTest.EMPTY);
-    var onCoordinator = CoordinatorTest.coordinatorOn(oneOn, new FakeRequestGateway(), new FakeScheduler());
+    var onCoordinator = CoordinatorTest.coordinatorOn(oneOn, gateway, new FakeScheduler());
 
     onCoordinator.toggleFloorLights("floor.ground");
     Test.assert(!oneOn.hasAnyOn(oneOn.getToggleablesInFloor("floor.ground", Domain.LIGHT)));
+    Test.assertEqual(gateway.count(), 1);
 
     var allOff = CoordinatorTest.stateOf(CoordinatorTest.ONE_FLOOR, CoordinatorTest.ROOM_LIGHTS_OFF, CoordinatorTest.EMPTY);
     var offCoordinator = CoordinatorTest.coordinatorOn(allOff, new FakeRequestGateway(), new FakeScheduler());
