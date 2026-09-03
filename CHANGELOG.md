@@ -5,6 +5,16 @@ All notable changes to this project are documented here.
 This file is compiled from change fragments by [changie](https://changie.dev);
 do not edit it by hand. Add a fragment with `changie new` in your PR instead.
 
+## [v0.12.0] - 2026-09-04
+
+### 🎉 New
+
+- Double-tap a light or fan to adjust its brightness, color, or speed
+
+### 🛠️ Technical
+
+- Lights and fans carry their adjustable attributes and capabilities from Home Assistant, with optimistic updates while a change settles
+
 ## [v0.11.1] - 2026-09-02
 
 ### 🔧 Fixed
