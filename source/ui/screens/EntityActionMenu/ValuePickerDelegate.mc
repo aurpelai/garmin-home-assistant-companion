@@ -1,11 +1,11 @@
 import Toybox.Lang;
 import Toybox.WatchUi;
 
-class LevelPickerDelegate extends WatchUi.BehaviorDelegate {
+class ValuePickerDelegate extends WatchUi.BehaviorDelegate {
     private var _coordinator as Coordinator;
-    private var _picker as LevelPicker;
+    private var _picker as ValuePicker;
 
-    function initialize(coordinator as Coordinator, picker as LevelPicker) {
+    function initialize(coordinator as Coordinator, picker as ValuePicker) {
         BehaviorDelegate.initialize();
         _coordinator = coordinator;
         _picker = picker;

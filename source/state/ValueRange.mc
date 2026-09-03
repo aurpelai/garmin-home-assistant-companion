@@ -4,7 +4,7 @@ import Toybox.Lang;
 // as the extreme stops — so the first step off min and the last onto max may be
 // shorter than a full step. Only stepping moves the value onto the grid; an
 // unstepped value stays exactly as it was.
-class LevelRange {
+class ValueRange {
     public var min as Number;
     public var max as Number;
     public var step as Number;

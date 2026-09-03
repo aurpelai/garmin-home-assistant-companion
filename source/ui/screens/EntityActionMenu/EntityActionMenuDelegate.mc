@@ -19,7 +19,7 @@ class EntityActionMenuDelegate extends WatchUi.ActionMenuDelegate {
             return;
         }
 
-        var picker = new LevelPicker(attribute);
-        WatchUi.pushView(picker, new LevelPickerDelegate(_coordinator, picker), WatchUi.SLIDE_UP);
+        var picker = new ValuePicker(attribute);
+        WatchUi.pushView(picker, new ValuePickerDelegate(_coordinator, picker), WatchUi.SLIDE_UP);
     }
 }

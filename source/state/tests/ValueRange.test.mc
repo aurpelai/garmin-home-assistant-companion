@@ -3,7 +3,7 @@ import Toybox.Test;
 
 (:test)
 function nextLandsOnTheRoundMultipleAboveTheValue(logger as Test.Logger) as Boolean {
-    var range = new LevelRange(0, 100, 10);
+    var range = new ValueRange(0, 100, 10);
 
     Test.assertEqual(range.next(7), 10);
     Test.assertEqual(range.next(20), 30);
@@ -12,7 +12,7 @@ function nextLandsOnTheRoundMultipleAboveTheValue(logger as Test.Logger) as Bool
 
 (:test)
 function previousLandsOnTheRoundMultipleBelowTheValue(logger as Test.Logger) as Boolean {
-    var range = new LevelRange(0, 100, 10);
+    var range = new ValueRange(0, 100, 10);
 
     Test.assertEqual(range.previous(23), 20);
     Test.assertEqual(range.previous(20), 10);
@@ -21,7 +21,7 @@ function previousLandsOnTheRoundMultipleBelowTheValue(logger as Test.Logger) as 
 
 (:test)
 function steppingStopsAtTheEndsWithoutWrapping(logger as Test.Logger) as Boolean {
-    var range = new LevelRange(0, 100, 10);
+    var range = new ValueRange(0, 100, 10);
 
     Test.assertEqual(range.next(100), 100);
     Test.assertEqual(range.previous(0), 0);
@@ -30,7 +30,7 @@ function steppingStopsAtTheEndsWithoutWrapping(logger as Test.Logger) as Boolean
 
 (:test)
 function theGridLandsOnRoundMultiplesRegardlessOfTheMinimum(logger as Test.Logger) as Boolean {
-    var range = new LevelRange(2202, 6535, 250);
+    var range = new ValueRange(2202, 6535, 250);
 
     Test.assertEqual(range.next(2202), 2250);
     Test.assertEqual(range.next(2250), 2500);
@@ -40,7 +40,7 @@ function theGridLandsOnRoundMultiplesRegardlessOfTheMinimum(logger as Test.Logge
 
 (:test)
 function theFirstAndLastStepsClampToMinAndMax(logger as Test.Logger) as Boolean {
-    var range = new LevelRange(2202, 6535, 250);
+    var range = new ValueRange(2202, 6535, 250);
 
     Test.assertEqual(range.previous(2250), 2202);
     Test.assertEqual(range.next(6500), 6535);

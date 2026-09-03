@@ -3,15 +3,15 @@ import Toybox.Graphics;
 import Toybox.Lang;
 import Toybox.WatchUi;
 
-class LevelPicker extends WatchUi.View {
+class ValuePicker extends WatchUi.View {
     public var attribute as AdjustableAttribute;
-    private var _range as LevelRange;
+    private var _range as ValueRange;
     private var _value as Number;
 
     function initialize(attribute as AdjustableAttribute) {
         View.initialize();
         self.attribute = attribute;
-        _range = attribute.range as LevelRange;
+        _range = attribute.range as ValueRange;
         var current = attribute.current;
         _value = current == null ? _range.min : current;
     }

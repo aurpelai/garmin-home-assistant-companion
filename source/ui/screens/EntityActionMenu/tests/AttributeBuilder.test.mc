@@ -35,8 +35,8 @@ function aColorTempLightAlsoOffersColorOverItsOwnKelvinRange(logger as Test.Logg
     var color = attributes[1];
     Test.assertEqual(color.field, "color_temp_kelvin");
     Test.assertEqual(color.current as Number, 3000);
-    Test.assertEqual((color.range as LevelRange).min, 2500);
-    Test.assertEqual((color.range as LevelRange).max, 5000);
+    Test.assertEqual((color.range as ValueRange).min, 2500);
+    Test.assertEqual((color.range as ValueRange).max, 5000);
     return true;
 }
 
