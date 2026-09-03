@@ -1,15 +1,15 @@
 import Toybox.Lang;
 
 class HaState {
-    private var _toggleablesByDomain as Dictionary<String, Dictionary<String, ToggleableModel>>;
-    private var _toggleablesByDomainAndArea as Dictionary<String, Dictionary<String, Array<ToggleableModel>>>;
-    private var _areas as Dictionary<String, AreaModel>;
-    private var _floors as Array<FloorModel>;
-    private var _sensorsByArea as Dictionary<String, Array<SensorModel>>;
-    private var _zone as String or Null;
-    private var _sensorAverages as SensorAverages;
+    private var _toggleablesByDomain as Dictionary<String, Dictionary<String, ToggleableModel>> = {};
+    private var _toggleablesByDomainAndArea as Dictionary<String, Dictionary<String, Array<ToggleableModel>>> = {};
+    private var _areas as Dictionary<String, AreaModel> = {};
+    private var _floors as Array<FloorModel> = [];
+    private var _sensorsByArea as Dictionary<String, Array<SensorModel>> = {};
+    private var _zone as String or Null = null;
+    private var _sensorAverages as SensorAverages = new SensorAverages();
 
-    function initialize() {
+    function clear() as Void {
         _toggleablesByDomain = {};
         _toggleablesByDomainAndArea = {};
         _areas = {};
