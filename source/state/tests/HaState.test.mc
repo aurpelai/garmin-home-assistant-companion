@@ -46,14 +46,22 @@ module HaStateTest {
 (:test)
 function clearingEmptiesEveryStoredTarget(logger as Test.Logger) as Boolean {
     var haState = HaStateTest.stateWithLights({ "light.a" => HaStateTest.light(true, "area.room") });
-    HaStateTest.setStructure(haState, { "zone" => "Home", "areas" => { "area.room" => { "name" => "Room" } } });
+    HaStateTest.setStructure(haState, { "zone" => "Home",
+        "areas" => { "area.room" => { "name" => "Room" } },
+        "floors" => { "floor.g" => { "name" => "Ground", "order" => 0, "areas" => ["area.room"] } } });
+    haState.setSensors(HaPayload.parseSensors({ "sensors" => {
+        "sensor.t" => { "friendly_state" => "21 °C", "device_class" => "temperature", "area_id" => "area.room" } } }));
+    haState.setSensorAverages({ "area.room" => { "temperature" => "21 °C" } }, {});
 
     haState.clear();
 
     Test.assert(!haState.hasAreas());
-    Test.assertEqual(haState.getToggleablesInArea("area.room", Domain.LIGHT).size(), 0);
     Test.assert(haState.getArea("area.room") == null);
     Test.assert(haState.getZone() == null);
+    Test.assertEqual(haState.getToggleablesInArea("area.room", Domain.LIGHT).size(), 0);
+    Test.assertEqual(haState.getFloors().size(), 0);
+    Test.assertEqual(haState.getSensorsInArea("area.room").size(), 0);
+    Test.assertEqual(haState.getAreaSensorAverages("area.room").size(), 0);
     return true;
 }
 
