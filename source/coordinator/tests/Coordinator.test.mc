@@ -265,11 +265,11 @@ function settingAnAttributeCommandsTheServiceAndAssumesTheValue(logger as Test.L
 
     var attribute = new AdjustableAttribute("light.a", Rez.Strings.AttrBrightness, Domain.LIGHT,
         "turn_on", "brightness_pct", Rez.Strings.Percent, new LevelRange(0, 100, 10), 20, null);
-    coordinator.setAttribute(attribute, 70);
+    coordinator.setAttribute(attribute, 73);
 
     Test.assertEqual(ClientFixture.sentService(gateway, 4), "turn_on");
-    Test.assertEqual(ClientFixture.sentField(gateway, 4, "brightness_pct") as Number, 70);
-    Test.assertEqual(AreaEntityMenuTest.itemOf(menu, "light.a").getSubLabel() as String, "70 %");
+    Test.assertEqual(ClientFixture.sentField(gateway, 4, "brightness_pct") as Number, 73);
+    Test.assertEqual(AreaEntityMenuTest.itemOf(menu, "light.a").getSubLabel() as String, "73 %");
     return true;
 }
 

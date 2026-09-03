@@ -2,8 +2,8 @@ import Toybox.Lang;
 
 // Steps land on round multiples of the step (…, 2500, 2750, …), with min and max
 // as the extreme stops — so the first step off min and the last onto max may be
-// shorter than a full step. The current value is never snapped for display; only
-// a step or a committed value moves onto the grid.
+// shorter than a full step. Only stepping moves the value onto the grid; an
+// unstepped value stays exactly as it was.
 class LevelRange {
     public var min as Number;
     public var max as Number;
