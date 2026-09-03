@@ -1,10 +1,10 @@
 import Toybox.Lang;
 
 (:background)
-class FetchTarget {
-    static const STRUCTURE = :structure;
-    static const LIGHTS = :lights;
-    static const FANS = :fans;
-    static const SENSORS = :sensors;
-    static const GLANCE = :glance;
+module FetchTarget {
+    const STRUCTURE = :structure;
+    const LIGHTS = :lights;
+    const FANS = :fans;
+    const SENSORS = :sensors;
+    const GLANCE = :glance;
 }
