@@ -84,7 +84,7 @@ function aRowShowsItsResolvedSublabelVerbatimAndTracksItAcrossRebuilds(logger as
         "light.a" => { "state" => true, "area_id" => "area.room", "brightness" => 50 }
     }, {} as Dictionary));
 
-    Test.assertEqual(AreaEntityMenuTest.itemOf(menu, "light.a").getSubLabel() as String, "50 %");
+    Test.assertEqual(AreaEntityMenuTest.itemOf(menu, "light.a").getSubLabel() as String, "On • 50 %");
 
     menu.rebuild(AreaEntityMenuTest.stateOf({
         "light.a" => { "state" => false, "area_id" => "area.room" }

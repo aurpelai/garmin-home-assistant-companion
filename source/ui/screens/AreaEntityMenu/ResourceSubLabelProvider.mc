@@ -8,6 +8,10 @@ class ResourceSubLabelProvider {
         return WatchUi.loadResource(Rez.Strings.Off) as String;
     }
 
+    function getOn() as String {
+        return WatchUi.loadResource(Rez.Strings.On) as String;
+    }
+
     function getUnavailable() as String {
         return WatchUi.loadResource(Rez.Strings.Unavailable) as String;
     }
@@ -28,7 +32,7 @@ class ResourceSubLabelProvider {
             isFan ? Rez.Strings.GroupFanCount : Rez.Strings.GroupLightCount) as String, [memberCount]);
     }
 
-    function formatPercent(percent as Number) as String {
-        return Lang.format(WatchUi.loadResource(Rez.Strings.Percent) as String, [percent]);
+    function formatValue(value as Number) as String {
+        return Lang.format(WatchUi.loadResource(Rez.Strings.OnValue) as String, [value]);
     }
 }

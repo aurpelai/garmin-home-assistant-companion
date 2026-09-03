@@ -9,6 +9,10 @@ class FakeSubLabelProvider {
         return "Off";
     }
 
+    function getOn() as String {
+        return "On";
+    }
+
     function getUnavailable() as String {
         return "Unavailable";
     }
@@ -21,8 +25,8 @@ class FakeSubLabelProvider {
         return "Group of " + memberCount + " " + domain;
     }
 
-    function formatPercent(percent as Number) as String {
-        return percent + " %";
+    function formatValue(value as Number) as String {
+        return "On • " + value + " %";
     }
 }
 
@@ -96,12 +100,12 @@ function aFanShowsItsSpeedWhileOnAndOffEvenWhenASpeedLingers(logger as Test.Logg
     Test.assertEqual(toggles[0].subLabel as String, "Off");
     Test.assertEqual(toggles[1].rowId, "fan.on");
     Test.assert(toggles[1].isOn);
-    Test.assertEqual(toggles[1].subLabel as String, "33 %");
+    Test.assertEqual(toggles[1].subLabel as String, "On • 33 %");
     return true;
 }
 
 (:test)
-function anOnRowWithNoValueShowsNoSublabel(logger as Test.Logger) as Boolean {
+function anOnRowWithNoValueShowsOn(logger as Test.Logger) as Boolean {
     var haState = AreaEntityMenuModelTest.stateOf(AreaEntityMenuModelTest.oneRoom(), {
         "light.a" => AreaEntityMenuModelTest.light(true, null)
     }, {
@@ -109,8 +113,8 @@ function anOnRowWithNoValueShowsNoSublabel(logger as Test.Logger) as Boolean {
     }, {} as Dictionary);
     var toggles = AreaEntityMenuModelTest.build(haState).toggles;
 
-    Test.assert(toggles[0].subLabel == null);
-    Test.assert(toggles[1].subLabel == null);
+    Test.assertEqual(toggles[0].subLabel as String, "On");
+    Test.assertEqual(toggles[1].subLabel as String, "On");
     return true;
 }
 
@@ -143,7 +147,7 @@ function aGroupShowsItsMemberCountInItsOwnDomainNeverAValue(logger as Test.Logge
 
     Test.assertEqual(toggles[0].rowId, "light.grp");
     Test.assertEqual(toggles[0].subLabel as String, "Group of 3 light");
-    Test.assertEqual(toggles[1].subLabel as String, "50 %");
+    Test.assertEqual(toggles[1].subLabel as String, "On • 50 %");
     Test.assertEqual(toggles[2].rowId, "fan.grp");
     Test.assertEqual(toggles[2].subLabel as String, "Group of 1 fan");
     return true;
