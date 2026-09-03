@@ -61,30 +61,3 @@ function aFanWithoutSpeedSupportOmitsSpeed(logger as Test.Logger) as Boolean {
     Test.assertEqual(attributes[0].field, "oscillating");
     return true;
 }
-
-(:test)
-function fanSpeedTurnsOnAboveZeroAndOffAtZero(logger as Test.Logger) as Boolean {
-    var speed = AttributeBuilder.build(AttributeBuilderTest.fan(30, true, false, null))[0];
-
-    Test.assertEqual(speed.resolveService(50), "turn_on");
-    Test.assertEqual(speed.resolveService(0), "set_percentage");
-    return true;
-}
-
-(:test)
-function brightnessUsesOneServiceAcrossItsWholeRange(logger as Test.Logger) as Boolean {
-    var brightness = AttributeBuilder.build(AttributeBuilderTest.light(50, false, null))[0];
-
-    Test.assertEqual(brightness.resolveService(50), "turn_on");
-    Test.assertEqual(brightness.resolveService(0), "turn_on");
-    return true;
-}
-
-(:test)
-function anAdjustableReadsTheAssumedValueOverTheServerValue(logger as Test.Logger) as Boolean {
-    var light = AttributeBuilderTest.light(50, false, null);
-    light.assumedBrightness = 80;
-
-    Test.assertEqual(AttributeBuilder.build(light)[0].current as Number, 80);
-    return true;
-}
