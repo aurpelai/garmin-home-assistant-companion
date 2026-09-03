@@ -27,7 +27,7 @@ module CoordinatorTest {
     function coordinatorWith(gateway as FakeRequestGateway, scheduler as FakeScheduler) as Coordinator {
         Application.Properties.setValue("haBaseUrl", "http://ha.local");
         Application.Properties.setValue("haToken", "token");
-        var coordinator = new Coordinator(ClientFixture.clientWith(gateway, scheduler));
+        var coordinator = new Coordinator(ClientFixture.clientWith(gateway, scheduler), new FakeScheduler());
         Registration.seed("some-id");
         return coordinator;
     }

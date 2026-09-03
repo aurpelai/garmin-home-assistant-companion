@@ -32,4 +32,7 @@ class ToggleableModel {
     function isPending() as Boolean {
         return assumedState != null;
     }
+
+    function assumeAttribute(field as String, value as Object) as Void {
+    }
 }

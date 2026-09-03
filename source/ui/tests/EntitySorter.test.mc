@@ -6,12 +6,14 @@ module EntitySorterTest {
 
     function light(id as String, name as String, available as Boolean,
                    memberIds as Array<String> or Null) as LightModel {
-        return new LightModel(id, false, name, available, "area.a", memberIds, null);
+        return new LightModel(id, false, name, available, "area.a", memberIds,
+            null, null, null, null, false);
     }
 
     function fan(id as String, name as String, available as Boolean,
                  memberIds as Array<String> or Null) as FanModel {
-        return new FanModel(id, false, name, available, "area.a", memberIds, null);
+        return new FanModel(id, false, name, available, "area.a", memberIds,
+            null, null, false, false);
     }
 
     function sensor(id as String, deviceClass as String) as SensorModel {

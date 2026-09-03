@@ -83,6 +83,11 @@ class HaState {
         return _zone;
     }
 
+    function getToggleable(entityId as String) as ToggleableModel or Null {
+        var byId = _toggleablesByDomain.get(Entity.resolveDomain(entityId));
+        return byId == null ? null : byId.get(entityId);
+    }
+
     function getToggleablesInArea(areaId as String, domain as String) as Array<ToggleableModel> {
         var byArea = _toggleablesByDomainAndArea.get(domain);
         var toggleables = byArea == null ? null : byArea.get(areaId);
@@ -207,6 +212,13 @@ class HaState {
         overrideAll(toIds(getToggleablesInFloor(floorId, Domain.LIGHT)), isOn);
     }
 
+    function assumeAttribute(entityId as String, field as String, value as Object) as Void {
+        var toggleable = getToggleable(entityId);
+        if (toggleable != null) {
+            toggleable.assumeAttribute(field, value);
+        }
+    }
+
     private function overrideAll(entityIds as Array<String>, isOn as Boolean) as Void {
         for (var index = 0; index < entityIds.size(); index++) {
             var toggleable = getToggleable(entityIds[index]);
@@ -215,11 +227,6 @@ class HaState {
                 toggleable.assumedState = isOn;
             }
         }
-    }
-
-    private function getToggleable(entityId as String) as ToggleableModel or Null {
-        var byId = _toggleablesByDomain.get(Entity.resolveDomain(entityId));
-        return byId == null ? null : byId.get(entityId);
     }
 
     private function groupByArea(models as Array<EntityModel>)

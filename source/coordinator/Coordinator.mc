@@ -3,17 +3,22 @@ import Toybox.WatchUi;
 
 class Coordinator {
     private const STALE_AFTER_MS = 60 * 1000;
+    private const DOUBLE_CLICK_MS = 250;
 
     private var _client as HaClient;
     private var _haState as HaState;
     private var _currentView as Screen or Null;
     private var _subLabelProvider as SubLabelProvider;
+    private var _clickDebounce as Scheduler;
+    private var _pendingClickId as String or Null;
 
-    function initialize(client as HaClient) {
+    function initialize(client as HaClient, clickDebounce as Scheduler) {
         _client = client;
         _haState = new HaState();
         _currentView = null;
         _subLabelProvider = new ResourceSubLabelProvider();
+        _clickDebounce = clickDebounce;
+        _pendingClickId = null;
     }
 
     function onActivate() as Void {
@@ -99,6 +104,44 @@ class Coordinator {
         WatchUi.pushView(menu, new FloorEntityMenuDelegate(menu, self), WatchUi.SLIDE_LEFT);
     }
 
+    function onEntityClick(entityId as String) as Void {
+        var pending = _pendingClickId;
+        clearPendingClick();
+
+        if (pending != null && pending.equals(entityId)) {
+            openAttributeMenu(entityId);
+            return;
+        }
+
+        if (pending != null) {
+            toggleEntity(pending);
+        }
+
+        _pendingClickId = entityId;
+        _clickDebounce.schedule(method(:flushPendingClick), DOUBLE_CLICK_MS);
+    }
+
+    function flushPendingClick() as Void {
+        var entityId = _pendingClickId;
+        clearPendingClick();
+
+        if (entityId != null) {
+            toggleEntity(entityId);
+        }
+    }
+
+    function isOn(entityId as String) as Boolean {
+        return _haState.isOn(entityId);
+    }
+
+    function setAttribute(attribute as AdjustableAttribute, value as Number) as Void {
+        commitAttribute(attribute, attribute.resolveService(value), value);
+    }
+
+    function toggleAttribute(attribute as AdjustableAttribute, isOn as Boolean) as Void {
+        commitAttribute(attribute, attribute.service, isOn);
+    }
+
     function toggleEntity(entityId as String) as Void {
         if (_haState.hasAnyPending(_haState.getToggleTargets(entityId))) {
             return;
@@ -144,6 +187,34 @@ class Coordinator {
 
     function showMessage(id as ResourceId) as Void {
         showInfoView(WatchUi.loadResource(id) as String, null);
+    }
+
+    private function commitAttribute(attribute as AdjustableAttribute, service as String,
+                                     value as Object) as Void {
+        _haState.assumeAttribute(attribute.entityId, attribute.field, value);
+        _client.queueAttribute(attribute.domain, service, attribute.entityId,
+            attribute.field, value, new ToggleReply(self).method(:onSettled));
+        updateDisplay();
+    }
+
+    private function openAttributeMenu(entityId as String) as Void {
+        var toggleable = _haState.getToggleable(entityId);
+        if (toggleable == null) {
+            return;
+        }
+
+        var attributes = AttributeBuilder.build(toggleable);
+        if (attributes.size() == 0) {
+            return;
+        }
+
+        WatchUi.showActionMenu(
+            EntityActionMenu.build(attributes), new EntityActionMenuDelegate(self, attributes));
+    }
+
+    private function clearPendingClick() as Void {
+        _pendingClickId = null;
+        _clickDebounce.cancel();
     }
 
     private function showInfoView(message as String, detail as String or Null) as Void {

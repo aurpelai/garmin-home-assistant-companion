@@ -24,4 +24,5 @@
 
     <!-- UI -->
     <bitmap id="SelectHint" personality="system_icon_dark__hint_button_right_top system_loc__hint_button_right_top" />
+    <bitmap id="ConfirmHint" personality="confirmation_icon__hint_confirm confirmation_loc__hint_confirm" />
 </drawables>

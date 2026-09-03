@@ -86,7 +86,8 @@ class HaCompanionApp extends Application.AppBase {
 
     private function getOrCreateCoordinator() as Coordinator {
         if (_coordinator == null) {
-            _coordinator = new Coordinator(new HaClient(new WebRequestGateway(), new TimerScheduler()));
+            _coordinator = new Coordinator(
+                new HaClient(new WebRequestGateway(), new TimerScheduler()), new TimerScheduler());
         }
 
         return _coordinator;

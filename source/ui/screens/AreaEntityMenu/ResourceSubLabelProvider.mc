@@ -27,4 +27,8 @@ class ResourceSubLabelProvider {
         return Lang.format(WatchUi.loadResource(
             isFan ? Rez.Strings.GroupFanCount : Rez.Strings.GroupLightCount) as String, [memberCount]);
     }
+
+    function formatPercent(percent as Number) as String {
+        return Lang.format(WatchUi.loadResource(Rez.Strings.Percent) as String, [percent]);
+    }
 }
