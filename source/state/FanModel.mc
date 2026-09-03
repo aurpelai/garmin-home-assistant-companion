@@ -32,6 +32,7 @@ class FanModel extends ToggleableModel {
     function assume(field as String, value as Object) as Void {
         if (field.equals("percentage")) {
             assumedSpeed = value as Number;
+            assumedState = (value as Number) > 0;
         } else if (field.equals("oscillating")) {
             assumedOscillating = value as Boolean;
         }

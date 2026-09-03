@@ -264,7 +264,7 @@ function settingAnAttributeCommandsTheServiceAndAssumesTheValue(logger as Test.L
         CoordinatorTest.EMPTY, CoordinatorTest.EMPTY);
 
     var attribute = new AdjustableAttribute("light.a", Rez.Strings.AttrBrightness, Domain.LIGHT,
-        "turn_on", "brightness_pct", Rez.Strings.Percent, new LevelRange(0, 100, 10), 20, null);
+        "turn_on", null, "brightness_pct", Rez.Strings.Percent, new LevelRange(0, 100, 10), 20, null);
     coordinator.setAttribute(attribute, 73);
 
     Test.assertEqual(ClientFixture.sentService(gateway, 4), "turn_on");

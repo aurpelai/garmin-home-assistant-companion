@@ -135,11 +135,11 @@ class Coordinator {
     }
 
     function setAttribute(attribute as AdjustableAttribute, value as Number) as Void {
-        commitAttribute(attribute, value);
+        commitAttribute(attribute, attribute.serviceFor(value), value);
     }
 
     function toggleAttribute(attribute as AdjustableAttribute, isOn as Boolean) as Void {
-        commitAttribute(attribute, isOn);
+        commitAttribute(attribute, attribute.service, isOn);
     }
 
     function toggleEntity(entityId as String) as Void {
@@ -189,9 +189,10 @@ class Coordinator {
         showInfoView(WatchUi.loadResource(id) as String, null);
     }
 
-    private function commitAttribute(attribute as AdjustableAttribute, value as Object) as Void {
+    private function commitAttribute(attribute as AdjustableAttribute, service as String,
+                                     value as Object) as Void {
         _haState.assumeAttribute(attribute.entityId, attribute.field, value);
-        _client.queueAttribute(attribute.domain, attribute.service, attribute.entityId,
+        _client.queueAttribute(attribute.domain, service, attribute.entityId,
             attribute.field, value, new ToggleReply(self).method(:onSettled));
         updateDisplay();
     }

@@ -45,6 +45,18 @@ function assumingSpeedOverridesTheServerValue(logger as Test.Logger) as Boolean 
 }
 
 (:test)
+function assumingAPositiveSpeedTurnsTheFanOnAndZeroTurnsItOff(logger as Test.Logger) as Boolean {
+    var fan = new FanModel("fan.a", false, "A", true, "area.a", null, 0, false, true, true);
+
+    fan.assume("percentage", 40);
+    Test.assert(fan.isOn());
+
+    fan.assume("percentage", 0);
+    Test.assert(!fan.isOn());
+    return true;
+}
+
+(:test)
 function assumingOscillationOverridesTheServerValue(logger as Test.Logger) as Boolean {
     var fan = AssumedAttributeTest.fan();
 

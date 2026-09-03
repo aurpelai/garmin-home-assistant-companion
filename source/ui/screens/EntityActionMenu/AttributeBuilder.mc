@@ -18,7 +18,7 @@ module AttributeBuilder {
 
     function buildLightAttributes(light as LightModel) as Array<AdjustableAttribute> {
         var attributes = [
-            new AdjustableAttribute(light.id, Rez.Strings.AttrBrightness, Domain.LIGHT, "turn_on",
+            new AdjustableAttribute(light.id, Rez.Strings.AttrBrightness, Domain.LIGHT, "turn_on", null,
                 "brightness_pct", Rez.Strings.Percent, new LevelRange(0, 100, PERCENT_STEP),
                 light.resolveBrightness(), null)
         ] as Array<AdjustableAttribute>;
@@ -29,7 +29,7 @@ module AttributeBuilder {
             var range = new LevelRange(
                 min == null ? KELVIN_FALLBACK_MIN : min, max == null ? KELVIN_FALLBACK_MAX : max, KELVIN_STEP);
             attributes.add(new AdjustableAttribute(light.id, Rez.Strings.AttrColorTemp, Domain.LIGHT,
-                "turn_on", "color_temp_kelvin", Rez.Strings.Kelvin, range,
+                "turn_on", null, "color_temp_kelvin", Rez.Strings.Kelvin, range,
                 light.resolveColorTempKelvin(), null));
         }
 
@@ -41,13 +41,13 @@ module AttributeBuilder {
 
         if (fan.supportsSpeed) {
             attributes.add(new AdjustableAttribute(fan.id, Rez.Strings.AttrSpeed, Domain.FAN,
-                "set_percentage", "percentage", Rez.Strings.Percent, new LevelRange(0, 100, PERCENT_STEP),
-                fan.resolveSpeed(), null));
+                "turn_on", "set_percentage", "percentage", Rez.Strings.Percent,
+                new LevelRange(0, 100, PERCENT_STEP), fan.resolveSpeed(), null));
         }
 
         if (fan.supportsOscillation) {
             attributes.add(new AdjustableAttribute(fan.id, Rez.Strings.AttrOscillation, Domain.FAN,
-                "oscillate", "oscillating", null, null, null, fan.resolveOscillation()));
+                "oscillate", null, "oscillating", null, null, null, fan.resolveOscillation()));
         }
 
         return attributes;
