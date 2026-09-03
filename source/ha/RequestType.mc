@@ -1,6 +1,6 @@
 import Toybox.Lang;
 
-class RequestType {
-    static const REGISTRATION = :registration;
-    static const REQUEST = :request;
+module RequestType {
+    const REGISTRATION = :registration;
+    const REQUEST = :request;
 }
