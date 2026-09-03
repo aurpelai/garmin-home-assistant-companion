@@ -22,6 +22,8 @@
     <string id="NoEntitiesInArea">No entities in the area</string>
     <string id="NothingFound">No supported entities found</string>
     <string id="Off">Off</string>
+    <string id="On">On</string>
+    <string id="OnValue">On • $1$ %</string>
     <string id="Percent">$1$ %</string>
     <string id="RetryHint">Select to retry</string>
     <string id="Unavailable">Unavailable</string>

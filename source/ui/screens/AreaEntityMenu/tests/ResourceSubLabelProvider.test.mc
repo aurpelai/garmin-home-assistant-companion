@@ -11,3 +11,12 @@ function aGroupLabelCountsItsMembersInTheDomainsOwnWords(logger as Test.Logger) 
     Test.assertEqual(provider.resolveGroupLabel("fan", 3), "Group • 3 Fans");
     return true;
 }
+
+(:test)
+function anOnEntityReadsItsValueAfterABullet(logger as Test.Logger) as Boolean {
+    var provider = new ResourceSubLabelProvider();
+
+    Test.assertEqual(provider.getOn(), "On");
+    Test.assertEqual(provider.formatValue(50), "On • 50 %");
+    return true;
+}

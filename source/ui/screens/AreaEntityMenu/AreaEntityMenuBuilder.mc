@@ -60,11 +60,11 @@ module AreaEntityMenuBuilder {
             return provider.getOff();
         }
 
-        var percent = toggleable instanceof FanModel
+        var value = toggleable instanceof FanModel
             ? (toggleable as FanModel).resolveSpeed()
             : (toggleable as LightModel).resolveBrightness();
 
-        return percent == null ? null : provider.formatPercent(percent);
+        return value == null ? provider.getOn() : provider.formatValue(value);
     }
 
     function resolveSensorSubLabel(sensor as SensorModel, provider as SubLabelProvider) as String {
