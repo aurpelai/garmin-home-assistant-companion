@@ -29,9 +29,11 @@ class FanModel extends ToggleableModel {
         return assumedOscillating != null ? assumedOscillating : oscillating;
     }
 
-    function assume(field as String, value as Object) as Void {
+    function assumeAttribute(field as String, value as Object) as Void {
         if (field.equals("percentage")) {
             assumedSpeed = value as Number;
+            // A running fan is on and a stopped one is off, so a speed change
+            // moves the on/off state with it.
             assumedState = (value as Number) > 0;
         } else if (field.equals("oscillating")) {
             assumedOscillating = value as Boolean;

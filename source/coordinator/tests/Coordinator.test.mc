@@ -274,6 +274,29 @@ function settingAnAttributeCommandsTheServiceAndAssumesTheValue(logger as Test.L
 }
 
 (:test)
+function settingFanSpeedTurnsItOnAboveZeroAndOffAtZero(logger as Test.Logger) as Boolean {
+    var gateway = new FakeRequestGateway();
+    var coordinator = CoordinatorTest.coordinatorWith(gateway, new FakeScheduler());
+    coordinator.onActivate();
+    CoordinatorTest.completeRefresh(gateway, CoordinatorTest.ONE_ROOM, CoordinatorTest.EMPTY,
+        CoordinatorTest.ROOM_FAN_OFF, CoordinatorTest.EMPTY);
+
+    var speed = new AdjustableAttribute("fan.f", Rez.Strings.AttrSpeed, Domain.FAN, "turn_on",
+        "set_percentage", "percentage", Rez.Strings.Percent, new LevelRange(0, 100, 10), 0, null);
+
+    coordinator.setAttribute(speed, 50);
+    Test.assertEqual(ClientFixture.sentService(gateway, 4), "turn_on");
+
+    gateway.replyLast(200, null);
+    CoordinatorTest.completeRefresh(gateway, CoordinatorTest.ONE_ROOM, CoordinatorTest.EMPTY,
+        CoordinatorTest.ROOM_FAN_ON, CoordinatorTest.EMPTY);
+    coordinator.setAttribute(speed, 0);
+
+    Test.assertEqual(ClientFixture.sentService(gateway, 9), "set_percentage");
+    return true;
+}
+
+(:test)
 function aSettledToggleRefreshes(logger as Test.Logger) as Boolean {
     var gateway = new FakeRequestGateway();
     var coordinator = CoordinatorTest.coordinatorWith(gateway, new FakeScheduler());

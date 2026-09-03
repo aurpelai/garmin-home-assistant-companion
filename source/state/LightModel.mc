@@ -32,7 +32,7 @@ class LightModel extends ToggleableModel {
         return assumedColorTempKelvin != null ? assumedColorTempKelvin : colorTempKelvin;
     }
 
-    function assume(field as String, value as Object) as Void {
+    function assumeAttribute(field as String, value as Object) as Void {
         if (field.equals("brightness_pct")) {
             assumedBrightness = value as Number;
         } else if (field.equals("color_temp_kelvin")) {

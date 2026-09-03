@@ -22,7 +22,7 @@ class LevelPickerDelegate extends WatchUi.BehaviorDelegate {
     }
 
     function onSelect() as Boolean {
-        _coordinator.setAttribute(_picker.attribute, _picker.value());
+        _coordinator.setAttribute(_picker.attribute, _picker.getValue());
         WatchUi.popView(WatchUi.SLIDE_DOWN);
         return true;
     }

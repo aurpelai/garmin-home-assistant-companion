@@ -135,7 +135,7 @@ class Coordinator {
     }
 
     function setAttribute(attribute as AdjustableAttribute, value as Number) as Void {
-        commitAttribute(attribute, attribute.serviceFor(value), value);
+        commitAttribute(attribute, attribute.resolveService(value), value);
     }
 
     function toggleAttribute(attribute as AdjustableAttribute, isOn as Boolean) as Void {

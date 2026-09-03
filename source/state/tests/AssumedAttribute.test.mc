@@ -17,7 +17,7 @@ module AssumedAttributeTest {
 function assumingBrightnessOverridesTheServerValue(logger as Test.Logger) as Boolean {
     var light = AssumedAttributeTest.light();
 
-    light.assume("brightness_pct", 70);
+    light.assumeAttribute("brightness_pct", 70);
 
     Test.assertEqual(light.resolveBrightness() as Number, 70);
     Test.assertEqual(light.brightness as Number, 20);
@@ -28,7 +28,7 @@ function assumingBrightnessOverridesTheServerValue(logger as Test.Logger) as Boo
 function assumingColorTempOverridesTheServerValue(logger as Test.Logger) as Boolean {
     var light = AssumedAttributeTest.light();
 
-    light.assume("color_temp_kelvin", 4500);
+    light.assumeAttribute("color_temp_kelvin", 4500);
 
     Test.assertEqual(light.resolveColorTempKelvin() as Number, 4500);
     return true;
@@ -38,7 +38,7 @@ function assumingColorTempOverridesTheServerValue(logger as Test.Logger) as Bool
 function assumingSpeedOverridesTheServerValue(logger as Test.Logger) as Boolean {
     var fan = AssumedAttributeTest.fan();
 
-    fan.assume("percentage", 80);
+    fan.assumeAttribute("percentage", 80);
 
     Test.assertEqual(fan.resolveSpeed() as Number, 80);
     return true;
@@ -48,10 +48,10 @@ function assumingSpeedOverridesTheServerValue(logger as Test.Logger) as Boolean 
 function assumingAPositiveSpeedTurnsTheFanOnAndZeroTurnsItOff(logger as Test.Logger) as Boolean {
     var fan = new FanModel("fan.a", false, "A", true, "area.a", null, 0, false, true, true);
 
-    fan.assume("percentage", 40);
+    fan.assumeAttribute("percentage", 40);
     Test.assert(fan.isOn());
 
-    fan.assume("percentage", 0);
+    fan.assumeAttribute("percentage", 0);
     Test.assert(!fan.isOn());
     return true;
 }
@@ -60,7 +60,7 @@ function assumingAPositiveSpeedTurnsTheFanOnAndZeroTurnsItOff(logger as Test.Log
 function assumingOscillationOverridesTheServerValue(logger as Test.Logger) as Boolean {
     var fan = AssumedAttributeTest.fan();
 
-    fan.assume("oscillating", true);
+    fan.assumeAttribute("oscillating", true);
 
     Test.assert(fan.resolveOscillation() == true);
     return true;

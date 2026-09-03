@@ -33,6 +33,6 @@ class ToggleableModel {
         return assumedState != null;
     }
 
-    function assume(field as String, value as Object) as Void {
+    function assumeAttribute(field as String, value as Object) as Void {
     }
 }

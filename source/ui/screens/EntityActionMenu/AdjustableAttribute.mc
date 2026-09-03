@@ -35,7 +35,7 @@ class AdjustableAttribute {
     // fan.set_percentage only guarantees the off transition (percentage 0 turns
     // the fan off); turning an off fan on at a level needs fan.turn_on. Lights
     // need no split — light.turn_on already spans 0 to full.
-    function serviceFor(value as Number) as String {
+    function resolveService(value as Number) as String {
         var off = offService;
         return off != null && value == 0 ? off : service;
     }

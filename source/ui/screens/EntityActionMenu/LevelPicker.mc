@@ -16,7 +16,7 @@ class LevelPicker extends WatchUi.View {
         _value = current == null ? _range.min : current;
     }
 
-    function value() as Number {
+    function getValue() as Number {
         return _value;
     }
 
@@ -39,7 +39,7 @@ class LevelPicker extends WatchUi.View {
 
         dc.drawText(width / 2, height * 0.24, Graphics.FONT_TINY,
             WatchUi.loadResource(attribute.titleId) as String, Graphics.TEXT_JUSTIFY_CENTER);
-        dc.drawText(width / 2, height / 2, Graphics.FONT_NUMBER_MEDIUM, formattedValue(),
+        dc.drawText(width / 2, height / 2, Graphics.FONT_NUMBER_MEDIUM, formatValue(),
             Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
 
         Rendering.useAntiAlias(dc, true);
@@ -47,7 +47,7 @@ class LevelPicker extends WatchUi.View {
             WatchUi.loadResource(Rez.Drawables.ConfirmHint) as BitmapResource);
     }
 
-    private function formattedValue() as String {
+    private function formatValue() as String {
         return Lang.format(WatchUi.loadResource(attribute.unitId as ResourceId) as String, [_value]);
     }
 }

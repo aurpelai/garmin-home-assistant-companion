@@ -215,7 +215,7 @@ class HaState {
     function assumeAttribute(entityId as String, field as String, value as Object) as Void {
         var toggleable = getToggleable(entityId);
         if (toggleable != null) {
-            toggleable.assume(field, value);
+            toggleable.assumeAttribute(field, value);
         }
     }
 

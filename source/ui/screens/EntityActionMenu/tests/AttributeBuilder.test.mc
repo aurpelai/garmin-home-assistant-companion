@@ -66,8 +66,8 @@ function aFanWithoutSpeedSupportOmitsSpeed(logger as Test.Logger) as Boolean {
 function fanSpeedTurnsOnAboveZeroAndOffAtZero(logger as Test.Logger) as Boolean {
     var speed = AttributeBuilder.build(AttributeBuilderTest.fan(30, true, false, null))[0];
 
-    Test.assertEqual(speed.serviceFor(50), "turn_on");
-    Test.assertEqual(speed.serviceFor(0), "set_percentage");
+    Test.assertEqual(speed.resolveService(50), "turn_on");
+    Test.assertEqual(speed.resolveService(0), "set_percentage");
     return true;
 }
 
@@ -75,8 +75,8 @@ function fanSpeedTurnsOnAboveZeroAndOffAtZero(logger as Test.Logger) as Boolean 
 function brightnessUsesOneServiceAcrossItsWholeRange(logger as Test.Logger) as Boolean {
     var brightness = AttributeBuilder.build(AttributeBuilderTest.light(50, false, null))[0];
 
-    Test.assertEqual(brightness.serviceFor(50), "turn_on");
-    Test.assertEqual(brightness.serviceFor(0), "turn_on");
+    Test.assertEqual(brightness.resolveService(50), "turn_on");
+    Test.assertEqual(brightness.resolveService(0), "turn_on");
     return true;
 }
 
