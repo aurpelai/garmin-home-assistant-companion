@@ -8,12 +8,6 @@ module HaPayloadTest {
         return { "lights" => entries };
     }
 
-    function applyStructure(haState as HaState, payload as Dictionary) as Void {
-        haState.setZone(HaPayload.parseZone(payload));
-        haState.setAreas(HaPayload.parseAreas(payload));
-        haState.setFloors(HaPayload.parseFloors(payload));
-    }
-
     function fansPayload(entries as Dictionary) as Dictionary {
         return { "fans" => entries };
     }
@@ -205,30 +199,6 @@ function aFanWithNoSpeedIsStillPresent(logger as Test.Logger) as Boolean {
     Test.assertEqual(parsed.size(), 2);
     Test.assert((parsed.get("fan.absent") as FanModel).speed == null);
     Test.assert((parsed.get("fan.null") as FanModel).speed == null);
-    return true;
-}
-
-(:test)
-function eitherArrivalOrderOfTheTargetsProducesTheSameState(logger as Test.Logger) as Boolean {
-    var structure = { "zone" => "Kotitalo", "areas" => { "area.kitchen" => { "name" => "Küche" } } };
-    var lights = HaPayloadTest.lightsPayload({
-        "light.kitchen" => { "state" => true, "name" => "Küchenlicht", "area_id" => "area.kitchen" }
-    });
-
-    var structureFirst = new HaState();
-    HaPayloadTest.applyStructure(structureFirst, structure);
-    structureFirst.setToggleables(Domain.LIGHT, HaPayload.parseLights(lights));
-
-    var lightsFirst = new HaState();
-    lightsFirst.setToggleables(Domain.LIGHT, HaPayload.parseLights(lights));
-    HaPayloadTest.applyStructure(lightsFirst, structure);
-
-    Test.assertEqual(structureFirst.getZone() as String, lightsFirst.getZone() as String);
-    Test.assertEqual((structureFirst.getArea("area.kitchen") as AreaModel).name,
-                     (lightsFirst.getArea("area.kitchen") as AreaModel).name);
-    Test.assertEqual(structureFirst.getToggleablesInArea("area.kitchen", Domain.LIGHT).size(),
-                     lightsFirst.getToggleablesInArea("area.kitchen", Domain.LIGHT).size());
-    Test.assertEqual(structureFirst.isOn("light.kitchen"), lightsFirst.isOn("light.kitchen"));
     return true;
 }
 

@@ -19,6 +19,16 @@ class HaState {
         _sensorAverages = new SensorAverages();
     }
 
+    function clear() as Void {
+        _toggleablesByDomain = {};
+        _toggleablesByDomainAndArea = {};
+        _areas = {};
+        _floors = [];
+        _sensorsByArea = {};
+        _zone = null;
+        _sensorAverages = new SensorAverages();
+    }
+
     function setZone(zone as String or Null) as Void {
         _zone = zone;
     }

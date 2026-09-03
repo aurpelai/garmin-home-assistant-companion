@@ -28,7 +28,7 @@ module AreaEntityMenuTest {
     function menuOf(haState as HaState) as AreaEntityMenu {
         var provider = new FakeSubLabelProvider();
         var model = AreaEntityMenuBuilder.build(haState, "area.room", provider) as AreaEntityMenuModel;
-        return new AreaEntityMenu(new Coordinator(new HaClient(new WebRequestGateway(), new TimerScheduler()), new TimerScheduler()),
+        return new AreaEntityMenu(new Coordinator(new HaClient(new WebRequestGateway(), new TimerScheduler()), new HaState(), new TimerScheduler()),
             "area.room", model, provider);
     }
 

@@ -44,6 +44,28 @@ module HaStateTest {
 }
 
 (:test)
+function clearingEmptiesEveryStoredTarget(logger as Test.Logger) as Boolean {
+    var haState = HaStateTest.stateWithLights({ "light.a" => HaStateTest.light(true, "area.room") });
+    HaStateTest.setStructure(haState, { "zone" => "Home",
+        "areas" => { "area.room" => { "name" => "Room" } },
+        "floors" => { "floor.g" => { "name" => "Ground", "order" => 0, "areas" => ["area.room"] } } });
+    haState.setSensors(HaPayload.parseSensors({ "sensors" => {
+        "sensor.t" => { "friendly_state" => "21 °C", "device_class" => "temperature", "area_id" => "area.room" } } }));
+    haState.setSensorAverages({ "area.room" => { "temperature" => "21 °C" } }, {});
+
+    haState.clear();
+
+    Test.assert(!haState.hasAreas());
+    Test.assert(haState.getArea("area.room") == null);
+    Test.assert(haState.getZone() == null);
+    Test.assertEqual(haState.getToggleablesInArea("area.room", Domain.LIGHT).size(), 0);
+    Test.assertEqual(haState.getFloors().size(), 0);
+    Test.assertEqual(haState.getSensorsInArea("area.room").size(), 0);
+    Test.assertEqual(haState.getAreaSensorAverages("area.room").size(), 0);
+    return true;
+}
+
+(:test)
 function anOverrideDrivesAFanExactlyAsItDrivesALight(logger as Test.Logger) as Boolean {
     var haState = HaStateTest.stateWithFans({ "fan.a" => HaStateTest.fan(false, "area.a") });
 
@@ -327,5 +349,27 @@ function anAreaHasEntitiesWhenAnyStoredDomainOrASensorLandsInIt(logger as Test.L
     Test.assert(haState.hasEntitiesInArea("area.fans"));
     Test.assert(haState.hasEntitiesInArea("area.sensors"));
     Test.assert(!haState.hasEntitiesInArea("area.empty"));
+    return true;
+}
+
+(:test)
+function theStoredStateIsTheSameWhicheverOrderTheTargetsArriveIn(logger as Test.Logger) as Boolean {
+    var structure = { "zone" => "Kotitalo", "areas" => { "area.kitchen" => { "name" => "Küche" } } };
+    var lights = { "light.kitchen" => HaStateTest.light(true, "area.kitchen") };
+
+    var structureFirst = new HaState();
+    HaStateTest.setStructure(structureFirst, structure);
+    HaStateTest.setLights(structureFirst, lights);
+
+    var lightsFirst = new HaState();
+    HaStateTest.setLights(lightsFirst, lights);
+    HaStateTest.setStructure(lightsFirst, structure);
+
+    Test.assertEqual(structureFirst.getZone() as String, lightsFirst.getZone() as String);
+    Test.assertEqual((structureFirst.getArea("area.kitchen") as AreaModel).name,
+                     (lightsFirst.getArea("area.kitchen") as AreaModel).name);
+    Test.assertEqual(structureFirst.getToggleablesInArea("area.kitchen", Domain.LIGHT).size(),
+                     lightsFirst.getToggleablesInArea("area.kitchen", Domain.LIGHT).size());
+    Test.assertEqual(structureFirst.isOn("light.kitchen"), lightsFirst.isOn("light.kitchen"));
     return true;
 }

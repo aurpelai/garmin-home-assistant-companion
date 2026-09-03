@@ -12,9 +12,9 @@ class Coordinator {
     private var _clickDebounce as Scheduler;
     private var _pendingClickId as String or Null;
 
-    function initialize(client as HaClient, clickDebounce as Scheduler) {
+    function initialize(client as HaClient, haState as HaState, clickDebounce as Scheduler) {
         _client = client;
-        _haState = new HaState();
+        _haState = haState;
         _currentView = null;
         _subLabelProvider = new ResourceSubLabelProvider();
         _clickDebounce = clickDebounce;
@@ -171,7 +171,7 @@ class Coordinator {
     function discardRegistration() as Void {
         _client.cancelAll();
         _client.discardRegistration();
-        _haState = new HaState();
+        _haState.clear();
         retry();
     }
 
