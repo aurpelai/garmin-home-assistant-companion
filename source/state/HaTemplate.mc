@@ -100,9 +100,14 @@ module HaTemplate {
             "| map(attribute='entity_id') | list %}" +
         "{% if e not in groups or members | count > 0 or is_state(e, 'unavailable') %}" +
         "{% set b = state_attr(e, 'brightness') | default(none) %}" +
+        "{% set modes = state_attr(e, 'supported_color_modes') | default([], true) %}" +
         "{% set light = dict(state=is_state(e, 'on'), name=states[e].name, area_id=a, " +
             "available=not is_state(e, 'unavailable'), " +
-            "brightness=((b / 255 * 100) | round | int ~ ' %') if b is not none else none) %}" +
+            "brightness=(b / 255 * 100) | round | int if b is not none else none, " +
+            "color_temp_kelvin=state_attr(e, 'color_temp_kelvin') | default(none), " +
+            "min_color_temp_kelvin=state_attr(e, 'min_color_temp_kelvin') | default(none), " +
+            "max_color_temp_kelvin=state_attr(e, 'max_color_temp_kelvin') | default(none), " +
+            "supports_color_temp='color_temp' in modes) %}" +
         "{% if e in groups %}" +
         "{% set light = dict(light, memberIds=members) %}" +
         "{% endif %}" +
@@ -124,9 +129,13 @@ module HaTemplate {
             "| map(attribute='entity_id') | list %}" +
         "{% if e not in groups or members | count > 0 or is_state(e, 'unavailable') %}" +
         "{% set p = state_attr(e, 'percentage') | default(none) %}" +
+        "{% set feat = state_attr(e, 'supported_features') | default(0) %}" +
         "{% set fan = dict(state=is_state(e, 'on'), name=states[e].name, area_id=a, " +
             "available=not is_state(e, 'unavailable'), " +
-            "speed=(p | round | int ~ ' %') if p is not none else none) %}" +
+            "speed=p | round | int if p is not none else none, " +
+            "oscillating=state_attr(e, 'oscillating') | default(none), " +
+            "supports_speed=(feat | int) % 2 == 1, " +
+            "supports_oscillation=(feat | int) // 2 % 2 == 1) %}" +
         "{% if e in groups %}" +
         "{% set fan = dict(fan, memberIds=members) %}" +
         "{% endif %}" +

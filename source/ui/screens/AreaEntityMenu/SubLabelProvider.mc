@@ -5,4 +5,5 @@ typedef SubLabelProvider as interface {
     function getUnavailable() as String;
     function getGroupUnavailable() as String;
     function resolveGroupLabel(domain as String, memberCount as Number) as String;
+    function formatPercent(percent as Number) as String;
 };

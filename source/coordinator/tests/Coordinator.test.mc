@@ -25,9 +25,14 @@ module CoordinatorTest {
     const EMPTY = "{}";
 
     function coordinatorWith(gateway as FakeRequestGateway, scheduler as FakeScheduler) as Coordinator {
+        return coordinatorWithClicks(gateway, scheduler, new FakeScheduler());
+    }
+
+    function coordinatorWithClicks(gateway as FakeRequestGateway, scheduler as FakeScheduler,
+                                   clickDebounce as FakeScheduler) as Coordinator {
         Application.Properties.setValue("haBaseUrl", "http://ha.local");
         Application.Properties.setValue("haToken", "token");
-        var coordinator = new Coordinator(ClientFixture.clientWith(gateway, scheduler));
+        var coordinator = new Coordinator(ClientFixture.clientWith(gateway, scheduler), clickDebounce);
         Registration.seed("some-id");
         return coordinator;
     }
@@ -191,6 +196,80 @@ function toggleFloorLightsTurnsTheFloorOffWhileAnyLightIsOnAndOnOtherwise(logger
 
     Test.assertEqual(ClientFixture.sentService(gateway, 9), "turn_on");
     Test.assert(CoordinatorTest.isOn(menu, 0));
+    return true;
+}
+
+(:test)
+function aSingleClickTogglesOnlyOnceTheDoubleClickWindowElapses(logger as Test.Logger) as Boolean {
+    var gateway = new FakeRequestGateway();
+    var clicks = new FakeScheduler();
+    var coordinator = CoordinatorTest.coordinatorWithClicks(gateway, new FakeScheduler(), clicks);
+    coordinator.onActivate();
+    CoordinatorTest.completeRefresh(gateway, CoordinatorTest.ONE_ROOM, CoordinatorTest.ROOM_LIGHT_ON,
+        CoordinatorTest.EMPTY, CoordinatorTest.EMPTY);
+
+    coordinator.onEntityClick("light.a");
+    Test.assertEqual(gateway.count(), 4);
+
+    clicks.runScheduled();
+    Test.assertEqual(ClientFixture.sentService(gateway, 4), "toggle");
+    return true;
+}
+
+(:test)
+function aDoubleClickCancelsTheToggleAndCommandsNothing(logger as Test.Logger) as Boolean {
+    var gateway = new FakeRequestGateway();
+    var clicks = new FakeScheduler();
+    var coordinator = CoordinatorTest.coordinatorWithClicks(gateway, new FakeScheduler(), clicks);
+    coordinator.onActivate();
+    CoordinatorTest.completeRefresh(gateway, CoordinatorTest.ONE_ROOM, CoordinatorTest.ROOM_LIGHT_ON,
+        CoordinatorTest.EMPTY, CoordinatorTest.EMPTY);
+
+    coordinator.onEntityClick("light.a");
+    coordinator.onEntityClick("light.a");
+    clicks.runScheduled();
+
+    Test.assertEqual(gateway.count(), 4);
+    return true;
+}
+
+(:test)
+function clickingASecondEntityFlushesTheFirstAsASingleClick(logger as Test.Logger) as Boolean {
+    var gateway = new FakeRequestGateway();
+    var clicks = new FakeScheduler();
+    var coordinator = CoordinatorTest.coordinatorWithClicks(gateway, new FakeScheduler(), clicks);
+    coordinator.onActivate();
+    CoordinatorTest.completeRefresh(gateway, CoordinatorTest.ONE_ROOM, CoordinatorTest.ROOM_LIGHTS_ONE_ON,
+        CoordinatorTest.EMPTY, CoordinatorTest.EMPTY);
+
+    coordinator.onEntityClick("light.a");
+    coordinator.onEntityClick("light.b");
+
+    Test.assertEqual(ClientFixture.sentService(gateway, 4), "toggle");
+    Test.assertEqual(ClientFixture.sentField(gateway, 4, "entity_id") as String, "light.a");
+    return true;
+}
+
+(:test)
+function settingAnAttributeCommandsTheServiceAndAssumesTheValue(logger as Test.Logger) as Boolean {
+    var gateway = new FakeRequestGateway();
+    var coordinator = CoordinatorTest.coordinatorWith(gateway, new FakeScheduler());
+    var haState = CoordinatorTest.stateOf(CoordinatorTest.ONE_ROOM,
+        "{\"lights\":{\"light.a\":{\"state\":true,\"area_id\":\"area.room\",\"brightness\":20}}}",
+        CoordinatorTest.EMPTY);
+    var menu = CoordinatorTest.areaMenuOf(coordinator, haState);
+    coordinator.onViewShown(menu);
+    CoordinatorTest.completeRefresh(gateway, CoordinatorTest.ONE_ROOM,
+        "{\"lights\":{\"light.a\":{\"state\":true,\"area_id\":\"area.room\",\"brightness\":20}}}",
+        CoordinatorTest.EMPTY, CoordinatorTest.EMPTY);
+
+    var attribute = new AdjustableAttribute("light.a", Rez.Strings.AttrBrightness, Domain.LIGHT,
+        "turn_on", "brightness_pct", Rez.Strings.Percent, new LevelRange(0, 100, 10), 20, null);
+    coordinator.setAttribute(attribute, 70);
+
+    Test.assertEqual(ClientFixture.sentService(gateway, 4), "turn_on");
+    Test.assertEqual(ClientFixture.sentField(gateway, 4, "brightness_pct") as Number, 70);
+    Test.assertEqual(AreaEntityMenuTest.itemOf(menu, "light.a").getSubLabel() as String, "70 %");
     return true;
 }
 

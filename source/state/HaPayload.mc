@@ -52,14 +52,21 @@ module HaPayload {
                         areaId as String or Null, memberIds as Array<String> or Null,
                         entry as Dictionary) as LightModel {
         return new LightModel(entityId, state, name, available, areaId, memberIds,
-            asStringOrNull(entry.get("brightness")));
+            asNumberOrNull(entry.get("brightness")),
+            asNumberOrNull(entry.get("color_temp_kelvin")),
+            asNumberOrNull(entry.get("min_color_temp_kelvin")),
+            asNumberOrNull(entry.get("max_color_temp_kelvin")),
+            asBoolean(entry.get("supports_color_temp")));
     }
 
     function buildFan(entityId as String, state as Boolean, name as String, available as Boolean,
                       areaId as String or Null, memberIds as Array<String> or Null,
                       entry as Dictionary) as FanModel {
         return new FanModel(entityId, state, name, available, areaId, memberIds,
-            asStringOrNull(entry.get("speed")));
+            asNumberOrNull(entry.get("speed")),
+            asBooleanOrNull(entry.get("oscillating")),
+            asBoolean(entry.get("supports_speed")),
+            asBoolean(entry.get("supports_oscillation")));
     }
 
     function parseSensors(payload as Object or Null) as Dictionary<String, SensorModel> {
@@ -209,6 +216,20 @@ module HaPayload {
 
     function asMemberIds(raw as Object or Null) as Array<String> or Null {
         return raw instanceof Array ? onlyStrings(raw) : null;
+    }
+
+    function asBooleanOrNull(raw as Object or Null) as Boolean or Null {
+        return raw instanceof Boolean ? raw : null;
+    }
+
+    function asNumberOrNull(raw as Object or Null) as Number or Null {
+        if (raw instanceof Number) {
+            return raw;
+        }
+        if (raw instanceof Float) {
+            return raw.toNumber();
+        }
+        return null;
     }
 
     function asStringOrNull(raw as Object or Null) as String or Null {

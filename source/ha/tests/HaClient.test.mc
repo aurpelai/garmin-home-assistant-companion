@@ -103,6 +103,10 @@ class ClientFixture {
         return sentServiceData(gateway, index).get("service") as String;
     }
 
+    static function sentField(gateway as FakeRequestGateway, index as Number, field as String) as Object or Null {
+        return (sentServiceData(gateway, index).get("service_data") as Dictionary).get(field);
+    }
+
     private static function sentServiceData(gateway as FakeRequestGateway, index as Number) as Dictionary {
         return (gateway.sent[index] as SentRequest).body.get("data") as Dictionary;
     }

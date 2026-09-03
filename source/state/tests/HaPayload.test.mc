@@ -128,16 +128,35 @@ function memberIdsArePresentOnGroupsOnly(logger as Test.Logger) as Boolean {
 }
 
 (:test)
-function aLightCarriesTheBrightnessHomeAssistantFormattedOrNone(logger as Test.Logger) as Boolean {
+function aLightCarriesItsBrightnessPercentOrNone(logger as Test.Logger) as Boolean {
     var parsed = HaPayload.parseLights(HaPayloadTest.lightsPayload({
-        "light.lit" => { "state" => true, "area_id" => "area.a", "brightness" => "50 %" },
+        "light.lit" => { "state" => true, "area_id" => "area.a", "brightness" => 50 },
         "light.dark" => { "state" => false, "area_id" => "area.a", "brightness" => null },
         "light.mute" => { "state" => false, "area_id" => "area.a" }
     }));
 
-    Test.assertEqual((parsed.get("light.lit") as LightModel).brightness as String, "50 %");
+    Test.assertEqual((parsed.get("light.lit") as LightModel).brightness as Number, 50);
     Test.assert((parsed.get("light.dark") as LightModel).brightness == null);
     Test.assert((parsed.get("light.mute") as LightModel).brightness == null);
+    return true;
+}
+
+(:test)
+function aLightCarriesItsColorTempRangeAndCapability(logger as Test.Logger) as Boolean {
+    var parsed = HaPayload.parseLights(HaPayloadTest.lightsPayload({
+        "light.warm" => { "state" => true, "area_id" => "area.a", "color_temp_kelvin" => 3000,
+            "min_color_temp_kelvin" => 2000, "max_color_temp_kelvin" => 6500, "supports_color_temp" => true },
+        "light.plain" => { "state" => true, "area_id" => "area.a" }
+    }));
+    var warm = parsed.get("light.warm") as LightModel;
+    var plain = parsed.get("light.plain") as LightModel;
+
+    Test.assertEqual(warm.colorTempKelvin as Number, 3000);
+    Test.assertEqual(warm.minColorTempKelvin as Number, 2000);
+    Test.assertEqual(warm.maxColorTempKelvin as Number, 6500);
+    Test.assert(warm.supportsColorTemp);
+    Test.assert(plain.colorTempKelvin == null);
+    Test.assert(!plain.supportsColorTemp);
     return true;
 }
 
@@ -145,7 +164,8 @@ function aLightCarriesTheBrightnessHomeAssistantFormattedOrNone(logger as Test.L
 function aFanParsesLikeALightPlusItsSpeed(logger as Test.Logger) as Boolean {
     var parsed = HaPayload.parseFans(HaPayloadTest.fansPayload({
         "fan.ceiling" => { "state" => true, "name" => "Deckenventilator", "area_id" => "area.kitchen",
-            "available" => false, "speed" => "66 %" },
+            "available" => false, "speed" => 66, "oscillating" => true,
+            "supports_speed" => true, "supports_oscillation" => true },
         "fan.group" => { "state" => false, "area_id" => "area.a", "memberIds" => ["fan.one", "fan.two"] }
     }));
     var fan = parsed.get("fan.ceiling") as FanModel;
@@ -156,7 +176,10 @@ function aFanParsesLikeALightPlusItsSpeed(logger as Test.Logger) as Boolean {
     Test.assertEqual(fan.name, "Deckenventilator");
     Test.assertEqual(fan.areaId as String, "area.kitchen");
     Test.assert(!fan.available);
-    Test.assertEqual(fan.speed as String, "66 %");
+    Test.assertEqual(fan.speed as Number, 66);
+    Test.assert(fan.resolveOscillation() == true);
+    Test.assert(fan.supportsSpeed);
+    Test.assert(fan.supportsOscillation);
     Test.assert(fan.memberIds == null);
     Test.assertEqual(((parsed.get("fan.group") as FanModel).memberIds as Array<String>).size(), 2);
     return true;
@@ -165,10 +188,10 @@ function aFanParsesLikeALightPlusItsSpeed(logger as Test.Logger) as Boolean {
 (:test)
 function anOffFanKeepsTheSpeedHomeAssistantStillReports(logger as Test.Logger) as Boolean {
     var parsed = HaPayload.parseFans(HaPayloadTest.fansPayload({
-        "fan.idle" => { "state" => false, "area_id" => "area.a", "speed" => "10 %" }
+        "fan.idle" => { "state" => false, "area_id" => "area.a", "speed" => 10 }
     }));
 
-    Test.assertEqual((parsed.get("fan.idle") as FanModel).speed as String, "10 %");
+    Test.assertEqual((parsed.get("fan.idle") as FanModel).speed as Number, 10);
     return true;
 }
 

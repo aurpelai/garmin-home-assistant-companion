@@ -5,11 +5,13 @@ import Toybox.Test;
 module ToggleableCountTest {
 
     function light(state as Boolean, available as Boolean) as LightModel {
-        return new LightModel("light.x", state, "X", available, "area.a", null, null);
+        return new LightModel("light.x", state, "X", available, "area.a", null,
+            null, null, null, null, false);
     }
 
     function group(memberIds as Array<String>) as LightModel {
-        return new LightModel("light.group", true, "Group", true, "area.a", memberIds, null);
+        return new LightModel("light.group", true, "Group", true, "area.a", memberIds,
+            null, null, null, null, false);
     }
 }
 

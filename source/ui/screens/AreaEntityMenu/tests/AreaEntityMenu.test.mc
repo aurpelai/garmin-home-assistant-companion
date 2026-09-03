@@ -28,7 +28,7 @@ module AreaEntityMenuTest {
     function menuOf(haState as HaState) as AreaEntityMenu {
         var provider = new FakeSubLabelProvider();
         var model = AreaEntityMenuBuilder.build(haState, "area.room", provider) as AreaEntityMenuModel;
-        return new AreaEntityMenu(new Coordinator(new HaClient(new WebRequestGateway(), new TimerScheduler())),
+        return new AreaEntityMenu(new Coordinator(new HaClient(new WebRequestGateway(), new TimerScheduler()), new TimerScheduler()),
             "area.room", model, provider);
     }
 
@@ -81,7 +81,7 @@ function anEntityMissingFromTheModelKeepsTheItemItHad(logger as Test.Logger) as 
 (:test)
 function aRowShowsItsResolvedSublabelVerbatimAndTracksItAcrossRebuilds(logger as Test.Logger) as Boolean {
     var menu = AreaEntityMenuTest.menuOf(AreaEntityMenuTest.stateOf({
-        "light.a" => { "state" => true, "area_id" => "area.room", "brightness" => "50 %" }
+        "light.a" => { "state" => true, "area_id" => "area.room", "brightness" => 50 }
     }, {} as Dictionary));
 
     Test.assertEqual(AreaEntityMenuTest.itemOf(menu, "light.a").getSubLabel() as String, "50 %");

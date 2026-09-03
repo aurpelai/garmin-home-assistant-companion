@@ -20,6 +20,10 @@ class FakeSubLabelProvider {
     function resolveGroupLabel(domain as String, memberCount as Number) as String {
         return "Group of " + memberCount + " " + domain;
     }
+
+    function formatPercent(percent as Number) as String {
+        return percent + " %";
+    }
 }
 
 (:test)
@@ -41,11 +45,11 @@ module AreaEntityMenuModelTest {
         return { "areas" => { "area.room" => { "name" => "Room" } } };
     }
 
-    function fan(state as Boolean, speed as String or Null) as Dictionary {
+    function fan(state as Boolean, speed as Number or Null) as Dictionary {
         return { "state" => state, "area_id" => "area.room", "available" => true, "speed" => speed };
     }
 
-    function light(state as Boolean, brightness as String or Null) as Dictionary {
+    function light(state as Boolean, brightness as Number or Null) as Dictionary {
         return { "state" => state, "area_id" => "area.room", "available" => true, "brightness" => brightness };
     }
 
@@ -81,8 +85,8 @@ function aRowReadsTheAssumedValueAndCarriesItsPendingStatus(logger as Test.Logge
 (:test)
 function aFanShowsItsSpeedWhileOnAndOffEvenWhenASpeedLingers(logger as Test.Logger) as Boolean {
     var haState = AreaEntityMenuModelTest.stateOf(AreaEntityMenuModelTest.oneRoom(), {} as Dictionary, {
-        "fan.on" => AreaEntityMenuModelTest.fan(true, "33 %"),
-        "fan.off" => AreaEntityMenuModelTest.fan(false, "10 %")
+        "fan.on" => AreaEntityMenuModelTest.fan(true, 33),
+        "fan.off" => AreaEntityMenuModelTest.fan(false, 10)
     }, {} as Dictionary);
     var toggles = AreaEntityMenuModelTest.build(haState).toggles;
 
@@ -113,7 +117,7 @@ function anOnRowWithNoValueShowsNoSublabel(logger as Test.Logger) as Boolean {
 (:test)
 function aFanRowReadsItsSpeedAgainstTheAssumedStateNotTheServers(logger as Test.Logger) as Boolean {
     var haState = AreaEntityMenuModelTest.stateOf(AreaEntityMenuModelTest.oneRoom(), {} as Dictionary, {
-        "fan.a" => AreaEntityMenuModelTest.fan(true, "33 %")
+        "fan.a" => AreaEntityMenuModelTest.fan(true, 33)
     }, {} as Dictionary);
 
     haState.override("fan.a", false);
@@ -129,11 +133,11 @@ function aFanRowReadsItsSpeedAgainstTheAssumedStateNotTheServers(logger as Test.
 function aGroupShowsItsMemberCountInItsOwnDomainNeverAValue(logger as Test.Logger) as Boolean {
     var haState = AreaEntityMenuModelTest.stateOf(AreaEntityMenuModelTest.oneRoom(), {
         "light.grp" => { "state" => true, "area_id" => "area.room", "available" => true,
-            "memberIds" => ["light.a", "light.b", "light.c"], "brightness" => "50 %" },
-        "light.a" => AreaEntityMenuModelTest.light(true, "50 %")
+            "memberIds" => ["light.a", "light.b", "light.c"], "brightness" => 50 },
+        "light.a" => AreaEntityMenuModelTest.light(true, 50)
     }, {
         "fan.grp" => { "state" => true, "area_id" => "area.room", "available" => true,
-            "memberIds" => ["fan.a"], "speed" => "33 %" }
+            "memberIds" => ["fan.a"], "speed" => 33 }
     }, {} as Dictionary);
     var toggles = AreaEntityMenuModelTest.build(haState).toggles;
 
@@ -151,7 +155,7 @@ function anUnavailableRowReadsUnavailableWhateverElseItCarries(logger as Test.Lo
         "light.dead_grp" => { "state" => false, "area_id" => "area.room", "available" => false,
             "memberIds" => [] as Array<String> }
     }, {
-        "fan.dead" => { "state" => true, "area_id" => "area.room", "available" => false, "speed" => "33 %" }
+        "fan.dead" => { "state" => true, "area_id" => "area.room", "available" => false, "speed" => 33 }
     }, {} as Dictionary);
     var toggles = AreaEntityMenuModelTest.build(haState).toggles;
 

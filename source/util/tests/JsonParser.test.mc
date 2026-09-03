@@ -145,7 +145,7 @@ function jsonFeedsHaStateEndToEndWithRawNonAscii(logger as Test.Logger) as Boole
 function jsonFeedsHaStateEndToEndWithAFan(logger as Test.Logger) as Boolean {
     var fans = "{\"fans\": {\"fan.bedroom\": {\"state\": false, " +
             "\"name\": \"Ventilátor\", \"area_id\": \"area.bedroom\", " +
-            "\"available\": true, \"speed\": \"10 %\"}}}";
+            "\"available\": true, \"speed\": 10}}}";
 
     var haState = new HaState();
     haState.setToggleables(Domain.FAN, HaPayload.parseFans(JsonParser.parse(fans)));
@@ -154,7 +154,7 @@ function jsonFeedsHaStateEndToEndWithAFan(logger as Test.Logger) as Boolean {
     Test.assertEqual(fan.id, "fan.bedroom");
     Test.assertEqual(fan.name, "Ventilátor");
     Test.assertEqual(fan.state, false);
-    Test.assertEqual(fan.speed as String, "10 %");
+    Test.assertEqual(fan.speed as Number, 10);
     Test.assert(!haState.isOn("fan.bedroom"));
     return true;
 }

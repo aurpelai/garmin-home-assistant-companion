@@ -152,6 +152,11 @@ class HaClient {
         queueChange(buildServiceCallRequest(Domain.LIGHT, service, "floor_id", floorId), callback);
     }
 
+    function queueAttribute(domain as String, service as String, entityId as String, field as String,
+                            value as Object, callback as Method) as Void {
+        queueChange(buildAttributeRequest(domain, service, entityId, field, value), callback);
+    }
+
     // UNVERIFIED: Connect IQ still delivers a cancelled request's reply, so the
     // callbacks are nulled to drop it.
     function cancelAll() as Void {
@@ -222,6 +227,23 @@ class HaClient {
                 "service" => service,
                 "service_data" => {
                     targetKey => targetId
+                }
+            }
+        };
+
+        return new WebhookRequest(self, body, ResponseType.SERVICE_CALL).method(:attempt);
+    }
+
+    private function buildAttributeRequest(domain as String, service as String, entityId as String,
+                                           field as String, value as Object) as Method {
+        var body = {
+            "type" => "call_service",
+            "data" => {
+                "domain" => domain,
+                "service" => service,
+                "service_data" => {
+                    "entity_id" => entityId,
+                    field => value
                 }
             }
         };
