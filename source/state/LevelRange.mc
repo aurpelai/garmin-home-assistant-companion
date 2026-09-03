@@ -1,5 +1,9 @@
 import Toybox.Lang;
 
+// Steps land on round multiples of the step (…, 2500, 2750, …), with min and max
+// as the extreme stops — so the first step off min and the last onto max may be
+// shorter than a full step. The current value is never snapped for display; only
+// a step or a committed value moves onto the grid.
 class LevelRange {
     public var min as Number;
     public var max as Number;
@@ -12,47 +16,18 @@ class LevelRange {
     }
 
     function next(value as Number) as Number {
-        return atIndex(wrapped(indexBelow(value) + 1));
+        if (value >= max) {
+            return max;
+        }
+        var above = (value / step + 1) * step;
+        return above >= max ? max : above;
     }
 
     function previous(value as Number) as Number {
-        return atIndex(wrapped(indexAbove(value) - 1));
-    }
-
-    function snap(value as Number) as Number {
-        return atIndex(nearestIndex(value));
-    }
-
-    private function indexBelow(value as Number) as Number {
-        return bounded((value - min) / step);
-    }
-
-    private function indexAbove(value as Number) as Number {
-        var offset = value - min;
-        return bounded((offset + step - 1) / step);
-    }
-
-    private function nearestIndex(value as Number) as Number {
-        return bounded((value - min + step / 2) / step);
-    }
-
-    private function bounded(index as Number) as Number {
-        if (index < 0) {
-            return 0;
+        if (value <= min) {
+            return min;
         }
-        return index > lastIndex() ? lastIndex() : index;
-    }
-
-    private function wrapped(index as Number) as Number {
-        var count = lastIndex() + 1;
-        return (index + count) % count;
-    }
-
-    private function atIndex(index as Number) as Number {
-        return min + index * step;
-    }
-
-    private function lastIndex() as Number {
-        return (max - min) / step;
+        var below = (value - 1) / step * step;
+        return below <= min ? min : below;
     }
 }

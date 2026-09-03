@@ -13,7 +13,7 @@ class LevelPicker extends WatchUi.View {
         self.attribute = attribute;
         _range = attribute.range as LevelRange;
         var current = attribute.current;
-        _value = _range.snap(current == null ? _range.min : current);
+        _value = current == null ? _range.min : current;
     }
 
     function value() as Number {

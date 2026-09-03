@@ -2,7 +2,7 @@ import Toybox.Lang;
 import Toybox.Test;
 
 (:test)
-function nextSnapsUpToTheStepAboveAnOffGridValue(logger as Test.Logger) as Boolean {
+function nextLandsOnTheRoundMultipleAboveTheValue(logger as Test.Logger) as Boolean {
     var range = new LevelRange(0, 100, 10);
 
     Test.assertEqual(range.next(7), 10);
@@ -11,7 +11,7 @@ function nextSnapsUpToTheStepAboveAnOffGridValue(logger as Test.Logger) as Boole
 }
 
 (:test)
-function previousSnapsDownToTheStepBelowAnOffGridValue(logger as Test.Logger) as Boolean {
+function previousLandsOnTheRoundMultipleBelowTheValue(logger as Test.Logger) as Boolean {
     var range = new LevelRange(0, 100, 10);
 
     Test.assertEqual(range.previous(23), 20);
@@ -20,30 +20,30 @@ function previousSnapsDownToTheStepBelowAnOffGridValue(logger as Test.Logger) as
 }
 
 (:test)
-function steppingWrapsAroundAtEitherEnd(logger as Test.Logger) as Boolean {
+function steppingStopsAtTheEndsWithoutWrapping(logger as Test.Logger) as Boolean {
     var range = new LevelRange(0, 100, 10);
 
-    Test.assertEqual(range.next(100), 0);
-    Test.assertEqual(range.previous(0), 100);
+    Test.assertEqual(range.next(100), 100);
+    Test.assertEqual(range.previous(0), 0);
     return true;
 }
 
 (:test)
-function steppingHonoursANonZeroMinimum(logger as Test.Logger) as Boolean {
-    var range = new LevelRange(2000, 4000, 500);
+function theGridLandsOnRoundMultiplesRegardlessOfTheMinimum(logger as Test.Logger) as Boolean {
+    var range = new LevelRange(2202, 6535, 250);
 
-    Test.assertEqual(range.previous(2000), 4000);
-    Test.assertEqual(range.next(4000), 2000);
-    Test.assertEqual(range.next(2200), 2500);
+    Test.assertEqual(range.next(2202), 2250);
+    Test.assertEqual(range.next(2250), 2500);
+    Test.assertEqual(range.previous(2500), 2250);
     return true;
 }
 
 (:test)
-function snapReturnsTheNearestStepWithinBounds(logger as Test.Logger) as Boolean {
-    var range = new LevelRange(0, 100, 10);
+function theFirstAndLastStepsClampToMinAndMax(logger as Test.Logger) as Boolean {
+    var range = new LevelRange(2202, 6535, 250);
 
-    Test.assertEqual(range.snap(-20), 0);
-    Test.assertEqual(range.snap(140), 100);
-    Test.assertEqual(range.snap(47), 50);
+    Test.assertEqual(range.previous(2250), 2202);
+    Test.assertEqual(range.next(6500), 6535);
+    Test.assertEqual(range.previous(6535), 6500);
     return true;
 }

@@ -135,8 +135,7 @@ class Coordinator {
     }
 
     function setAttribute(attribute as AdjustableAttribute, value as Number) as Void {
-        var range = attribute.range as LevelRange;
-        commitAttribute(attribute, range.snap(value));
+        commitAttribute(attribute, value);
     }
 
     function toggleAttribute(attribute as AdjustableAttribute, isOn as Boolean) as Void {
