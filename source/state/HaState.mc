@@ -225,10 +225,6 @@ class HaState {
         return false;
     }
 
-    function isFloorVisible(floorId as String) as Boolean {
-        return getVisibleAreasInFloor(floorId).size() > 0;
-    }
-
     function isOn(entityId as String) as Boolean {
         var toggleable = getToggleable(entityId);
         return toggleable != null && toggleable.isOn();

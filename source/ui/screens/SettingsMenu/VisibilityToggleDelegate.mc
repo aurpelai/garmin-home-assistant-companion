@@ -5,16 +5,25 @@ import Toybox.WatchUi;
 // as the user's intent (unlike the entity menu's deferred click): checked means
 // visible, so hidden is its negation.
 class VisibilityToggleDelegate extends WatchUi.Menu2InputDelegate {
-    private var _setHidden as Method(id as String, isHidden as Boolean) as Void;
+    private var _coordinator as Coordinator;
 
-    function initialize(setHidden as Method(id as String, isHidden as Boolean) as Void) {
+    function initialize(coordinator as Coordinator) {
         Menu2InputDelegate.initialize();
-        _setHidden = setHidden;
+        _coordinator = coordinator;
     }
 
     function onSelect(item as WatchUi.MenuItem) as Void {
-        if (item instanceof WatchUi.ToggleMenuItem) {
-            _setHidden.invoke(item.getId() as String, !item.isEnabled());
+        if (!(item instanceof WatchUi.ToggleMenuItem)) {
+            return;
+        }
+
+        var row = item.getId() as VisibilityToggleRowModel;
+        var isHidden = !item.isEnabled();
+
+        if (row.isFloor) {
+            _coordinator.setFloorHidden(row.id, isHidden);
+        } else {
+            _coordinator.setAreaHidden(row.id, isHidden);
         }
     }
 }

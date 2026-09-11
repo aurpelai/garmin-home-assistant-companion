@@ -107,32 +107,8 @@ class Coordinator {
             return;
         }
 
-        WatchUi.pushView(new VisibilityFilterMenu(_haState), new VisibilityFilterDelegate(self), WatchUi.SLIDE_LEFT);
-    }
-
-    function showFloorVisibility() as Void {
-        var menu = new VisibilityToggleMenu(WatchUi.loadResource(Rez.Strings.SettingsFloors) as String,
-            VisibilityMenuBuilder.buildFloorToggleRows(_haState));
-        WatchUi.pushView(menu, new VisibilityToggleDelegate(method(:setFloorHidden)), WatchUi.SLIDE_LEFT);
-    }
-
-    function showAreaVisibility() as Void {
-        var rows = VisibilityMenuBuilder.buildAreaVisibilityRows(
-            _haState, WatchUi.loadResource(Rez.Strings.SettingsOtherAreas) as String);
-        WatchUi.pushView(new AreaVisibilityMenu(rows), new AreaVisibilityDelegate(self), WatchUi.SLIDE_LEFT);
-    }
-
-    function showFloorAreaVisibility(floorId as String) as Void {
-        var floor = _haState.getFloor(floorId);
-        if (floor == null) {
-            return;
-        }
-
-        showAreaToggles(floor.name, _haState.getAreasInFloor(floorId));
-    }
-
-    function showUnflooredAreaVisibility() as Void {
-        showAreaToggles(WatchUi.loadResource(Rez.Strings.SettingsOtherAreas) as String, _haState.getUnflooredAreas());
+        var menu = new VisibilityToggleMenu(VisibilityMenuBuilder.build(_haState));
+        WatchUi.pushView(menu, new VisibilityToggleDelegate(self), WatchUi.SLIDE_LEFT);
     }
 
     function showFloorMenu(floorId as String) as Void {
@@ -273,11 +249,6 @@ class Coordinator {
         _hasVisibilityChanged = true;
         VisibilityStore.setHiddenFloors(_haState.getHiddenFloors());
         VisibilityStore.setHiddenAreas(_haState.getHiddenAreas());
-    }
-
-    private function showAreaToggles(title as String, areas as Array<AreaModel>) as Void {
-        var menu = new VisibilityToggleMenu(title, VisibilityMenuBuilder.buildAreaToggleRows(_haState, areas));
-        WatchUi.pushView(menu, new VisibilityToggleDelegate(method(:setAreaHidden)), WatchUi.SLIDE_LEFT);
     }
 
     private function showInfoView(message as String, detail as String or Null) as Void {

@@ -7,87 +7,53 @@ module VisibilityMenuBuilderTest {
     function stateOf() as HaState {
         var haState = new HaState();
         var structure = {
-            "areas" => { "area.kitchen" => { "name" => "Kitchen" }, "area.hall" => { "name" => "Hall" } },
+            "areas" => { "area.kitchen" => { "name" => "Kitchen" }, "area.hall" => { "name" => "Hall" },
+                "area.bedroom" => { "name" => "Bedroom" }, "area.shed" => { "name" => "Shed" } },
             "floors" => {
-                "floor.ground" => { "name" => "Ground", "order" => 0, "areas" => ["area.kitchen", "area.hall"] },
-                "floor.up" => { "name" => "Up", "order" => 1, "areas" => [] }
+                "floor.up" => { "name" => "Up", "order" => 1, "areas" => ["area.bedroom"] },
+                "floor.ground" => { "name" => "Ground", "order" => 0, "areas" => ["area.kitchen", "area.hall"] }
             }
         };
         haState.setAreas(HaPayload.parseAreas(structure));
         haState.setFloors(HaPayload.parseFloors(structure));
         return haState;
     }
+
+    function idsOf(rows as Array<VisibilityToggleRowModel>) as Array<String> {
+        var ids = [] as Array<String>;
+
+        for (var index = 0; index < rows.size(); index++) {
+            ids.add(rows[index].id);
+        }
+
+        return ids;
+    }
 }
 
 (:test)
-function floorRowsListEveryFloorCheckedUnlessHidden(logger as Test.Logger) as Boolean {
-    var haState = VisibilityMenuBuilderTest.stateOf();
-    haState.setFloorHidden("floor.up", true);
+function rowsRunFloorByFloorLikeTheCardLoopWithUnflooredAreasLast(logger as Test.Logger) as Boolean {
+    var rows = VisibilityMenuBuilder.build(VisibilityMenuBuilderTest.stateOf());
 
-    var rows = VisibilityMenuBuilder.buildFloorToggleRows(haState);
-
-    Test.assertEqual(rows.size(), 2);
-    Test.assertEqual(rows[0].name, "Ground");
-    Test.assert(rows[0].isVisible);
-    Test.assertEqual(rows[1].id, "floor.up");
-    Test.assert(!rows[1].isVisible);
+    Test.assertEqual(VisibilityMenuBuilderTest.idsOf(rows).toString(),
+        ["floor.ground", "area.hall", "area.kitchen", "floor.up", "area.bedroom", "area.shed"].toString());
+    Test.assert(rows[0].isFloor);
+    Test.assert(!rows[1].isFloor);
+    Test.assert(!rows[5].isFloor);
     return true;
 }
 
 (:test)
-function areaRowsListTheGivenAreasCheckedUnlessHidden(logger as Test.Logger) as Boolean {
+function rowsAreCheckedUnlessTheirOwnIdIsHidden(logger as Test.Logger) as Boolean {
     var haState = VisibilityMenuBuilderTest.stateOf();
+    haState.setFloorHidden("floor.up", true);
     haState.setAreaHidden("area.hall", true);
 
-    var rows = VisibilityMenuBuilder.buildAreaToggleRows(haState, haState.getAreasInFloor("floor.ground"));
+    var rows = VisibilityMenuBuilder.build(haState);
 
-    Test.assertEqual(rows.size(), 2);
-    Test.assertEqual(rows[0].id, "area.kitchen");
     Test.assert(rows[0].isVisible);
-    Test.assertEqual(rows[1].name, "Hall");
     Test.assert(!rows[1].isVisible);
-    return true;
-}
-
-(:test)
-function areaVisibilityRowsExplainWhyAFloorIsAbsentSkipAreaLessFloorsAndAddOtherOnlyForUnflooredAreas(logger as Test.Logger) as Boolean {
-    var haState = new HaState();
-    var structure = {
-        "areas" => { "area.kitchen" => { "name" => "Kitchen" }, "area.bedroom" => { "name" => "Bedroom" },
-            "area.attic" => { "name" => "Attic" }, "area.shed" => { "name" => "Shed" } },
-        "floors" => {
-            "floor.ground" => { "name" => "Ground", "order" => 0, "areas" => ["area.kitchen"] },
-            "floor.up" => { "name" => "Up", "order" => 1, "areas" => ["area.bedroom"] },
-            "floor.roof" => { "name" => "Roof", "order" => 2, "areas" => ["area.attic"] },
-            "floor.empty" => { "name" => "Empty", "order" => 3, "areas" => [] }
-        }
-    };
-    haState.setAreas(HaPayload.parseAreas(structure));
-    haState.setFloors(HaPayload.parseFloors(structure));
-    haState.setFloorHidden("floor.up", true);
-    haState.setAreaHidden("area.attic", true);
-    haState.setAreaHidden("area.shed", true);
-
-    var rows = VisibilityMenuBuilder.buildAreaVisibilityRows(haState, "Other");
-
-    Test.assertEqual(rows.size(), 4);
-    Test.assert(rows[0].subLabelId == null);
-    Test.assert(rows[1].subLabelId == Rez.Strings.SettingsFloorHidden);
-    Test.assert(rows[2].subLabelId == Rez.Strings.SettingsAllAreasHidden);
-    Test.assertEqual(rows[3].id, AreaVisibilityMenu.OTHER_ROW_ID);
-    Test.assertEqual(rows[3].name, "Other");
-    Test.assert(rows[3].subLabelId == Rez.Strings.SettingsAllAreasHidden);
-
-    haState.setAreaHidden("area.shed", false);
-    Test.assert(VisibilityMenuBuilder.buildAreaVisibilityRows(haState, "Other")[3].subLabelId == null);
-    return true;
-}
-
-(:test)
-function areaVisibilityRowsOmitOtherWhenEveryAreaHasAFloor(logger as Test.Logger) as Boolean {
-    var rows = VisibilityMenuBuilder.buildAreaVisibilityRows(VisibilityMenuBuilderTest.stateOf(), "Other");
-
-    Test.assertEqual(rows.size(), 1);
-    Test.assertEqual(rows[0].id, "floor.ground");
+    Test.assert(rows[2].isVisible);
+    Test.assert(!rows[3].isVisible);
+    Test.assert(rows[4].isVisible);
     return true;
 }
