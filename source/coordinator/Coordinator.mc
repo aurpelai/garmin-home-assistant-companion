@@ -11,6 +11,7 @@ class Coordinator {
     private var _subLabelProvider as SubLabelProvider;
     private var _clickDebounce as Scheduler;
     private var _pendingClickId as String or Null;
+    private var _visibilityDirty as Boolean;
 
     function initialize(client as HaClient, haState as HaState, clickDebounce as Scheduler) {
         _client = client;
@@ -19,6 +20,8 @@ class Coordinator {
         _subLabelProvider = new ResourceSubLabelProvider();
         _clickDebounce = clickDebounce;
         _pendingClickId = null;
+        _visibilityDirty = false;
+        _haState.setHidden(VisibilityStore.getHiddenFloors(), VisibilityStore.getHiddenAreas());
     }
 
     function onActivate() as Void {
@@ -30,7 +33,8 @@ class Coordinator {
         updateDisplay();
 
         var age = _client.msSinceLastRefresh();
-        if (age == null || age > STALE_AFTER_MS) {
+        if (_visibilityDirty || age == null || age > STALE_AFTER_MS) {
+            _visibilityDirty = false;
             refresh();
         }
     }
@@ -61,6 +65,7 @@ class Coordinator {
                 _haState.setZone(HaPayload.parseZone(result));
                 _haState.setAreas(HaPayload.parseAreas(result));
                 _haState.setFloors(HaPayload.parseFloors(result));
+                VisibilityStore.setVisibleAreaIds(_haState.getVisibleAreaIds());
             } else if (target == FetchTarget.LIGHTS) {
                 _haState.setToggleables(Domain.LIGHT, HaPayload.parseLights(result));
                 GlanceSummary.setLightSummary(HaPayload.parseHomeLightSummary(result));
@@ -132,6 +137,16 @@ class Coordinator {
 
     function isOn(entityId as String) as Boolean {
         return _haState.isOn(entityId);
+    }
+
+    function setFloorHidden(floorId as String, isHidden as Boolean) as Void {
+        _haState.setFloorHidden(floorId, isHidden);
+        persistVisibility();
+    }
+
+    function setAreaHidden(areaId as String, isHidden as Boolean) as Void {
+        _haState.setAreaHidden(areaId, isHidden);
+        persistVisibility();
     }
 
     function setAttribute(attribute as AdjustableAttribute, value as Number) as Void {
@@ -216,6 +231,13 @@ class Coordinator {
     private function clearPendingClick() as Void {
         _pendingClickId = null;
         _clickDebounce.cancel();
+    }
+
+    private function persistVisibility() as Void {
+        _visibilityDirty = true;
+        VisibilityStore.setHiddenFloors(_haState.getHiddenFloors());
+        VisibilityStore.setHiddenAreas(_haState.getHiddenAreas());
+        VisibilityStore.setVisibleAreaIds(_haState.getVisibleAreaIds());
     }
 
     private function showInfoView(message as String, detail as String or Null) as Void {

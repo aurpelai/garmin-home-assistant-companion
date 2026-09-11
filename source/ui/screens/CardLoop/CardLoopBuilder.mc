@@ -6,12 +6,11 @@ module CardLoopBuilder {
     function build(haState as HaState) as CardLoopModel {
         var cards = [] as Array<Card>;
         var floors = haState.getFloors();
-        var floored = {} as Dictionary<String, Boolean>;
 
         for (var index = 0; index < floors.size(); index++) {
             var floor = floors[index];
             var floorAreas = filterAreasWithEntities(
-                haState, EntitySorter.sortAreas(haState.getAreasInFloor(floor.id)));
+                haState, EntitySorter.sortAreas(haState.getVisibleAreasInFloor(floor.id)));
             if (floorAreas.size() == 0) {
                 continue;
             }
@@ -19,21 +18,12 @@ module CardLoopBuilder {
             cards.add(buildFloorCard(haState, floor.id, floor.name));
 
             for (var areaIndex = 0; areaIndex < floorAreas.size(); areaIndex++) {
-                floored.put(floorAreas[areaIndex].id, true);
                 cards.add(buildAreaCard(haState, floorAreas[areaIndex], floor.id, floor.name));
             }
         }
 
-        var areas = haState.getAreas();
-        var unfloored = [] as Array<AreaModel>;
-
-        for (var index = 0; index < areas.size(); index++) {
-            if (!floored.hasKey(areas[index].id)) {
-                unfloored.add(areas[index]);
-            }
-        }
-
-        var unflooredAreas = filterAreasWithEntities(haState, EntitySorter.sortAreas(unfloored));
+        var unflooredAreas = filterAreasWithEntities(
+            haState, EntitySorter.sortAreas(haState.getVisibleUnflooredAreas()));
 
         for (var index = 0; index < unflooredAreas.size(); index++) {
             cards.add(buildAreaCard(haState, unflooredAreas[index], null, null));
