@@ -11,7 +11,7 @@ class Coordinator {
     private var _subLabelProvider as SubLabelProvider;
     private var _clickDebounce as Scheduler;
     private var _pendingClickId as String or Null;
-    private var _visibilityDirty as Boolean;
+    private var _hasVisibilityChanged as Boolean;
 
     function initialize(client as HaClient, haState as HaState, clickDebounce as Scheduler) {
         _client = client;
@@ -20,7 +20,7 @@ class Coordinator {
         _subLabelProvider = new ResourceSubLabelProvider();
         _clickDebounce = clickDebounce;
         _pendingClickId = null;
-        _visibilityDirty = false;
+        _hasVisibilityChanged = false;
         _haState.setHidden(VisibilityStore.getHiddenFloors(), VisibilityStore.getHiddenAreas());
     }
 
@@ -33,8 +33,8 @@ class Coordinator {
         updateDisplay();
 
         var age = _client.msSinceLastRefresh();
-        if (_visibilityDirty || age == null || age > STALE_AFTER_MS) {
-            _visibilityDirty = false;
+        if (_hasVisibilityChanged || age == null || age > STALE_AFTER_MS) {
+            _hasVisibilityChanged = false;
             refresh();
         }
     }
@@ -271,7 +271,7 @@ class Coordinator {
     }
 
     private function persistVisibility() as Void {
-        _visibilityDirty = true;
+        _hasVisibilityChanged = true;
         VisibilityStore.setHiddenFloors(_haState.getHiddenFloors());
         VisibilityStore.setHiddenAreas(_haState.getHiddenAreas());
         VisibilityStore.setVisibleAreaIds(_haState.getVisibleAreaIds());
