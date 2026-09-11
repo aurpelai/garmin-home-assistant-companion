@@ -50,7 +50,7 @@ function areaRowsListTheGivenAreasCheckedUnlessHidden(logger as Test.Logger) as 
 }
 
 (:test)
-function areaVisibilityRowsExplainWhyAFloorIsAbsentAndAddOtherOnlyForUnflooredAreas(logger as Test.Logger) as Boolean {
+function areaVisibilityRowsExplainWhyAFloorIsAbsentSkipAreaLessFloorsAndAddOtherOnlyForUnflooredAreas(logger as Test.Logger) as Boolean {
     var haState = new HaState();
     var structure = {
         "areas" => { "area.kitchen" => { "name" => "Kitchen" }, "area.bedroom" => { "name" => "Bedroom" },
@@ -70,17 +70,16 @@ function areaVisibilityRowsExplainWhyAFloorIsAbsentAndAddOtherOnlyForUnflooredAr
 
     var rows = VisibilityMenuBuilder.buildAreaVisibilityRows(haState, "Other");
 
-    Test.assertEqual(rows.size(), 5);
+    Test.assertEqual(rows.size(), 4);
     Test.assert(rows[0].subLabelId == null);
     Test.assert(rows[1].subLabelId == Rez.Strings.SettingsFloorHidden);
     Test.assert(rows[2].subLabelId == Rez.Strings.SettingsAllAreasHidden);
-    Test.assert(rows[3].subLabelId == null);
-    Test.assertEqual(rows[4].id, AreaVisibilityMenu.OTHER_ROW_ID);
-    Test.assertEqual(rows[4].name, "Other");
-    Test.assert(rows[4].subLabelId == Rez.Strings.SettingsAllAreasHidden);
+    Test.assertEqual(rows[3].id, AreaVisibilityMenu.OTHER_ROW_ID);
+    Test.assertEqual(rows[3].name, "Other");
+    Test.assert(rows[3].subLabelId == Rez.Strings.SettingsAllAreasHidden);
 
     haState.setAreaHidden("area.shed", false);
-    Test.assert(VisibilityMenuBuilder.buildAreaVisibilityRows(haState, "Other")[4].subLabelId == null);
+    Test.assert(VisibilityMenuBuilder.buildAreaVisibilityRows(haState, "Other")[3].subLabelId == null);
     return true;
 }
 
@@ -88,7 +87,7 @@ function areaVisibilityRowsExplainWhyAFloorIsAbsentAndAddOtherOnlyForUnflooredAr
 function areaVisibilityRowsOmitOtherWhenEveryAreaHasAFloor(logger as Test.Logger) as Boolean {
     var rows = VisibilityMenuBuilder.buildAreaVisibilityRows(VisibilityMenuBuilderTest.stateOf(), "Other");
 
-    Test.assertEqual(rows.size(), 2);
-    Test.assertEqual(rows[1].id, "floor.up");
+    Test.assertEqual(rows.size(), 1);
+    Test.assertEqual(rows[0].id, "floor.ground");
     return true;
 }

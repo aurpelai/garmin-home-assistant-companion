@@ -28,7 +28,6 @@ module VisibilityMenuBuilder {
         return rows;
     }
 
-    // One drill row per floor, then "Other" for the unfloored areas when any exist.
     // A row whose areas are all absent from the loop says why — the floor is
     // hidden, or every area under it is — while staying editable.
     function buildAreaVisibilityRows(haState as HaState, otherName as String) as Array<AreaVisibilityRowModel> {
@@ -37,7 +36,10 @@ module VisibilityMenuBuilder {
 
         for (var index = 0; index < floors.size(); index++) {
             var floor = floors[index];
-            rows.add(new AreaVisibilityRowModel(floor.id, floor.name, resolveFloorSubLabelId(haState, floor.id)));
+
+            if (haState.getAreasInFloor(floor.id).size() > 0) {
+                rows.add(new AreaVisibilityRowModel(floor.id, floor.name, resolveFloorSubLabelId(haState, floor.id)));
+            }
         }
 
         if (haState.getUnflooredAreas().size() > 0) {
@@ -51,10 +53,6 @@ module VisibilityMenuBuilder {
     function resolveFloorSubLabelId(haState as HaState, floorId as String) as ResourceId or Null {
         if (haState.getHiddenFloors().hasKey(floorId)) {
             return Rez.Strings.SettingsFloorHidden;
-        }
-
-        if (haState.getAreasInFloor(floorId).size() == 0) {
-            return null;
         }
 
         return resolveAllHiddenSubLabelId(haState.getVisibleAreasInFloor(floorId));

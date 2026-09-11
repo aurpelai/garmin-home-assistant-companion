@@ -107,7 +107,7 @@ class Coordinator {
             return;
         }
 
-        WatchUi.pushView(new VisibilityFilterMenu(), new VisibilityFilterDelegate(self), WatchUi.SLIDE_LEFT);
+        WatchUi.pushView(new VisibilityFilterMenu(_haState), new VisibilityFilterDelegate(self), WatchUi.SLIDE_LEFT);
     }
 
     function showFloorVisibility() as Void {
