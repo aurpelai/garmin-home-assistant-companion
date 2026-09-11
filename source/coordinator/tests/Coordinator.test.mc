@@ -168,6 +168,8 @@ function aShownScreenRefreshesBeforeAnyDataHasLoadedButNotOverFreshData(logger a
 
 (:test)
 function hiddenSetsLoadOnStartPersistOnChangeAndForceTheNextShownScreenToRefresh(logger as Test.Logger) as Boolean {
+    // Built by hand rather than through coordinatorOn: clientWith clears storage,
+    // so the hidden set must be seeded after the client exists.
     var gateway = new FakeRequestGateway();
     var client = ClientFixture.clientWith(gateway, new FakeScheduler());
     Application.Properties.setValue("haBaseUrl", "http://ha.local");

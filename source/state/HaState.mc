@@ -130,9 +130,8 @@ class HaState {
         return sensors == null ? [] as Array<SensorModel> : sensors;
     }
 
-    // Visible areas only: a hidden area is not part of the home the app reads or
-    // acts on, so its toggleables leave both the floor summary and the floor-wide
-    // action.
+    // Visible areas only: a hidden area's toggleables leave the floor summary and
+    // the floor-wide action alike, so no unfiltered variant exists.
     function getToggleablesInFloor(floorId as String, domain as String) as Array<ToggleableModel> {
         var areaIds = getVisibleAreaIdsInFloor(floorId);
         var toggleables = [] as Array<ToggleableModel>;
@@ -157,7 +156,7 @@ class HaState {
         var floor = getFloor(floorId);
         return floor == null
             ? [] as Array<String>
-            : AreaVisibility.visibleAreasOfFloor(floor, _hiddenFloors, _hiddenAreas);
+            : AreaVisibility.resolveVisibleAreaIds(floor, _hiddenFloors, _hiddenAreas);
     }
 
     function getUnflooredAreas() as Array<AreaModel> {

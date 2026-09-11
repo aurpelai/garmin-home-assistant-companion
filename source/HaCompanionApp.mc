@@ -66,8 +66,6 @@ class HaCompanionApp extends Application.AppBase {
         return [new LoadingView(coordinator), new LoadingDelegate()];
     }
 
-    // Reached from the system menu while the app runs; the filter row self-gates
-    // when structure has not loaded, so nothing here waits on the refresh.
     function getSettingsView() as [WatchUi.Views] or [WatchUi.Views, WatchUi.InputDelegates] or Null {
         return getOrCreateCoordinator().buildSettingsMenu();
     }

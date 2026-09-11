@@ -1,6 +1,6 @@
 import Toybox.Lang;
 
-class VisibilityRowModel {
+class VisibilityToggleRowModel {
     public var id as String;
     public var name as String;
     public var isVisible as Boolean;

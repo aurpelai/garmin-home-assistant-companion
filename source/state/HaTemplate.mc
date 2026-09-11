@@ -195,7 +195,7 @@ module HaTemplate {
             return STRUCTURE;
         }
 
-        var clause = visibleClause(visibleAreaIds);
+        var clause = buildVisibleClause(visibleAreaIds);
 
         if (target == FetchTarget.LIGHTS) {
             return clause + LIGHTS;
@@ -209,7 +209,7 @@ module HaTemplate {
         return clause + SENSORS;
     }
 
-    function visibleClause(visibleAreaIds as Array<String> or Null) as String {
+    function buildVisibleClause(visibleAreaIds as Array<String> or Null) as String {
         if (visibleAreaIds == null) {
             return "{% set visible = none %}";
         }

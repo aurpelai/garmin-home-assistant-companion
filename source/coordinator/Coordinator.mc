@@ -100,22 +100,27 @@ class Coordinator {
     }
 
     function buildSettingsMenu() as [WatchUi.Views, WatchUi.InputDelegates] {
-        var menu = new SettingsMenu(_haState);
-        return [menu, new SettingsMenuDelegate(menu, self)];
+        return [new SettingsMenu(_haState), new SettingsMenuDelegate(self)];
     }
 
     function showVisibilityFilter() as Void {
+        if (!_haState.hasAreas()) {
+            return;
+        }
+
         WatchUi.pushView(new VisibilityFilterMenu(), new VisibilityFilterDelegate(self), WatchUi.SLIDE_LEFT);
     }
 
     function showFloorVisibility() as Void {
         var menu = new VisibilityToggleMenu(WatchUi.loadResource(Rez.Strings.SettingsFloors) as String,
-            VisibilityMenuBuilder.buildFloorRows(_haState));
+            VisibilityMenuBuilder.buildFloorToggleRows(_haState));
         WatchUi.pushView(menu, new VisibilityToggleDelegate(method(:setFloorHidden)), WatchUi.SLIDE_LEFT);
     }
 
     function showAreaVisibility() as Void {
-        WatchUi.pushView(new AreaFilterMenu(_haState), new AreaFilterDelegate(self), WatchUi.SLIDE_LEFT);
+        var rows = VisibilityMenuBuilder.buildAreaVisibilityRows(
+            _haState, WatchUi.loadResource(Rez.Strings.SettingsOtherAreas) as String);
+        WatchUi.pushView(new AreaVisibilityMenu(rows), new AreaVisibilityDelegate(self), WatchUi.SLIDE_LEFT);
     }
 
     function showFloorAreaVisibility(floorId as String) as Void {
@@ -273,7 +278,7 @@ class Coordinator {
     }
 
     private function showAreaToggles(title as String, areas as Array<AreaModel>) as Void {
-        var menu = new VisibilityToggleMenu(title, VisibilityMenuBuilder.buildAreaRows(_haState, areas));
+        var menu = new VisibilityToggleMenu(title, VisibilityMenuBuilder.buildAreaToggleRows(_haState, areas));
         WatchUi.pushView(menu, new VisibilityToggleDelegate(method(:setAreaHidden)), WatchUi.SLIDE_LEFT);
     }
 

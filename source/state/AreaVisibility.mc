@@ -1,13 +1,14 @@
 import Toybox.Lang;
 
-// Every visibility fact derives from one question — which of a floor's areas are
-// visible: an area is visible iff it is in its floor's visible set, and a floor
-// is visible iff that set is non-empty. Hidden floors and hidden areas are two
-// independent sets; hiding a floor suppresses its areas without touching their
-// own membership, so un-hiding the floor brings back exactly what it had.
+// A floor's visibility derives from one question — which of its areas are
+// visible: a floored area is visible iff it is in that set, and the floor iff the
+// set is non-empty. Hidden floors and hidden areas are two independent sets;
+// hiding a floor suppresses its areas without touching their own membership, so
+// un-hiding the floor brings back exactly what it had. An unfloored area answers
+// to the hidden-area set alone.
 module AreaVisibility {
 
-    function visibleAreasOfFloor(floor as FloorModel, hiddenFloors as Dictionary<String, Boolean>,
+    function resolveVisibleAreaIds(floor as FloorModel, hiddenFloors as Dictionary<String, Boolean>,
                                  hiddenAreas as Dictionary<String, Boolean>) as Array<String> {
         if (hiddenFloors.hasKey(floor.id)) {
             return [] as Array<String>;
@@ -27,6 +28,6 @@ module AreaVisibility {
 
     function isFloorVisible(floor as FloorModel, hiddenFloors as Dictionary<String, Boolean>,
                             hiddenAreas as Dictionary<String, Boolean>) as Boolean {
-        return visibleAreasOfFloor(floor, hiddenFloors, hiddenAreas).size() > 0;
+        return resolveVisibleAreaIds(floor, hiddenFloors, hiddenAreas).size() > 0;
     }
 }

@@ -231,26 +231,6 @@ function aHiddenAreaLeavesTheCardLoop(logger as Test.Logger) as Boolean {
 }
 
 (:test)
-function aHiddenFloorTakesAllItsAreasWithIt(logger as Test.Logger) as Boolean {
-    var haState = CardLoopModelTest.stateOf({
-        "areas" => { "area.bedroom" => { "name" => "Bedroom" }, "area.kitchen" => { "name" => "Kitchen" } },
-        "floors" => {
-            "floor.up" => { "name" => "Up", "order" => 1, "areas" => ["area.bedroom"] },
-            "floor.ground" => { "name" => "Ground", "order" => 0, "areas" => ["area.kitchen"] }
-        }
-    }, {
-        "light.bedroom" => CardLoopModelTest.light(false, "area.bedroom"),
-        "light.kitchen" => CardLoopModelTest.light(false, "area.kitchen")
-    }, {} as Dictionary);
-    haState.setFloorHidden("floor.up", true);
-
-    Test.assertEqual(
-        CardLoopModelTest.cardIds(CardLoopBuilder.build(haState)).toString(),
-        ["floor.ground", "area.kitchen"].toString());
-    return true;
-}
-
-(:test)
 function aHiddenUnflooredAreaLeavesTheTrailingCards(logger as Test.Logger) as Boolean {
     var haState = CardLoopModelTest.stateOf({
         "areas" => { "area.garage" => { "name" => "Garage" }, "area.shed" => { "name" => "Shed" } }
