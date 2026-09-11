@@ -31,7 +31,7 @@ module VisibilityMenuBuilder {
     // One drill row per floor, then "Other" for the unfloored areas when any exist.
     // A row whose areas are all absent from the loop says why — the floor is
     // hidden, or every area under it is — while staying editable.
-    function buildAreaVisibilityRows(haState as HaState, otherTitle as String) as Array<AreaVisibilityRowModel> {
+    function buildAreaVisibilityRows(haState as HaState, otherName as String) as Array<AreaVisibilityRowModel> {
         var floors = haState.getFloors();
         var rows = [] as Array<AreaVisibilityRowModel>;
 
@@ -41,7 +41,7 @@ module VisibilityMenuBuilder {
         }
 
         if (haState.getUnflooredAreas().size() > 0) {
-            rows.add(new AreaVisibilityRowModel(AreaVisibilityMenu.OTHER_ROW_ID, otherTitle,
+            rows.add(new AreaVisibilityRowModel(AreaVisibilityMenu.OTHER_ROW_ID, otherName,
                 resolveAllHiddenSubLabelId(haState.getVisibleUnflooredAreas())));
         }
 

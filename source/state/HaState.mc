@@ -160,46 +160,46 @@ class HaState {
     }
 
     function getUnflooredAreas() as Array<AreaModel> {
-        var floored = collectFlooredAreaIds();
+        var flooredAreaIds = collectFlooredAreaIds();
         var areas = getAreas();
-        var unfloored = [] as Array<AreaModel>;
+        var unflooredAreas = [] as Array<AreaModel>;
 
         for (var index = 0; index < areas.size(); index++) {
-            if (!floored.hasKey(areas[index].id)) {
-                unfloored.add(areas[index]);
+            if (!flooredAreaIds.hasKey(areas[index].id)) {
+                unflooredAreas.add(areas[index]);
             }
         }
 
-        return unfloored;
+        return unflooredAreas;
     }
 
     function getVisibleUnflooredAreas() as Array<AreaModel> {
-        var unfloored = getUnflooredAreas();
-        var visible = [] as Array<AreaModel>;
+        var unflooredAreas = getUnflooredAreas();
+        var visibleAreas = [] as Array<AreaModel>;
 
-        for (var index = 0; index < unfloored.size(); index++) {
-            if (!_hiddenAreas.hasKey(unfloored[index].id)) {
-                visible.add(unfloored[index]);
+        for (var index = 0; index < unflooredAreas.size(); index++) {
+            if (!_hiddenAreas.hasKey(unflooredAreas[index].id)) {
+                visibleAreas.add(unflooredAreas[index]);
             }
         }
 
-        return visible;
+        return visibleAreas;
     }
 
     function getVisibleAreaIds() as Array<String> {
-        var ids = [] as Array<String>;
+        var visibleAreaIds = [] as Array<String>;
 
         for (var index = 0; index < _floors.size(); index++) {
-            ids.addAll(getVisibleAreaIdsInFloor(_floors[index].id));
+            visibleAreaIds.addAll(getVisibleAreaIdsInFloor(_floors[index].id));
         }
 
-        var unfloored = getVisibleUnflooredAreas();
+        var visibleUnflooredAreas = getVisibleUnflooredAreas();
 
-        for (var index = 0; index < unfloored.size(); index++) {
-            ids.add(unfloored[index].id);
+        for (var index = 0; index < visibleUnflooredAreas.size(); index++) {
+            visibleAreaIds.add(visibleUnflooredAreas[index].id);
         }
 
-        return ids;
+        return visibleAreaIds;
     }
 
     function getHiddenFloors() as Dictionary<String, Boolean> {
@@ -334,17 +334,17 @@ class HaState {
     }
 
     private function collectFlooredAreaIds() as Dictionary<String, Boolean> {
-        var floored = {} as Dictionary<String, Boolean>;
+        var flooredAreaIds = {} as Dictionary<String, Boolean>;
 
         for (var floorIndex = 0; floorIndex < _floors.size(); floorIndex++) {
             var areaIds = _floors[floorIndex].areas;
 
             for (var areaIndex = 0; areaIndex < areaIds.size(); areaIndex++) {
-                floored.put(areaIds[areaIndex], true);
+                flooredAreaIds.put(areaIds[areaIndex], true);
             }
         }
 
-        return floored;
+        return flooredAreaIds;
     }
 
     private function groupByArea(models as Array<EntityModel>)

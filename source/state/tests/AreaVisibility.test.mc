@@ -12,28 +12,28 @@ module AreaVisibilityTest {
 
 (:test)
 function aFloorWithNothingHiddenShowsEveryArea(logger as Test.Logger) as Boolean {
-    var visible = AreaVisibility.resolveVisibleAreaIds(
+    var visibleAreaIds = AreaVisibility.resolveVisibleAreaIds(
         AreaVisibilityTest.floor(["a", "b"]), AreaVisibilityTest.NONE, AreaVisibilityTest.NONE);
 
-    Test.assertEqual(visible.toString(), ["a", "b"].toString());
+    Test.assertEqual(visibleAreaIds.toString(), ["a", "b"].toString());
     return true;
 }
 
 (:test)
 function aHiddenAreaDropsFromItsFloor(logger as Test.Logger) as Boolean {
-    var visible = AreaVisibility.resolveVisibleAreaIds(
+    var visibleAreaIds = AreaVisibility.resolveVisibleAreaIds(
         AreaVisibilityTest.floor(["a", "b"]), AreaVisibilityTest.NONE, { "a" => true });
 
-    Test.assertEqual(visible.toString(), ["b"].toString());
+    Test.assertEqual(visibleAreaIds.toString(), ["b"].toString());
     return true;
 }
 
 (:test)
 function aHiddenFloorShowsNoAreasWhateverTheirOwnState(logger as Test.Logger) as Boolean {
-    var visible = AreaVisibility.resolveVisibleAreaIds(
+    var visibleAreaIds = AreaVisibility.resolveVisibleAreaIds(
         AreaVisibilityTest.floor(["a", "b"]), { "f" => true }, AreaVisibilityTest.NONE);
 
-    Test.assertEqual(visible.size(), 0);
+    Test.assertEqual(visibleAreaIds.size(), 0);
     return true;
 }
 

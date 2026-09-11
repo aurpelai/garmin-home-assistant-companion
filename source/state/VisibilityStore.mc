@@ -28,16 +28,16 @@ module VisibilityStore {
         return stored instanceof Array ? stored as Array<String> : null;
     }
 
-    function setHiddenFloors(ids as Dictionary<String, Boolean>) as Void {
-        Application.Storage.setValue(HIDDEN_FLOORS_KEY, ids as Application.Storage.ValueType);
+    function setHiddenFloors(hiddenFloors as Dictionary<String, Boolean>) as Void {
+        Application.Storage.setValue(HIDDEN_FLOORS_KEY, hiddenFloors as Application.Storage.ValueType);
     }
 
-    function setHiddenAreas(ids as Dictionary<String, Boolean>) as Void {
-        Application.Storage.setValue(HIDDEN_AREAS_KEY, ids as Application.Storage.ValueType);
+    function setHiddenAreas(hiddenAreas as Dictionary<String, Boolean>) as Void {
+        Application.Storage.setValue(HIDDEN_AREAS_KEY, hiddenAreas as Application.Storage.ValueType);
     }
 
-    function setVisibleAreaIds(ids as Array<String>) as Void {
-        Application.Storage.setValue(VISIBLE_AREAS_KEY, ids as Application.Storage.ValueType);
+    function setVisibleAreaIds(visibleAreaIds as Array<String>) as Void {
+        Application.Storage.setValue(VISIBLE_AREAS_KEY, visibleAreaIds as Application.Storage.ValueType);
     }
 
     function readSet(key as String) as Dictionary<String, Boolean> {

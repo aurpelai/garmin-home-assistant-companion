@@ -14,16 +14,16 @@ module AreaVisibility {
             return [] as Array<String>;
         }
 
-        var visible = [] as Array<String>;
+        var visibleAreaIds = [] as Array<String>;
 
         for (var index = 0; index < floor.areas.size(); index++) {
             var areaId = floor.areas[index];
             if (!hiddenAreas.hasKey(areaId)) {
-                visible.add(areaId);
+                visibleAreaIds.add(areaId);
             }
         }
 
-        return visible;
+        return visibleAreaIds;
     }
 
     function isFloorVisible(floor as FloorModel, hiddenFloors as Dictionary<String, Boolean>,

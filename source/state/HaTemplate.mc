@@ -214,12 +214,12 @@ module HaTemplate {
             return "{% set visible = none %}";
         }
 
-        var items = "";
+        var quotedIds = "";
 
         for (var index = 0; index < visibleAreaIds.size(); index++) {
-            items += (index > 0 ? ",'" : "'") + visibleAreaIds[index] + "'";
+            quotedIds += (index > 0 ? ",'" : "'") + visibleAreaIds[index] + "'";
         }
 
-        return "{% set visible = [" + items + "] %}";
+        return "{% set visible = [" + quotedIds + "] %}";
     }
 }

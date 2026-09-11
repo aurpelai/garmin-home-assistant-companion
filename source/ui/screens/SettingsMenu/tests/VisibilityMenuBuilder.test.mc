@@ -50,7 +50,7 @@ function areaRowsListTheGivenAreasCheckedUnlessHidden(logger as Test.Logger) as 
 }
 
 (:test)
-function filterRowsExplainWhyAFloorIsAbsentAndAddOtherOnlyForUnflooredAreas(logger as Test.Logger) as Boolean {
+function areaVisibilityRowsExplainWhyAFloorIsAbsentAndAddOtherOnlyForUnflooredAreas(logger as Test.Logger) as Boolean {
     var haState = new HaState();
     var structure = {
         "areas" => { "area.kitchen" => { "name" => "Kitchen" }, "area.bedroom" => { "name" => "Bedroom" },
@@ -85,7 +85,7 @@ function filterRowsExplainWhyAFloorIsAbsentAndAddOtherOnlyForUnflooredAreas(logg
 }
 
 (:test)
-function filterRowsOmitOtherWhenEveryAreaHasAFloor(logger as Test.Logger) as Boolean {
+function areaVisibilityRowsOmitOtherWhenEveryAreaHasAFloor(logger as Test.Logger) as Boolean {
     var rows = VisibilityMenuBuilder.buildAreaVisibilityRows(VisibilityMenuBuilderTest.stateOf(), "Other");
 
     Test.assertEqual(rows.size(), 2);
