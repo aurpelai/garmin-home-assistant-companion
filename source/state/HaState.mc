@@ -10,7 +10,9 @@ class HaState {
     private var _sensorAverages as SensorAverages;
 
     // Durable user config, not fetched truth: the hidden sets survive clear() so a
-    // registration discard never silently unhides the home.
+    // registration discard never silently unhides the home. The two sets are
+    // independent — hiding a floor suppresses its areas without touching their own
+    // membership, so un-hiding it brings back exactly what it had.
     private var _hiddenFloors as Dictionary<String, Boolean>;
     private var _hiddenAreas as Dictionary<String, Boolean>;
 
@@ -133,11 +135,11 @@ class HaState {
     // Visible areas only: a hidden area's toggleables leave the floor summary and
     // the floor-wide action alike, so no unfiltered variant exists.
     function getToggleablesInFloor(floorId as String, domain as String) as Array<ToggleableModel> {
-        var areaIds = getVisibleAreaIdsInFloor(floorId);
+        var areas = getVisibleAreasInFloor(floorId);
         var toggleables = [] as Array<ToggleableModel>;
 
-        for (var index = 0; index < areaIds.size(); index++) {
-            toggleables.addAll(getToggleablesInArea(areaIds[index], domain));
+        for (var index = 0; index < areas.size(); index++) {
+            toggleables.addAll(getToggleablesInArea(areas[index].id, domain));
         }
 
         return toggleables;
@@ -149,14 +151,20 @@ class HaState {
     }
 
     function getVisibleAreasInFloor(floorId as String) as Array<AreaModel> {
-        return resolveAreas(getVisibleAreaIdsInFloor(floorId));
+        return _hiddenFloors.hasKey(floorId)
+            ? [] as Array<AreaModel>
+            : filterVisibleAreas(getAreasInFloor(floorId));
     }
 
     function getVisibleAreaIdsInFloor(floorId as String) as Array<String> {
-        var floor = getFloor(floorId);
-        return floor == null
-            ? [] as Array<String>
-            : AreaVisibility.resolveVisibleAreaIds(floor, _hiddenFloors, _hiddenAreas);
+        var areas = getVisibleAreasInFloor(floorId);
+        var areaIds = [] as Array<String>;
+
+        for (var index = 0; index < areas.size(); index++) {
+            areaIds.add(areas[index].id);
+        }
+
+        return areaIds;
     }
 
     function getUnflooredAreas() as Array<AreaModel> {
@@ -174,32 +182,7 @@ class HaState {
     }
 
     function getVisibleUnflooredAreas() as Array<AreaModel> {
-        var unflooredAreas = getUnflooredAreas();
-        var visibleAreas = [] as Array<AreaModel>;
-
-        for (var index = 0; index < unflooredAreas.size(); index++) {
-            if (!_hiddenAreas.hasKey(unflooredAreas[index].id)) {
-                visibleAreas.add(unflooredAreas[index]);
-            }
-        }
-
-        return visibleAreas;
-    }
-
-    function getVisibleAreaIds() as Array<String> {
-        var visibleAreaIds = [] as Array<String>;
-
-        for (var index = 0; index < _floors.size(); index++) {
-            visibleAreaIds.addAll(getVisibleAreaIdsInFloor(_floors[index].id));
-        }
-
-        var visibleUnflooredAreas = getVisibleUnflooredAreas();
-
-        for (var index = 0; index < visibleUnflooredAreas.size(); index++) {
-            visibleAreaIds.add(visibleUnflooredAreas[index].id);
-        }
-
-        return visibleAreaIds;
+        return filterVisibleAreas(getUnflooredAreas());
     }
 
     function getHiddenFloors() as Dictionary<String, Boolean> {
@@ -243,8 +226,7 @@ class HaState {
     }
 
     function isFloorVisible(floorId as String) as Boolean {
-        var floor = getFloor(floorId);
-        return floor != null && AreaVisibility.isFloorVisible(floor, _hiddenFloors, _hiddenAreas);
+        return getVisibleAreasInFloor(floorId).size() > 0;
     }
 
     function isOn(entityId as String) as Boolean {
@@ -331,6 +313,18 @@ class HaState {
         }
 
         return areas;
+    }
+
+    private function filterVisibleAreas(areas as Array<AreaModel>) as Array<AreaModel> {
+        var visibleAreas = [] as Array<AreaModel>;
+
+        for (var index = 0; index < areas.size(); index++) {
+            if (!_hiddenAreas.hasKey(areas[index].id)) {
+                visibleAreas.add(areas[index]);
+            }
+        }
+
+        return visibleAreas;
     }
 
     private function collectFlooredAreaIds() as Dictionary<String, Boolean> {

@@ -18,19 +18,3 @@ function hiddenSetsRoundTripThroughStorageAndDefaultToEmpty(logger as Test.Logge
     Application.Storage.clearValues();
     return true;
 }
-
-(:test)
-function visibleAreaIdsAreNullUntilStoredAndAnEmptyListStaysEmpty(logger as Test.Logger) as Boolean {
-    Application.Storage.clearValues();
-
-    Test.assert(VisibilityStore.getVisibleAreaIds() == null);
-
-    VisibilityStore.setVisibleAreaIds([] as Array<String>);
-    Test.assertEqual((VisibilityStore.getVisibleAreaIds() as Array<String>).size(), 0);
-
-    VisibilityStore.setVisibleAreaIds(["area.a"] as Array<String>);
-    Test.assertEqual((VisibilityStore.getVisibleAreaIds() as Array<String>)[0], "area.a");
-
-    Application.Storage.clearValues();
-    return true;
-}

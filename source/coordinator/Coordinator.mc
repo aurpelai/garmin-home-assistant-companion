@@ -65,7 +65,6 @@ class Coordinator {
                 _haState.setZone(HaPayload.parseZone(result));
                 _haState.setAreas(HaPayload.parseAreas(result));
                 _haState.setFloors(HaPayload.parseFloors(result));
-                VisibilityStore.setVisibleAreaIds(_haState.getVisibleAreaIds());
             } else if (target == FetchTarget.LIGHTS) {
                 _haState.setToggleables(Domain.LIGHT, HaPayload.parseLights(result));
                 GlanceSummary.setLightSummary(HaPayload.parseHomeLightSummary(result));
@@ -274,7 +273,6 @@ class Coordinator {
         _hasVisibilityChanged = true;
         VisibilityStore.setHiddenFloors(_haState.getHiddenFloors());
         VisibilityStore.setHiddenAreas(_haState.getHiddenAreas());
-        VisibilityStore.setVisibleAreaIds(_haState.getVisibleAreaIds());
     }
 
     private function showAreaToggles(title as String, areas as Array<AreaModel>) as Void {

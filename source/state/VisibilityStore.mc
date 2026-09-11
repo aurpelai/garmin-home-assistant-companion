@@ -9,7 +9,6 @@ import Toybox.Lang;
 module VisibilityStore {
     const HIDDEN_FLOORS_KEY = "hiddenFloors";
     const HIDDEN_AREAS_KEY = "hiddenAreas";
-    const VISIBLE_AREAS_KEY = "visibleAreas";
 
     function getHiddenFloors() as Dictionary<String, Boolean> {
         return readSet(HIDDEN_FLOORS_KEY);
@@ -19,25 +18,12 @@ module VisibilityStore {
         return readSet(HIDDEN_AREAS_KEY);
     }
 
-    // The visible area ids resolved by the foreground against the current
-    // structure, cached for the render requests of every process. Null until the
-    // first structure has been fetched, and kept distinct from an empty list
-    // (everything hidden) so a render before then stays unfiltered.
-    function getVisibleAreaIds() as Array<String> or Null {
-        var stored = Application.Storage.getValue(VISIBLE_AREAS_KEY);
-        return stored instanceof Array ? stored as Array<String> : null;
-    }
-
     function setHiddenFloors(hiddenFloors as Dictionary<String, Boolean>) as Void {
         Application.Storage.setValue(HIDDEN_FLOORS_KEY, hiddenFloors as Application.Storage.ValueType);
     }
 
     function setHiddenAreas(hiddenAreas as Dictionary<String, Boolean>) as Void {
         Application.Storage.setValue(HIDDEN_AREAS_KEY, hiddenAreas as Application.Storage.ValueType);
-    }
-
-    function setVisibleAreaIds(visibleAreaIds as Array<String>) as Void {
-        Application.Storage.setValue(VISIBLE_AREAS_KEY, visibleAreaIds as Application.Storage.ValueType);
     }
 
     function readSet(key as String) as Dictionary<String, Boolean> {

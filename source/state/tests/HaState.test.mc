@@ -326,10 +326,12 @@ function hidingNarrowsEveryVisibleReadingWhileTheFullStructureStaysReadable(logg
     Test.assertEqual(haState.getUnflooredAreas().size(), 2);
     Test.assertEqual(haState.getVisibleUnflooredAreas()[0].id, "area.shed");
     Test.assertEqual(haState.getVisibleUnflooredAreas().size(), 1);
-    Test.assertEqual(haState.getVisibleAreaIds().toString(), ["area.kitchen", "area.shed"].toString());
 
     haState.setAreaHidden("area.hall", false);
     Test.assertEqual(haState.getVisibleAreasInFloor("floor.ground").size(), 2);
+
+    haState.setFloorHidden("floor.up", false);
+    Test.assertEqual(haState.getVisibleAreaIdsInFloor("floor.up").toString(), ["area.bedroom"].toString());
     return true;
 }
 
@@ -362,6 +364,7 @@ function aFloorResolvesOnlyTheAreasTheRegistryStillKnows(logger as Test.Logger) 
     Test.assertEqual(areas.size(), 1);
     Test.assertEqual(areas[0].id, "area.kept");
     Test.assertEqual(areas[0].name, "Kept");
+    Test.assertEqual(haState.getVisibleAreaIdsInFloor("floor.g").toString(), ["area.kept"].toString());
     return true;
 }
 
