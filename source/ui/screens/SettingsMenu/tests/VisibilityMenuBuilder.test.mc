@@ -36,9 +36,11 @@ function rowsRunFloorByFloorLikeTheCardLoopWithUnflooredAreasLast(logger as Test
 
     Test.assertEqual(VisibilityMenuBuilderTest.idsOf(rows).toString(),
         ["floor.ground", "area.hall", "area.kitchen", "floor.up", "area.bedroom", "area.shed"].toString());
-    Test.assert(rows[0].isFloor);
+    Test.assert(rows[0].isFloor && rows[0].subLabel == null);
     Test.assert(!rows[1].isFloor);
-    Test.assert(!rows[5].isFloor);
+    Test.assertEqual(rows[1].subLabel as String, "Ground");
+    Test.assertEqual(rows[4].subLabel as String, "Up");
+    Test.assert(!rows[5].isFloor && rows[5].subLabel == null);
     return true;
 }
 
