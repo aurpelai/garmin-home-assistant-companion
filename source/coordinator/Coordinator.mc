@@ -162,7 +162,8 @@ class Coordinator {
         _haState.overrideFloorLights(floorId, targetState);
         var service = targetState ? "turn_on" : "turn_off";
 
-        _client.queueFloorLights(floorId, service, new ToggleReply(self).method(:onSettled));
+        _client.queueLightsInAreas(_haState.getVisibleAreaIdsInFloor(floorId), service,
+            new ToggleReply(self).method(:onSettled));
         updateDisplay();
     }
 

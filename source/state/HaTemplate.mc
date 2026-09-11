@@ -91,7 +91,7 @@ module HaTemplate {
     // available group that expands to nothing — every member hidden — is left out.
     const LIGHTS = PRELUDE +
         "{% set ns = namespace(out={}, home=[]) %}" +
-        "{% for a in areas() %}" +
+        "{% for a in areas() if visible is none or a in visible %}" +
         "{% set ids = area_entities(a) | list %}" +
         "{% set ns.home = ns.home + ids %}" +
         "{% for e in ids | reject('is_hidden_entity') | list %}" +
@@ -122,7 +122,7 @@ module HaTemplate {
     // speed; the view, not the render, decides what an off fan shows.
     const FANS = PRELUDE +
         "{% set ns = namespace(out={}) %}" +
-        "{% for a in areas() %}" +
+        "{% for a in areas() if visible is none or a in visible %}" +
         "{% for e in area_entities(a) | reject('is_hidden_entity') | list %}" +
         "{% if e.startswith('fan.') and states[e] is not none %}" +
         "{% set members = expand(e) | rejectattr('entity_id', 'is_hidden_entity') " +
@@ -151,7 +151,7 @@ module HaTemplate {
     // single sensor.
     const SENSORS = PRELUDE +
         "{% set ns = namespace(out={}, areas={}, floors={}, home=[]) %}" +
-        "{% for a in areas() %}" +
+        "{% for a in areas() if visible is none or a in visible %}" +
         "{% set ids = area_entities(a) | list %}" +
         "{% set ns.home = ns.home + ids %}" +
         "{% set m = averages(ids) | from_json %}" +
@@ -168,7 +168,7 @@ module HaTemplate {
         "{% endfor %}" +
         "{% for f in floors() %}" +
         "{% set fids = namespace(l=[]) %}" +
-        "{% for a in floor_areas(f) | default([]) | list %}" +
+        "{% for a in floor_areas(f) | default([]) | list if visible is none or a in visible %}" +
         "{% set fids.l = fids.l + (area_entities(a) | list) %}" +
         "{% endfor %}" +
         "{% set m = averages(fids.l) | from_json %}" +
@@ -181,25 +181,45 @@ module HaTemplate {
     // within its small memory pool.
     const GLANCE = PRELUDE +
         "{% set ns = namespace(home=[]) %}" +
-        "{% for a in areas() %}" +
+        "{% for a in areas() if visible is none or a in visible %}" +
         "{% set ns.home = ns.home + (area_entities(a) | list) %}" +
         "{% endfor %}" +
         "{{ dict(lights=(lightSummary(ns.home) | trim or none), " +
             "climate=averages(ns.home) | from_json) | tojson }}";
 
-    function resolve(target as Symbol) as String {
+    // STRUCTURE is never filtered: the settings tree needs every area, hidden or
+    // not, to offer un-hiding. The render request has no variables channel, so the
+    // visible set is inlined as a leading clause of the template itself.
+    function resolve(target as Symbol, visibleAreaIds as Array<String> or Null) as String {
         if (target == FetchTarget.STRUCTURE) {
             return STRUCTURE;
         }
+
+        var clause = visibleClause(visibleAreaIds);
+
         if (target == FetchTarget.LIGHTS) {
-            return LIGHTS;
+            return clause + LIGHTS;
         }
         if (target == FetchTarget.FANS) {
-            return FANS;
+            return clause + FANS;
         }
         if (target == FetchTarget.GLANCE) {
-            return GLANCE;
+            return clause + GLANCE;
         }
-        return SENSORS;
+        return clause + SENSORS;
+    }
+
+    function visibleClause(visibleAreaIds as Array<String> or Null) as String {
+        if (visibleAreaIds == null) {
+            return "{% set visible = none %}";
+        }
+
+        var items = "";
+
+        for (var index = 0; index < visibleAreaIds.size(); index++) {
+            items += (index > 0 ? ",'" : "'") + visibleAreaIds[index] + "'";
+        }
+
+        return "{% set visible = [" + items + "] %}";
     }
 }
