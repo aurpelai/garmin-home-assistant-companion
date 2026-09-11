@@ -99,6 +99,38 @@ class Coordinator {
         WatchUi.pushView(menu, new AreaEntityMenuDelegate(self), WatchUi.SLIDE_LEFT);
     }
 
+    function buildSettingsMenu() as [WatchUi.Views, WatchUi.InputDelegates] {
+        var menu = new SettingsMenu(_haState);
+        return [menu, new SettingsMenuDelegate(menu, self)];
+    }
+
+    function showVisibilityFilter() as Void {
+        WatchUi.pushView(new VisibilityFilterMenu(), new VisibilityFilterDelegate(self), WatchUi.SLIDE_LEFT);
+    }
+
+    function showFloorVisibility() as Void {
+        var menu = new VisibilityToggleMenu(WatchUi.loadResource(Rez.Strings.SettingsFloors) as String,
+            VisibilityMenuBuilder.buildFloorRows(_haState));
+        WatchUi.pushView(menu, new VisibilityToggleDelegate(method(:setFloorHidden)), WatchUi.SLIDE_LEFT);
+    }
+
+    function showAreaVisibility() as Void {
+        WatchUi.pushView(new AreaFilterMenu(_haState), new AreaFilterDelegate(self), WatchUi.SLIDE_LEFT);
+    }
+
+    function showFloorAreaVisibility(floorId as String) as Void {
+        var floor = _haState.getFloor(floorId);
+        if (floor == null) {
+            return;
+        }
+
+        showAreaToggles(floor.name, _haState.getAreasInFloor(floorId));
+    }
+
+    function showUnflooredAreaVisibility() as Void {
+        showAreaToggles(WatchUi.loadResource(Rez.Strings.SettingsOtherAreas) as String, _haState.getUnflooredAreas());
+    }
+
     function showFloorMenu(floorId as String) as Void {
         var model = FloorEntityMenuBuilder.build(_haState, floorId);
         if (model == null) {
@@ -238,6 +270,11 @@ class Coordinator {
         VisibilityStore.setHiddenFloors(_haState.getHiddenFloors());
         VisibilityStore.setHiddenAreas(_haState.getHiddenAreas());
         VisibilityStore.setVisibleAreaIds(_haState.getVisibleAreaIds());
+    }
+
+    private function showAreaToggles(title as String, areas as Array<AreaModel>) as Void {
+        var menu = new VisibilityToggleMenu(title, VisibilityMenuBuilder.buildAreaRows(_haState, areas));
+        WatchUi.pushView(menu, new VisibilityToggleDelegate(method(:setAreaHidden)), WatchUi.SLIDE_LEFT);
     }
 
     private function showInfoView(message as String, detail as String or Null) as Void {
