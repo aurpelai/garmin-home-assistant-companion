@@ -3,9 +3,12 @@ import Toybox.Lang;
 
 module ErrorMessage {
 
-    // A bad request is the one code that means different things per request type:
-    // against our registration body it is our own body that is malformed, while
-    // on a fetch — UNVERIFIED — it is the template failing on the Home Assistant side.
+    // A 400 means our own request was bad on either request type — an unparseable
+    // body, or plaintext to a registration that expects encryption. A template that
+    // fails to render comes back as a 200 carrying an error object, never as a 400
+    // (verified from the Home Assistant core source on 2026-09-12). The fetch
+    // branch below still shows the template message; the honest split is filed as
+    // an issue.
     function resolve(error as RequestError) as ResourceId {
         var reason = error.reason;
 

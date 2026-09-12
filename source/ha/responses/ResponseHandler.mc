@@ -49,9 +49,6 @@ class ResponseHandler {
         }
     }
 
-    // The response type is what distinguishes our own malformed registration
-    // body from a template failing on the Home Assistant side, and it is known
-    // only here — so the error is characterised at the point it occurs.
     private function fail(reason as Number or Symbol) as Void {
         _callback.invoke(null, new RequestError(reason, _responseType == ResponseType.REGISTRATION
             ? RequestType.REGISTRATION
