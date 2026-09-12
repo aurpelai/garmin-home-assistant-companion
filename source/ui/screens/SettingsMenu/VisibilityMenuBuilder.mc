@@ -1,8 +1,5 @@
 import Toybox.Lang;
 
-// Pure: touches no WatchUi, fetches nothing, and mutates no HaState. Unlike the
-// card loop it lists everything, hidden included, because hiding is only undone
-// from here.
 module VisibilityMenuBuilder {
 
     function build(haState as HaState, unflooredName as String) as Array<VisibilityRowModel> {
