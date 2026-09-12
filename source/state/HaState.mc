@@ -292,11 +292,11 @@ class HaState {
         }
     }
 
-    private function setMembership(set as Dictionary<String, Boolean>, id as String, isMember as Boolean) as Void {
+    private function setMembership(members as Dictionary<String, Boolean>, id as String, isMember as Boolean) as Void {
         if (isMember) {
-            set.put(id, true);
+            members.put(id, true);
         } else {
-            set.remove(id);
+            members.remove(id);
         }
     }
 
