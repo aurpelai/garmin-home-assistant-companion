@@ -31,8 +31,6 @@ module HaTemplate {
         "{{ dict(zone=state_attr('zone.home', 'friendly_name'), " +
             "areas=ns.areasOut, floors=ns.floorsOut) | tojson }}";
 
-    // An area without a floor answers to the unfloored pseudo floor, so the "Other"
-    // group hides like any floor.
     const VISIBLE_AREA_CLAUSE = "if a not in hidden_areas and (floor_id(a) or '" +
         VisibilityStore.UNFLOORED_FLOOR_ID + "') not in hidden_floors";
 
