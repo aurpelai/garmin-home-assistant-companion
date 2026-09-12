@@ -341,12 +341,12 @@ class HaState {
             var areaId = models[index].areaId;
 
             if (areaId != null) {
-                var inArea = modelsByArea.get(areaId);
-                if (inArea == null) {
-                    inArea = [] as Array<EntityModel>;
-                    modelsByArea.put(areaId, inArea);
+                var areaModels = modelsByArea.get(areaId);
+                if (areaModels == null) {
+                    areaModels = [] as Array<EntityModel>;
+                    modelsByArea.put(areaId, areaModels);
                 }
-                inArea.add(models[index]);
+                areaModels.add(models[index]);
             }
         }
 
