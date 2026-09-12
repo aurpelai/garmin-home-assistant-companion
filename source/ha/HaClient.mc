@@ -23,6 +23,7 @@ class HaClient {
     private const OS_VERSION = "1";
 
     private const REFRESH_TARGETS = [FetchTarget.STRUCTURE, FetchTarget.LIGHTS, FetchTarget.FANS, FetchTarget.SENSORS];
+    private const STALE_AFTER_MS = 60 * 1000;
 
     private var _gateway as RequestGateway;
     private var _scheduler as Scheduler;
@@ -121,8 +122,9 @@ class HaClient {
         return _changeQueue.size() > 0 || _changeInFlight;
     }
 
-    function msSinceLastRefresh() as Number or Null {
-        return _lastRefreshCompletedAt == null ? null : System.getTimer() - (_lastRefreshCompletedAt as Number);
+    function isRefreshDue() as Boolean {
+        var completedAt = _lastRefreshCompletedAt;
+        return completedAt == null || System.getTimer() - completedAt > STALE_AFTER_MS;
     }
 
     function getError() as RequestError or Null {

@@ -2,7 +2,6 @@ import Toybox.Lang;
 import Toybox.WatchUi;
 
 class Coordinator {
-    private const STALE_AFTER_MS = 60 * 1000;
     private const DOUBLE_CLICK_MS = 250;
 
     private var _client as HaClient;
@@ -32,8 +31,7 @@ class Coordinator {
         _currentView = view;
         updateDisplay();
 
-        var age = _client.msSinceLastRefresh();
-        if (_hasVisibilityChanged || age == null || age > STALE_AFTER_MS) {
+        if (_hasVisibilityChanged || _client.isRefreshDue()) {
             _hasVisibilityChanged = false;
             refresh();
         }
@@ -164,7 +162,7 @@ class Coordinator {
     }
 
     function setAttribute(attribute as AdjustableAttribute, value as Number) as Void {
-        commitAttribute(attribute, attribute.resolveService(value), value);
+        commitAttribute(attribute, attribute.selectService(value), value);
     }
 
     function toggleAttribute(attribute as AdjustableAttribute, isOn as Boolean) as Void {
