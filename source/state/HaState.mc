@@ -113,13 +113,13 @@ class HaState {
     }
 
     function getToggleable(entityId as String) as ToggleableModel or Null {
-        var byId = _toggleablesByDomain.get(Entity.parseDomain(entityId));
-        return byId == null ? null : byId.get(entityId);
+        var toggleables = _toggleablesByDomain.get(Entity.parseDomain(entityId));
+        return toggleables == null ? null : toggleables.get(entityId);
     }
 
     function getToggleablesInArea(areaId as String, domain as String) as Array<ToggleableModel> {
-        var byArea = _toggleablesByDomainAndArea.get(domain);
-        var toggleables = byArea == null ? null : byArea.get(areaId);
+        var toggleablesByArea = _toggleablesByDomainAndArea.get(domain);
+        var toggleables = toggleablesByArea == null ? null : toggleablesByArea.get(areaId);
         return toggleables == null ? [] as Array<ToggleableModel> : toggleables;
     }
 
