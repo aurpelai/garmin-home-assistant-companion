@@ -23,9 +23,9 @@ class CardLoop extends WatchUi.View {
     }
 
     function setModel(model as CardLoopModel) as Void {
-        var focused = getCurrentCard();
-        var cardId = focused == null ? null : focused.id;
-        var floorId = focused == null ? null : focused.floorId;
+        var currentCard = getCurrentCard();
+        var cardId = currentCard == null ? null : currentCard.id;
+        var floorId = currentCard == null ? null : currentCard.floorId;
 
         _model = model;
         _index = resolveIndex(cardId, floorId);
