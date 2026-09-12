@@ -10,8 +10,16 @@ class VisibilityToggleMenu extends WatchUi.Menu2 {
 
         for (var index = 0; index < rows.size(); index++) {
             var row = rows[index];
-            var options = row.isFloor ? { :icon => Rez.Drawables.LightbulbGroupAll } : null;
-            addItem(new WatchUi.ToggleMenuItem(row.name, row.subLabel, row, row.isVisible, options));
+            var subLabel = row.isFloor ? resolveFloorSubLabel(row.areaCount) : null;
+            addItem(new WatchUi.ToggleMenuItem(row.name, subLabel, row, row.isVisible, null));
         }
+    }
+
+    private function resolveFloorSubLabel(areaCount as Number) as String {
+        if (areaCount == 1) {
+            return WatchUi.loadResource(Rez.Strings.FloorAreaCountOne) as String;
+        }
+
+        return Lang.format(WatchUi.loadResource(Rez.Strings.FloorAreaCount) as String, [areaCount]);
     }
 }

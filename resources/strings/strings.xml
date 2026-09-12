@@ -12,6 +12,8 @@
     <string id="AttrColorTemp">Color</string>
     <string id="AttrOscillation">Oscillation</string>
     <string id="AttrSpeed">Speed</string>
+    <string id="FloorAreaCount">Floor • $1$ Areas</string>
+    <string id="FloorAreaCountOne">Floor • 1 Area</string>
     <string id="GroupFanCount">Group • $1$ Fans</string>
     <string id="GroupFanCountOne">Group • 1 Fan</string>
     <string id="GroupLightCount">Group • $1$ Lights</string>
