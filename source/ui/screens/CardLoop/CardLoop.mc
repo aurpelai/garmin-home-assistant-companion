@@ -23,7 +23,7 @@ class CardLoop extends WatchUi.View {
     }
 
     function setModel(model as CardLoopModel) as Void {
-        var focused = currentCard();
+        var focused = getCurrentCard();
         var cardId = focused == null ? null : focused.id;
         var floorId = focused == null ? null : focused.floorId;
 
@@ -42,7 +42,7 @@ class CardLoop extends WatchUi.View {
         dc.setColor(system_color_dark__text.color, system_color_dark__background.background);
         dc.clear();
 
-        var card = currentCard();
+        var card = getCurrentCard();
         if (card != null) {
             card.draw(dc);
         }
@@ -59,7 +59,7 @@ class CardLoop extends WatchUi.View {
         View.onHide();
     }
 
-    function currentCard() as Card or Null {
+    function getCurrentCard() as Card or Null {
         return _index < 0 || _index >= _model.cards.size() ? null : _model.cards[_index];
     }
 
