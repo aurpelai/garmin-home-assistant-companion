@@ -1,6 +1,5 @@
 import Toybox.Lang;
 
-// Pure: touches no WatchUi, fetches nothing, and mutates no HaState.
 module FloorEntityMenuBuilder {
 
     function build(haState as HaState, floorId as String) as FloorEntityMenuModel or Null {

@@ -1,6 +1,5 @@
 import Toybox.Lang;
 
-// Pure: touches no WatchUi, fetches nothing, and mutates no HaState.
 module CardLoopBuilder {
 
     function build(haState as HaState) as CardLoopModel {
