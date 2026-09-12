@@ -15,11 +15,11 @@ module VisibilityStore {
     const UNFLOORED_FLOOR_ID = "unfloored-areas";
 
     function getHiddenFloors() as Dictionary<String, Boolean> {
-        return readSet(HIDDEN_FLOORS_KEY);
+        return readMembers(HIDDEN_FLOORS_KEY);
     }
 
     function getHiddenAreas() as Dictionary<String, Boolean> {
-        return readSet(HIDDEN_AREAS_KEY);
+        return readMembers(HIDDEN_AREAS_KEY);
     }
 
     function setHiddenFloors(hiddenFloors as Dictionary<String, Boolean>) as Void {
@@ -30,7 +30,7 @@ module VisibilityStore {
         Application.Storage.setValue(HIDDEN_AREAS_KEY, hiddenAreas as Application.Storage.ValueType);
     }
 
-    function readSet(key as String) as Dictionary<String, Boolean> {
+    function readMembers(key as String) as Dictionary<String, Boolean> {
         var stored = Application.Storage.getValue(key);
         return stored instanceof Dictionary ? stored as Dictionary<String, Boolean> : {} as Dictionary<String, Boolean>;
     }
