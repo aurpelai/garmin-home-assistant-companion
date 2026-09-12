@@ -9,7 +9,22 @@ class HaState {
     private var _zone as String or Null;
     private var _sensorAverages as SensorAverages;
 
+    private var _hiddenFloors as Dictionary<String, Boolean>;
+    private var _hiddenAreas as Dictionary<String, Boolean>;
+
     function initialize() {
+        _toggleablesByDomain = {};
+        _toggleablesByDomainAndArea = {};
+        _areas = {};
+        _floors = [];
+        _sensorsByArea = {};
+        _zone = null;
+        _sensorAverages = new SensorAverages();
+        _hiddenFloors = {};
+        _hiddenAreas = {};
+    }
+
+    function clearFetched() as Void {
         _toggleablesByDomain = {};
         _toggleablesByDomainAndArea = {};
         _areas = {};
@@ -19,14 +34,18 @@ class HaState {
         _sensorAverages = new SensorAverages();
     }
 
-    function clear() as Void {
-        _toggleablesByDomain = {};
-        _toggleablesByDomainAndArea = {};
-        _areas = {};
-        _floors = [];
-        _sensorsByArea = {};
-        _zone = null;
-        _sensorAverages = new SensorAverages();
+    function setHidden(hiddenFloors as Dictionary<String, Boolean>,
+                       hiddenAreas as Dictionary<String, Boolean>) as Void {
+        _hiddenFloors = hiddenFloors;
+        _hiddenAreas = hiddenAreas;
+    }
+
+    function setFloorHidden(floorId as String, isHidden as Boolean) as Void {
+        setMembership(_hiddenFloors, floorId, isHidden);
+    }
+
+    function setAreaHidden(areaId as String, isHidden as Boolean) as Void {
+        setMembership(_hiddenAreas, areaId, isHidden);
     }
 
     function setZone(zone as String or Null) as Void {
@@ -109,16 +128,14 @@ class HaState {
         return sensors == null ? [] as Array<SensorModel> : sensors;
     }
 
+    // Visible areas only: a hidden area's toggleables leave the floor summary and
+    // the floor-wide action alike, so no unfiltered variant exists.
     function getToggleablesInFloor(floorId as String, domain as String) as Array<ToggleableModel> {
-        var floor = getFloor(floorId);
+        var areas = getVisibleAreasInFloor(floorId);
         var toggleables = [] as Array<ToggleableModel>;
 
-        if (floor == null) {
-            return toggleables;
-        }
-
-        for (var index = 0; index < floor.areas.size(); index++) {
-            toggleables.addAll(getToggleablesInArea(floor.areas[index], domain));
+        for (var index = 0; index < areas.size(); index++) {
+            toggleables.addAll(getToggleablesInArea(areas[index].id, domain));
         }
 
         return toggleables;
@@ -126,20 +143,52 @@ class HaState {
 
     function getAreasInFloor(floorId as String) as Array<AreaModel> {
         var floor = getFloor(floorId);
-        var areas = [] as Array<AreaModel>;
+        return floor == null ? [] as Array<AreaModel> : resolveAreas(floor.areas);
+    }
 
-        if (floor == null) {
-            return areas;
+    function getVisibleAreasInFloor(floorId as String) as Array<AreaModel> {
+        return _hiddenFloors.hasKey(floorId)
+            ? [] as Array<AreaModel>
+            : filterVisibleAreas(getAreasInFloor(floorId));
+    }
+
+    function getVisibleAreaIdsInFloor(floorId as String) as Array<String> {
+        var areas = getVisibleAreasInFloor(floorId);
+        var areaIds = [] as Array<String>;
+
+        for (var index = 0; index < areas.size(); index++) {
+            areaIds.add(areas[index].id);
         }
 
-        for (var index = 0; index < floor.areas.size(); index++) {
-            var area = _areas.get(floor.areas[index]);
-            if (area != null) {
-                areas.add(area);
+        return areaIds;
+    }
+
+    function getUnflooredAreas() as Array<AreaModel> {
+        var flooredAreaIds = resolveFlooredAreaIds();
+        var areas = getAreas();
+        var unflooredAreas = [] as Array<AreaModel>;
+
+        for (var index = 0; index < areas.size(); index++) {
+            if (!flooredAreaIds.hasKey(areas[index].id)) {
+                unflooredAreas.add(areas[index]);
             }
         }
 
-        return areas;
+        return unflooredAreas;
+    }
+
+    function getVisibleUnflooredAreas() as Array<AreaModel> {
+        return _hiddenFloors.hasKey(VisibilityStore.UNFLOORED_FLOOR_ID)
+            ? [] as Array<AreaModel>
+            : filterVisibleAreas(getUnflooredAreas());
+    }
+
+    function getHiddenFloors() as Dictionary<String, Boolean> {
+        return _hiddenFloors;
+    }
+
+    function getHiddenAreas() as Dictionary<String, Boolean> {
+        return _hiddenAreas;
     }
 
     function getToggleTargets(entityId as String) as Array<String> {
@@ -237,6 +286,53 @@ class HaState {
                 toggleable.assumedState = isOn;
             }
         }
+    }
+
+    private function setMembership(members as Dictionary<String, Boolean>, id as String, isMember as Boolean) as Void {
+        if (isMember) {
+            members.put(id, true);
+        } else {
+            members.remove(id);
+        }
+    }
+
+    private function resolveAreas(areaIds as Array<String>) as Array<AreaModel> {
+        var areas = [] as Array<AreaModel>;
+
+        for (var index = 0; index < areaIds.size(); index++) {
+            var area = _areas.get(areaIds[index]);
+            if (area != null) {
+                areas.add(area);
+            }
+        }
+
+        return areas;
+    }
+
+    private function filterVisibleAreas(areas as Array<AreaModel>) as Array<AreaModel> {
+        var visibleAreas = [] as Array<AreaModel>;
+
+        for (var index = 0; index < areas.size(); index++) {
+            if (!_hiddenAreas.hasKey(areas[index].id)) {
+                visibleAreas.add(areas[index]);
+            }
+        }
+
+        return visibleAreas;
+    }
+
+    private function resolveFlooredAreaIds() as Dictionary<String, Boolean> {
+        var flooredAreaIds = {} as Dictionary<String, Boolean>;
+
+        for (var floorIndex = 0; floorIndex < _floors.size(); floorIndex++) {
+            var areaIds = _floors[floorIndex].areas;
+
+            for (var areaIndex = 0; areaIndex < areaIds.size(); areaIndex++) {
+                flooredAreaIds.put(areaIds[areaIndex], true);
+            }
+        }
+
+        return flooredAreaIds;
     }
 
     private function groupByArea(models as Array<EntityModel>)

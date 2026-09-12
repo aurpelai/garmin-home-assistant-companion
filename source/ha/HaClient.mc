@@ -148,8 +148,8 @@ class HaClient {
         queueChange(buildServiceCallRequest(Entity.resolveDomain(entityId), "toggle", "entity_id", entityId), callback);
     }
 
-    function queueFloorLights(floorId as String, service as String, callback as Method) as Void {
-        queueChange(buildServiceCallRequest(Domain.LIGHT, service, "floor_id", floorId), callback);
+    function queueLightsInAreas(areaIds as Array<String>, service as String, callback as Method) as Void {
+        queueChange(buildServiceCallRequest(Domain.LIGHT, service, "area_id", areaIds), callback);
     }
 
     function queueAttribute(domain as String, service as String, entityId as String, field as String,
@@ -219,14 +219,14 @@ class HaClient {
     }
 
     private function buildServiceCallRequest(domain as String, service as String, targetKey as String,
-                                             targetId as String) as Method {
+                                             target as String or Array<String>) as Method {
         var body = {
             "type" => "call_service",
             "data" => {
                 "domain" => domain,
                 "service" => service,
                 "service_data" => {
-                    targetKey => targetId
+                    targetKey => target
                 }
             }
         };
@@ -256,7 +256,7 @@ class HaClient {
             "type" => "render_template",
             "data" => {
                 ResponseType.TEMPLATE_RENDER_ROOT_KEY => {
-                    "template" => HaTemplate.resolve(target)
+                    "template" => HaTemplate.resolve(target, VisibilityStore.getHiddenFloors(), VisibilityStore.getHiddenAreas())
                 }
             }
         };

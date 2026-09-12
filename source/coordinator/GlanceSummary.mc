@@ -1,8 +1,6 @@
 import Toybox.Application;
 import Toybox.Lang;
 
-// The glance and the background service are separate processes with no access to
-// HaState, so storage is the only channel between them and the running app.
 (:glance, :background)
 module GlanceSummary {
     const LIGHTS_KEY = "glanceLights";

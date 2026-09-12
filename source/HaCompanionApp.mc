@@ -66,6 +66,10 @@ class HaCompanionApp extends Application.AppBase {
         return [new LoadingView(coordinator), new LoadingDelegate()];
     }
 
+    function getSettingsView() as [WatchUi.Views] or [WatchUi.Views, WatchUi.InputDelegates] or Null {
+        return getOrCreateCoordinator().buildSettingsMenu();
+    }
+
     private function activate() as Void {
         var coordinator = _coordinator;
 

@@ -31,6 +31,9 @@ module HaTemplate {
         "{{ dict(zone=state_attr('zone.home', 'friendly_name'), " +
             "areas=ns.areasOut, floors=ns.floorsOut) | tojson }}";
 
+    const VISIBLE_AREA_CLAUSE = "if a not in hidden_areas and (floor_id(a) or '" +
+        VisibilityStore.UNFLOORED_FLOOR_ID + "') not in hidden_floors";
+
     const PRELUDE =
         "{% set groups = integration_entities('group') %}" +
         "{% set ROUNDING = {'temperature': 1} %}" +
@@ -91,7 +94,7 @@ module HaTemplate {
     // available group that expands to nothing — every member hidden — is left out.
     const LIGHTS = PRELUDE +
         "{% set ns = namespace(out={}, home=[]) %}" +
-        "{% for a in areas() %}" +
+        "{% for a in areas() " + VISIBLE_AREA_CLAUSE + " %}" +
         "{% set ids = area_entities(a) | list %}" +
         "{% set ns.home = ns.home + ids %}" +
         "{% for e in ids | reject('is_hidden_entity') | list %}" +
@@ -122,7 +125,7 @@ module HaTemplate {
     // speed; the view, not the render, decides what an off fan shows.
     const FANS = PRELUDE +
         "{% set ns = namespace(out={}) %}" +
-        "{% for a in areas() %}" +
+        "{% for a in areas() " + VISIBLE_AREA_CLAUSE + " %}" +
         "{% for e in area_entities(a) | reject('is_hidden_entity') | list %}" +
         "{% if e.startswith('fan.') and states[e] is not none %}" +
         "{% set members = expand(e) | rejectattr('entity_id', 'is_hidden_entity') " +
@@ -151,7 +154,7 @@ module HaTemplate {
     // single sensor.
     const SENSORS = PRELUDE +
         "{% set ns = namespace(out={}, areas={}, floors={}, home=[]) %}" +
-        "{% for a in areas() %}" +
+        "{% for a in areas() " + VISIBLE_AREA_CLAUSE + " %}" +
         "{% set ids = area_entities(a) | list %}" +
         "{% set ns.home = ns.home + ids %}" +
         "{% set m = averages(ids) | from_json %}" +
@@ -168,7 +171,7 @@ module HaTemplate {
         "{% endfor %}" +
         "{% for f in floors() %}" +
         "{% set fids = namespace(l=[]) %}" +
-        "{% for a in floor_areas(f) | default([]) | list %}" +
+        "{% for a in floor_areas(f) | default([]) | list if a not in hidden_areas and f not in hidden_floors %}" +
         "{% set fids.l = fids.l + (area_entities(a) | list) %}" +
         "{% endfor %}" +
         "{% set m = averages(fids.l) | from_json %}" +
@@ -181,25 +184,48 @@ module HaTemplate {
     // within its small memory pool.
     const GLANCE = PRELUDE +
         "{% set ns = namespace(home=[]) %}" +
-        "{% for a in areas() %}" +
+        "{% for a in areas() " + VISIBLE_AREA_CLAUSE + " %}" +
         "{% set ns.home = ns.home + (area_entities(a) | list) %}" +
         "{% endfor %}" +
         "{{ dict(lights=(lightSummary(ns.home) | trim or none), " +
             "climate=averages(ns.home) | from_json) | tojson }}";
 
-    function resolve(target as Symbol) as String {
+    // STRUCTURE is never filtered: the settings tree needs every area, hidden or
+    // not, to offer un-hiding. The render request has no variables channel, so the
+    // hidden sets are inlined as a leading clause of the template itself.
+    function resolve(target as Symbol, hiddenFloors as Dictionary<String, Boolean>,
+                     hiddenAreas as Dictionary<String, Boolean>) as String {
         if (target == FetchTarget.STRUCTURE) {
             return STRUCTURE;
         }
+
+        var clause = buildHiddenClause(hiddenFloors, hiddenAreas);
+
         if (target == FetchTarget.LIGHTS) {
-            return LIGHTS;
+            return clause + LIGHTS;
         }
         if (target == FetchTarget.FANS) {
-            return FANS;
+            return clause + FANS;
         }
         if (target == FetchTarget.GLANCE) {
-            return GLANCE;
+            return clause + GLANCE;
         }
-        return SENSORS;
+        return clause + SENSORS;
+    }
+
+    function buildHiddenClause(hiddenFloors as Dictionary<String, Boolean>,
+                               hiddenAreas as Dictionary<String, Boolean>) as String {
+        return "{% set hidden_floors = [" + quoteIds(hiddenFloors.keys() as Array<String>) + "] %}" +
+            "{% set hidden_areas = [" + quoteIds(hiddenAreas.keys() as Array<String>) + "] %}";
+    }
+
+    function quoteIds(ids as Array<String>) as String {
+        var quotedIds = "";
+
+        for (var index = 0; index < ids.size(); index++) {
+            quotedIds += (index > 0 ? ",'" : "'") + ids[index] + "'";
+        }
+
+        return quotedIds;
     }
 }

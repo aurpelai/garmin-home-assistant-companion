@@ -211,3 +211,37 @@ function anAreaWhoseOnlyEntityIsUnavailableStillGetsACard(logger as Test.Logger)
         ["area.room"].toString());
     return true;
 }
+
+(:test)
+function aHiddenAreaLeavesTheCardLoop(logger as Test.Logger) as Boolean {
+    var haState = CardLoopModelTest.stateOf({
+        "areas" => { "area.bedroom" => { "name" => "Bedroom" }, "area.attic" => { "name" => "Attic" } },
+        "floors" => { "floor.up" => { "name" => "Up", "order" => 0,
+            "areas" => ["area.bedroom", "area.attic"] } }
+    }, {
+        "light.bedroom" => CardLoopModelTest.light(false, "area.bedroom"),
+        "light.attic" => CardLoopModelTest.light(false, "area.attic")
+    }, {} as Dictionary);
+    haState.setAreaHidden("area.attic", true);
+
+    Test.assertEqual(
+        CardLoopModelTest.cardIds(CardLoopBuilder.build(haState)).toString(),
+        ["floor.up", "area.bedroom"].toString());
+    return true;
+}
+
+(:test)
+function aHiddenUnflooredAreaLeavesTheTrailingCards(logger as Test.Logger) as Boolean {
+    var haState = CardLoopModelTest.stateOf({
+        "areas" => { "area.garage" => { "name" => "Garage" }, "area.shed" => { "name" => "Shed" } }
+    }, {
+        "light.garage" => CardLoopModelTest.light(false, "area.garage"),
+        "light.shed" => CardLoopModelTest.light(false, "area.shed")
+    }, {} as Dictionary);
+    haState.setAreaHidden("area.garage", true);
+
+    Test.assertEqual(
+        CardLoopModelTest.cardIds(CardLoopBuilder.build(haState)).toString(),
+        ["area.shed"].toString());
+    return true;
+}

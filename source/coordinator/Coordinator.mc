@@ -11,6 +11,7 @@ class Coordinator {
     private var _subLabelProvider as SubLabelProvider;
     private var _clickDebounce as Scheduler;
     private var _pendingClickId as String or Null;
+    private var _hasVisibilityChanged as Boolean;
 
     function initialize(client as HaClient, haState as HaState, clickDebounce as Scheduler) {
         _client = client;
@@ -19,6 +20,8 @@ class Coordinator {
         _subLabelProvider = new ResourceSubLabelProvider();
         _clickDebounce = clickDebounce;
         _pendingClickId = null;
+        _hasVisibilityChanged = false;
+        _haState.setHidden(VisibilityStore.getHiddenFloors(), VisibilityStore.getHiddenAreas());
     }
 
     function onActivate() as Void {
@@ -30,7 +33,8 @@ class Coordinator {
         updateDisplay();
 
         var age = _client.msSinceLastRefresh();
-        if (age == null || age > STALE_AFTER_MS) {
+        if (_hasVisibilityChanged || age == null || age > STALE_AFTER_MS) {
+            _hasVisibilityChanged = false;
             refresh();
         }
     }
@@ -94,6 +98,21 @@ class Coordinator {
         WatchUi.pushView(menu, new AreaEntityMenuDelegate(self), WatchUi.SLIDE_LEFT);
     }
 
+    function buildSettingsMenu() as [WatchUi.Views, WatchUi.InputDelegates] {
+        return [new SettingsMenu(_haState), new SettingsMenuDelegate(self)];
+    }
+
+    function showVisibilityFilter() as Void {
+        if (!_haState.hasAreas()) {
+            return;
+        }
+
+        var rows = VisibilityMenuBuilder.build(
+            _haState, WatchUi.loadResource(Rez.Strings.SettingsOtherAreas) as String);
+        var menu = new VisibilityToggleMenu(rows);
+        WatchUi.pushView(menu, new VisibilityToggleDelegate(self), WatchUi.SLIDE_LEFT);
+    }
+
     function showFloorMenu(floorId as String) as Void {
         var model = FloorEntityMenuBuilder.build(_haState, floorId);
         if (model == null) {
@@ -134,6 +153,16 @@ class Coordinator {
         return _haState.isOn(entityId);
     }
 
+    function setFloorHidden(floorId as String, isHidden as Boolean) as Void {
+        _haState.setFloorHidden(floorId, isHidden);
+        persistVisibility();
+    }
+
+    function setAreaHidden(areaId as String, isHidden as Boolean) as Void {
+        _haState.setAreaHidden(areaId, isHidden);
+        persistVisibility();
+    }
+
     function setAttribute(attribute as AdjustableAttribute, value as Number) as Void {
         commitAttribute(attribute, attribute.resolveService(value), value);
     }
@@ -162,7 +191,8 @@ class Coordinator {
         _haState.overrideFloorLights(floorId, targetState);
         var service = targetState ? "turn_on" : "turn_off";
 
-        _client.queueFloorLights(floorId, service, new ToggleReply(self).method(:onSettled));
+        _client.queueLightsInAreas(_haState.getVisibleAreaIdsInFloor(floorId), service,
+            new ToggleReply(self).method(:onSettled));
         updateDisplay();
     }
 
@@ -171,7 +201,7 @@ class Coordinator {
     function discardRegistration() as Void {
         _client.cancelAll();
         _client.discardRegistration();
-        _haState.clear();
+        _haState.clearFetched();
         retry();
     }
 
@@ -215,6 +245,12 @@ class Coordinator {
     private function clearPendingClick() as Void {
         _pendingClickId = null;
         _clickDebounce.cancel();
+    }
+
+    private function persistVisibility() as Void {
+        _hasVisibilityChanged = true;
+        VisibilityStore.setHiddenFloors(_haState.getHiddenFloors());
+        VisibilityStore.setHiddenAreas(_haState.getHiddenAreas());
     }
 
     private function showInfoView(message as String, detail as String or Null) as Void {

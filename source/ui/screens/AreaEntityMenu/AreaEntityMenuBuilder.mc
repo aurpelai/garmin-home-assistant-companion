@@ -1,6 +1,5 @@
 import Toybox.Lang;
 
-// Pure: touches no WatchUi, fetches nothing, and mutates no HaState.
 module AreaEntityMenuBuilder {
 
     function build(haState as HaState, areaId as String,

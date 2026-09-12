@@ -25,7 +25,8 @@ class GlanceService extends System.ServiceDelegate {
             {
                 "type" => "render_template",
                 "data" => { ResponseType.TEMPLATE_RENDER_ROOT_KEY =>
-                    { "template" => HaTemplate.resolve(FetchTarget.GLANCE) } }
+                    { "template" => HaTemplate.resolve(FetchTarget.GLANCE,
+                        VisibilityStore.getHiddenFloors(), VisibilityStore.getHiddenAreas()) } }
             },
             {
                 :method => Communications.HTTP_REQUEST_METHOD_POST,

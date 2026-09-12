@@ -7,6 +7,8 @@ A Garmin Connect IQ watch app for controlling and monitoring Home Assistant from
 
 The app presents your home as floors and areas, following how you've organised them in Home Assistant, so an entity you haven't put in an area doesn't appear on the watch. An entity group shows up in the area it belongs to; a group that spans areas — or belongs to none, like an "all lights" group — isn't shown as its own control, and its members are counted in their own areas instead. Beyond that the app follows your setup: hidden entities stay hidden, and readings appear exactly as Home Assistant formats them.
 
+Parts of your home you'd rather not carry on your wrist can be hidden from the app's settings on the watch: whole floors, single areas, or the areas that belong to no floor. Hiding is complete — a hidden area leaves the cards, its floor's summary and light toggle, and the glance alike — and it lives on the watch only, so nothing changes in Home Assistant.
+
 Nothing to configure beyond your Home Assistant URL and a token — no YAML, no helper entities.
 
 ## Requirements

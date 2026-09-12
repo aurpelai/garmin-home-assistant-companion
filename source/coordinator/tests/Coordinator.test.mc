@@ -165,3 +165,34 @@ function aShownScreenRefreshesBeforeAnyDataHasLoadedButNotOverFreshData(logger a
     Test.assertEqual(gateway.count(), 4);
     return true;
 }
+
+(:test)
+function hiddenSetsLoadOnStartPersistOnChangeAndForceTheNextShownScreenToRefresh(logger as Test.Logger) as Boolean {
+    // Built by hand rather than through coordinatorOn: clientWith clears storage,
+    // so the hidden set must be seeded after the client exists.
+    var gateway = new FakeRequestGateway();
+    var client = ClientFixture.clientWith(gateway, new FakeScheduler());
+    Application.Properties.setValue("haBaseUrl", "http://ha.local");
+    Application.Properties.setValue("haToken", "token");
+    Registration.seed("some-id");
+    VisibilityStore.setHiddenFloors({ "floor.attic" => true });
+    var haState = new HaState();
+    var coordinator = new Coordinator(client, haState, new FakeScheduler());
+    var loop = new CardLoop(coordinator, CardLoopBuilder.build(haState));
+    Test.assert(haState.getHiddenFloors().hasKey("floor.attic"));
+
+    coordinator.onViewShown(loop);
+    CoordinatorTest.completeRefresh(gateway, CoordinatorTest.ONE_FLOOR, CoordinatorTest.ROOM_LIGHT_ON,
+        CoordinatorTest.EMPTY, CoordinatorTest.EMPTY);
+    coordinator.onViewShown(loop);
+    Test.assertEqual(gateway.count(), 4);
+
+    coordinator.setAreaHidden("area.room", true);
+    Test.assert(VisibilityStore.getHiddenAreas().hasKey("area.room"));
+
+    coordinator.onViewShown(loop);
+    Test.assertEqual(gateway.count(), 5);
+
+    Application.Storage.clearValues();
+    return true;
+}
