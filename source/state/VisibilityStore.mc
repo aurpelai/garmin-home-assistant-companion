@@ -1,10 +1,6 @@
 import Toybox.Application;
 import Toybox.Lang;
 
-// The hidden floor/area sets the user chose, persisted so the filter survives
-// restarts and is readable from every process — storage is the only channel the
-// background service shares with the app. Hidden ids are stored, not visible
-// ones, so a floor or area newly appearing in Home Assistant defaults to visible.
 (:background)
 module VisibilityStore {
     const HIDDEN_FLOORS_KEY = "hiddenFloors";
