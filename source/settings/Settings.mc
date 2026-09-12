@@ -5,7 +5,7 @@ import Toybox.Lang;
 (:background)
 module Settings {
 
-    function getBaseUrl() as String {
+    function resolveBaseUrl() as String {
         var value = Application.Properties.getValue("haBaseUrl") as String or Null;
         return (value == null)
             ? ""
@@ -20,7 +20,7 @@ module Settings {
     }
 
     function isConfigured() as Boolean {
-        return !getBaseUrl().equals("") && !getToken().equals("");
+        return !resolveBaseUrl().equals("") && !getToken().equals("");
     }
 
     function trimTrailingSlash(url as String) as String {

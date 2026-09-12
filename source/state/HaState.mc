@@ -128,32 +128,27 @@ class HaState {
         return sensors == null ? [] as Array<SensorModel> : sensors;
     }
 
-    // Visible areas only: a hidden area's toggleables leave the floor summary and
-    // the floor-wide action alike, so no unfiltered variant exists.
-    function getToggleablesInFloor(floorId as String, domain as String) as Array<ToggleableModel> {
-        var areas = getVisibleAreasInFloor(floorId);
-        var toggleables = [] as Array<ToggleableModel>;
-
-        for (var index = 0; index < areas.size(); index++) {
-            toggleables.addAll(getToggleablesInArea(areas[index].id, domain));
-        }
-
-        return toggleables;
+    function getHiddenFloors() as Dictionary<String, Boolean> {
+        return _hiddenFloors;
     }
 
-    function getAreasInFloor(floorId as String) as Array<AreaModel> {
+    function getHiddenAreas() as Dictionary<String, Boolean> {
+        return _hiddenAreas;
+    }
+
+    function resolveAreasInFloor(floorId as String) as Array<AreaModel> {
         var floor = getFloor(floorId);
         return floor == null ? [] as Array<AreaModel> : resolveAreas(floor.areas);
     }
 
-    function getVisibleAreasInFloor(floorId as String) as Array<AreaModel> {
+    function resolveVisibleAreasInFloor(floorId as String) as Array<AreaModel> {
         return _hiddenFloors.hasKey(floorId)
             ? [] as Array<AreaModel>
-            : filterVisibleAreas(getAreasInFloor(floorId));
+            : filterVisibleAreas(resolveAreasInFloor(floorId));
     }
 
-    function getVisibleAreaIdsInFloor(floorId as String) as Array<String> {
-        var areas = getVisibleAreasInFloor(floorId);
+    function resolveVisibleAreaIdsInFloor(floorId as String) as Array<String> {
+        var areas = resolveVisibleAreasInFloor(floorId);
         var areaIds = [] as Array<String>;
 
         for (var index = 0; index < areas.size(); index++) {
@@ -163,7 +158,7 @@ class HaState {
         return areaIds;
     }
 
-    function getUnflooredAreas() as Array<AreaModel> {
+    function resolveUnflooredAreas() as Array<AreaModel> {
         var flooredAreaIds = resolveFlooredAreaIds();
         var areas = getAreas();
         var unflooredAreas = [] as Array<AreaModel>;
@@ -177,21 +172,24 @@ class HaState {
         return unflooredAreas;
     }
 
-    function getVisibleUnflooredAreas() as Array<AreaModel> {
+    function resolveVisibleUnflooredAreas() as Array<AreaModel> {
         return _hiddenFloors.hasKey(VisibilityStore.UNFLOORED_FLOOR_ID)
             ? [] as Array<AreaModel>
-            : filterVisibleAreas(getUnflooredAreas());
+            : filterVisibleAreas(resolveUnflooredAreas());
     }
 
-    function getHiddenFloors() as Dictionary<String, Boolean> {
-        return _hiddenFloors;
+    function resolveVisibleToggleablesInFloor(floorId as String, domain as String) as Array<ToggleableModel> {
+        var areas = resolveVisibleAreasInFloor(floorId);
+        var toggleables = [] as Array<ToggleableModel>;
+
+        for (var index = 0; index < areas.size(); index++) {
+            toggleables.addAll(getToggleablesInArea(areas[index].id, domain));
+        }
+
+        return toggleables;
     }
 
-    function getHiddenAreas() as Dictionary<String, Boolean> {
-        return _hiddenAreas;
-    }
-
-    function getToggleTargets(entityId as String) as Array<String> {
+    function resolveToggleTargets(entityId as String) as Array<String> {
         var toggleable = getToggleable(entityId);
         var memberIds = toggleable == null ? null : toggleable.memberIds;
         var targets = [entityId] as Array<String>;
@@ -264,11 +262,11 @@ class HaState {
     }
 
     function override(entityId as String, isOn as Boolean) as Void {
-        overrideAll(getToggleTargets(entityId), isOn);
+        overrideAll(resolveToggleTargets(entityId), isOn);
     }
 
     function overrideFloorLights(floorId as String, isOn as Boolean) as Void {
-        overrideAll(toIds(getToggleablesInFloor(floorId, Domain.LIGHT)), isOn);
+        overrideAll(toIds(resolveVisibleToggleablesInFloor(floorId, Domain.LIGHT)), isOn);
     }
 
     function assumeAttribute(entityId as String, field as String, value as Object) as Void {

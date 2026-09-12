@@ -21,7 +21,7 @@ class WebRequestGateway {
         };
 
         Communications.makeWebRequest(
-            Settings.getBaseUrl() + path,
+            Settings.resolveBaseUrl() + path,
             body as Dictionary<Object, Object>,
             options,
             handler.method(:onResponse)

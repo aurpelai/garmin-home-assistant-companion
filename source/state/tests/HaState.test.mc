@@ -78,7 +78,7 @@ function anOverrideDrivesAFanExactlyAsItDrivesALight(logger as Test.Logger) as B
 
     Test.assert(haState.isOn("fan.a"));
     Test.assert(haState.isPending("fan.a"));
-    Test.assert(haState.hasAnyPending(haState.getToggleTargets("fan.a")));
+    Test.assert(haState.hasAnyPending(haState.resolveToggleTargets("fan.a")));
 
     HaStateTest.setFans(haState, { "fan.a" => HaStateTest.fan(true, "area.a") });
 
@@ -98,7 +98,7 @@ function aFanGroupScopeCoversTheGroupItselfAndItsMembers(logger as Test.Logger) 
 
     haState.override("fan.group", true);
 
-    Test.assertEqual(haState.getToggleTargets("fan.group").size(), 3);
+    Test.assertEqual(haState.resolveToggleTargets("fan.group").size(), 3);
     Test.assert(haState.isOn("fan.group"));
     Test.assert(haState.isOn("fan.one"));
     Test.assert(haState.isOn("fan.two"));
@@ -256,10 +256,10 @@ function aMemberWithNoEntityOfItsOwnIsStillCalledButNeverReadsAsPending(logger a
 
     haState.override("light.group", true);
 
-    Test.assertEqual(haState.getToggleTargets("light.group").size(), 2);
+    Test.assertEqual(haState.resolveToggleTargets("light.group").size(), 2);
     Test.assert(haState.isPending("light.group"));
     Test.assert(!haState.isPending("light.arealess"));
-    Test.assert(haState.hasAnyPending(haState.getToggleTargets("light.group")));
+    Test.assert(haState.hasAnyPending(haState.resolveToggleTargets("light.group")));
     return true;
 }
 
@@ -291,10 +291,10 @@ function aFloorScopeCoversEveryLightInItsAreasAndNothingOutside(logger as Test.L
     Test.assert(haState.isOn("light.hall"));
     Test.assert(!haState.isPending("light.elsewhere"));
     Test.assert(!haState.isPending("fan.kitchen"));
-    Test.assertEqual(haState.getToggleablesInFloor("floor.ground", Domain.LIGHT).size(), 4);
+    Test.assertEqual(haState.resolveVisibleToggleablesInFloor("floor.ground", Domain.LIGHT).size(), 4);
 
     haState.setAreaHidden("area.kitchen", true);
-    Test.assertEqual(haState.toIds(haState.getToggleablesInFloor("floor.ground", Domain.LIGHT)).toString(),
+    Test.assertEqual(haState.toIds(haState.resolveVisibleToggleablesInFloor("floor.ground", Domain.LIGHT)).toString(),
         ["light.hall"].toString());
     return true;
 }
@@ -317,23 +317,23 @@ function hidingNarrowsEveryVisibleReadingWhileTheFullStructureStaysReadable(logg
     haState.setAreaHidden("area.hall", true);
     haState.setAreaHidden("area.garage", true);
 
-    Test.assertEqual(haState.getAreasInFloor("floor.ground").size(), 2);
-    Test.assertEqual(haState.getVisibleAreasInFloor("floor.ground")[0].id, "area.kitchen");
-    Test.assertEqual(haState.getVisibleAreasInFloor("floor.ground").size(), 1);
-    Test.assertEqual(haState.getVisibleAreaIdsInFloor("floor.up").size(), 0);
-    Test.assertEqual(haState.getUnflooredAreas().size(), 2);
-    Test.assertEqual(haState.getVisibleUnflooredAreas()[0].id, "area.shed");
-    Test.assertEqual(haState.getVisibleUnflooredAreas().size(), 1);
+    Test.assertEqual(haState.resolveAreasInFloor("floor.ground").size(), 2);
+    Test.assertEqual(haState.resolveVisibleAreasInFloor("floor.ground")[0].id, "area.kitchen");
+    Test.assertEqual(haState.resolveVisibleAreasInFloor("floor.ground").size(), 1);
+    Test.assertEqual(haState.resolveVisibleAreaIdsInFloor("floor.up").size(), 0);
+    Test.assertEqual(haState.resolveUnflooredAreas().size(), 2);
+    Test.assertEqual(haState.resolveVisibleUnflooredAreas()[0].id, "area.shed");
+    Test.assertEqual(haState.resolveVisibleUnflooredAreas().size(), 1);
 
     haState.setAreaHidden("area.hall", false);
-    Test.assertEqual(haState.getVisibleAreasInFloor("floor.ground").size(), 2);
+    Test.assertEqual(haState.resolveVisibleAreasInFloor("floor.ground").size(), 2);
 
     haState.setFloorHidden("floor.up", false);
-    Test.assertEqual(haState.getVisibleAreaIdsInFloor("floor.up").toString(), ["area.bedroom"].toString());
+    Test.assertEqual(haState.resolveVisibleAreaIdsInFloor("floor.up").toString(), ["area.bedroom"].toString());
 
     haState.setFloorHidden(VisibilityStore.UNFLOORED_FLOOR_ID, true);
-    Test.assertEqual(haState.getVisibleUnflooredAreas().size(), 0);
-    Test.assertEqual(haState.getUnflooredAreas().size(), 2);
+    Test.assertEqual(haState.resolveVisibleUnflooredAreas().size(), 0);
+    Test.assertEqual(haState.resolveUnflooredAreas().size(), 2);
     return true;
 }
 
@@ -361,12 +361,12 @@ function aFloorResolvesOnlyTheAreasTheRegistryStillKnows(logger as Test.Logger) 
             "areas" => ["area.kept", "area.ghost"] } }
     });
 
-    var areas = haState.getAreasInFloor("floor.g");
+    var areas = haState.resolveAreasInFloor("floor.g");
 
     Test.assertEqual(areas.size(), 1);
     Test.assertEqual(areas[0].id, "area.kept");
     Test.assertEqual(areas[0].name, "Kept");
-    Test.assertEqual(haState.getVisibleAreaIdsInFloor("floor.g").toString(), ["area.kept"].toString());
+    Test.assertEqual(haState.resolveVisibleAreaIdsInFloor("floor.g").toString(), ["area.kept"].toString());
     return true;
 }
 
@@ -377,9 +377,9 @@ function anUnknownAreaOrFloorYieldsAnEmptyCollectionRatherThanNull(logger as Tes
     Test.assertEqual(haState.getToggleablesInArea("area.ghost", Domain.LIGHT).size(), 0);
     Test.assertEqual(haState.getToggleablesInArea("area.ghost", Domain.FAN).size(), 0);
     Test.assertEqual(haState.getSensorsInArea("area.ghost").size(), 0);
-    Test.assertEqual(haState.getToggleablesInFloor("floor.ghost", Domain.LIGHT).size(), 0);
-    Test.assertEqual(haState.getAreasInFloor("floor.ghost").size(), 0);
-    Test.assertEqual(haState.getVisibleAreasInFloor("floor.ghost").size(), 0);
+    Test.assertEqual(haState.resolveVisibleToggleablesInFloor("floor.ghost", Domain.LIGHT).size(), 0);
+    Test.assertEqual(haState.resolveAreasInFloor("floor.ghost").size(), 0);
+    Test.assertEqual(haState.resolveVisibleAreasInFloor("floor.ghost").size(), 0);
     Test.assertEqual(haState.getAreas().size(), 0);
     return true;
 }

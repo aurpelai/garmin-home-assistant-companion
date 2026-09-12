@@ -172,7 +172,7 @@ class Coordinator {
     }
 
     function toggleEntity(entityId as String) as Void {
-        if (_haState.hasAnyPending(_haState.getToggleTargets(entityId))) {
+        if (_haState.hasAnyPending(_haState.resolveToggleTargets(entityId))) {
             return;
         }
 
@@ -182,7 +182,7 @@ class Coordinator {
     }
 
     function toggleFloorLights(floorId as String) as Void {
-        var lights = _haState.getToggleablesInFloor(floorId, Domain.LIGHT);
+        var lights = _haState.resolveVisibleToggleablesInFloor(floorId, Domain.LIGHT);
         if (lights.size() == 0 || _haState.hasAnyPending(_haState.toIds(lights))) {
             return;
         }
@@ -191,7 +191,7 @@ class Coordinator {
         _haState.overrideFloorLights(floorId, targetState);
         var service = targetState ? "turn_on" : "turn_off";
 
-        _client.queueLightsInAreas(_haState.getVisibleAreaIdsInFloor(floorId), service,
+        _client.queueLightsInAreas(_haState.resolveVisibleAreaIdsInFloor(floorId), service,
             new ToggleReply(self).method(:onSettled));
         updateDisplay();
     }
