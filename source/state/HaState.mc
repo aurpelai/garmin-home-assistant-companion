@@ -9,10 +9,6 @@ class HaState {
     private var _zone as String or Null;
     private var _sensorAverages as SensorAverages;
 
-    // Durable user config, not fetched truth: the hidden sets survive clear() so a
-    // registration discard never silently unhides the home. The two sets are
-    // independent — hiding a floor suppresses its areas without touching their own
-    // membership, so un-hiding it brings back exactly what it had.
     private var _hiddenFloors as Dictionary<String, Boolean>;
     private var _hiddenAreas as Dictionary<String, Boolean>;
 
@@ -28,7 +24,7 @@ class HaState {
         _hiddenAreas = {};
     }
 
-    function clear() as Void {
+    function clearFetched() as Void {
         _toggleablesByDomain = {};
         _toggleablesByDomainAndArea = {};
         _areas = {};

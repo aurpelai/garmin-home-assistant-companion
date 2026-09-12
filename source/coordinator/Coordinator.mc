@@ -201,7 +201,7 @@ class Coordinator {
     function discardRegistration() as Void {
         _client.cancelAll();
         _client.discardRegistration();
-        _haState.clear();
+        _haState.clearFetched();
         retry();
     }
 

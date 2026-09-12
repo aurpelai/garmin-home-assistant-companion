@@ -44,7 +44,7 @@ module HaStateTest {
 }
 
 (:test)
-function clearingEmptiesEveryStoredTarget(logger as Test.Logger) as Boolean {
+function clearingFetchedDataEmptiesEveryTargetButKeepsTheHiddenSets(logger as Test.Logger) as Boolean {
     var haState = HaStateTest.stateWithLights({ "light.a" => HaStateTest.light(true, "area.room") });
     HaStateTest.setStructure(haState, { "zone" => "Home",
         "areas" => { "area.room" => { "name" => "Room" } },
@@ -54,7 +54,7 @@ function clearingEmptiesEveryStoredTarget(logger as Test.Logger) as Boolean {
     haState.setSensorAverages({ "area.room" => { "temperature" => "21 °C" } }, {});
     haState.setAreaHidden("area.room", true);
 
-    haState.clear();
+    haState.clearFetched();
 
     Test.assert(haState.getHiddenAreas().hasKey("area.room"));
     Test.assert(!haState.hasAreas());
