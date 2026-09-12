@@ -12,22 +12,28 @@ module VisibilityMenuBuilder {
         for (var index = 0; index < floors.size(); index++) {
             var floor = floors[index];
             var areas = EntitySorter.sortAreas(haState.getAreasInFloor(floor.id));
-            rows.add(new VisibilityToggleRowModel(floor.id, floor.name, true, areas.size(),
-                !haState.getHiddenFloors().hasKey(floor.id)));
-            addAreaRows(rows, haState, areas);
+
+            if (areas.size() > 0) {
+                rows.add(new VisibilityToggleRowModel(floor.id, floor.name, true, areas.size(),
+                    !haState.getHiddenFloors().hasKey(floor.id)));
+                rows.addAll(buildAreaRows(haState, areas));
+            }
         }
 
-        addAreaRows(rows, haState, EntitySorter.sortAreas(haState.getUnflooredAreas()));
+        rows.addAll(buildAreaRows(haState, EntitySorter.sortAreas(haState.getUnflooredAreas())));
 
         return rows;
     }
 
-    function addAreaRows(rows as Array<VisibilityToggleRowModel>, haState as HaState,
-                         areas as Array<AreaModel>) as Void {
+    function buildAreaRows(haState as HaState, areas as Array<AreaModel>) as Array<VisibilityToggleRowModel> {
+        var rows = [] as Array<VisibilityToggleRowModel>;
+
         for (var index = 0; index < areas.size(); index++) {
             var area = areas[index];
             rows.add(new VisibilityToggleRowModel(area.id, area.name, false, 0,
                 !haState.getHiddenAreas().hasKey(area.id)));
         }
+
+        return rows;
     }
 }

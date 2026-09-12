@@ -11,7 +11,8 @@ module VisibilityMenuBuilderTest {
                 "area.bedroom" => { "name" => "Bedroom" }, "area.shed" => { "name" => "Shed" } },
             "floors" => {
                 "floor.up" => { "name" => "Up", "order" => 1, "areas" => ["area.bedroom"] },
-                "floor.ground" => { "name" => "Ground", "order" => 0, "areas" => ["area.kitchen", "area.hall"] }
+                "floor.ground" => { "name" => "Ground", "order" => 0, "areas" => ["area.kitchen", "area.hall"] },
+                "floor.empty" => { "name" => "Empty", "order" => 2, "areas" => [] }
             }
         };
         haState.setAreas(HaPayload.parseAreas(structure));
@@ -31,7 +32,7 @@ module VisibilityMenuBuilderTest {
 }
 
 (:test)
-function rowsRunFloorByFloorLikeTheCardLoopWithUnflooredAreasLast(logger as Test.Logger) as Boolean {
+function rowsRunFloorByFloorLikeTheCardLoopSkippingAreaLessFloorsWithUnflooredAreasLast(logger as Test.Logger) as Boolean {
     var rows = VisibilityMenuBuilder.build(VisibilityMenuBuilderTest.stateOf());
 
     Test.assertEqual(VisibilityMenuBuilderTest.idsOf(rows).toString(),
