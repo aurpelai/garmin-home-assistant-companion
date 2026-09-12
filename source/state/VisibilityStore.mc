@@ -12,7 +12,8 @@ module VisibilityStore {
 
     // The unfloored areas hide as a group under this pseudo floor id. Registry ids
     // are slugified from the name with "_" as the separator, so a hyphen can never
-    // occur in a real floor id and this collides with none.
+    // occur in a real floor id and this collides with none (verified from the Home
+    // Assistant core source on 2026-09-12).
     const UNFLOORED_FLOOR_ID = "unfloored-areas";
 
     function getHiddenFloors() as Dictionary<String, Boolean> {
