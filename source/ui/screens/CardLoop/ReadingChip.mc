@@ -20,7 +20,7 @@ class ReadingChip {
 
     function initialize(reading as SensorReading, iconTint as Number or Null) {
         _text = reading.text;
-        _icon = resolveIcon(reading.deviceClass);
+        _icon = selectIcon(reading.deviceClass);
         _iconTint = iconTint != null ? iconTint : Graphics.COLOR_LT_GRAY;
     }
 
@@ -55,7 +55,7 @@ class ReadingChip {
         dc.drawText(contentLeft + leadingWidth, y, FONT, _text, Graphics.TEXT_JUSTIFY_LEFT);
     }
 
-    private function resolveIcon(deviceClass as String) as WatchUi.BitmapResource or Null {
+    private function selectIcon(deviceClass as String) as WatchUi.BitmapResource or Null {
         if ("temperature".equals(deviceClass)) {
             return WatchUi.loadResource(Rez.Drawables.Temperature) as WatchUi.BitmapResource;
         }

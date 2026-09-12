@@ -235,7 +235,7 @@ class JsonParser {
         }
         var code = 0;
         for (var i = 1; i <= 4; i++) {
-            var digit = hexValue(_chars[_pos + i].toNumber());
+            var digit = parseHexDigit(_chars[_pos + i].toNumber());
             if (digit < 0) {
                 return null;
             }
@@ -245,7 +245,7 @@ class JsonParser {
         return codePointToString(code);
     }
 
-    private function hexValue(c as Number) as Number {
+    private function parseHexDigit(c as Number) as Number {
         if (c >= 0x30 && c <= 0x39) { // 0-9
             return c - 0x30;
         }

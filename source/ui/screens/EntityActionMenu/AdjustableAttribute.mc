@@ -32,7 +32,7 @@ class AdjustableAttribute {
         return range == null;
     }
 
-    function resolveService(value as Number) as String {
+    function selectService(value as Number) as String {
         var off = offService;
         return off != null && value == 0 ? off : service;
     }
