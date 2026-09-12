@@ -113,7 +113,7 @@ class HaState {
     }
 
     function getToggleable(entityId as String) as ToggleableModel or Null {
-        var byId = _toggleablesByDomain.get(Entity.resolveDomain(entityId));
+        var byId = _toggleablesByDomain.get(Entity.parseDomain(entityId));
         return byId == null ? null : byId.get(entityId);
     }
 

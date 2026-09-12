@@ -21,7 +21,7 @@ class ToggleableModel {
         self.available = available;
         self.areaId = areaId;
         self.memberIds = memberIds;
-        domain = Entity.resolveDomain(id);
+        domain = Entity.parseDomain(id);
         assumedState = null;
     }
 
