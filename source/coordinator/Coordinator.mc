@@ -259,7 +259,7 @@ class Coordinator {
 
     private function refresh() as Void {
         if (!Settings.isConfigured()) {
-            showMessage(Rez.Strings.ErrNoConfig);
+            showMessage(Rez.Strings.ErrorNoConfig);
             return;
         }
 
@@ -275,7 +275,7 @@ class Coordinator {
             }
 
             if (error != null) {
-                WatchUi.showToast(Rez.Strings.ErrRefresh, null);
+                WatchUi.showToast(Rez.Strings.ErrorRefresh, null);
             }
 
             return;

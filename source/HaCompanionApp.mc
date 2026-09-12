@@ -59,7 +59,7 @@ class HaCompanionApp extends Application.AppBase {
         var coordinator = getOrCreateCoordinator();
 
         if (!Settings.isConfigured()) {
-            return [new InfoView(coordinator, WatchUi.loadResource(Rez.Strings.ErrNoConfig) as String, true, null),
+            return [new InfoView(coordinator, WatchUi.loadResource(Rez.Strings.ErrorNoConfig) as String, true, null),
                     new InfoDelegate(coordinator)];
         }
 

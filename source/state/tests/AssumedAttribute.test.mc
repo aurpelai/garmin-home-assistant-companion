@@ -9,7 +9,7 @@ function aLightAssumesBrightnessAndColorTempOverItsServerValues(logger as Test.L
     light.assumeAttribute("color_temp_kelvin", 4500);
 
     Test.assertEqual(light.resolveBrightness() as Number, 70);
-    Test.assertEqual(light.resolveColorTempKelvin() as Number, 4500);
+    Test.assertEqual(light.resolveColorTemperatureKelvin() as Number, 4500);
     Test.assertEqual(light.brightness as Number, 20);
     return true;
 }

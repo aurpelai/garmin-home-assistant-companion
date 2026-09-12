@@ -145,12 +145,12 @@ function aLightCarriesItsColorTempRangeAndCapability(logger as Test.Logger) as B
     var warm = parsed.get("light.warm") as LightModel;
     var plain = parsed.get("light.plain") as LightModel;
 
-    Test.assertEqual(warm.colorTempKelvin as Number, 3000);
-    Test.assertEqual(warm.minColorTempKelvin as Number, 2000);
-    Test.assertEqual(warm.maxColorTempKelvin as Number, 6500);
-    Test.assert(warm.supportsColorTemp);
-    Test.assert(plain.colorTempKelvin == null);
-    Test.assert(!plain.supportsColorTemp);
+    Test.assertEqual(warm.colorTemperatureKelvin as Number, 3000);
+    Test.assertEqual(warm.minColorTemperatureKelvin as Number, 2000);
+    Test.assertEqual(warm.maxColorTemperatureKelvin as Number, 6500);
+    Test.assert(warm.supportsColorTemperature);
+    Test.assert(plain.colorTemperatureKelvin == null);
+    Test.assert(!plain.supportsColorTemperature);
     return true;
 }
 

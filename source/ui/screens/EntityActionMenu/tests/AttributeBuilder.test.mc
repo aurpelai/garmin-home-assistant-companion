@@ -4,10 +4,10 @@ import Toybox.Test;
 (:test)
 module AttributeBuilderTest {
 
-    function light(brightness as Number or Null, supportsColorTemp as Boolean,
-                   colorTempKelvin as Number or Null) as LightModel {
+    function light(brightness as Number or Null, supportsColorTemperature as Boolean,
+                   colorTemperatureKelvin as Number or Null) as LightModel {
         return new LightModel("light.a", true, "A", true, "area.a", null,
-            brightness, colorTempKelvin, 2500, 5000, supportsColorTemp);
+            brightness, colorTemperatureKelvin, 2500, 5000, supportsColorTemperature);
     }
 
     function fan(speed as Number or Null, supportsSpeed as Boolean,

@@ -5,52 +5,52 @@ import Toybox.Test;
 (:test)
 function anAuthFailureReadsTheSameWhateverTheRequestType(logger as Test.Logger) as Boolean {
     Test.assertEqual(ErrorMessage.resolve(new RequestError(HttpStatus.UNAUTHORIZED, RequestType.REQUEST)),
-        Rez.Strings.ErrAuth);
+        Rez.Strings.ErrorAuth);
     Test.assertEqual(ErrorMessage.resolve(new RequestError(HttpStatus.FORBIDDEN, RequestType.REQUEST)),
-        Rez.Strings.ErrAuth);
+        Rez.Strings.ErrorAuth);
     Test.assertEqual(ErrorMessage.resolve(new RequestError(HttpStatus.UNAUTHORIZED, RequestType.REGISTRATION)),
-        Rez.Strings.ErrAuth);
+        Rez.Strings.ErrorAuth);
     return true;
 }
 
 (:test)
 function aBadRequestReadsDifferentlyPerRequestType(logger as Test.Logger) as Boolean {
     Test.assertEqual(ErrorMessage.resolve(new RequestError(HttpStatus.BAD_REQUEST, RequestType.REGISTRATION)),
-        Rez.Strings.ErrRegistrationRejected);
+        Rez.Strings.ErrorRegistrationRejected);
     Test.assertEqual(ErrorMessage.resolve(new RequestError(HttpStatus.BAD_REQUEST, RequestType.REQUEST)),
-        Rez.Strings.ErrTemplate);
+        Rez.Strings.ErrorTemplate);
     return true;
 }
 
 (:test)
 function aNotFoundIsAnAddressProblemOnEitherRequestType(logger as Test.Logger) as Boolean {
     Test.assertEqual(ErrorMessage.resolve(new RequestError(HttpStatus.NOT_FOUND, RequestType.REGISTRATION)),
-        Rez.Strings.ErrNotFound);
+        Rez.Strings.ErrorNotFound);
     Test.assertEqual(ErrorMessage.resolve(new RequestError(HttpStatus.NOT_FOUND, RequestType.REQUEST)),
-        Rez.Strings.ErrNotFound);
+        Rez.Strings.ErrorNotFound);
     return true;
 }
 
 (:test)
 function anUnusableWebhookReadsAsSetupFailure(logger as Test.Logger) as Boolean {
     Test.assertEqual(ErrorMessage.resolve(new RequestError(RequestError.UNUSABLE_WEBHOOK, RequestType.REQUEST)),
-        Rez.Strings.ErrRegistrationFailed);
+        Rez.Strings.ErrorRegistrationFailed);
     Test.assertEqual(ErrorMessage.resolve(new RequestError(RequestError.UNUSABLE_WEBHOOK, RequestType.REGISTRATION)),
-        Rez.Strings.ErrRegistrationFailed);
+        Rez.Strings.ErrorRegistrationFailed);
     return true;
 }
 
 (:test)
 function aNegativeReasonMeansTheTransportFellOver(logger as Test.Logger) as Boolean {
     Test.assertEqual(ErrorMessage.resolve(new RequestError(Communications.BLE_REQUEST_TOO_LARGE, RequestType.REQUEST)),
-        Rez.Strings.ErrNetwork);
+        Rez.Strings.ErrorNetwork);
     return true;
 }
 
 (:test)
 function anUnreadableBodyIsItsOwnReasonNotACode(logger as Test.Logger) as Boolean {
     Test.assertEqual(ErrorMessage.resolve(new RequestError(RequestError.UNREADABLE_BODY, RequestType.REQUEST)),
-        Rez.Strings.ErrUnreadableBody);
+        Rez.Strings.ErrorUnreadableBody);
     return true;
 }
 

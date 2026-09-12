@@ -13,25 +13,25 @@ module ErrorMessage {
         var reason = error.reason;
 
         if (reason == RequestError.UNREADABLE_BODY) {
-            return Rez.Strings.ErrUnreadableBody;
+            return Rez.Strings.ErrorUnreadableBody;
         }
 
         if (reason == RequestError.UNUSABLE_WEBHOOK) {
-            return Rez.Strings.ErrRegistrationFailed;
+            return Rez.Strings.ErrorRegistrationFailed;
         }
 
         if (reason == HttpStatus.UNAUTHORIZED || reason == HttpStatus.FORBIDDEN) {
-            return Rez.Strings.ErrAuth;
+            return Rez.Strings.ErrorAuth;
         }
 
         if (reason == HttpStatus.NOT_FOUND) {
-            return Rez.Strings.ErrNotFound;
+            return Rez.Strings.ErrorNotFound;
         }
 
         if (reason == HttpStatus.BAD_REQUEST) {
             return error.requestType == RequestType.REGISTRATION
-                ? Rez.Strings.ErrRegistrationRejected
-                : Rez.Strings.ErrTemplate;
+                ? Rez.Strings.ErrorRegistrationRejected
+                : Rez.Strings.ErrorTemplate;
         }
 
         if (reason == Communications.BLE_ERROR
@@ -40,29 +40,29 @@ module ErrorMessage {
                 || reason == Communications.BLE_NO_DATA
                 || reason == Communications.BLE_CONNECTION_UNAVAILABLE
                 || reason == Communications.REQUEST_CONNECTION_DROPPED) {
-            return Rez.Strings.ErrNoPhone;
+            return Rez.Strings.ErrorNoPhone;
         }
 
         if (reason == Communications.BLE_QUEUE_FULL) {
-            return Rez.Strings.ErrTooManyRequests;
+            return Rez.Strings.ErrorTooManyRequests;
         }
 
         if (reason == Communications.NETWORK_REQUEST_TIMED_OUT) {
-            return Rez.Strings.ErrTimeout;
+            return Rez.Strings.ErrorTimeout;
         }
 
         if (reason == Communications.SECURE_CONNECTION_REQUIRED) {
-            return Rez.Strings.ErrInsecureUrl;
+            return Rez.Strings.ErrorInsecureUrl;
         }
 
         if (reason == Communications.INVALID_HTTP_BODY_IN_NETWORK_RESPONSE) {
-            return Rez.Strings.ErrBadResponse;
+            return Rez.Strings.ErrorBadResponse;
         }
 
         if (reason instanceof Number && reason < 0) {
-            return Rez.Strings.ErrNetwork;
+            return Rez.Strings.ErrorNetwork;
         }
 
-        return Rez.Strings.ErrUnknown;
+        return Rez.Strings.ErrorUnknown;
     }
 }

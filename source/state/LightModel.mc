@@ -2,41 +2,41 @@ import Toybox.Lang;
 
 class LightModel extends ToggleableModel {
     public var brightness as Number or Null;
-    public var colorTempKelvin as Number or Null;
-    public var minColorTempKelvin as Number or Null;
-    public var maxColorTempKelvin as Number or Null;
-    public var supportsColorTemp as Boolean;
+    public var colorTemperatureKelvin as Number or Null;
+    public var minColorTemperatureKelvin as Number or Null;
+    public var maxColorTemperatureKelvin as Number or Null;
+    public var supportsColorTemperature as Boolean;
     public var assumedBrightness as Number or Null;
-    public var assumedColorTempKelvin as Number or Null;
+    public var assumedColorTemperatureKelvin as Number or Null;
 
     function initialize(id as String, state as Boolean, name as String, available as Boolean,
                         areaId as String or Null, memberIds as Array<String> or Null,
-                        brightness as Number or Null, colorTempKelvin as Number or Null,
-                        minColorTempKelvin as Number or Null, maxColorTempKelvin as Number or Null,
-                        supportsColorTemp as Boolean) {
+                        brightness as Number or Null, colorTemperatureKelvin as Number or Null,
+                        minColorTemperatureKelvin as Number or Null, maxColorTemperatureKelvin as Number or Null,
+                        supportsColorTemperature as Boolean) {
         ToggleableModel.initialize(id, state, name, available, areaId, memberIds);
         self.brightness = brightness;
-        self.colorTempKelvin = colorTempKelvin;
-        self.minColorTempKelvin = minColorTempKelvin;
-        self.maxColorTempKelvin = maxColorTempKelvin;
-        self.supportsColorTemp = supportsColorTemp;
+        self.colorTemperatureKelvin = colorTemperatureKelvin;
+        self.minColorTemperatureKelvin = minColorTemperatureKelvin;
+        self.maxColorTemperatureKelvin = maxColorTemperatureKelvin;
+        self.supportsColorTemperature = supportsColorTemperature;
         assumedBrightness = null;
-        assumedColorTempKelvin = null;
+        assumedColorTemperatureKelvin = null;
     }
 
     function resolveBrightness() as Number or Null {
         return assumedBrightness != null ? assumedBrightness : brightness;
     }
 
-    function resolveColorTempKelvin() as Number or Null {
-        return assumedColorTempKelvin != null ? assumedColorTempKelvin : colorTempKelvin;
+    function resolveColorTemperatureKelvin() as Number or Null {
+        return assumedColorTemperatureKelvin != null ? assumedColorTemperatureKelvin : colorTemperatureKelvin;
     }
 
     function assumeAttribute(field as String, value as Object) as Void {
         if (field.equals("brightness_pct")) {
             assumedBrightness = value as Number;
         } else if (field.equals("color_temp_kelvin")) {
-            assumedColorTempKelvin = value as Number;
+            assumedColorTemperatureKelvin = value as Number;
         }
     }
 }
