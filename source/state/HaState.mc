@@ -335,21 +335,21 @@ class HaState {
 
     private function groupByArea(models as Array<EntityModel>)
             as Dictionary<String, Array<EntityModel>> {
-        var byArea = {} as Dictionary<String, Array<EntityModel>>;
+        var modelsByArea = {} as Dictionary<String, Array<EntityModel>>;
 
         for (var index = 0; index < models.size(); index++) {
             var areaId = models[index].areaId;
 
             if (areaId != null) {
-                var inArea = byArea.get(areaId);
+                var inArea = modelsByArea.get(areaId);
                 if (inArea == null) {
                     inArea = [] as Array<EntityModel>;
-                    byArea.put(areaId, inArea);
+                    modelsByArea.put(areaId, inArea);
                 }
                 inArea.add(models[index]);
             }
         }
 
-        return byArea;
+        return modelsByArea;
     }
 }
