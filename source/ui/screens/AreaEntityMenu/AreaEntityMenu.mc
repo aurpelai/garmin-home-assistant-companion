@@ -21,13 +21,13 @@ class AreaEntityMenu extends WatchUi.Menu2 {
         for (var index = 0; index < model.toggles.size(); index++) {
             var row = model.toggles[index];
             addItem(new WatchUi.ToggleMenuItem(
-                resolveLabel(row.name, row.rowId), row.subLabel, row.rowId, row.isOn, null));
+                resolveLabel(row.name, row.id), row.subLabel, row.id, row.isOn, null));
         }
 
         for (var index = 0; index < model.sensors.size(); index++) {
             var row = model.sensors[index];
             addItem(new WatchUi.MenuItem(
-                resolveLabel(row.name, row.rowId), row.subLabel, row.rowId, null));
+                resolveLabel(row.name, row.id), row.subLabel, row.id, null));
         }
 
         if (model.toggles.size() == 0 && model.sensors.size() == 0) {
@@ -62,7 +62,7 @@ class AreaEntityMenu extends WatchUi.Menu2 {
 
         for (var index = 0; index < model.toggles.size(); index++) {
             var row = model.toggles[index];
-            var item = findItem(row.rowId);
+            var item = findItem(row.id);
 
             if (item != null) {
                 (item as WatchUi.ToggleMenuItem).setEnabled(row.isOn);
@@ -72,7 +72,7 @@ class AreaEntityMenu extends WatchUi.Menu2 {
 
         for (var index = 0; index < model.sensors.size(); index++) {
             var row = model.sensors[index];
-            var item = findItem(row.rowId);
+            var item = findItem(row.id);
 
             if (item != null) {
                 item.setSubLabel(row.subLabel);
@@ -80,12 +80,12 @@ class AreaEntityMenu extends WatchUi.Menu2 {
         }
     }
 
-    private function findItem(rowId as String) as WatchUi.MenuItem or Null {
-        var index = findItemById(rowId);
+    private function findItem(id as String) as WatchUi.MenuItem or Null {
+        var index = findItemById(id);
         return index < 0 ? null : getItem(index);
     }
 
-    static function resolveLabel(name as String or Null, rowId as String) as String {
-        return name == null || (name as String).length() == 0 ? rowId : name as String;
+    static function resolveLabel(name as String or Null, id as String) as String {
+        return name == null || (name as String).length() == 0 ? id : name as String;
     }
 }

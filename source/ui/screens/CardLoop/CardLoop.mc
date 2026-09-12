@@ -65,12 +65,12 @@ class CardLoop extends WatchUi.View {
 
     function showNext() as Void {
         _index = _index < _model.cards.size() - 1 ? _index + 1 : 0;
-        _pageIndicator.updateIndex(_index);
+        _pageIndicator.updateCurrentPage(_index);
     }
 
     function showPrevious() as Void {
         _index = _index > 0 ? _index - 1 : _model.cards.size() - 1;
-        _pageIndicator.updateIndex(_index);
+        _pageIndicator.updateCurrentPage(_index);
     }
 
     private function resolveIndex(cardId as String or Null, floorId as String or Null) as Number {

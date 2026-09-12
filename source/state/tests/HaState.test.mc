@@ -74,7 +74,7 @@ function anOverrideDrivesAFanExactlyAsItDrivesALight(logger as Test.Logger) as B
     Test.assert(!haState.isOn("fan.a"));
     Test.assert(!haState.isPending("fan.a"));
 
-    haState.override("fan.a", true);
+    haState.overrideState("fan.a", true);
 
     Test.assert(haState.isOn("fan.a"));
     Test.assert(haState.isPending("fan.a"));
@@ -96,7 +96,7 @@ function aFanGroupScopeCoversTheGroupItselfAndItsMembers(logger as Test.Logger) 
         "fan.two" => HaStateTest.fan(false, "area.a")
     });
 
-    haState.override("fan.group", true);
+    haState.overrideState("fan.group", true);
 
     Test.assertEqual(haState.resolveToggleTargets("fan.group").size(), 3);
     Test.assert(haState.isOn("fan.group"));
@@ -111,7 +111,7 @@ function anAreaIsReadOneDomainAtATime(logger as Test.Logger) as Boolean {
     var haState = HaStateTest.stateWithLights({ "light.a" => HaStateTest.light(true, "area.a") });
     HaStateTest.setFans(haState, { "fan.a" => HaStateTest.fan(false, "area.a") });
 
-    haState.override("fan.a", true);
+    haState.overrideState("fan.a", true);
 
     Test.assert(haState.isOn("fan.a"));
     Test.assert(haState.isPending("fan.a"));
@@ -131,7 +131,7 @@ function aFetchOfOneDomainReplacesOnlyThatDomain(logger as Test.Logger) as Boole
     });
     HaStateTest.setFans(haState, { "fan.a" => HaStateTest.fan(false, "area.a") });
 
-    haState.override("fan.a", true);
+    haState.overrideState("fan.a", true);
     HaStateTest.setLights(haState, { "light.a" => HaStateTest.light(false, "area.a") });
 
     Test.assertEqual(haState.getToggleablesInArea("area.a", Domain.LIGHT).size(), 1);
@@ -150,7 +150,7 @@ function readResolvesToTheOverrideThenToServerTruth(logger as Test.Logger) as Bo
         "light.untouched" => HaStateTest.light(true, "area.a")
     });
 
-    haState.override("light.overridden", true);
+    haState.overrideState("light.overridden", true);
 
     Test.assert(haState.isOn("light.overridden"));
     Test.assert(haState.isOn("light.untouched"));
@@ -163,7 +163,7 @@ function pendingIsDerivedFromAnOverrideExisting(logger as Test.Logger) as Boolea
     var haState = HaStateTest.stateWithLights({ "light.a" => HaStateTest.light(true, "area.a") });
 
     Test.assert(!haState.isPending("light.a"));
-    haState.override("light.a", true);
+    haState.overrideState("light.a", true);
     Test.assert(haState.isPending("light.a"));
     HaStateTest.setLights(haState, { "light.a" => HaStateTest.light(true, "area.a") });
     Test.assert(!haState.isPending("light.a"));
@@ -177,7 +177,7 @@ function arrivingLightsAnswerEveryAssumptionTheyReplace(logger as Test.Logger) a
         "light.b" => HaStateTest.light(false, "area.a")
     });
 
-    haState.override("light.a", true);
+    haState.overrideState("light.a", true);
     HaStateTest.setLights(haState, { "light.a" => HaStateTest.light(false, "area.a") });
 
     Test.assert(!haState.isPending("light.a"));
@@ -190,7 +190,7 @@ function arrivingLightsAnswerEveryAssumptionTheyReplace(logger as Test.Logger) a
 function anAssumptionOutlivesTheReplyAndOnlyAFetchEndsIt(logger as Test.Logger) as Boolean {
     var haState = HaStateTest.stateWithLights({ "light.a" => HaStateTest.light(false, "area.a") });
 
-    haState.override("light.a", true);
+    haState.overrideState("light.a", true);
 
     Test.assert(haState.isOn("light.a"));
     Test.assert(haState.isPending("light.a"));
@@ -211,7 +211,7 @@ function aGroupScopeCoversTheGroupItselfAndItsMembers(logger as Test.Logger) as 
         "light.two" => HaStateTest.light(false, "area.a")
     });
 
-    haState.override("light.group", true);
+    haState.overrideState("light.group", true);
 
     Test.assert(haState.isOn("light.group"));
     Test.assert(haState.isOn("light.one"));
@@ -228,7 +228,7 @@ function aGroupWithNoMembersStillOverridesItself(logger as Test.Logger) as Boole
         "light.group" => HaStateTest.light(false, "area.a")
     });
 
-    haState.override("light.group", true);
+    haState.overrideState("light.group", true);
 
     Test.assert(haState.isOn("light.group"));
     Test.assert(haState.isPending("light.group"));
@@ -240,7 +240,7 @@ function anAreasLightsReadCurrentAfterATapRatherThanTheirHandedOutValue(logger a
     var haState = HaStateTest.stateWithLights({ "light.a" => HaStateTest.light(false, "area.a") });
     var held = haState.getToggleablesInArea("area.a", Domain.LIGHT);
 
-    haState.override("light.a", true);
+    haState.overrideState("light.a", true);
 
     Test.assert(held[0].isOn());
     Test.assert(held[0].isPending());
@@ -254,7 +254,7 @@ function aMemberWithNoEntityOfItsOwnIsStillCalledButNeverReadsAsPending(logger a
             "memberIds" => ["light.arealess"] }
     });
 
-    haState.override("light.group", true);
+    haState.overrideState("light.group", true);
 
     Test.assertEqual(haState.resolveToggleTargets("light.group").size(), 2);
     Test.assert(haState.isPending("light.group"));
@@ -283,7 +283,7 @@ function aFloorScopeCoversEveryLightInItsAreasAndNothingOutside(logger as Test.L
     });
     HaStateTest.setFans(haState, { "fan.kitchen" => HaStateTest.fan(false, "area.kitchen") });
 
-    haState.overrideFloorLights("floor.ground", true);
+    haState.overrideFloorLightsState("floor.ground", true);
 
     Test.assert(haState.isOn("light.group"));
     Test.assert(haState.isOn("light.kitchen"));

@@ -25,7 +25,7 @@ class CardLoopDelegate extends WatchUi.BehaviorDelegate {
     function onSelect() as Boolean {
         var card = _loop.getCurrentCard();
         if (card != null) {
-            (card as Card).open(_coordinator);
+            (card as Card).onSelect(_coordinator);
         }
 
         return true;

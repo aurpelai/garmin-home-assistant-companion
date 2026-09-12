@@ -95,7 +95,7 @@ class PageIndicator {
         _layout.startDismiss(method(:hideIndicator));
     }
 
-    private function onIndexUpdate() as Void {
+    private function onCurrentPageUpdate() as Void {
         WatchUi.animate(
             self,
             :inactiveIndicatorColorChannel,
@@ -218,11 +218,11 @@ class PageIndicator {
         }
     }
 
-    function updateIndex(index as Number) as Void {
+    function updateCurrentPage(page as Number) as Void {
         _previousPage = _currentPage;
-        _currentPage = index;
+        _currentPage = page;
 
-        onIndexUpdate();
+        onCurrentPageUpdate();
         showIndicator();
         draw();
     }

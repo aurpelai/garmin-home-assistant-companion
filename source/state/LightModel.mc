@@ -6,8 +6,8 @@ class LightModel extends ToggleableModel {
     public var minColorTemperatureKelvin as Number or Null;
     public var maxColorTemperatureKelvin as Number or Null;
     public var supportsColorTemperature as Boolean;
-    public var assumedBrightness as Number or Null;
-    public var assumedColorTemperatureKelvin as Number or Null;
+    public var optimisticBrightness as Number or Null;
+    public var optimisticColorTemperatureKelvin as Number or Null;
 
     function initialize(id as String, state as Boolean, name as String, available as Boolean,
                         areaId as String or Null, memberIds as Array<String> or Null,
@@ -20,23 +20,23 @@ class LightModel extends ToggleableModel {
         self.minColorTemperatureKelvin = minColorTemperatureKelvin;
         self.maxColorTemperatureKelvin = maxColorTemperatureKelvin;
         self.supportsColorTemperature = supportsColorTemperature;
-        assumedBrightness = null;
-        assumedColorTemperatureKelvin = null;
+        optimisticBrightness = null;
+        optimisticColorTemperatureKelvin = null;
     }
 
     function resolveBrightness() as Number or Null {
-        return assumedBrightness != null ? assumedBrightness : brightness;
+        return optimisticBrightness != null ? optimisticBrightness : brightness;
     }
 
     function resolveColorTemperatureKelvin() as Number or Null {
-        return assumedColorTemperatureKelvin != null ? assumedColorTemperatureKelvin : colorTemperatureKelvin;
+        return optimisticColorTemperatureKelvin != null ? optimisticColorTemperatureKelvin : colorTemperatureKelvin;
     }
 
-    function assumeAttribute(field as String, value as Object) as Void {
+    function overrideAttribute(field as String, value as Object) as Void {
         if (field.equals("brightness_pct")) {
-            assumedBrightness = value as Number;
+            optimisticBrightness = value as Number;
         } else if (field.equals("color_temp_kelvin")) {
-            assumedColorTemperatureKelvin = value as Number;
+            optimisticColorTemperatureKelvin = value as Number;
         }
     }
 }

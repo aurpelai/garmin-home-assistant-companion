@@ -11,10 +11,10 @@ class LabelComparator {
     // UNVERIFIED: toLower is ASCII-only, so non-Latin names order by code point
     // rather than locale collation.
     function compare(first as Object, second as Object) as Number {
-        var left = first as Labeled;
-        var right = second as Labeled;
-        var byName = left.name.toLower().compareTo(right.name.toLower());
+        var firstLabeled = first as Labeled;
+        var secondLabeled = second as Labeled;
+        var byName = firstLabeled.name.toLower().compareTo(secondLabeled.name.toLower());
 
-        return byName != 0 ? byName : left.id.compareTo(right.id);
+        return byName != 0 ? byName : firstLabeled.id.compareTo(secondLabeled.id);
     }
 }

@@ -5,9 +5,9 @@ import Toybox.WatchUi;
 class AreaCard extends Card {
     private const LIGHT_INDICATOR_GAP = 4;
 
-    private const LIGHTBULB_ON = WatchUi.loadResource(Rez.Drawables.LightbulbOn) as WatchUi.BitmapResource;
-    private const LIGHTBULB_OFF = WatchUi.loadResource(Rez.Drawables.LightbulbOff) as WatchUi.BitmapResource;
-    private const LIGHTBULB_UNAVAILABLE = WatchUi.loadResource(Rez.Drawables.LightbulbUnavailable) as WatchUi.BitmapResource;
+    private const LIGHT_ON = WatchUi.loadResource(Rez.Drawables.LightOn) as WatchUi.BitmapResource;
+    private const LIGHT_OFF = WatchUi.loadResource(Rez.Drawables.LightOff) as WatchUi.BitmapResource;
+    private const LIGHT_UNAVAILABLE = WatchUi.loadResource(Rez.Drawables.LightUnavailable) as WatchUi.BitmapResource;
 
     private var _floorName as String or Null;
     public var lights as ToggleableCount;
@@ -28,13 +28,13 @@ class AreaCard extends Card {
         }
     }
 
-    function open(coordinator as Coordinator) as Void {
+    function onSelect(coordinator as Coordinator) as Void {
         coordinator.showAreaMenu(id);
     }
 
     private function drawLightIndicators(dc as Graphics.Dc, lights as ToggleableCount) as Void {
         var totalCount = lights.available + lights.unavailable;
-        var step = LIGHTBULB_ON.getWidth() + LIGHT_INDICATOR_GAP;
+        var step = LIGHT_ON.getWidth() + LIGHT_INDICATOR_GAP;
         var firstX = dc.getWidth() / 2 - (totalCount - 1) * step / 2;
         var centerY = dc.getHeight() / 2;
 
@@ -42,11 +42,11 @@ class AreaCard extends Card {
             var x = firstX + index * step;
 
             if (index < lights.on) {
-                drawLightIcon(dc, x, centerY, LIGHTBULB_ON, Graphics.COLOR_YELLOW);
+                drawLightIcon(dc, x, centerY, LIGHT_ON, Graphics.COLOR_YELLOW);
             } else if (index < lights.available) {
-                drawLightIcon(dc, x, centerY, LIGHTBULB_OFF, Graphics.COLOR_LT_GRAY);
+                drawLightIcon(dc, x, centerY, LIGHT_OFF, Graphics.COLOR_LT_GRAY);
             } else {
-                drawLightIcon(dc, x, centerY, LIGHTBULB_UNAVAILABLE, Graphics.COLOR_DK_GRAY);
+                drawLightIcon(dc, x, centerY, LIGHT_UNAVAILABLE, Graphics.COLOR_DK_GRAY);
             }
         }
     }

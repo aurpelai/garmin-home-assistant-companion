@@ -152,7 +152,7 @@ function anOptimisticallyToggledLightMovesTheCardCountAndFloorSummary(logger as 
     }, {
         "light.room" => CardLoopModelTest.light(false, "area.room")
     }, {} as Dictionary);
-    haState.override("light.room", true);
+    haState.overrideState("light.room", true);
 
     var model = CardLoopBuilder.build(haState);
     var area = CardLoopModelTest.cardOf(model, "area.room") as AreaCard;

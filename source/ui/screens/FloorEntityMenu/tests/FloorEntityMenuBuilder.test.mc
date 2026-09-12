@@ -57,7 +57,7 @@ function theFloorRowReadsOnWhenAnyLightInTheFloorIsOn(logger as Test.Logger) as 
 
     Test.assert(!(FloorEntityMenuBuilder.build(haState, "floor.g") as FloorEntityMenuModel).lights[0].isOn);
 
-    haState.override("light.off", true);
+    haState.overrideState("light.off", true);
 
     Test.assert((FloorEntityMenuBuilder.build(haState, "floor.g") as FloorEntityMenuModel).lights[0].isOn);
     return true;

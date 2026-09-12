@@ -61,7 +61,7 @@ class HaState {
     }
 
     // A fetch clears pending overrides only by replacing the models wholesale;
-    // the fresh ones come back with no assumption. Updating them in place instead
+    // the fresh ones come back with no optimistic values. Updating them in place instead
     // would leave a tapped entity pending forever.
     function setToggleables(domain as String, toggleables as Dictionary<String, ToggleableModel>) as Void {
         _toggleablesByDomain.put(domain, toggleables);
@@ -261,27 +261,27 @@ class HaState {
         return false;
     }
 
-    function override(entityId as String, isOn as Boolean) as Void {
-        overrideAll(resolveToggleTargets(entityId), isOn);
+    function overrideState(entityId as String, isOn as Boolean) as Void {
+        overrideStates(resolveToggleTargets(entityId), isOn);
     }
 
-    function overrideFloorLights(floorId as String, isOn as Boolean) as Void {
-        overrideAll(toIds(resolveVisibleToggleablesInFloor(floorId, Domain.LIGHT)), isOn);
+    function overrideFloorLightsState(floorId as String, isOn as Boolean) as Void {
+        overrideStates(toIds(resolveVisibleToggleablesInFloor(floorId, Domain.LIGHT)), isOn);
     }
 
-    function assumeAttribute(entityId as String, field as String, value as Object) as Void {
+    function overrideAttribute(entityId as String, field as String, value as Object) as Void {
         var toggleable = getToggleable(entityId);
         if (toggleable != null) {
-            toggleable.assumeAttribute(field, value);
+            toggleable.overrideAttribute(field, value);
         }
     }
 
-    private function overrideAll(entityIds as Array<String>, isOn as Boolean) as Void {
+    private function overrideStates(entityIds as Array<String>, isOn as Boolean) as Void {
         for (var index = 0; index < entityIds.size(); index++) {
             var toggleable = getToggleable(entityIds[index]);
 
             if (toggleable != null) {
-                toggleable.assumedState = isOn;
+                toggleable.optimisticState = isOn;
             }
         }
     }

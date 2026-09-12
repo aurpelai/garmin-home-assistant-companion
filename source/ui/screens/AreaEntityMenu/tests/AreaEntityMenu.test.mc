@@ -32,8 +32,8 @@ module AreaEntityMenuTest {
             "area.room", model, provider);
     }
 
-    function itemOf(menu as AreaEntityMenu, rowId as String) as WatchUi.MenuItem {
-        return menu.getItem(menu.findItemById(rowId)) as WatchUi.MenuItem;
+    function itemOf(menu as AreaEntityMenu, id as String) as WatchUi.MenuItem {
+        return menu.getItem(menu.findItemById(id)) as WatchUi.MenuItem;
     }
 }
 

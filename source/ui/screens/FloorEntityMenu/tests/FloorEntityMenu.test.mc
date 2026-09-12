@@ -62,10 +62,10 @@ function theWholeLightsRowTargetsTheFloorRatherThanItsOwnId(logger as Test.Logge
     var menu = FloorEntityMenuTest.menuOf(FloorEntityMenuTest.stateOf({
         "light.a" => { "state" => true, "area_id" => "area.room" }
     }));
-    var rowId = (menu.getItem(0) as WatchUi.MenuItem).getId();
+    var id = (menu.getItem(0) as WatchUi.MenuItem).getId();
 
-    Test.assertEqual(rowId as String, FloorEntityMenuModel.LIGHTS_ROW_ID);
-    Test.assertEqual(menu.toServiceTarget(rowId) as String, "floor.up");
+    Test.assertEqual(id as String, FloorEntityMenuModel.LIGHTS_ROW_ID);
+    Test.assertEqual(menu.toServiceTarget(id) as String, "floor.up");
     Test.assert(menu.toServiceTarget("light.a") == null);
     return true;
 }

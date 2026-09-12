@@ -34,7 +34,7 @@ class Card {
     function draw(dc as Graphics.Dc) as Void {
     }
 
-    function open(coordinator as Coordinator) as Void {
+    function onSelect(coordinator as Coordinator) as Void {
     }
 
     hidden function drawFrame(dc as Graphics.Dc, subtitle as String or Null) as Void {

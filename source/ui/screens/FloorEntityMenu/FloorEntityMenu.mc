@@ -17,7 +17,7 @@ class FloorEntityMenu extends WatchUi.Menu2 {
             var row = model.lights[index];
             addItem(new WatchUi.ToggleMenuItem(
                 WatchUi.loadResource(Rez.Strings.AllLights) as String, null,
-                row.rowId, row.isOn, null));
+                row.id, row.isOn, null));
         }
 
         setModel(model);
@@ -47,7 +47,7 @@ class FloorEntityMenu extends WatchUi.Menu2 {
 
         for (var index = 0; index < model.lights.size(); index++) {
             var row = model.lights[index];
-            var item = findItem(row.rowId);
+            var item = findItem(row.id);
 
             if (item != null) {
                 (item as WatchUi.ToggleMenuItem).setEnabled(row.isOn);
@@ -55,12 +55,12 @@ class FloorEntityMenu extends WatchUi.Menu2 {
         }
     }
 
-    function toServiceTarget(rowId as Object or Null) as String or Null {
-        return FloorEntityMenuModel.LIGHTS_ROW_ID.equals(rowId) ? _floorId : null;
+    function toServiceTarget(id as Object or Null) as String or Null {
+        return FloorEntityMenuModel.LIGHTS_ROW_ID.equals(id) ? _floorId : null;
     }
 
-    private function findItem(rowId as String) as WatchUi.MenuItem or Null {
-        var index = findItemById(rowId);
+    private function findItem(id as String) as WatchUi.MenuItem or Null {
+        var index = findItemById(id);
         return index < 0 ? null : getItem(index);
     }
 }

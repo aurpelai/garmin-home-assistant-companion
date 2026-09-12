@@ -3,8 +3,8 @@ import Toybox.Lang;
 import Toybox.WatchUi;
 
 class FloorCard extends Card {
-    private const LIGHTS_ALL = WatchUi.loadResource(Rez.Drawables.LightbulbGroupAll) as WatchUi.BitmapResource;
-    private const LIGHTS_SOME = WatchUi.loadResource(Rez.Drawables.LightbulbGroupSome) as WatchUi.BitmapResource;
+    private const LIGHTS_ALL = WatchUi.loadResource(Rez.Drawables.LightsAll) as WatchUi.BitmapResource;
+    private const LIGHTS_SOME = WatchUi.loadResource(Rez.Drawables.LightsSome) as WatchUi.BitmapResource;
 
     private var _zone as String or Null;
     public var lights as String or Null;
@@ -26,7 +26,7 @@ class FloorCard extends Card {
         }
     }
 
-    function open(coordinator as Coordinator) as Void {
+    function onSelect(coordinator as Coordinator) as Void {
         coordinator.showFloorMenu(id);
     }
 

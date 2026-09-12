@@ -10,8 +10,8 @@ class SettingsMenuDelegate extends WatchUi.Menu2InputDelegate {
     }
 
     function onSelect(item as WatchUi.MenuItem) as Void {
-        if (SettingsMenu.FILTER_ROW_ID.equals(item.getId())) {
-            _coordinator.showVisibilityFilter();
+        if (SettingsMenu.VISIBILITY_ROW_ID.equals(item.getId())) {
+            _coordinator.showVisibilityMenu();
         }
     }
 }

@@ -100,7 +100,7 @@ class Coordinator {
         return [new SettingsMenu(_haState), new SettingsMenuDelegate(self)];
     }
 
-    function showVisibilityFilter() as Void {
+    function showVisibilityMenu() as Void {
         if (!_haState.hasAreas()) {
             return;
         }
@@ -126,7 +126,7 @@ class Coordinator {
         clearPendingClick();
 
         if (pending != null && pending.equals(entityId)) {
-            openAttributeMenu(entityId);
+            showAttributeMenu(entityId);
             return;
         }
 
@@ -174,7 +174,7 @@ class Coordinator {
             return;
         }
 
-        _haState.override(entityId, !_haState.isOn(entityId));
+        _haState.overrideState(entityId, !_haState.isOn(entityId));
         _client.queueToggle(entityId, new ToggleReply(self).method(:onSettled));
         updateDisplay();
     }
@@ -186,7 +186,7 @@ class Coordinator {
         }
 
         var targetState = !_haState.hasAnyOn(lights);
-        _haState.overrideFloorLights(floorId, targetState);
+        _haState.overrideFloorLightsState(floorId, targetState);
         var service = targetState ? "turn_on" : "turn_off";
 
         _client.queueLightsInAreas(_haState.resolveVisibleAreaIdsInFloor(floorId), service,
@@ -219,13 +219,13 @@ class Coordinator {
 
     private function commitAttribute(attribute as AdjustableAttribute, service as String,
                                      value as Object) as Void {
-        _haState.assumeAttribute(attribute.entityId, attribute.field, value);
+        _haState.overrideAttribute(attribute.entityId, attribute.field, value);
         _client.queueAttribute(attribute.domain, service, attribute.entityId,
             attribute.field, value, new ToggleReply(self).method(:onSettled));
         updateDisplay();
     }
 
-    private function openAttributeMenu(entityId as String) as Void {
+    private function showAttributeMenu(entityId as String) as Void {
         var toggleable = _haState.getToggleable(entityId);
         if (toggleable == null) {
             return;
@@ -304,7 +304,7 @@ class Coordinator {
         }
 
         if (view has :rebuild) {
-            (view as Refreshable).rebuild(_haState);
+            (view as Rebuildable).rebuild(_haState);
             WatchUi.requestUpdate();
         }
     }
