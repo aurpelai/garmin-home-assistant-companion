@@ -168,7 +168,7 @@ class HaState {
     }
 
     function getUnflooredAreas() as Array<AreaModel> {
-        var flooredAreaIds = collectFlooredAreaIds();
+        var flooredAreaIds = resolveFlooredAreaIds();
         var areas = getAreas();
         var unflooredAreas = [] as Array<AreaModel>;
 
@@ -325,7 +325,7 @@ class HaState {
         return visibleAreas;
     }
 
-    private function collectFlooredAreaIds() as Dictionary<String, Boolean> {
+    private function resolveFlooredAreaIds() as Dictionary<String, Boolean> {
         var flooredAreaIds = {} as Dictionary<String, Boolean>;
 
         for (var floorIndex = 0; floorIndex < _floors.size(); floorIndex++) {
