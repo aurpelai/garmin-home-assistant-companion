@@ -81,24 +81,24 @@ class JsonParser {
     }
 
     private function parseObject() as Dictionary or Null {
-        var out = {} as Dictionary;
+        var object = {} as Dictionary;
         _position++;
         if (consumeClose(0x7D)) { // }
-            return out;
+            return object;
         }
 
-        var more = true;
-        while (more) {
-            if (!parseMember(out)) {
+        var hasNext = true;
+        while (hasNext) {
+            if (!parseMember(object)) {
                 return null;
             }
-            more = consumeComma();
+            hasNext = consumeComma();
         }
 
-        return consumeClose(0x7D) ? out : null; // }
+        return consumeClose(0x7D) ? object : null; // }
     }
 
-    private function parseMember(out as Dictionary) as Boolean {
+    private function parseMember(object as Dictionary) as Boolean {
         skipWhitespace();
         if (_position >= _length || _chars[_position] != 0x22) { // "
             return false;
@@ -115,27 +115,27 @@ class JsonParser {
         if (!valueStartsHere()) {
             return false;
         }
-        out.put(key, parseValue());
+        object.put(key, parseValue());
         return true;
     }
 
     private function parseArray() as Array or Null {
-        var out = [] as Array;
+        var array = [] as Array;
         _position++;
         if (consumeClose(0x5D)) { // ]
-            return out;
+            return array;
         }
 
-        var more = true;
-        while (more) {
+        var hasNext = true;
+        while (hasNext) {
             if (!valueStartsHere()) {
                 return null;
             }
-            out.add(parseValue());
-            more = consumeComma();
+            array.add(parseValue());
+            hasNext = consumeComma();
         }
 
-        return consumeClose(0x5D) ? out : null; // ]
+        return consumeClose(0x5D) ? array : null; // ]
     }
 
     private function consumeClose(bracket as Number) as Boolean {
@@ -162,9 +162,9 @@ class JsonParser {
         while (_position < _length) {
             var char = _chars[_position];
             if (char == 0x22) { // "
-                var result = _string.substring(start, _position);
+                var text = _string.substring(start, _position);
                 _position++;
-                return result;
+                return text;
             }
             if (char == 0x5C) { // \
                 return parseEscapedString(start);
@@ -175,19 +175,19 @@ class JsonParser {
     }
 
     private function parseEscapedString(start as Number) as String or Null {
-        var result = _string.substring(start, _position) as String;
+        var text = _string.substring(start, _position) as String;
         while (_position < _length) {
             var char = _chars[_position];
             if (char == 0x22) { // "
                 _position++;
-                return result;
+                return text;
             }
             if (char != 0x5C) { // \
                 var runStart = _position;
                 while (_position < _length && _chars[_position] != 0x22 && _chars[_position] != 0x5C) {
                     _position++;
                 }
-                result += _string.substring(runStart, _position);
+                text += _string.substring(runStart, _position);
                 continue;
             }
             _position++;
@@ -196,13 +196,13 @@ class JsonParser {
             }
             var escapeCode = _chars[_position];
             if (escapeCode == 0x75) { // u
-                var decoded = parseUnicodeEscape();
-                if (decoded == null) {
+                var character = parseUnicodeEscape();
+                if (character == null) {
                     return null;
                 }
-                result += decoded;
+                text += character;
             } else {
-                result += unescapeSimple(escapeCode.toNumber());
+                text += unescapeSimple(escapeCode.toNumber());
                 _position++;
             }
         }

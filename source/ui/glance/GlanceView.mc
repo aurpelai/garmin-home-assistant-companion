@@ -13,14 +13,14 @@ class GlanceView extends WatchUi.GlanceView {
     function initialize() {
         GlanceView.initialize();
 
-        var sizes = WatchUi.loadResource(Rez.JsonData.VectorFontSizes) as Dictionary;
+        var fontSizes = WatchUi.loadResource(Rez.JsonData.VectorFontSizes) as Dictionary;
         _titleFont = Graphics.getVectorFont({
             :face => ["RobotoCondensedBold", "RobotoRegular"],
-            :size => sizes.get("small") as Number
+            :size => fontSizes.get("small") as Number
         }) as Graphics.VectorFont;
         _statusFont = Graphics.getVectorFont({
             :face => ["RobotoCondensedRegular", "RobotoRegular"],
-            :size => sizes.get("medium") as Number
+            :size => fontSizes.get("medium") as Number
         }) as Graphics.VectorFont;
     }
 
@@ -32,12 +32,12 @@ class GlanceView extends WatchUi.GlanceView {
 
         var rows = buildStatusRows();
         var height = dc.getHeight();
-        var count = rows.size() + 1;
+        var lineCount = rows.size() + 1;
 
-        drawTitle(dc, height / (count + 1));
+        drawTitle(dc, height / (lineCount + 1));
 
         for (var index = 0; index < rows.size(); index++) {
-            var y = (index + 2) * height / (count + 1);
+            var y = (index + 2) * height / (lineCount + 1);
             drawItems(dc, y, rows[index].items);
         }
     }

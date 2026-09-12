@@ -13,8 +13,8 @@ class LabelComparator {
     function compare(first as Object, second as Object) as Number {
         var firstLabeled = first as Labeled;
         var secondLabeled = second as Labeled;
-        var byName = firstLabeled.name.toLower().compareTo(secondLabeled.name.toLower());
+        var nameOrder = firstLabeled.name.toLower().compareTo(secondLabeled.name.toLower());
 
-        return byName != 0 ? byName : firstLabeled.id.compareTo(secondLabeled.id);
+        return nameOrder != 0 ? nameOrder : firstLabeled.id.compareTo(secondLabeled.id);
     }
 }

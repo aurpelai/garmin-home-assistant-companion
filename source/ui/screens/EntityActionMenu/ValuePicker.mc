@@ -12,8 +12,7 @@ class ValuePicker extends WatchUi.View {
         View.initialize();
         self.attribute = attribute;
         _range = attribute.range as ValueRange;
-        var current = attribute.current;
-        _value = current == null ? _range.min : current;
+        _value = attribute.currentValue == null ? _range.min : attribute.currentValue as Number;
     }
 
     function getValue() as Number {

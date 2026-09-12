@@ -19,72 +19,72 @@ import Toybox.Lang;
 module HaTemplate {
 
     const STRUCTURE =
-        "{% set ns = namespace(areasOut={}, floorsOut={}) %}" +
-        "{% for a in areas() %}" +
-        "{% set ns.areasOut = dict(ns.areasOut, **{a: dict(name=area_name(a))}) %}" +
+        "{% set ns = namespace(areas={}, floors={}) %}" +
+        "{% for area in areas() %}" +
+        "{% set ns.areas = dict(ns.areas, **{area: dict(name=area_name(area))}) %}" +
         "{% endfor %}" +
-        "{% for f in floors() %}" +
-        "{% set ns.floorsOut = dict(ns.floorsOut, **{f: dict(" +
-            "name=floor_name(f), order=loop.index0, " +
-            "areas=floor_areas(f) | default([]) | list)}) %}" +
+        "{% for floor in floors() %}" +
+        "{% set ns.floors = dict(ns.floors, **{floor: dict(" +
+            "name=floor_name(floor), order=loop.index0, " +
+            "areas=floor_areas(floor) | default([]) | list)}) %}" +
         "{% endfor %}" +
         "{{ dict(zone=state_attr('zone.home', 'friendly_name'), " +
-            "areas=ns.areasOut, floors=ns.floorsOut) | tojson }}";
+            "areas=ns.areas, floors=ns.floors) | tojson }}";
 
-    const VISIBLE_AREA_CLAUSE = "if a not in hidden_areas and (floor_id(a) or '" +
+    const VISIBLE_AREA_CLAUSE = "if area not in hidden_areas and (floor_id(area) or '" +
         VisibilityStore.UNFLOORED_FLOOR_ID + "') not in hidden_floors";
 
     const PRELUDE =
         "{% set groups = integration_entities('group') %}" +
         "{% set ROUNDING = {'temperature': 1} %}" +
         "{% macro physical(ids) %}" +
-            "{% set ns = namespace(out=[]) %}" +
-            "{% for e in ids %}" +
-            "{% if e.startswith('light.') and e not in groups and states[e] is not none " +
-                "and not is_hidden_entity(e) %}" +
-            "{% set ns.out = ns.out + [e] %}" +
+            "{% set ns = namespace(lights=[]) %}" +
+            "{% for entity in ids %}" +
+            "{% if entity.startswith('light.') and entity not in groups and states[entity] is not none " +
+                "and not is_hidden_entity(entity) %}" +
+            "{% set ns.lights = ns.lights + [entity] %}" +
             "{% endif %}" +
             "{% endfor %}" +
-            "{{ ns.out | tojson }}" +
+            "{{ ns.lights | tojson }}" +
         "{% endmacro %}" +
         "{% macro lightSummary(ids) %}" +
-            "{% set lit = namespace(on=0, total=0) %}" +
-            "{% for e in physical(ids) | from_json %}" +
-            "{% if not is_state(e, 'unavailable') %}" +
-            "{% set lit.total = lit.total + 1 %}" +
-            "{% if is_state(e, 'on') %}{% set lit.on = lit.on + 1 %}{% endif %}" +
+            "{% set ns = namespace(on=0, total=0) %}" +
+            "{% for entity in physical(ids) | from_json %}" +
+            "{% if not is_state(entity, 'unavailable') %}" +
+            "{% set ns.total = ns.total + 1 %}" +
+            "{% if is_state(entity, 'on') %}{% set ns.on = ns.on + 1 %}{% endif %}" +
             "{% endif %}" +
             "{% endfor %}" +
-            "{% if lit.total > 0 %}" +
-            "{{ 'all_on' if lit.on == lit.total else 'all_off' if lit.on == 0 else 'some_on' }}" +
+            "{% if ns.total > 0 %}" +
+            "{{ 'all_on' if ns.on == ns.total else 'all_off' if ns.on == 0 else 'some_on' }}" +
             "{% endif %}" +
         "{% endmacro %}" +
-        "{% macro classAverage(ids, cls) %}" +
-            "{% set v = namespace(nums=[], unit=none) %}" +
-            "{% for e in ids %}" +
-            "{% if e.startswith('sensor.') and states[e] is not none and not is_hidden_entity(e) " +
-                "and state_attr(e, 'device_class') == cls %}" +
-            "{% set n = states(e) | float(none) %}" +
-            "{% if n is not none %}" +
-            "{% set v.nums = v.nums + [n] %}" +
-            "{% set v.unit = state_attr(e, 'unit_of_measurement') %}" +
+        "{% macro classAverage(ids, deviceClass) %}" +
+            "{% set ns = namespace(values=[], unit=none) %}" +
+            "{% for entity in ids %}" +
+            "{% if entity.startswith('sensor.') and states[entity] is not none and not is_hidden_entity(entity) " +
+                "and state_attr(entity, 'device_class') == deviceClass %}" +
+            "{% set value = states(entity) | float(none) %}" +
+            "{% if value is not none %}" +
+            "{% set ns.values = ns.values + [value] %}" +
+            "{% set ns.unit = state_attr(entity, 'unit_of_measurement') %}" +
             "{% endif %}" +
             "{% endif %}" +
             "{% endfor %}" +
-            "{% if v.nums | count > 0 %}" +
-            "{% set p = ROUNDING.get(cls, 0) %}" +
-            "{% set m = v.nums | average | round(p) %}" +
-            "{% set m = m if p > 0 else m | int %}" +
-            "{{ m ~ ' ' ~ v.unit }}" +
+            "{% if ns.values | count > 0 %}" +
+            "{% set precision = ROUNDING.get(deviceClass, 0) %}" +
+            "{% set mean = ns.values | average | round(precision) %}" +
+            "{% set mean = mean if precision > 0 else mean | int %}" +
+            "{{ mean ~ ' ' ~ ns.unit }}" +
             "{% endif %}" +
         "{% endmacro %}" +
         "{% macro averages(ids) %}" +
-            "{% set out = namespace(d={}) %}" +
-            "{% for cls in ['temperature', 'humidity', 'illuminance'] %}" +
-            "{% set r = classAverage(ids, cls) | trim %}" +
-            "{% if r | length > 0 %}{% set out.d = dict(out.d, **{cls: r}) %}{% endif %}" +
+            "{% set ns = namespace(averages={}) %}" +
+            "{% for deviceClass in ['temperature', 'humidity', 'illuminance'] %}" +
+            "{% set average = classAverage(ids, deviceClass) | trim %}" +
+            "{% if average | length > 0 %}{% set ns.averages = dict(ns.averages, **{deviceClass: average}) %}{% endif %}" +
             "{% endfor %}" +
-            "{{ out.d | tojson }}" +
+            "{{ ns.averages | tojson }}" +
         "{% endmacro %}";
 
     // Group identity comes from the group registry, not `state_attr(e,
@@ -93,99 +93,99 @@ module HaTemplate {
     // unavailable group is kept (its members are down, not gone); only an
     // available group that expands to nothing — every member hidden — is left out.
     const LIGHTS = PRELUDE +
-        "{% set ns = namespace(out={}, home=[]) %}" +
-        "{% for a in areas() " + VISIBLE_AREA_CLAUSE + " %}" +
-        "{% set ids = area_entities(a) | list %}" +
+        "{% set ns = namespace(lights={}, home=[]) %}" +
+        "{% for area in areas() " + VISIBLE_AREA_CLAUSE + " %}" +
+        "{% set ids = area_entities(area) | list %}" +
         "{% set ns.home = ns.home + ids %}" +
-        "{% for e in ids | reject('is_hidden_entity') | list %}" +
-        "{% if e.startswith('light.') and states[e] is not none %}" +
-        "{% set members = expand(e) | rejectattr('entity_id', 'is_hidden_entity') " +
+        "{% for entity in ids | reject('is_hidden_entity') | list %}" +
+        "{% if entity.startswith('light.') and states[entity] is not none %}" +
+        "{% set members = expand(entity) | rejectattr('entity_id', 'is_hidden_entity') " +
             "| map(attribute='entity_id') | list %}" +
-        "{% if e not in groups or members | count > 0 or is_state(e, 'unavailable') %}" +
-        "{% set b = state_attr(e, 'brightness') | default(none) %}" +
-        "{% set modes = state_attr(e, 'supported_color_modes') | default([], true) %}" +
-        "{% set light = dict(state=is_state(e, 'on'), name=states[e].name, area_id=a, " +
-            "available=not is_state(e, 'unavailable'), " +
-            "brightness=(b / 255 * 100) | round | int if b is not none else none, " +
-            "color_temp_kelvin=state_attr(e, 'color_temp_kelvin') | default(none), " +
-            "min_color_temp_kelvin=state_attr(e, 'min_color_temp_kelvin') | default(none), " +
-            "max_color_temp_kelvin=state_attr(e, 'max_color_temp_kelvin') | default(none), " +
+        "{% if entity not in groups or members | count > 0 or is_state(entity, 'unavailable') %}" +
+        "{% set brightness = state_attr(entity, 'brightness') | default(none) %}" +
+        "{% set modes = state_attr(entity, 'supported_color_modes') | default([], true) %}" +
+        "{% set light = dict(state=is_state(entity, 'on'), name=states[entity].name, area_id=area, " +
+            "available=not is_state(entity, 'unavailable'), " +
+            "brightness=(brightness / 255 * 100) | round | int if brightness is not none else none, " +
+            "color_temp_kelvin=state_attr(entity, 'color_temp_kelvin') | default(none), " +
+            "min_color_temp_kelvin=state_attr(entity, 'min_color_temp_kelvin') | default(none), " +
+            "max_color_temp_kelvin=state_attr(entity, 'max_color_temp_kelvin') | default(none), " +
             "supports_color_temp='color_temp' in modes) %}" +
-        "{% if e in groups %}" +
+        "{% if entity in groups %}" +
         "{% set light = dict(light, memberIds=members) %}" +
         "{% endif %}" +
-        "{% set ns.out = dict(ns.out, **{e: light}) %}" +
+        "{% set ns.lights = dict(ns.lights, **{entity: light}) %}" +
         "{% endif %}" +
         "{% endif %}" +
         "{% endfor %}" +
         "{% endfor %}" +
-        "{{ dict(lights=ns.out, home=(lightSummary(ns.home) | trim or none)) | tojson }}";
+        "{{ dict(lights=ns.lights, home=(lightSummary(ns.home) | trim or none)) | tojson }}";
 
     // The percentage is emitted whatever the state, so an off fan keeps its last
     // speed; the view, not the render, decides what an off fan shows.
     const FANS = PRELUDE +
-        "{% set ns = namespace(out={}) %}" +
-        "{% for a in areas() " + VISIBLE_AREA_CLAUSE + " %}" +
-        "{% for e in area_entities(a) | reject('is_hidden_entity') | list %}" +
-        "{% if e.startswith('fan.') and states[e] is not none %}" +
-        "{% set members = expand(e) | rejectattr('entity_id', 'is_hidden_entity') " +
+        "{% set ns = namespace(fans={}) %}" +
+        "{% for area in areas() " + VISIBLE_AREA_CLAUSE + " %}" +
+        "{% for entity in area_entities(area) | reject('is_hidden_entity') | list %}" +
+        "{% if entity.startswith('fan.') and states[entity] is not none %}" +
+        "{% set members = expand(entity) | rejectattr('entity_id', 'is_hidden_entity') " +
             "| map(attribute='entity_id') | list %}" +
-        "{% if e not in groups or members | count > 0 or is_state(e, 'unavailable') %}" +
-        "{% set p = state_attr(e, 'percentage') | default(none) %}" +
-        "{% set feat = state_attr(e, 'supported_features') | default(0) %}" +
-        "{% set fan = dict(state=is_state(e, 'on'), name=states[e].name, area_id=a, " +
-            "available=not is_state(e, 'unavailable'), " +
-            "speed=p | round | int if p is not none else none, " +
-            "oscillating=state_attr(e, 'oscillating') | default(none), " +
-            "supports_speed=(feat | int) % 2 == 1, " +
-            "supports_oscillation=(feat | int) // 2 % 2 == 1) %}" +
-        "{% if e in groups %}" +
+        "{% if entity not in groups or members | count > 0 or is_state(entity, 'unavailable') %}" +
+        "{% set percentage = state_attr(entity, 'percentage') | default(none) %}" +
+        "{% set features = state_attr(entity, 'supported_features') | default(0) %}" +
+        "{% set fan = dict(state=is_state(entity, 'on'), name=states[entity].name, area_id=area, " +
+            "available=not is_state(entity, 'unavailable'), " +
+            "speed=percentage | round | int if percentage is not none else none, " +
+            "oscillating=state_attr(entity, 'oscillating') | default(none), " +
+            "supports_speed=(features | int) % 2 == 1, " +
+            "supports_oscillation=(features | int) // 2 % 2 == 1) %}" +
+        "{% if entity in groups %}" +
         "{% set fan = dict(fan, memberIds=members) %}" +
         "{% endif %}" +
-        "{% set ns.out = dict(ns.out, **{e: fan}) %}" +
+        "{% set ns.fans = dict(ns.fans, **{entity: fan}) %}" +
         "{% endif %}" +
         "{% endif %}" +
         "{% endfor %}" +
         "{% endfor %}" +
-        "{{ dict(fans=ns.out) | tojson }}";
+        "{{ dict(fans=ns.fans) | tojson }}";
 
     // `states(e, true, true)` keeps HA's own display precision and unit as a
     // string, so the menu shows exactly what the user's dashboard shows for a
     // single sensor.
     const SENSORS = PRELUDE +
-        "{% set ns = namespace(out={}, areas={}, floors={}, home=[]) %}" +
-        "{% for a in areas() " + VISIBLE_AREA_CLAUSE + " %}" +
-        "{% set ids = area_entities(a) | list %}" +
+        "{% set ns = namespace(sensors={}, areas={}, floors={}, home=[]) %}" +
+        "{% for area in areas() " + VISIBLE_AREA_CLAUSE + " %}" +
+        "{% set ids = area_entities(area) | list %}" +
         "{% set ns.home = ns.home + ids %}" +
-        "{% set m = averages(ids) | from_json %}" +
-        "{% if m | length > 0 %}{% set ns.areas = dict(ns.areas, **{a: m}) %}{% endif %}" +
-        "{% for e in ids | reject('is_hidden_entity') | list %}" +
-        "{% if e.startswith('sensor.') and states[e] is not none " +
-            "and state_attr(e, 'device_class') in ['temperature', 'humidity', 'illuminance'] %}" +
-        "{% set ns.out = dict(ns.out, **{e: dict(" +
-            "friendly_state=states(e, true, true), " +
-            "device_class=state_attr(e, 'device_class'), name=entity_name(e), area_id=a, " +
-            "available=not is_state(e, 'unavailable') and not is_state(e, 'unknown'))}) %}" +
+        "{% set classAverages = averages(ids) | from_json %}" +
+        "{% if classAverages | length > 0 %}{% set ns.areas = dict(ns.areas, **{area: classAverages}) %}{% endif %}" +
+        "{% for entity in ids | reject('is_hidden_entity') | list %}" +
+        "{% if entity.startswith('sensor.') and states[entity] is not none " +
+            "and state_attr(entity, 'device_class') in ['temperature', 'humidity', 'illuminance'] %}" +
+        "{% set ns.sensors = dict(ns.sensors, **{entity: dict(" +
+            "friendly_state=states(entity, true, true), " +
+            "device_class=state_attr(entity, 'device_class'), name=entity_name(entity), area_id=area, " +
+            "available=not is_state(entity, 'unavailable') and not is_state(entity, 'unknown'))}) %}" +
         "{% endif %}" +
         "{% endfor %}" +
         "{% endfor %}" +
-        "{% for f in floors() %}" +
-        "{% set fids = namespace(l=[]) %}" +
-        "{% for a in floor_areas(f) | default([]) | list if a not in hidden_areas and f not in hidden_floors %}" +
-        "{% set fids.l = fids.l + (area_entities(a) | list) %}" +
+        "{% for floor in floors() %}" +
+        "{% set floorEntities = namespace(ids=[]) %}" +
+        "{% for area in floor_areas(floor) | default([]) | list if area not in hidden_areas and floor not in hidden_floors %}" +
+        "{% set floorEntities.ids = floorEntities.ids + (area_entities(area) | list) %}" +
         "{% endfor %}" +
-        "{% set m = averages(fids.l) | from_json %}" +
-        "{% if m | length > 0 %}{% set ns.floors = dict(ns.floors, **{f: m}) %}{% endif %}" +
+        "{% set classAverages = averages(floorEntities.ids) | from_json %}" +
+        "{% if classAverages | length > 0 %}{% set ns.floors = dict(ns.floors, **{floor: classAverages}) %}{% endif %}" +
         "{% endfor %}" +
-        "{{ dict(sensors=ns.out, areas=ns.areas, floors=ns.floors, " +
+        "{{ dict(sensors=ns.sensors, areas=ns.areas, floors=ns.floors, " +
             "home=averages(ns.home) | from_json) | tojson }}";
 
     // Only the home summaries, so the background process's fetch and parse stay
     // within its small memory pool.
     const GLANCE = PRELUDE +
         "{% set ns = namespace(home=[]) %}" +
-        "{% for a in areas() " + VISIBLE_AREA_CLAUSE + " %}" +
-        "{% set ns.home = ns.home + (area_entities(a) | list) %}" +
+        "{% for area in areas() " + VISIBLE_AREA_CLAUSE + " %}" +
+        "{% set ns.home = ns.home + (area_entities(area) | list) %}" +
         "{% endfor %}" +
         "{{ dict(lights=(lightSummary(ns.home) | trim or none), " +
             "climate=averages(ns.home) | from_json) | tojson }}";

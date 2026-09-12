@@ -3,70 +3,70 @@ import Toybox.Lang;
 module AreaEntityMenuBuilder {
 
     function build(haState as HaState, areaId as String,
-                   provider as SubLabelProvider) as AreaEntityMenuModel or Null {
+                   subLabelProvider as SubLabelProvider) as AreaEntityMenuModel or Null {
         var area = haState.getArea(areaId);
         if (area == null) {
             return null;
         }
 
-        var toggles = buildToggleRows(haState.getToggleablesInArea(areaId, Domain.LIGHT), provider);
-        toggles.addAll(buildToggleRows(haState.getToggleablesInArea(areaId, Domain.FAN), provider));
+        var toggles = buildToggleRows(haState.getToggleablesInArea(areaId, Domain.LIGHT), subLabelProvider);
+        toggles.addAll(buildToggleRows(haState.getToggleablesInArea(areaId, Domain.FAN), subLabelProvider));
 
         return new AreaEntityMenuModel(area.name, toggles,
-            buildSensorRows(haState.getSensorsInArea(areaId), provider));
+            buildSensorRows(haState.getSensorsInArea(areaId), subLabelProvider));
     }
 
     function buildToggleRows(toggleables as Array<ToggleableModel>,
-                             provider as SubLabelProvider) as Array<ToggleRowModel> {
-        var sorted = EntitySorter.sortToggleables(toggleables);
+                             subLabelProvider as SubLabelProvider) as Array<ToggleRowModel> {
+        toggleables = EntitySorter.sortToggleables(toggleables);
         var rows = [] as Array<ToggleRowModel>;
 
-        for (var index = 0; index < sorted.size(); index++) {
-            var toggleable = sorted[index];
+        for (var index = 0; index < toggleables.size(); index++) {
+            var toggleable = toggleables[index];
             rows.add(new ToggleRowModel(toggleable.id, toggleable.name, toggleable.isOn(),
-                resolveToggleSubLabel(toggleable, provider)));
+                resolveToggleSubLabel(toggleable, subLabelProvider)));
         }
 
         return rows;
     }
 
     function buildSensorRows(sensors as Array<SensorModel>,
-                             provider as SubLabelProvider) as Array<SensorRowModel> {
-        var grouped = EntitySorter.groupSensorsByDeviceClass(sensors);
+                             subLabelProvider as SubLabelProvider) as Array<SensorRowModel> {
+        sensors = EntitySorter.groupSensorsByDeviceClass(sensors);
         var rows = [] as Array<SensorRowModel>;
 
-        for (var index = 0; index < grouped.size(); index++) {
-            var sensor = grouped[index];
-            rows.add(new SensorRowModel(sensor.id, sensor.name, resolveSensorSubLabel(sensor, provider)));
+        for (var index = 0; index < sensors.size(); index++) {
+            var sensor = sensors[index];
+            rows.add(new SensorRowModel(sensor.id, sensor.name, resolveSensorSubLabel(sensor, subLabelProvider)));
         }
 
         return rows;
     }
 
     function resolveToggleSubLabel(toggleable as ToggleableModel,
-                                   provider as SubLabelProvider) as String or Null {
+                                   subLabelProvider as SubLabelProvider) as String or Null {
         var memberIds = toggleable.memberIds;
 
         if (!toggleable.available) {
-            return memberIds == null ? provider.getUnavailable() : provider.getGroupUnavailable();
+            return memberIds == null ? subLabelProvider.getUnavailable() : subLabelProvider.getGroupUnavailable();
         }
 
         if (memberIds != null) {
-            return provider.resolveGroupLabel(toggleable.domain, memberIds.size());
+            return subLabelProvider.resolveGroupLabel(toggleable.domain, memberIds.size());
         }
 
         if (!toggleable.isOn()) {
-            return provider.getOff();
+            return subLabelProvider.getOff();
         }
 
         var value = toggleable instanceof FanModel
             ? (toggleable as FanModel).resolveSpeed()
             : (toggleable as LightModel).resolveBrightness();
 
-        return value == null ? provider.getOn() : provider.formatValue(value);
+        return value == null ? subLabelProvider.getOn() : subLabelProvider.formatValue(value);
     }
 
-    function resolveSensorSubLabel(sensor as SensorModel, provider as SubLabelProvider) as String {
-        return sensor.available ? sensor.friendlyState : provider.getUnavailable();
+    function resolveSensorSubLabel(sensor as SensorModel, subLabelProvider as SubLabelProvider) as String {
+        return sensor.available ? sensor.friendlyState : subLabelProvider.getUnavailable();
     }
 }

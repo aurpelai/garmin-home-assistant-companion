@@ -23,7 +23,7 @@ function aPlainLightOffersOnlyBrightness(logger as Test.Logger) as Boolean {
 
     Test.assertEqual(attributes.size(), 1);
     Test.assertEqual(attributes[0].field, "brightness_pct");
-    Test.assertEqual(attributes[0].current as Number, 50);
+    Test.assertEqual(attributes[0].currentValue as Number, 50);
     return true;
 }
 
@@ -34,7 +34,7 @@ function aColorTempLightAlsoOffersColorOverItsOwnKelvinRange(logger as Test.Logg
     Test.assertEqual(attributes.size(), 2);
     var color = attributes[1];
     Test.assertEqual(color.field, "color_temp_kelvin");
-    Test.assertEqual(color.current as Number, 3000);
+    Test.assertEqual(color.currentValue as Number, 3000);
     Test.assertEqual((color.range as ValueRange).min, 2500);
     Test.assertEqual((color.range as ValueRange).max, 5000);
     return true;
@@ -46,7 +46,7 @@ function aFanOffersSpeedAndOscillationForWhatItSupports(logger as Test.Logger) a
 
     Test.assertEqual(attributes.size(), 2);
     Test.assertEqual(attributes[0].field, "percentage");
-    Test.assertEqual(attributes[0].current as Number, 30);
+    Test.assertEqual(attributes[0].currentValue as Number, 30);
     Test.assertEqual(attributes[1].field, "oscillating");
     Test.assert(attributes[1].isToggle());
     Test.assert(!(attributes[1].isOn as Boolean));
