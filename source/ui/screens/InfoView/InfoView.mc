@@ -8,17 +8,17 @@ import Toybox.WatchUi;
 class InfoView extends WatchUi.View {
     private var _coordinator as Coordinator;
     private var _textArea as WatchUi.TextArea;
-    private var _selectable as Boolean;
+    private var _isSelectable as Boolean;
     private var _detail as String or Null;
 
-    function initialize(coordinator as Coordinator, message as String, selectable as Boolean,
+    function initialize(coordinator as Coordinator, message as String, isSelectable as Boolean,
                         detail as String or Null) {
         View.initialize();
         _coordinator = coordinator;
-        _selectable = selectable;
+        _isSelectable = isSelectable;
         _detail = detail;
 
-        var text = selectable
+        var text = isSelectable
             ? message + "\n\n" + (WatchUi.loadResource(Rez.Strings.RetryHint) as String)
             : message;
 
@@ -56,7 +56,7 @@ class InfoView extends WatchUi.View {
                 Graphics.TEXT_JUSTIFY_CENTER);
         }
 
-        if (_selectable) {
+        if (_isSelectable) {
             Rendering.useAntiAlias(dc, true);
             dc.drawBitmap(
                 system_loc__hint_button_right_top.x,

@@ -28,8 +28,8 @@ class HaClient {
     private var _gateway as RequestGateway;
     private var _scheduler as Scheduler;
 
-    private var _requestInFlight as Boolean;
-    private var _changeInFlight as Boolean;
+    private var _isRequestInFlight as Boolean;
+    private var _isChangeInFlight as Boolean;
     private var _changeQueue as Array<QueuedChange>;
     private var _pendingChangeCallback as Method or Null;
     private var _registrationCallback as Method or Null;
@@ -43,8 +43,8 @@ class HaClient {
     function initialize(gateway as RequestGateway, scheduler as Scheduler) {
         _gateway = gateway;
         _scheduler = scheduler;
-        _requestInFlight = false;
-        _changeInFlight = false;
+        _isRequestInFlight = false;
+        _isChangeInFlight = false;
         _changeQueue = [];
         _pendingChangeCallback = null;
         _registrationCallback = null;
@@ -57,8 +57,8 @@ class HaClient {
     }
 
     function onChangeSettled(result as Object or Null, spentError as RequestError or Null) as Void {
-        _requestInFlight = false;
-        _changeInFlight = false;
+        _isRequestInFlight = false;
+        _isChangeInFlight = false;
 
         if (_pendingChangeCallback == null) {
             return;
@@ -76,7 +76,7 @@ class HaClient {
     }
 
     function onTargetSettled(result as Object or Null, spentError as RequestError or Null) as Void {
-        _requestInFlight = false;
+        _isRequestInFlight = false;
 
         if (_currentTarget == null || _onRefreshTarget == null) {
             return;
@@ -119,7 +119,7 @@ class HaClient {
     }
 
     function hasOutstandingChanges() as Boolean {
-        return _changeQueue.size() > 0 || _changeInFlight;
+        return _changeQueue.size() > 0 || _isChangeInFlight;
     }
 
     function isRefreshDue() as Boolean {
@@ -166,8 +166,8 @@ class HaClient {
         _scheduler.cancel();
         _changeQueue = [];
         _pendingFetchTargets = [];
-        _requestInFlight = false;
-        _changeInFlight = false;
+        _isRequestInFlight = false;
+        _isChangeInFlight = false;
         _pendingChangeCallback = null;
         _registrationCallback = null;
         _registrationEpoch++;
@@ -272,15 +272,15 @@ class HaClient {
     }
 
     private function startNextRequest() as Void {
-        if (_requestInFlight) {
+        if (_isRequestInFlight) {
             return;
         }
 
         if (_changeQueue.size() > 0) {
             var next = _changeQueue[0];
             _changeQueue = _changeQueue.slice(1, null) as Array<QueuedChange>;
-            _requestInFlight = true;
-            _changeInFlight = true;
+            _isRequestInFlight = true;
+            _isChangeInFlight = true;
             _pendingChangeCallback = next.callback;
             new RetryManager(next.request, method(:onChangeSettled), _scheduler, RequestType.REQUEST).attempt();
             return;
@@ -289,7 +289,7 @@ class HaClient {
         if (_pendingFetchTargets.size() > 0) {
             var target = _pendingFetchTargets[0];
             _pendingFetchTargets = _pendingFetchTargets.slice(1, null) as Array<Symbol>;
-            _requestInFlight = true;
+            _isRequestInFlight = true;
             _currentTarget = target;
             new RetryManager(buildTemplateRenderRequest(target), method(:onTargetSettled), _scheduler, RequestType.REQUEST).attempt();
         }

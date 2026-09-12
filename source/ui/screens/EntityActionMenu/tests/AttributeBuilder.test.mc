@@ -49,7 +49,7 @@ function aFanOffersSpeedAndOscillationForWhatItSupports(logger as Test.Logger) a
     Test.assertEqual(attributes[0].current as Number, 30);
     Test.assertEqual(attributes[1].field, "oscillating");
     Test.assert(attributes[1].isToggle());
-    Test.assert(!(attributes[1].currentOn as Boolean));
+    Test.assert(!(attributes[1].isOn as Boolean));
     return true;
 }
 
