@@ -32,15 +32,17 @@ module VisibilityMenuBuilderTest {
 }
 
 (:test)
-function rowsRunFloorByFloorLikeTheCardLoopSkippingAreaLessFloorsWithUnflooredAreasLast(logger as Test.Logger) as Boolean {
-    var rows = VisibilityMenuBuilder.build(VisibilityMenuBuilderTest.stateOf());
+function rowsRunFloorByFloorLikeTheCardLoopSkippingAreaLessFloorsWithOtherLast(logger as Test.Logger) as Boolean {
+    var rows = VisibilityMenuBuilder.build(VisibilityMenuBuilderTest.stateOf(), "Other");
 
     Test.assertEqual(VisibilityMenuBuilderTest.idsOf(rows).toString(),
-        ["floor.ground", "area.hall", "area.kitchen", "floor.up", "area.bedroom", "area.shed"].toString());
+        ["floor.ground", "area.hall", "area.kitchen", "floor.up", "area.bedroom",
+            VisibilityStore.UNFLOORED_FLOOR_ID, "area.shed"].toString());
     Test.assertEqual((rows[0] as FloorVisibilityRowModel).areaCount, 2);
     Test.assertEqual((rows[3] as FloorVisibilityRowModel).areaCount, 1);
+    Test.assertEqual((rows[5] as FloorVisibilityRowModel).name, "Other");
     Test.assert(rows[1] instanceof AreaVisibilityRowModel);
-    Test.assert(rows[5] instanceof AreaVisibilityRowModel);
+    Test.assert(rows[6] instanceof AreaVisibilityRowModel);
     return true;
 }
 
@@ -48,14 +50,17 @@ function rowsRunFloorByFloorLikeTheCardLoopSkippingAreaLessFloorsWithUnflooredAr
 function rowsAreCheckedUnlessTheirOwnIdIsHidden(logger as Test.Logger) as Boolean {
     var haState = VisibilityMenuBuilderTest.stateOf();
     haState.setFloorHidden("floor.up", true);
+    haState.setFloorHidden(VisibilityStore.UNFLOORED_FLOOR_ID, true);
     haState.setAreaHidden("area.hall", true);
 
-    var rows = VisibilityMenuBuilder.build(haState);
+    var rows = VisibilityMenuBuilder.build(haState, "Other");
 
     Test.assert(rows[0].isVisible);
     Test.assert(!rows[1].isVisible);
     Test.assert(rows[2].isVisible);
     Test.assert(!rows[3].isVisible);
     Test.assert(rows[4].isVisible);
+    Test.assert(!rows[5].isVisible);
+    Test.assert(rows[6].isVisible);
     return true;
 }

@@ -330,6 +330,10 @@ function hidingNarrowsEveryVisibleReadingWhileTheFullStructureStaysReadable(logg
 
     haState.setFloorHidden("floor.up", false);
     Test.assertEqual(haState.getVisibleAreaIdsInFloor("floor.up").toString(), ["area.bedroom"].toString());
+
+    haState.setFloorHidden(VisibilityStore.UNFLOORED_FLOOR_ID, true);
+    Test.assertEqual(haState.getVisibleUnflooredAreas().size(), 0);
+    Test.assertEqual(haState.getUnflooredAreas().size(), 2);
     return true;
 }
 

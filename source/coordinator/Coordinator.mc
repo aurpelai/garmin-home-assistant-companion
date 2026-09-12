@@ -107,7 +107,9 @@ class Coordinator {
             return;
         }
 
-        var menu = new VisibilityToggleMenu(VisibilityMenuBuilder.build(_haState));
+        var rows = VisibilityMenuBuilder.build(
+            _haState, WatchUi.loadResource(Rez.Strings.SettingsOtherAreas) as String);
+        var menu = new VisibilityToggleMenu(rows);
         WatchUi.pushView(menu, new VisibilityToggleDelegate(self), WatchUi.SLIDE_LEFT);
     }
 

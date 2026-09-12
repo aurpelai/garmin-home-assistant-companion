@@ -31,6 +31,11 @@ module HaTemplate {
         "{{ dict(zone=state_attr('zone.home', 'friendly_name'), " +
             "areas=ns.areasOut, floors=ns.floorsOut) | tojson }}";
 
+    // An area without a floor answers to the unfloored pseudo floor, so the "Other"
+    // group hides like any floor.
+    const VISIBLE_AREA_CLAUSE = "if a not in hidden_areas and (floor_id(a) or '" +
+        VisibilityStore.UNFLOORED_FLOOR_ID + "') not in hidden_floors";
+
     const PRELUDE =
         "{% set groups = integration_entities('group') %}" +
         "{% set ROUNDING = {'temperature': 1} %}" +
@@ -91,7 +96,7 @@ module HaTemplate {
     // available group that expands to nothing — every member hidden — is left out.
     const LIGHTS = PRELUDE +
         "{% set ns = namespace(out={}, home=[]) %}" +
-        "{% for a in areas() if a not in hidden_areas and floor_id(a) not in hidden_floors %}" +
+        "{% for a in areas() " + VISIBLE_AREA_CLAUSE + " %}" +
         "{% set ids = area_entities(a) | list %}" +
         "{% set ns.home = ns.home + ids %}" +
         "{% for e in ids | reject('is_hidden_entity') | list %}" +
@@ -122,7 +127,7 @@ module HaTemplate {
     // speed; the view, not the render, decides what an off fan shows.
     const FANS = PRELUDE +
         "{% set ns = namespace(out={}) %}" +
-        "{% for a in areas() if a not in hidden_areas and floor_id(a) not in hidden_floors %}" +
+        "{% for a in areas() " + VISIBLE_AREA_CLAUSE + " %}" +
         "{% for e in area_entities(a) | reject('is_hidden_entity') | list %}" +
         "{% if e.startswith('fan.') and states[e] is not none %}" +
         "{% set members = expand(e) | rejectattr('entity_id', 'is_hidden_entity') " +
@@ -151,7 +156,7 @@ module HaTemplate {
     // single sensor.
     const SENSORS = PRELUDE +
         "{% set ns = namespace(out={}, areas={}, floors={}, home=[]) %}" +
-        "{% for a in areas() if a not in hidden_areas and floor_id(a) not in hidden_floors %}" +
+        "{% for a in areas() " + VISIBLE_AREA_CLAUSE + " %}" +
         "{% set ids = area_entities(a) | list %}" +
         "{% set ns.home = ns.home + ids %}" +
         "{% set m = averages(ids) | from_json %}" +
@@ -181,7 +186,7 @@ module HaTemplate {
     // within its small memory pool.
     const GLANCE = PRELUDE +
         "{% set ns = namespace(home=[]) %}" +
-        "{% for a in areas() if a not in hidden_areas and floor_id(a) not in hidden_floors %}" +
+        "{% for a in areas() " + VISIBLE_AREA_CLAUSE + " %}" +
         "{% set ns.home = ns.home + (area_entities(a) | list) %}" +
         "{% endfor %}" +
         "{{ dict(lights=(lightSummary(ns.home) | trim or none), " +

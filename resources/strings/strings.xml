@@ -30,6 +30,7 @@
     <string id="RetryHint">Select to retry</string>
     <string id="SettingsFilter">Filter Floors and Areas</string>
     <string id="SettingsNotLoaded">Not loaded yet</string>
+    <string id="SettingsOtherAreas">Other</string>
     <string id="SettingsTitle">Settings</string>
     <string id="Unavailable">Unavailable</string>
 

@@ -182,7 +182,9 @@ class HaState {
     }
 
     function getVisibleUnflooredAreas() as Array<AreaModel> {
-        return filterVisibleAreas(getUnflooredAreas());
+        return _hiddenFloors.hasKey(VisibilityStore.UNFLOORED_FLOOR_ID)
+            ? [] as Array<AreaModel>
+            : filterVisibleAreas(getUnflooredAreas());
     }
 
     function getHiddenFloors() as Dictionary<String, Boolean> {

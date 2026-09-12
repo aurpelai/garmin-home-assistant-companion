@@ -14,6 +14,7 @@ function hiddenSetsAreInlinedAsQuotedIds(logger as Test.Logger) as Boolean {
     var template = HaTemplate.resolve(FetchTarget.GLANCE, { "floor.up" => true }, { "area.a" => true });
 
     Test.assert(template.find("{% set hidden_floors = ['floor.up'] %}{% set hidden_areas = ['area.a'] %}") == 0);
+    Test.assert(template.find("(floor_id(a) or 'unfloored-areas') not in hidden_floors") != null);
     return true;
 }
 

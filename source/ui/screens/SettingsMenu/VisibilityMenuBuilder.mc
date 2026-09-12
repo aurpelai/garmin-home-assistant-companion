@@ -5,22 +5,30 @@ import Toybox.Lang;
 // from here.
 module VisibilityMenuBuilder {
 
-    function build(haState as HaState) as Array<VisibilityRowModel> {
+    function build(haState as HaState, unflooredName as String) as Array<VisibilityRowModel> {
         var floors = haState.getFloors();
         var rows = [] as Array<VisibilityRowModel>;
 
         for (var index = 0; index < floors.size(); index++) {
             var floor = floors[index];
-            var areas = EntitySorter.sortAreas(haState.getAreasInFloor(floor.id));
-
-            if (areas.size() > 0) {
-                rows.add(new FloorVisibilityRowModel(floor.id, floor.name, areas.size(),
-                    !haState.getHiddenFloors().hasKey(floor.id)));
-                rows.addAll(buildAreaRows(haState, areas));
-            }
+            rows.addAll(buildFloorRows(haState, floor.id, floor.name, haState.getAreasInFloor(floor.id)));
         }
 
-        rows.addAll(buildAreaRows(haState, EntitySorter.sortAreas(haState.getUnflooredAreas())));
+        rows.addAll(buildFloorRows(haState, VisibilityStore.UNFLOORED_FLOOR_ID, unflooredName,
+            haState.getUnflooredAreas()));
+
+        return rows;
+    }
+
+    function buildFloorRows(haState as HaState, floorId as String, floorName as String,
+                            areas as Array<AreaModel>) as Array<VisibilityRowModel> {
+        if (areas.size() == 0) {
+            return [] as Array<VisibilityRowModel>;
+        }
+
+        var rows = [new FloorVisibilityRowModel(floorId, floorName, areas.size(),
+            !haState.getHiddenFloors().hasKey(floorId))] as Array<VisibilityRowModel>;
+        rows.addAll(buildAreaRows(haState, EntitySorter.sortAreas(areas)));
 
         return rows;
     }

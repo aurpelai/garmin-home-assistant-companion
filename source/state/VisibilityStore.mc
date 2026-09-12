@@ -10,6 +10,10 @@ module VisibilityStore {
     const HIDDEN_FLOORS_KEY = "hiddenFloors";
     const HIDDEN_AREAS_KEY = "hiddenAreas";
 
+    // The unfloored areas hide as a group under this pseudo floor id. UNVERIFIED: a
+    // hyphen cannot occur in a Home Assistant object id, so it collides with none.
+    const UNFLOORED_FLOOR_ID = "unfloored-areas";
+
     function getHiddenFloors() as Dictionary<String, Boolean> {
         return readSet(HIDDEN_FLOORS_KEY);
     }
