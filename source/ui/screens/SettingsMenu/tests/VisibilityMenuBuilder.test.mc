@@ -20,7 +20,7 @@ module VisibilityMenuBuilderTest {
         return haState;
     }
 
-    function idsOf(rows as Array<VisibilityToggleRowModel>) as Array<String> {
+    function idsOf(rows as Array<VisibilityRowModel>) as Array<String> {
         var ids = [] as Array<String>;
 
         for (var index = 0; index < rows.size(); index++) {
@@ -37,11 +37,10 @@ function rowsRunFloorByFloorLikeTheCardLoopSkippingAreaLessFloorsWithUnflooredAr
 
     Test.assertEqual(VisibilityMenuBuilderTest.idsOf(rows).toString(),
         ["floor.ground", "area.hall", "area.kitchen", "floor.up", "area.bedroom", "area.shed"].toString());
-    Test.assert(rows[0].isFloor);
-    Test.assertEqual(rows[0].areaCount, 2);
-    Test.assertEqual(rows[3].areaCount, 1);
-    Test.assert(!rows[1].isFloor);
-    Test.assert(!rows[5].isFloor);
+    Test.assertEqual((rows[0] as FloorVisibilityRowModel).areaCount, 2);
+    Test.assertEqual((rows[3] as FloorVisibilityRowModel).areaCount, 1);
+    Test.assert(rows[1] instanceof AreaVisibilityRowModel);
+    Test.assert(rows[5] instanceof AreaVisibilityRowModel);
     return true;
 }
 

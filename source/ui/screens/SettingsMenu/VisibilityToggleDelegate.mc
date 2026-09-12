@@ -17,10 +17,10 @@ class VisibilityToggleDelegate extends WatchUi.Menu2InputDelegate {
             return;
         }
 
-        var row = item.getId() as VisibilityToggleRowModel;
+        var row = item.getId() as VisibilityRowModel;
         var isHidden = !item.isEnabled();
 
-        if (row.isFloor) {
+        if (row instanceof FloorVisibilityRowModel) {
             _coordinator.setFloorHidden(row.id, isHidden);
         } else {
             _coordinator.setAreaHidden(row.id, isHidden);
