@@ -19,9 +19,9 @@ typedef IndicatorLayout as interface {
 class PageIndicator {
     private const MAX_PAGE_INDICATORS = 5;
 
-    private const SLIDE_OUT_DURATION = 0.2;
+    private const SLIDE_OUT_DURATION_SECONDS = 0.2;
     private const VISIBLE_DURATION_MS = 1800;
-    private const INDICATOR_FADE_DURATION = 0.05;
+    private const INDICATOR_FADE_DURATION_SECONDS = 0.05;
 
     private const PAGE_INDICATOR_INSET = 8;
 
@@ -72,8 +72,8 @@ class PageIndicator {
             ? (dc.getWidth() / 2 + PAGE_INDICATOR_INSET + _pageIndicatorRadius).toFloat()
             : 0.0;
 
-        _radialLayout = new RadialLayout(centerX, centerY, radiusStart, radiusEnd, spacing, SLIDE_OUT_DURATION);
-        _axialLayout = new AxialLayout(centerX, centerY, radiusStart, radiusEnd, spacing, SLIDE_OUT_DURATION);
+        _radialLayout = new RadialLayout(centerX, centerY, radiusStart, radiusEnd, spacing, SLIDE_OUT_DURATION_SECONDS);
+        _axialLayout = new AxialLayout(centerX, centerY, radiusStart, radiusEnd, spacing, SLIDE_OUT_DURATION_SECONDS);
         _window = resolveWindow();
         _layout = selectLayout(_window.count);
 
@@ -216,7 +216,7 @@ class PageIndicator {
             WatchUi.ANIM_TYPE_LINEAR,
             ACTIVE_INDICATOR_COLOR_CHANNEL,
             INACTIVE_INDICATOR_COLOR_CHANNEL,
-            INDICATOR_FADE_DURATION,
+            INDICATOR_FADE_DURATION_SECONDS,
             null
         );
         showIndicator();
