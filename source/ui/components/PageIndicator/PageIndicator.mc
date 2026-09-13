@@ -43,7 +43,7 @@ class PageIndicator {
     private var _axialLayout as AxialLayout;
 
     private var _layout as IndicatorLayout;
-    private var _window as Array;
+    private var _window as IndicatorWindow;
 
     private var _pageCount as Number;
     private var _currentPage as Number;
@@ -75,7 +75,7 @@ class PageIndicator {
         _radialLayout = new RadialLayout(centerX, centerY, radiusStart, radiusEnd, spacing, SLIDE_OUT_DURATION);
         _axialLayout = new AxialLayout(centerX, centerY, radiusStart, radiusEnd, spacing, SLIDE_OUT_DURATION);
         _window = resolveWindow();
-        _layout = selectLayout(_window[1] as Number);
+        _layout = selectLayout(_window.count);
 
         _timer = new Timer.Timer();
         inactiveIndicatorColorChannel = INACTIVE_INDICATOR_COLOR_CHANNEL;
@@ -95,18 +95,6 @@ class PageIndicator {
         _layout.startDismiss(method(:hideIndicator));
     }
 
-    private function onCurrentPageUpdate() as Void {
-        WatchUi.animate(
-            self,
-            :inactiveIndicatorColorChannel,
-            WatchUi.ANIM_TYPE_LINEAR,
-            ACTIVE_INDICATOR_COLOR_CHANNEL,
-            INACTIVE_INDICATOR_COLOR_CHANNEL,
-            INDICATOR_FADE_DURATION,
-            null
-        );
-    }
-
     function draw() as Void {
         var dc = _layer.getDc();
 
@@ -116,23 +104,23 @@ class PageIndicator {
 
         clear();
 
-        _layout.draw(dc, self, _window[0] as Number, _window[1] as Number, _window[2] as Boolean, _window[3] as Boolean);
+        _layout.draw(dc, self, _window.start, _window.count, _window.hasMoreBefore, _window.hasMoreAfter);
     }
 
-    private function resolveWindow() as Array {
+    private function resolveWindow() as IndicatorWindow {
         if (_pageCount <= MAX_PAGE_INDICATORS) {
-            return [0, _pageCount, false, false];
+            return new IndicatorWindow(0, _pageCount, false, false);
         }
 
         if (_currentPage <= MAX_PAGE_INDICATORS - 1) {
-            return [0, MAX_PAGE_INDICATORS, false, true];
+            return new IndicatorWindow(0, MAX_PAGE_INDICATORS, false, true);
         }
 
         if (_currentPage >= _pageCount - MAX_PAGE_INDICATORS) {
-            return [_pageCount - MAX_PAGE_INDICATORS, MAX_PAGE_INDICATORS, true, false];
+            return new IndicatorWindow(_pageCount - MAX_PAGE_INDICATORS, MAX_PAGE_INDICATORS, true, false);
         }
 
-        return [_currentPage - MAX_PAGE_INDICATORS / 2, MAX_PAGE_INDICATORS, true, true];
+        return new IndicatorWindow(_currentPage - MAX_PAGE_INDICATORS / 2, MAX_PAGE_INDICATORS, true, true);
     }
 
     function drawIndicator(dc as Graphics.Dc, x as Float, y as Float, page as Number) as Void {
@@ -186,7 +174,7 @@ class PageIndicator {
 
     function showIndicator() as Void {
         _window = resolveWindow();
-        _layout = selectLayout(_window[1] as Number);
+        _layout = selectLayout(_window.count);
         _layout.reset();
         _state = hasMultiplePages()
             ? PAGE_INDICATOR_VISIBLE
@@ -222,7 +210,15 @@ class PageIndicator {
         _previousPage = _currentPage;
         _currentPage = page;
 
-        onCurrentPageUpdate();
+        WatchUi.animate(
+            self,
+            :inactiveIndicatorColorChannel,
+            WatchUi.ANIM_TYPE_LINEAR,
+            ACTIVE_INDICATOR_COLOR_CHANNEL,
+            INACTIVE_INDICATOR_COLOR_CHANNEL,
+            INDICATOR_FADE_DURATION,
+            null
+        );
         showIndicator();
         draw();
     }

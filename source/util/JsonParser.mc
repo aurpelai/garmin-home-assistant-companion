@@ -70,7 +70,7 @@ class JsonParser {
         return null;
     }
 
-    private function valueStartsHere() as Boolean {
+    private function isAtValue() as Boolean {
         skipWhitespace();
         if (_position >= _length) {
             return false;
@@ -112,7 +112,7 @@ class JsonParser {
             return false;
         }
         _position++;
-        if (!valueStartsHere()) {
+        if (!isAtValue()) {
             return false;
         }
         object.put(key, parseValue());
@@ -128,7 +128,7 @@ class JsonParser {
 
         var hasNext = true;
         while (hasNext) {
-            if (!valueStartsHere()) {
+            if (!isAtValue()) {
                 return null;
             }
             array.add(parseValue());

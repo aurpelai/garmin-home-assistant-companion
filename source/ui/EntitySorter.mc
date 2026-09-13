@@ -29,7 +29,7 @@ module EntitySorter {
         return sortGroupsFirst(available).addAll(sortGroupsFirst(unavailable)) as Array<ToggleableModel>;
     }
 
-    function groupSensorsByDeviceClass(sensors as Array<SensorModel>) as Array<SensorModel> {
+    function sortSensorsByDeviceClass(sensors as Array<SensorModel>) as Array<SensorModel> {
         var sensorsByDeviceClass = [] as Array<SensorModel>;
 
         for (var classIndex = 0; classIndex < SENSOR_DEVICE_CLASSES.size(); classIndex++) {

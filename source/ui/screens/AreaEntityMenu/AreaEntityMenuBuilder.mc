@@ -32,7 +32,7 @@ module AreaEntityMenuBuilder {
 
     function buildSensorRows(sensors as Array<SensorModel>,
                              subLabelProvider as SubLabelProvider) as Array<SensorRowModel> {
-        sensors = EntitySorter.groupSensorsByDeviceClass(sensors);
+        sensors = EntitySorter.sortSensorsByDeviceClass(sensors);
         var rows = [] as Array<SensorRowModel>;
 
         for (var index = 0; index < sensors.size(); index++) {

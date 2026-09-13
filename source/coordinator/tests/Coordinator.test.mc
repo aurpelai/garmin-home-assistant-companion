@@ -139,12 +139,12 @@ function togglingAFloorDrivesEveryLightOffWhileAnyIsOnAndOnOtherwise(logger as T
 (:test)
 function aToggleRefreshesOnceItSettlesWhetherOrNotItFailed(logger as Test.Logger) as Boolean {
     var settled = new FakeRequestGateway();
-    CoordinatorTest.coordinatorWith(settled, new FakeScheduler()).onToggleSettled(null);
+    CoordinatorTest.coordinatorWith(settled, new FakeScheduler()).onToggleSettled(null, null);
     Test.assertEqual(settled.count(), 1);
 
     var failed = new FakeRequestGateway();
     CoordinatorTest.coordinatorWith(failed, new FakeScheduler())
-        .onToggleSettled(new RequestError(-1, RequestType.REQUEST));
+        .onToggleSettled(null, new RequestError(-1, RequestType.REQUEST));
     Test.assertEqual(failed.count(), 1);
     return true;
 }

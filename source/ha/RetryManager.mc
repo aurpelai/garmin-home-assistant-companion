@@ -23,7 +23,7 @@ class RetryManager {
     // The retry is scheduled rather than called inline, so the stack unwinds
     // between attempts. A request that fails synchronously — a missing webhook id
     // needs no round trip to reject — would otherwise recurse until it overflows.
-    function onAttempt(result as Object or Null, error as RequestError or Null) as Void {
+    function onAttemptSettled(result as Object or Null, error as RequestError or Null) as Void {
         if (error == null) {
             _callback.invoke(result, null);
             return;
@@ -39,6 +39,6 @@ class RetryManager {
 
     function attempt() as Void {
         _attemptsLeft--;
-        _request.invoke(method(:onAttempt));
+        _request.invoke(method(:onAttemptSettled));
     }
 }

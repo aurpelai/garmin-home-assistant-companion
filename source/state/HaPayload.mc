@@ -28,7 +28,7 @@ module HaPayload {
                                               memberIds as Array<String> or Null,
                                               entry as Dictionary) as ToggleableModel)
             as Dictionary<String, ToggleableModel> {
-        var entries = readEntries(payload, key);
+        var entries = parseEntries(payload, key);
         var toggleables = {} as Dictionary<String, ToggleableModel>;
         var entityIds = entries.keys();
 
@@ -70,7 +70,7 @@ module HaPayload {
     }
 
     function parseSensors(payload as Object or Null) as Dictionary<String, SensorModel> {
-        var entries = readEntries(payload, "sensors");
+        var entries = parseEntries(payload, "sensors");
         var sensors = {} as Dictionary<String, SensorModel>;
         var entityIds = entries.keys();
 
@@ -100,7 +100,7 @@ module HaPayload {
 
     function parseAverages(payload as Object or Null, key as String)
             as Dictionary<String, Dictionary<String, String>> {
-        var entries = readEntries(payload, key);
+        var entries = parseEntries(payload, key);
         var averages = {} as Dictionary<String, Dictionary<String, String>>;
         var ids = entries.keys();
 
@@ -136,7 +136,7 @@ module HaPayload {
         return stringMap;
     }
 
-    function readEntries(payload as Object or Null, key as String) as Dictionary<String, Dictionary> {
+    function parseEntries(payload as Object or Null, key as String) as Dictionary<String, Dictionary> {
         var entries = {} as Dictionary<String, Dictionary>;
         if (!(payload instanceof Dictionary)) {
             return entries;
@@ -160,7 +160,7 @@ module HaPayload {
     }
 
     function parseAreas(payload as Object or Null) as Dictionary<String, AreaModel> {
-        var entries = readEntries(payload, "areas");
+        var entries = parseEntries(payload, "areas");
         var areas = {} as Dictionary<String, AreaModel>;
         var ids = entries.keys();
 
@@ -177,7 +177,7 @@ module HaPayload {
     // Assistant's own floors() order; Dictionary.keys() is hash order. The
     // insertion is stable, so equal orders keep parse order.
     function parseFloors(payload as Object or Null) as Array<FloorModel> {
-        var entries = readEntries(payload, "floors");
+        var entries = parseEntries(payload, "floors");
         var floors = [] as Array<FloorModel>;
         var ids = entries.keys();
 
@@ -189,7 +189,7 @@ module HaPayload {
                 id,
                 asString(entry.get("name")),
                 asNumber(entry.get("order")),
-                onlyStrings(entry.get("areas"))));
+                asStrings(entry.get("areas"))));
         }
 
         return floors;
@@ -215,7 +215,7 @@ module HaPayload {
     }
 
     function asMemberIds(raw as Object or Null) as Array<String> or Null {
-        return raw instanceof Array ? onlyStrings(raw) : null;
+        return raw instanceof Array ? asStrings(raw) : null;
     }
 
     function asBooleanOrNull(raw as Object or Null) as Boolean or Null {
@@ -252,7 +252,7 @@ module HaPayload {
         return 0;
     }
 
-    function onlyStrings(raw as Object or Null) as Array<String> {
+    function asStrings(raw as Object or Null) as Array<String> {
         var strings = [] as Array<String>;
         if (!(raw instanceof Array)) {
             return strings;

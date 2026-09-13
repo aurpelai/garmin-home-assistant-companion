@@ -65,7 +65,7 @@ class ReadingChip {
         }
 
         if ("illuminance".equals(deviceClass)) {
-            return WatchUi.loadResource(Rez.Drawables.Brightness) as WatchUi.BitmapResource;
+            return WatchUi.loadResource(Rez.Drawables.Illuminance) as WatchUi.BitmapResource;
         }
 
         return null;

@@ -49,7 +49,7 @@ class Coordinator {
         }
     }
 
-    function onToggleSettled(error as RequestError or Null) as Void {
+    function onToggleSettled(result as Object or Null, error as RequestError or Null) as Void {
         if (error != null) {
             WatchUi.showToast(ErrorMessage.resolve(error), null);
         }
@@ -82,7 +82,7 @@ class Coordinator {
         updateDisplay();
 
         if (isLastTarget) {
-            showDestination();
+            onRefreshSettled();
         }
     }
 
@@ -175,7 +175,7 @@ class Coordinator {
         }
 
         _haState.overrideState(entityId, !_haState.isOn(entityId));
-        _client.queueToggle(entityId, new ToggleReply(self).method(:onSettled));
+        _client.queueToggle(entityId, method(:onToggleSettled));
         updateDisplay();
     }
 
@@ -190,7 +190,7 @@ class Coordinator {
         var service = targetState ? "turn_on" : "turn_off";
 
         _client.queueLightsInAreas(_haState.resolveVisibleAreaIdsInFloor(floorId), service,
-            new ToggleReply(self).method(:onSettled));
+            method(:onToggleSettled));
         updateDisplay();
     }
 
@@ -221,7 +221,7 @@ class Coordinator {
                                      value as Object) as Void {
         _haState.overrideAttribute(attribute.entityId, attribute.field, value);
         _client.queueAttribute(attribute.domain, service, attribute.entityId,
-            attribute.field, value, new ToggleReply(self).method(:onSettled));
+            attribute.field, value, method(:onToggleSettled));
         updateDisplay();
     }
 
@@ -266,7 +266,7 @@ class Coordinator {
         _client.refresh(method(:onFetchTarget));
     }
 
-    private function showDestination() as Void {
+    private function onRefreshSettled() as Void {
         var error = _client.getError();
 
         if (_haState.hasAreas()) {

@@ -10,21 +10,21 @@ class AreaCard extends Card {
     private const LIGHT_UNAVAILABLE = WatchUi.loadResource(Rez.Drawables.LightUnavailable) as WatchUi.BitmapResource;
 
     private var _floorName as String or Null;
-    public var lights as ToggleableCount;
+    public var lightCount as ToggleableCount;
 
     function initialize(id as String, floorId as String or Null, name as String,
                         floorName as String or Null, readings as Array<SensorReading>,
-                        lights as ToggleableCount) {
+                        lightCount as ToggleableCount) {
         Card.initialize(id, floorId, name, readings);
         _floorName = floorName;
-        self.lights = lights;
+        self.lightCount = lightCount;
     }
 
     function draw(dc as Graphics.Dc) as Void {
         drawFrame(dc, _floorName);
 
-        if (lights.available + lights.unavailable > 0) {
-            drawLightIndicators(dc, lights);
+        if (lightCount.available + lightCount.unavailable > 0) {
+            drawLightIndicators(dc, lightCount);
         }
     }
 
@@ -32,8 +32,8 @@ class AreaCard extends Card {
         coordinator.showAreaMenu(id);
     }
 
-    private function drawLightIndicators(dc as Graphics.Dc, lights as ToggleableCount) as Void {
-        var totalCount = lights.available + lights.unavailable;
+    private function drawLightIndicators(dc as Graphics.Dc, lightCount as ToggleableCount) as Void {
+        var totalCount = lightCount.available + lightCount.unavailable;
         var step = LIGHT_ON.getWidth() + LIGHT_INDICATOR_GAP;
         var firstX = dc.getWidth() / 2 - (totalCount - 1) * step / 2;
         var centerY = dc.getHeight() / 2;
@@ -41,9 +41,9 @@ class AreaCard extends Card {
         for (var index = 0; index < totalCount; index++) {
             var x = firstX + index * step;
 
-            if (index < lights.on) {
+            if (index < lightCount.on) {
                 drawLightIcon(dc, x, centerY, LIGHT_ON, Graphics.COLOR_YELLOW);
-            } else if (index < lights.available) {
+            } else if (index < lightCount.available) {
                 drawLightIcon(dc, x, centerY, LIGHT_OFF, Graphics.COLOR_LT_GRAY);
             } else {
                 drawLightIcon(dc, x, centerY, LIGHT_UNAVAILABLE, Graphics.COLOR_DK_GRAY);

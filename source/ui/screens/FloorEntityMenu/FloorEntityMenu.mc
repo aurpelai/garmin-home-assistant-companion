@@ -55,8 +55,8 @@ class FloorEntityMenu extends WatchUi.Menu2 {
         }
     }
 
-    function toServiceTarget(id as Object or Null) as String or Null {
-        return FloorEntityMenuModel.LIGHTS_ROW_ID.equals(id) ? _floorId : null;
+    function resolveFloorId(itemId as Object or Null) as String or Null {
+        return FloorEntityMenuModel.LIGHTS_ROW_ID.equals(itemId) ? _floorId : null;
     }
 
     private function findItem(id as String) as WatchUi.MenuItem or Null {

@@ -99,7 +99,7 @@ class HaClient {
         startNextRequest();
     }
 
-    function onRegistrationReply(epoch as Number, webhookId as String or Null,
+    function onRegistrationSettled(epoch as Number, webhookId as String or Null,
                                  error as RequestError or Null) as Void {
         if (epoch != _registrationEpoch || _registrationCallback == null) {
             return;
@@ -197,7 +197,7 @@ class HaClient {
         _registrationCallback = callback;
         _registrationEpoch++;
         post("/api/mobile_app/registrations", body,
-             new ResponseHandler(new RegistrationReply(self, _registrationEpoch).method(:onReply),
+             new ResponseHandler(new RegistrationHandler(self, _registrationEpoch).method(:onSettled),
                                  ResponseType.REGISTRATION));
     }
 
