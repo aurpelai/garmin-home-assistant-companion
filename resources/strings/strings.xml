@@ -8,10 +8,10 @@
 
     <!-- UI -->
     <string id="AllLights">All Lights</string>
-    <string id="AttrBrightness">Brightness</string>
-    <string id="AttrColorTemp">Color</string>
-    <string id="AttrOscillation">Oscillation</string>
-    <string id="AttrSpeed">Speed</string>
+    <string id="AttributeBrightness">Brightness</string>
+    <string id="AttributeColorTemperature">Color</string>
+    <string id="AttributeOscillation">Oscillation</string>
+    <string id="AttributeSpeed">Speed</string>
     <string id="FloorAreaCount">Floor • $1$ Areas</string>
     <string id="FloorAreaCountOne">Floor • 1 Area</string>
     <string id="GroupFanCount">Group • $1$ Fans</string>
@@ -28,7 +28,7 @@
     <string id="OnValue">On • $1$ %</string>
     <string id="Percent">$1$ %</string>
     <string id="RetryHint">Select to retry</string>
-    <string id="SettingsFilter">Filter Floors and Areas</string>
+    <string id="SettingsVisibility">Filter Floors and Areas</string>
     <string id="SettingsNotLoaded">Not loaded yet</string>
     <string id="SettingsOtherAreas">Other</string>
     <string id="SettingsTitle">Settings</string>
@@ -42,19 +42,19 @@
     <string id="GlanceAllLightsOff" scope="glance">All lights off</string>
 
     <!-- Errors -->
-    <string id="ErrAuth">Auth failed — check your token</string>
-    <string id="ErrBadResponse">Bad response</string>
-    <string id="ErrInsecureUrl">URL needs https</string>
-    <string id="ErrNetwork">Network error</string>
-    <string id="ErrNoConfig">Set URL and token in the app settings</string>
-    <string id="ErrNoPhone">Phone not reachable</string>
-    <string id="ErrNotFound">HA not found. Is the URL correct?</string>
-    <string id="ErrRefresh">Couldn't fetch updated data</string>
-    <string id="ErrRegistrationFailed">Couldn't set up with HA. Check Home Assistant.</string>
-    <string id="ErrRegistrationRejected">HA rejected this watch's registration</string>
-    <string id="ErrTemplate">HA couldn't render the request</string>
-    <string id="ErrTimeout">No response</string>
-    <string id="ErrTooManyRequests">Too many requests</string>
-    <string id="ErrUnknown">Something went wrong</string>
-    <string id="ErrUnreadableBody">HA's response couldn't be read</string>
+    <string id="ErrorAuth">Auth failed — check your token</string>
+    <string id="ErrorBadResponse">Bad response</string>
+    <string id="ErrorInsecureUrl">URL needs https</string>
+    <string id="ErrorNetwork">Network error</string>
+    <string id="ErrorNoConfig">Set URL and token in the app settings</string>
+    <string id="ErrorNoPhone">Phone not reachable</string>
+    <string id="ErrorNotFound">HA not found. Is the URL correct?</string>
+    <string id="ErrorRefresh">Couldn't fetch updated data</string>
+    <string id="ErrorRegistrationFailed">Couldn't set up with HA. Check Home Assistant.</string>
+    <string id="ErrorRegistrationRejected">HA rejected this watch's registration</string>
+    <string id="ErrorTemplate">HA couldn't render the request</string>
+    <string id="ErrorTimeout">No response</string>
+    <string id="ErrorTooManyRequests">Too many requests</string>
+    <string id="ErrorUnknown">Something went wrong</string>
+    <string id="ErrorUnreadableBody">HA's response couldn't be read</string>
 </strings>

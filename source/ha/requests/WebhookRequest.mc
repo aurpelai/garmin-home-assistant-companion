@@ -9,23 +9,22 @@ class WebhookRequest {
     private var _body as Dictionary;
     private var _responseType as Symbol;
     private var _callback as Method or Null;
-    private var _registered as Boolean;
+    private var _hasRegistered as Boolean;
 
     function initialize(client as HaClient, body as Dictionary, responseType as Symbol) {
         _client = client;
         _body = body;
         _responseType = responseType;
         _callback = null;
-        _registered = false;
+        _hasRegistered = false;
     }
 
     function onPosted(result as Object or Null, error as RequestError or Null) as Void {
-        if (error == null || error.reason != RequestError.UNUSABLE_WEBHOOK || _registered) {
+        if (error == null || error.reason != RequestError.UNUSABLE_WEBHOOK || _hasRegistered) {
             (_callback as Method).invoke(result, error);
             return;
         }
 
-        _registered = true;
         _client.registerWithHomeAssistant(method(:onRegistered));
     }
 
@@ -35,6 +34,7 @@ class WebhookRequest {
             return;
         }
 
+        _hasRegistered = true;
         post();
     }
 

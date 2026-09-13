@@ -6,7 +6,7 @@ import Toybox.WatchUi;
 class VisibilityToggleMenu extends WatchUi.Menu2 {
 
     function initialize(rows as Array<VisibilityRowModel>) {
-        Menu2.initialize({ :title => WatchUi.loadResource(Rez.Strings.SettingsFilter) as String });
+        Menu2.initialize({ :title => WatchUi.loadResource(Rez.Strings.SettingsVisibility) as String });
 
         for (var index = 0; index < rows.size(); index++) {
             var row = rows[index];

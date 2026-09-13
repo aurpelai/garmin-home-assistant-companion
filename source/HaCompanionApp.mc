@@ -13,7 +13,7 @@ import Toybox.WatchUi;
 // (getInitialView) and left null elsewhere, where the lifecycle callbacks skip it.
 (:glance, :background, :typecheck([disableGlanceCheck, disableBackgroundCheck]))
 class HaCompanionApp extends Application.AppBase {
-    private const REFRESH_PERIOD_S = 15 * 60;
+    private const REFRESH_PERIOD_SECONDS = 15 * 60;
 
     private var _coordinator as Coordinator or Null;
 
@@ -59,7 +59,7 @@ class HaCompanionApp extends Application.AppBase {
         var coordinator = getOrCreateCoordinator();
 
         if (!Settings.isConfigured()) {
-            return [new InfoView(coordinator, WatchUi.loadResource(Rez.Strings.ErrNoConfig) as String, true, null),
+            return [new InfoView(coordinator, WatchUi.loadResource(Rez.Strings.ErrorNoConfig) as String, true, null),
                     new InfoDelegate(coordinator)];
         }
 
@@ -85,7 +85,7 @@ class HaCompanionApp extends Application.AppBase {
             return;
         }
 
-        Background.registerForTemporalEvent(new Time.Duration(REFRESH_PERIOD_S));
+        Background.registerForTemporalEvent(new Time.Duration(REFRESH_PERIOD_SECONDS));
     }
 
     private function getOrCreateCoordinator() as Coordinator {

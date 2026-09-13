@@ -34,7 +34,7 @@ class Card {
     function draw(dc as Graphics.Dc) as Void {
     }
 
-    function open(coordinator as Coordinator) as Void {
+    function onSelect(coordinator as Coordinator) as Void {
     }
 
     hidden function drawFrame(dc as Graphics.Dc, subtitle as String or Null) as Void {
@@ -43,19 +43,19 @@ class Card {
         Rendering.useAntiAlias(dc, true);
 
         if (subtitle != null) {
-            drawSubtitle(dc, centerX, getRowY(dc, 3), subtitle as String);
+            drawSubtitle(dc, centerX, calculateRowY(dc, 3), subtitle as String);
         }
 
-        drawTitle(dc, centerX, getRowY(dc, 5), name);
+        drawTitle(dc, centerX, calculateRowY(dc, 5), name);
         drawReadings(dc);
         drawSelectHint(dc);
     }
 
-    hidden function getRowY(dc as Graphics.Dc, row as Number) as Number {
+    hidden function calculateRowY(dc as Graphics.Dc, row as Number) as Number {
         return dc.getHeight() * row / GRID_SIZE;
     }
 
-    hidden function getColumnX(dc as Graphics.Dc, column as Number) as Number {
+    hidden function calculateColumnX(dc as Graphics.Dc, column as Number) as Number {
         return dc.getWidth() * column / GRID_SIZE;
     }
 
@@ -83,11 +83,11 @@ class Card {
             var reading = readings[index];
 
             if ("temperature".equals(reading.deviceClass)) {
-                new ReadingChip(reading, Graphics.COLOR_ORANGE).draw(dc, getColumnX(dc, 6), getRowY(dc, 14));
+                new ReadingChip(reading, Graphics.COLOR_ORANGE).draw(dc, calculateColumnX(dc, 6), calculateRowY(dc, 14));
             } else if ("humidity".equals(reading.deviceClass)) {
-                new ReadingChip(reading, Graphics.COLOR_BLUE).draw(dc, getColumnX(dc, 14), getRowY(dc, 14));
+                new ReadingChip(reading, Graphics.COLOR_BLUE).draw(dc, calculateColumnX(dc, 14), calculateRowY(dc, 14));
             } else if ("illuminance".equals(reading.deviceClass)) {
-                new ReadingChip(reading, Graphics.COLOR_WHITE).draw(dc, dc.getWidth() / 2, getRowY(dc, 17));
+                new ReadingChip(reading, Graphics.COLOR_WHITE).draw(dc, dc.getWidth() / 2, calculateRowY(dc, 17));
             }
         }
     }

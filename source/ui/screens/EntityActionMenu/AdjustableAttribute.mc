@@ -9,13 +9,13 @@ class AdjustableAttribute {
     public var field as String;
     public var unitId as ResourceId or Null;
     public var range as ValueRange or Null;
-    public var current as Number or Null;
-    public var currentOn as Boolean or Null;
+    public var currentValue as Number or Null;
+    public var isOn as Boolean or Null;
 
     function initialize(entityId as String, titleId as ResourceId, domain as String, service as String,
                         offService as String or Null, field as String, unitId as ResourceId or Null,
-                        range as ValueRange or Null, current as Number or Null,
-                        currentOn as Boolean or Null) {
+                        range as ValueRange or Null, currentValue as Number or Null,
+                        isOn as Boolean or Null) {
         self.entityId = entityId;
         self.titleId = titleId;
         self.domain = domain;
@@ -24,15 +24,15 @@ class AdjustableAttribute {
         self.field = field;
         self.unitId = unitId;
         self.range = range;
-        self.current = current;
-        self.currentOn = currentOn;
+        self.currentValue = currentValue;
+        self.isOn = isOn;
     }
 
     function isToggle() as Boolean {
         return range == null;
     }
 
-    function resolveService(value as Number) as String {
+    function selectService(value as Number) as String {
         var off = offService;
         return off != null && value == 0 ? off : service;
     }

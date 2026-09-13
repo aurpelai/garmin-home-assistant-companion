@@ -1,6 +1,6 @@
 import Toybox.Lang;
 
-class RegistrationReply {
+class RegistrationHandler {
     private var _client as HaClient;
     private var _epoch as Number;
 
@@ -9,7 +9,7 @@ class RegistrationReply {
         _epoch = epoch;
     }
 
-    function onReply(webhookId as String or Null, error as RequestError or Null) as Void {
-        _client.onRegistrationReply(_epoch, webhookId, error);
+    function onSettled(webhookId as String or Null, error as RequestError or Null) as Void {
+        _client.onRegistrationSettled(_epoch, webhookId, error);
     }
 }

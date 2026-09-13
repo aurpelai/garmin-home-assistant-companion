@@ -15,7 +15,7 @@ class EntityActionMenuDelegate extends WatchUi.ActionMenuDelegate {
         var attribute = _attributes[item.getId() as Number];
 
         if (attribute.isToggle()) {
-            _coordinator.toggleAttribute(attribute, !(attribute.currentOn == true));
+            _coordinator.toggleAttribute(attribute, !(attribute.isOn == true));
             return;
         }
 

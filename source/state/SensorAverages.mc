@@ -18,16 +18,16 @@ class SensorAverages {
     }
 
     function getArea(areaId as String) as Dictionary<String, String> {
-        return resolve(_areaAverages, areaId);
+        return getAverages(_areaAverages, areaId);
     }
 
     function getFloor(floorId as String) as Dictionary<String, String> {
-        return resolve(_floorAverages, floorId);
+        return getAverages(_floorAverages, floorId);
     }
 
-    private function resolve(byId as Dictionary<String, Dictionary<String, String>>,
+    private function getAverages(averagesById as Dictionary<String, Dictionary<String, String>>,
                              id as String) as Dictionary<String, String> {
-        var averages = byId.get(id);
+        var averages = averagesById.get(id);
 
         return averages == null ? ({} as Dictionary<String, String>) : averages;
     }

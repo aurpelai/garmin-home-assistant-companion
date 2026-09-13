@@ -61,8 +61,8 @@ class RadialLayout {
         }
     }
 
-    private function calculateFanAngle(i as Number, visibleIndicatorCount as Number, angleStep as Float) as Float {
-        return START_ANGLE - (i - (visibleIndicatorCount - 1) / 2.0) * angleStep;
+    private function calculateFanAngle(index as Number, visibleIndicatorCount as Number, angleStep as Float) as Float {
+        return START_ANGLE - (index - (visibleIndicatorCount - 1) / 2.0) * angleStep;
     }
 
     private function calculatePointOnCircle(angle as Float) as Array<Float> {

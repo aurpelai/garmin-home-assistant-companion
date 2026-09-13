@@ -23,9 +23,9 @@ class CardLoop extends WatchUi.View {
     }
 
     function setModel(model as CardLoopModel) as Void {
-        var focused = currentCard();
-        var cardId = focused == null ? null : focused.id;
-        var floorId = focused == null ? null : focused.floorId;
+        var card = getCurrentCard();
+        var cardId = card == null ? null : card.id;
+        var floorId = card == null ? null : card.floorId;
 
         _model = model;
         _index = resolveIndex(cardId, floorId);
@@ -42,7 +42,7 @@ class CardLoop extends WatchUi.View {
         dc.setColor(system_color_dark__text.color, system_color_dark__background.background);
         dc.clear();
 
-        var card = currentCard();
+        var card = getCurrentCard();
         if (card != null) {
             card.draw(dc);
         }
@@ -59,18 +59,18 @@ class CardLoop extends WatchUi.View {
         View.onHide();
     }
 
-    function currentCard() as Card or Null {
+    function getCurrentCard() as Card or Null {
         return _index < 0 || _index >= _model.cards.size() ? null : _model.cards[_index];
     }
 
     function showNext() as Void {
         _index = _index < _model.cards.size() - 1 ? _index + 1 : 0;
-        _pageIndicator.updateIndex(_index);
+        _pageIndicator.updateCurrentPage(_index);
     }
 
     function showPrevious() as Void {
         _index = _index > 0 ? _index - 1 : _model.cards.size() - 1;
-        _pageIndicator.updateIndex(_index);
+        _pageIndicator.updateCurrentPage(_index);
     }
 
     private function resolveIndex(cardId as String or Null, floorId as String or Null) as Number {

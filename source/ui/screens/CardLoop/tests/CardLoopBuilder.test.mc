@@ -152,15 +152,15 @@ function anOptimisticallyToggledLightMovesTheCardCountAndFloorSummary(logger as 
     }, {
         "light.room" => CardLoopModelTest.light(false, "area.room")
     }, {} as Dictionary);
-    haState.override("light.room", true);
+    haState.overrideState("light.room", true);
 
     var model = CardLoopBuilder.build(haState);
     var area = CardLoopModelTest.cardOf(model, "area.room") as AreaCard;
     var floor = CardLoopModelTest.cardOf(model, "floor.g") as FloorCard;
 
-    Test.assertEqual(area.lights.on, 1);
-    Test.assertEqual(area.lights.available, 1);
-    Test.assert((floor.lights as String).equals(LightSummary.ALL_ON));
+    Test.assertEqual(area.lightCount.on, 1);
+    Test.assertEqual(area.lightCount.available, 1);
+    Test.assert((floor.lightSummary as String).equals(LightSummary.ALL_ON));
     return true;
 }
 
@@ -177,8 +177,8 @@ function aGroupAndItsMembersMoveTheCountByPhysicalMembersOnly(logger as Test.Log
 
     var area = CardLoopModelTest.cardOf(CardLoopBuilder.build(haState), "area.room") as AreaCard;
 
-    Test.assertEqual(area.lights.available, 2);
-    Test.assertEqual(area.lights.on, 1);
+    Test.assertEqual(area.lightCount.available, 2);
+    Test.assertEqual(area.lightCount.on, 1);
     return true;
 }
 
@@ -193,7 +193,7 @@ function aFloorWithNoAvailableLightsYieldsNoSummary(logger as Test.Logger) as Bo
 
     var floor = CardLoopModelTest.cardOf(CardLoopBuilder.build(haState), "floor.g") as FloorCard;
 
-    Test.assert(floor.lights == null);
+    Test.assert(floor.lightSummary == null);
     return true;
 }
 

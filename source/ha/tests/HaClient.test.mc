@@ -626,7 +626,7 @@ function aRefreshWhereOneTargetFailsNeverStampsCompletion(logger as Test.Logger)
 
     Test.assertEqual((client.getError() as RequestError).reason as Number, -1);
     Test.assert(!client.hasEverRefreshed());
-    Test.assert(client.msSinceLastRefresh() == null);
+    Test.assert(client.isRefreshDue());
     return true;
 }
 

@@ -80,7 +80,7 @@ function aRowReadsTheAssumedValueAndCarriesItsPendingStatus(logger as Test.Logge
         "light.a" => { "state" => false, "area_id" => "area.room", "available" => true }
     }, {} as Dictionary, {} as Dictionary);
 
-    haState.override("light.a", true);
+    haState.overrideState("light.a", true);
 
     Test.assert(AreaEntityMenuModelTest.build(haState).toggles[0].isOn);
     return true;
@@ -95,10 +95,10 @@ function aFanShowsItsSpeedWhileOnAndOffEvenWhenASpeedLingers(logger as Test.Logg
     var toggles = AreaEntityMenuModelTest.build(haState).toggles;
 
     Test.assertEqual(toggles.size(), 2);
-    Test.assertEqual(toggles[0].rowId, "fan.off");
+    Test.assertEqual(toggles[0].id, "fan.off");
     Test.assert(!toggles[0].isOn);
     Test.assertEqual(toggles[0].subLabel as String, "Off");
-    Test.assertEqual(toggles[1].rowId, "fan.on");
+    Test.assertEqual(toggles[1].id, "fan.on");
     Test.assert(toggles[1].isOn);
     Test.assertEqual(toggles[1].subLabel as String, "On • 33 %");
     return true;
@@ -124,7 +124,7 @@ function aFanRowReadsItsSpeedAgainstTheAssumedStateNotTheServers(logger as Test.
         "fan.a" => AreaEntityMenuModelTest.fan(true, 33)
     }, {} as Dictionary);
 
-    haState.override("fan.a", false);
+    haState.overrideState("fan.a", false);
 
     var row = AreaEntityMenuModelTest.build(haState).toggles[0];
 
@@ -145,10 +145,10 @@ function aGroupShowsItsMemberCountInItsOwnDomainNeverAValue(logger as Test.Logge
     }, {} as Dictionary);
     var toggles = AreaEntityMenuModelTest.build(haState).toggles;
 
-    Test.assertEqual(toggles[0].rowId, "light.grp");
+    Test.assertEqual(toggles[0].id, "light.grp");
     Test.assertEqual(toggles[0].subLabel as String, "Group of 3 light");
     Test.assertEqual(toggles[1].subLabel as String, "On • 50 %");
-    Test.assertEqual(toggles[2].rowId, "fan.grp");
+    Test.assertEqual(toggles[2].id, "fan.grp");
     Test.assertEqual(toggles[2].subLabel as String, "Group of 1 fan");
     return true;
 }
@@ -163,9 +163,9 @@ function anUnavailableRowReadsUnavailableWhateverElseItCarries(logger as Test.Lo
     }, {} as Dictionary);
     var toggles = AreaEntityMenuModelTest.build(haState).toggles;
 
-    Test.assertEqual(toggles[0].rowId, "light.dead_grp");
+    Test.assertEqual(toggles[0].id, "light.dead_grp");
     Test.assertEqual(toggles[0].subLabel as String, "Group unavailable");
-    Test.assertEqual(toggles[1].rowId, "fan.dead");
+    Test.assertEqual(toggles[1].id, "fan.dead");
     Test.assertEqual(toggles[1].subLabel as String, "Unavailable");
     return true;
 }
@@ -183,9 +183,9 @@ function aSensorShowsHomeAssistantsValueUnlessItIsUnavailable(logger as Test.Log
     });
     var sensors = AreaEntityMenuModelTest.build(haState).sensors;
 
-    Test.assertEqual(sensors[0].rowId, "sensor.dead");
+    Test.assertEqual(sensors[0].id, "sensor.dead");
     Test.assertEqual(sensors[0].subLabel, "Unavailable");
-    Test.assertEqual(sensors[1].rowId, "sensor.live");
+    Test.assertEqual(sensors[1].id, "sensor.live");
     Test.assertEqual(sensors[1].subLabel, "21.5 °C");
     return true;
 }
@@ -203,9 +203,9 @@ function rowsComeOutLightsThenFansThenSensors(logger as Test.Logger) as Boolean 
     var model = AreaEntityMenuModelTest.build(haState);
 
     Test.assertEqual(model.toggles.size(), 2);
-    Test.assertEqual(model.toggles[0].rowId, "light.zzz");
-    Test.assertEqual(model.toggles[1].rowId, "fan.aaa");
+    Test.assertEqual(model.toggles[0].id, "light.zzz");
+    Test.assertEqual(model.toggles[1].id, "fan.aaa");
     Test.assertEqual(model.sensors.size(), 1);
-    Test.assertEqual(model.sensors[0].rowId, "sensor.t");
+    Test.assertEqual(model.sensors[0].id, "sensor.t");
     return true;
 }

@@ -112,7 +112,7 @@ function sortingLeavesTheCallersOwnArrayInItsOriginalOrder(logger as Test.Logger
 
 (:test)
 function sensorsAreGroupedByDeviceClass(logger as Test.Logger) as Boolean {
-    var grouped = EntitySorter.groupSensorsByDeviceClass([
+    var grouped = EntitySorter.sortSensorsByDeviceClass([
         EntitySorterTest.sensor("sensor.lux", "illuminance"),
         EntitySorterTest.sensor("sensor.odd", ""),
         EntitySorterTest.sensor("sensor.rh", "humidity"),

@@ -8,10 +8,10 @@ module EntitySorter {
     const SENSOR_DEVICE_CLASSES = ["temperature", "humidity", "illuminance"] as Array<String>;
 
     function sortAreas(areas as Array<AreaModel>) as Array<AreaModel> {
-        var sorted = areas.slice(0, null);
-        sorted.sort(new LabelComparator());
+        var areasByLabel = areas.slice(0, null);
+        areasByLabel.sort(new LabelComparator());
 
-        return sorted;
+        return areasByLabel;
     }
 
     function sortToggleables(toggleables as Array<ToggleableModel>) as Array<ToggleableModel> {
@@ -26,56 +26,50 @@ module EntitySorter {
             }
         }
 
-        var sorted = sortGroupsFirst(available);
-        sorted.addAll(sortGroupsFirst(unavailable));
-        return sorted;
+        return sortGroupsFirst(available).addAll(sortGroupsFirst(unavailable)) as Array<ToggleableModel>;
     }
 
-    function groupSensorsByDeviceClass(sensors as Array<SensorModel>) as Array<SensorModel> {
-        var grouped = [] as Array<SensorModel>;
-        var claimed = {} as Dictionary<String, Boolean>;
+    function sortSensorsByDeviceClass(sensors as Array<SensorModel>) as Array<SensorModel> {
+        var sensorsByDeviceClass = [] as Array<SensorModel>;
 
         for (var classIndex = 0; classIndex < SENSOR_DEVICE_CLASSES.size(); classIndex++) {
             var deviceClass = SENSOR_DEVICE_CLASSES[classIndex];
 
             for (var index = 0; index < sensors.size(); index++) {
                 if (deviceClass.equals(sensors[index].deviceClass)) {
-                    grouped.add(sensors[index]);
-                    claimed.put(sensors[index].id, true);
+                    sensorsByDeviceClass.add(sensors[index]);
                 }
             }
         }
 
         for (var index = 0; index < sensors.size(); index++) {
-            if (!claimed.hasKey(sensors[index].id)) {
-                grouped.add(sensors[index]);
+            if (SENSOR_DEVICE_CLASSES.indexOf(sensors[index].deviceClass) < 0) {
+                sensorsByDeviceClass.add(sensors[index]);
             }
         }
 
-        return grouped;
+        return sensorsByDeviceClass;
     }
 
     function sortGroupsFirst(toggleables as Array<ToggleableModel>) as Array<ToggleableModel> {
         var groups = [] as Array<ToggleableModel>;
-        var plain = [] as Array<ToggleableModel>;
+        var physical = [] as Array<ToggleableModel>;
 
         for (var index = 0; index < toggleables.size(); index++) {
             if (toggleables[index].memberIds != null) {
                 groups.add(toggleables[index]);
             } else {
-                plain.add(toggleables[index]);
+                physical.add(toggleables[index]);
             }
         }
 
-        var sorted = sortByName(groups);
-        sorted.addAll(sortByName(plain));
-        return sorted;
+        return sortByLabel(groups).addAll(sortByLabel(physical)) as Array<ToggleableModel>;
     }
 
-    function sortByName(toggleables as Array<ToggleableModel>) as Array<ToggleableModel> {
-        var sorted = toggleables.slice(0, null);
-        sorted.sort(new LabelComparator());
+    function sortByLabel(toggleables as Array<ToggleableModel>) as Array<ToggleableModel> {
+        var toggleablesByLabel = toggleables.slice(0, null);
+        toggleablesByLabel.sort(new LabelComparator());
 
-        return sorted;
+        return toggleablesByLabel;
     }
 }

@@ -2,7 +2,6 @@ import Toybox.Lang;
 import Toybox.WatchUi;
 
 class Coordinator {
-    private const STALE_AFTER_MS = 60 * 1000;
     private const DOUBLE_CLICK_MS = 250;
 
     private var _client as HaClient;
@@ -32,8 +31,7 @@ class Coordinator {
         _currentView = view;
         updateDisplay();
 
-        var age = _client.msSinceLastRefresh();
-        if (_hasVisibilityChanged || age == null || age > STALE_AFTER_MS) {
+        if (_hasVisibilityChanged || _client.isRefreshDue()) {
             _hasVisibilityChanged = false;
             refresh();
         }
@@ -51,7 +49,7 @@ class Coordinator {
         }
     }
 
-    function onToggleSettled(error as RequestError or Null) as Void {
+    function onToggleSettled(result as Object or Null, error as RequestError or Null) as Void {
         if (error != null) {
             WatchUi.showToast(ErrorMessage.resolve(error), null);
         }
@@ -84,7 +82,7 @@ class Coordinator {
         updateDisplay();
 
         if (isLastTarget) {
-            showDestination();
+            onRefreshSettled();
         }
     }
 
@@ -102,7 +100,7 @@ class Coordinator {
         return [new SettingsMenu(_haState), new SettingsMenuDelegate(self)];
     }
 
-    function showVisibilityFilter() as Void {
+    function showVisibilityMenu() as Void {
         if (!_haState.hasAreas()) {
             return;
         }
@@ -128,7 +126,7 @@ class Coordinator {
         clearPendingClick();
 
         if (pending != null && pending.equals(entityId)) {
-            openAttributeMenu(entityId);
+            showAttributeMenu(entityId);
             return;
         }
 
@@ -164,7 +162,7 @@ class Coordinator {
     }
 
     function setAttribute(attribute as AdjustableAttribute, value as Number) as Void {
-        commitAttribute(attribute, attribute.resolveService(value), value);
+        commitAttribute(attribute, attribute.selectService(value), value);
     }
 
     function toggleAttribute(attribute as AdjustableAttribute, isOn as Boolean) as Void {
@@ -172,27 +170,27 @@ class Coordinator {
     }
 
     function toggleEntity(entityId as String) as Void {
-        if (_haState.hasAnyPending(_haState.getToggleTargets(entityId))) {
+        if (_haState.hasAnyPending(_haState.resolveToggleTargets(entityId))) {
             return;
         }
 
-        _haState.override(entityId, !_haState.isOn(entityId));
-        _client.queueToggle(entityId, new ToggleReply(self).method(:onSettled));
+        _haState.overrideState(entityId, !_haState.isOn(entityId));
+        _client.queueToggle(entityId, method(:onToggleSettled));
         updateDisplay();
     }
 
     function toggleFloorLights(floorId as String) as Void {
-        var lights = _haState.getToggleablesInFloor(floorId, Domain.LIGHT);
+        var lights = _haState.resolveVisibleToggleablesInFloor(floorId, Domain.LIGHT);
         if (lights.size() == 0 || _haState.hasAnyPending(_haState.toIds(lights))) {
             return;
         }
 
         var targetState = !_haState.hasAnyOn(lights);
-        _haState.overrideFloorLights(floorId, targetState);
+        _haState.overrideFloorLightsState(floorId, targetState);
         var service = targetState ? "turn_on" : "turn_off";
 
-        _client.queueLightsInAreas(_haState.getVisibleAreaIdsInFloor(floorId), service,
-            new ToggleReply(self).method(:onSettled));
+        _client.queueLightsInAreas(_haState.resolveVisibleAreaIdsInFloor(floorId), service,
+            method(:onToggleSettled));
         updateDisplay();
     }
 
@@ -221,13 +219,13 @@ class Coordinator {
 
     private function commitAttribute(attribute as AdjustableAttribute, service as String,
                                      value as Object) as Void {
-        _haState.assumeAttribute(attribute.entityId, attribute.field, value);
+        _haState.overrideAttribute(attribute.entityId, attribute.field, value);
         _client.queueAttribute(attribute.domain, service, attribute.entityId,
-            attribute.field, value, new ToggleReply(self).method(:onSettled));
+            attribute.field, value, method(:onToggleSettled));
         updateDisplay();
     }
 
-    private function openAttributeMenu(entityId as String) as Void {
+    private function showAttributeMenu(entityId as String) as Void {
         var toggleable = _haState.getToggleable(entityId);
         if (toggleable == null) {
             return;
@@ -261,14 +259,14 @@ class Coordinator {
 
     private function refresh() as Void {
         if (!Settings.isConfigured()) {
-            showMessage(Rez.Strings.ErrNoConfig);
+            showMessage(Rez.Strings.ErrorNoConfig);
             return;
         }
 
         _client.refresh(method(:onFetchTarget));
     }
 
-    private function showDestination() as Void {
+    private function onRefreshSettled() as Void {
         var error = _client.getError();
 
         if (_haState.hasAreas()) {
@@ -277,7 +275,7 @@ class Coordinator {
             }
 
             if (error != null) {
-                WatchUi.showToast(Rez.Strings.ErrRefresh, null);
+                WatchUi.showToast(Rez.Strings.ErrorRefresh, null);
             }
 
             return;
@@ -306,7 +304,7 @@ class Coordinator {
         }
 
         if (view has :rebuild) {
-            (view as Refreshable).rebuild(_haState);
+            (view as Rebuildable).rebuild(_haState);
             WatchUi.requestUpdate();
         }
     }

@@ -5,7 +5,7 @@ import Toybox.Test;
 function aTriggerMakesTheIndicatorVisible(logger as Test.Logger) as Boolean {
     var indicator = new PageIndicator(5);
 
-    indicator.updateIndex(3);
+    indicator.updateCurrentPage(3);
 
     Test.assert(indicator.isVisible());
 
@@ -16,8 +16,8 @@ function aTriggerMakesTheIndicatorVisible(logger as Test.Logger) as Boolean {
 function aFreshTriggerWhileVisibleKeepsItVisible(logger as Test.Logger) as Boolean {
     var indicator = new PageIndicator(5);
 
-    indicator.updateIndex(3);
-    indicator.updateIndex(3);
+    indicator.updateCurrentPage(3);
+    indicator.updateCurrentPage(3);
 
     Test.assert(indicator.isVisible());
 
@@ -28,7 +28,7 @@ function aFreshTriggerWhileVisibleKeepsItVisible(logger as Test.Logger) as Boole
 function hidingClearsTheVisibleState(logger as Test.Logger) as Boolean {
     var indicator = new PageIndicator(5);
 
-    indicator.updateIndex(3);
+    indicator.updateCurrentPage(3);
     indicator.onParentViewHide();
 
     Test.assert(!indicator.isVisible());
@@ -40,7 +40,7 @@ function hidingClearsTheVisibleState(logger as Test.Logger) as Boolean {
 function aCountDroppingToASingleCardHidesAVisibleIndicator(logger as Test.Logger) as Boolean {
     var indicator = new PageIndicator(5);
 
-    indicator.updateIndex(3);
+    indicator.updateCurrentPage(3);
     indicator.setPageCount(1, 0);
 
     Test.assert(!indicator.isVisible());
@@ -52,7 +52,7 @@ function aCountDroppingToASingleCardHidesAVisibleIndicator(logger as Test.Logger
 function aTwoPageCountBecomesVisibleOnceNavigated(logger as Test.Logger) as Boolean {
     var indicator = new PageIndicator(2);
 
-    indicator.updateIndex(1);
+    indicator.updateCurrentPage(1);
 
     Test.assert(indicator.isVisible());
 
@@ -63,7 +63,7 @@ function aTwoPageCountBecomesVisibleOnceNavigated(logger as Test.Logger) as Bool
 function aSingleCardNeverReveals(logger as Test.Logger) as Boolean {
     var indicator = new PageIndicator(1);
 
-    indicator.updateIndex(0);
+    indicator.updateCurrentPage(0);
 
     Test.assert(!indicator.isVisible());
 

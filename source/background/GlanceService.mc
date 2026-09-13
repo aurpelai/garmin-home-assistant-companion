@@ -21,7 +21,7 @@ class GlanceService extends System.ServiceDelegate {
         }
 
         Communications.makeWebRequest(
-            Settings.getBaseUrl() + "/api/webhook/" + webhookId,
+            Settings.resolveBaseUrl() + "/api/webhook/" + webhookId,
             {
                 "type" => "render_template",
                 "data" => { ResponseType.TEMPLATE_RENDER_ROOT_KEY =>

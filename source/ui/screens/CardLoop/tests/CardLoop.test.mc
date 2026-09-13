@@ -42,7 +42,7 @@ module CardLoopTest {
     }
 
     function focusedId(loop as CardLoop) as String {
-        return (loop.currentCard() as Card).id;
+        return (loop.getCurrentCard() as Card).id;
     }
 }
 

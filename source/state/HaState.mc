@@ -61,7 +61,7 @@ class HaState {
     }
 
     // A fetch clears pending overrides only by replacing the models wholesale;
-    // the fresh ones come back with no assumption. Updating them in place instead
+    // the fresh ones come back with no optimistic values. Updating them in place instead
     // would leave a tapped entity pending forever.
     function setToggleables(domain as String, toggleables as Dictionary<String, ToggleableModel>) as Void {
         _toggleablesByDomain.put(domain, toggleables);
@@ -113,13 +113,13 @@ class HaState {
     }
 
     function getToggleable(entityId as String) as ToggleableModel or Null {
-        var byId = _toggleablesByDomain.get(Entity.resolveDomain(entityId));
-        return byId == null ? null : byId.get(entityId);
+        var toggleables = _toggleablesByDomain.get(Entity.parseDomain(entityId));
+        return toggleables == null ? null : toggleables.get(entityId);
     }
 
     function getToggleablesInArea(areaId as String, domain as String) as Array<ToggleableModel> {
-        var byArea = _toggleablesByDomainAndArea.get(domain);
-        var toggleables = byArea == null ? null : byArea.get(areaId);
+        var toggleablesByArea = _toggleablesByDomainAndArea.get(domain);
+        var toggleables = toggleablesByArea == null ? null : toggleablesByArea.get(areaId);
         return toggleables == null ? [] as Array<ToggleableModel> : toggleables;
     }
 
@@ -128,32 +128,27 @@ class HaState {
         return sensors == null ? [] as Array<SensorModel> : sensors;
     }
 
-    // Visible areas only: a hidden area's toggleables leave the floor summary and
-    // the floor-wide action alike, so no unfiltered variant exists.
-    function getToggleablesInFloor(floorId as String, domain as String) as Array<ToggleableModel> {
-        var areas = getVisibleAreasInFloor(floorId);
-        var toggleables = [] as Array<ToggleableModel>;
-
-        for (var index = 0; index < areas.size(); index++) {
-            toggleables.addAll(getToggleablesInArea(areas[index].id, domain));
-        }
-
-        return toggleables;
+    function getHiddenFloors() as Dictionary<String, Boolean> {
+        return _hiddenFloors;
     }
 
-    function getAreasInFloor(floorId as String) as Array<AreaModel> {
+    function getHiddenAreas() as Dictionary<String, Boolean> {
+        return _hiddenAreas;
+    }
+
+    function resolveAreasInFloor(floorId as String) as Array<AreaModel> {
         var floor = getFloor(floorId);
         return floor == null ? [] as Array<AreaModel> : resolveAreas(floor.areas);
     }
 
-    function getVisibleAreasInFloor(floorId as String) as Array<AreaModel> {
+    function resolveVisibleAreasInFloor(floorId as String) as Array<AreaModel> {
         return _hiddenFloors.hasKey(floorId)
             ? [] as Array<AreaModel>
-            : filterVisibleAreas(getAreasInFloor(floorId));
+            : filterVisibleAreas(resolveAreasInFloor(floorId));
     }
 
-    function getVisibleAreaIdsInFloor(floorId as String) as Array<String> {
-        var areas = getVisibleAreasInFloor(floorId);
+    function resolveVisibleAreaIdsInFloor(floorId as String) as Array<String> {
+        var areas = resolveVisibleAreasInFloor(floorId);
         var areaIds = [] as Array<String>;
 
         for (var index = 0; index < areas.size(); index++) {
@@ -163,7 +158,7 @@ class HaState {
         return areaIds;
     }
 
-    function getUnflooredAreas() as Array<AreaModel> {
+    function resolveUnflooredAreas() as Array<AreaModel> {
         var flooredAreaIds = resolveFlooredAreaIds();
         var areas = getAreas();
         var unflooredAreas = [] as Array<AreaModel>;
@@ -177,21 +172,24 @@ class HaState {
         return unflooredAreas;
     }
 
-    function getVisibleUnflooredAreas() as Array<AreaModel> {
+    function resolveVisibleUnflooredAreas() as Array<AreaModel> {
         return _hiddenFloors.hasKey(VisibilityStore.UNFLOORED_FLOOR_ID)
             ? [] as Array<AreaModel>
-            : filterVisibleAreas(getUnflooredAreas());
+            : filterVisibleAreas(resolveUnflooredAreas());
     }
 
-    function getHiddenFloors() as Dictionary<String, Boolean> {
-        return _hiddenFloors;
+    function resolveVisibleToggleablesInFloor(floorId as String, domain as String) as Array<ToggleableModel> {
+        var areas = resolveVisibleAreasInFloor(floorId);
+        var toggleables = [] as Array<ToggleableModel>;
+
+        for (var index = 0; index < areas.size(); index++) {
+            toggleables.addAll(getToggleablesInArea(areas[index].id, domain));
+        }
+
+        return toggleables;
     }
 
-    function getHiddenAreas() as Dictionary<String, Boolean> {
-        return _hiddenAreas;
-    }
-
-    function getToggleTargets(entityId as String) as Array<String> {
+    function resolveToggleTargets(entityId as String) as Array<String> {
         var toggleable = getToggleable(entityId);
         var memberIds = toggleable == null ? null : toggleable.memberIds;
         var targets = [entityId] as Array<String>;
@@ -263,27 +261,27 @@ class HaState {
         return false;
     }
 
-    function override(entityId as String, isOn as Boolean) as Void {
-        overrideAll(getToggleTargets(entityId), isOn);
+    function overrideState(entityId as String, isOn as Boolean) as Void {
+        overrideStates(resolveToggleTargets(entityId), isOn);
     }
 
-    function overrideFloorLights(floorId as String, isOn as Boolean) as Void {
-        overrideAll(toIds(getToggleablesInFloor(floorId, Domain.LIGHT)), isOn);
+    function overrideFloorLightsState(floorId as String, isOn as Boolean) as Void {
+        overrideStates(toIds(resolveVisibleToggleablesInFloor(floorId, Domain.LIGHT)), isOn);
     }
 
-    function assumeAttribute(entityId as String, field as String, value as Object) as Void {
+    function overrideAttribute(entityId as String, field as String, value as Object) as Void {
         var toggleable = getToggleable(entityId);
         if (toggleable != null) {
-            toggleable.assumeAttribute(field, value);
+            toggleable.overrideAttribute(field, value);
         }
     }
 
-    private function overrideAll(entityIds as Array<String>, isOn as Boolean) as Void {
+    private function overrideStates(entityIds as Array<String>, isOn as Boolean) as Void {
         for (var index = 0; index < entityIds.size(); index++) {
             var toggleable = getToggleable(entityIds[index]);
 
             if (toggleable != null) {
-                toggleable.assumedState = isOn;
+                toggleable.optimisticState = isOn;
             }
         }
     }
@@ -337,21 +335,21 @@ class HaState {
 
     private function groupByArea(models as Array<EntityModel>)
             as Dictionary<String, Array<EntityModel>> {
-        var byArea = {} as Dictionary<String, Array<EntityModel>>;
+        var modelsByArea = {} as Dictionary<String, Array<EntityModel>>;
 
         for (var index = 0; index < models.size(); index++) {
             var areaId = models[index].areaId;
 
             if (areaId != null) {
-                var inArea = byArea.get(areaId);
-                if (inArea == null) {
-                    inArea = [] as Array<EntityModel>;
-                    byArea.put(areaId, inArea);
+                var areaModels = modelsByArea.get(areaId);
+                if (areaModels == null) {
+                    areaModels = [] as Array<EntityModel>;
+                    modelsByArea.put(areaId, areaModels);
                 }
-                inArea.add(models[index]);
+                areaModels.add(models[index]);
             }
         }
 
-        return byArea;
+        return modelsByArea;
     }
 }

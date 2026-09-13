@@ -28,7 +28,7 @@ module HaPayload {
                                               memberIds as Array<String> or Null,
                                               entry as Dictionary) as ToggleableModel)
             as Dictionary<String, ToggleableModel> {
-        var entries = readEntries(payload, key);
+        var entries = parseEntries(payload, key);
         var toggleables = {} as Dictionary<String, ToggleableModel>;
         var entityIds = entries.keys();
 
@@ -70,7 +70,7 @@ module HaPayload {
     }
 
     function parseSensors(payload as Object or Null) as Dictionary<String, SensorModel> {
-        var entries = readEntries(payload, "sensors");
+        var entries = parseEntries(payload, "sensors");
         var sensors = {} as Dictionary<String, SensorModel>;
         var entityIds = entries.keys();
 
@@ -100,16 +100,16 @@ module HaPayload {
 
     function parseAverages(payload as Object or Null, key as String)
             as Dictionary<String, Dictionary<String, String>> {
-        var entries = readEntries(payload, key);
-        var out = {} as Dictionary<String, Dictionary<String, String>>;
+        var entries = parseEntries(payload, key);
+        var averages = {} as Dictionary<String, Dictionary<String, String>>;
         var ids = entries.keys();
 
         for (var index = 0; index < ids.size(); index++) {
             var id = ids[index] as String;
-            out.put(id, asStringMap(entries.get(id) as Dictionary));
+            averages.put(id, asStringMap(entries.get(id) as Dictionary));
         }
 
-        return out;
+        return averages;
     }
 
     function parseHomeAverages(payload as Object or Null) as Dictionary<String, String> {
@@ -122,29 +122,29 @@ module HaPayload {
     }
 
     function asStringMap(raw as Dictionary) as Dictionary<String, String> {
-        var out = {} as Dictionary<String, String>;
+        var stringMap = {} as Dictionary<String, String>;
         var keys = raw.keys();
 
         for (var index = 0; index < keys.size(); index++) {
             var key = keys[index];
             var value = asStringOrNull(raw.get(key));
             if (key instanceof String && value != null) {
-                out.put(key, value);
+                stringMap.put(key, value);
             }
         }
 
-        return out;
+        return stringMap;
     }
 
-    function readEntries(payload as Object or Null, key as String) as Dictionary<String, Dictionary> {
-        var out = {} as Dictionary<String, Dictionary>;
+    function parseEntries(payload as Object or Null, key as String) as Dictionary<String, Dictionary> {
+        var entries = {} as Dictionary<String, Dictionary>;
         if (!(payload instanceof Dictionary)) {
-            return out;
+            return entries;
         }
 
         var raw = payload.get(key);
         if (!(raw instanceof Dictionary)) {
-            return out;
+            return entries;
         }
 
         var entityIds = raw.keys();
@@ -152,47 +152,47 @@ module HaPayload {
             var entityId = entityIds[index];
             var entry = raw.get(entityId);
             if (entityId instanceof String && entry instanceof Dictionary) {
-                out.put(entityId, entry);
+                entries.put(entityId, entry);
             }
         }
 
-        return out;
+        return entries;
     }
 
     function parseAreas(payload as Object or Null) as Dictionary<String, AreaModel> {
-        var entries = readEntries(payload, "areas");
-        var out = {} as Dictionary<String, AreaModel>;
+        var entries = parseEntries(payload, "areas");
+        var areas = {} as Dictionary<String, AreaModel>;
         var ids = entries.keys();
 
         for (var index = 0; index < ids.size(); index++) {
             var id = ids[index] as String;
             var entry = entries.get(id) as Dictionary;
-            out.put(id, new AreaModel(id, asString(entry.get("name"))));
+            areas.put(id, new AreaModel(id, asString(entry.get("name"))));
         }
 
-        return out;
+        return areas;
     }
 
     // UNVERIFIED: ordered ascending by each floor's `order`, which is Home
     // Assistant's own floors() order; Dictionary.keys() is hash order. The
     // insertion is stable, so equal orders keep parse order.
     function parseFloors(payload as Object or Null) as Array<FloorModel> {
-        var entries = readEntries(payload, "floors");
-        var out = [] as Array<FloorModel>;
+        var entries = parseEntries(payload, "floors");
+        var floors = [] as Array<FloorModel>;
         var ids = entries.keys();
 
         for (var index = 0; index < ids.size(); index++) {
             var id = ids[index] as String;
             var entry = entries.get(id) as Dictionary;
 
-            insertFloorByOrder(out, new FloorModel(
+            insertFloorByOrder(floors, new FloorModel(
                 id,
                 asString(entry.get("name")),
                 asNumber(entry.get("order")),
-                onlyStrings(entry.get("areas"))));
+                asStrings(entry.get("areas"))));
         }
 
-        return out;
+        return floors;
     }
 
     function insertFloorByOrder(floors as Array<FloorModel>, floor as FloorModel) as Void {
@@ -215,7 +215,7 @@ module HaPayload {
     }
 
     function asMemberIds(raw as Object or Null) as Array<String> or Null {
-        return raw instanceof Array ? onlyStrings(raw) : null;
+        return raw instanceof Array ? asStrings(raw) : null;
     }
 
     function asBooleanOrNull(raw as Object or Null) as Boolean or Null {
@@ -252,18 +252,18 @@ module HaPayload {
         return 0;
     }
 
-    function onlyStrings(raw as Object or Null) as Array<String> {
-        var out = [] as Array<String>;
+    function asStrings(raw as Object or Null) as Array<String> {
+        var strings = [] as Array<String>;
         if (!(raw instanceof Array)) {
-            return out;
+            return strings;
         }
 
         for (var index = 0; index < raw.size(); index++) {
             if (raw[index] instanceof String) {
-                out.add(raw[index] as String);
+                strings.add(raw[index] as String);
             }
         }
 
-        return out;
+        return strings;
     }
 }

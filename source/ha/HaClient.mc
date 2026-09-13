@@ -23,12 +23,13 @@ class HaClient {
     private const OS_VERSION = "1";
 
     private const REFRESH_TARGETS = [FetchTarget.STRUCTURE, FetchTarget.LIGHTS, FetchTarget.FANS, FetchTarget.SENSORS];
+    private const STALE_AFTER_MS = 60 * 1000;
 
     private var _gateway as RequestGateway;
     private var _scheduler as Scheduler;
 
-    private var _requestInFlight as Boolean;
-    private var _changeInFlight as Boolean;
+    private var _isRequestInFlight as Boolean;
+    private var _isChangeInFlight as Boolean;
     private var _changeQueue as Array<QueuedChange>;
     private var _pendingChangeCallback as Method or Null;
     private var _registrationCallback as Method or Null;
@@ -42,8 +43,8 @@ class HaClient {
     function initialize(gateway as RequestGateway, scheduler as Scheduler) {
         _gateway = gateway;
         _scheduler = scheduler;
-        _requestInFlight = false;
-        _changeInFlight = false;
+        _isRequestInFlight = false;
+        _isChangeInFlight = false;
         _changeQueue = [];
         _pendingChangeCallback = null;
         _registrationCallback = null;
@@ -55,9 +56,9 @@ class HaClient {
         _lastRefreshCompletedAt = null;
     }
 
-    function onChangeSettled(result as Object or Null, spentError as RequestError or Null) as Void {
-        _requestInFlight = false;
-        _changeInFlight = false;
+    function onChangeSettled(result as Object or Null, error as RequestError or Null) as Void {
+        _isRequestInFlight = false;
+        _isChangeInFlight = false;
 
         if (_pendingChangeCallback == null) {
             return;
@@ -66,16 +67,16 @@ class HaClient {
         var callback = _pendingChangeCallback as Method;
         _pendingChangeCallback = null;
 
-        if (spentError != null) {
+        if (error != null) {
             _changeQueue = [];
         }
 
-        callback.invoke(result, spentError);
+        callback.invoke(result, error);
         startNextRequest();
     }
 
-    function onTargetSettled(result as Object or Null, spentError as RequestError or Null) as Void {
-        _requestInFlight = false;
+    function onTargetSettled(result as Object or Null, error as RequestError or Null) as Void {
+        _isRequestInFlight = false;
 
         if (_currentTarget == null || _onRefreshTarget == null) {
             return;
@@ -85,7 +86,7 @@ class HaClient {
         var onTarget = _onRefreshTarget as Method;
 
         if (_error == null) {
-            _error = spentError;
+            _error = error;
         }
 
         var isLastTarget = !isRefreshing();
@@ -98,7 +99,7 @@ class HaClient {
         startNextRequest();
     }
 
-    function onRegistrationReply(epoch as Number, webhookId as String or Null,
+    function onRegistrationSettled(epoch as Number, webhookId as String or Null,
                                  error as RequestError or Null) as Void {
         if (epoch != _registrationEpoch || _registrationCallback == null) {
             return;
@@ -118,11 +119,12 @@ class HaClient {
     }
 
     function hasOutstandingChanges() as Boolean {
-        return _changeQueue.size() > 0 || _changeInFlight;
+        return _changeQueue.size() > 0 || _isChangeInFlight;
     }
 
-    function msSinceLastRefresh() as Number or Null {
-        return _lastRefreshCompletedAt == null ? null : System.getTimer() - (_lastRefreshCompletedAt as Number);
+    function isRefreshDue() as Boolean {
+        var completedAt = _lastRefreshCompletedAt;
+        return completedAt == null || System.getTimer() - completedAt > STALE_AFTER_MS;
     }
 
     function getError() as RequestError or Null {
@@ -145,7 +147,7 @@ class HaClient {
     }
 
     function queueToggle(entityId as String, callback as Method) as Void {
-        queueChange(buildServiceCallRequest(Entity.resolveDomain(entityId), "toggle", "entity_id", entityId), callback);
+        queueChange(buildServiceCallRequest(Entity.parseDomain(entityId), "toggle", "entity_id", entityId), callback);
     }
 
     function queueLightsInAreas(areaIds as Array<String>, service as String, callback as Method) as Void {
@@ -164,8 +166,8 @@ class HaClient {
         _scheduler.cancel();
         _changeQueue = [];
         _pendingFetchTargets = [];
-        _requestInFlight = false;
-        _changeInFlight = false;
+        _isRequestInFlight = false;
+        _isChangeInFlight = false;
         _pendingChangeCallback = null;
         _registrationCallback = null;
         _registrationEpoch++;
@@ -195,7 +197,7 @@ class HaClient {
         _registrationCallback = callback;
         _registrationEpoch++;
         post("/api/mobile_app/registrations", body,
-             new ResponseHandler(new RegistrationReply(self, _registrationEpoch).method(:onReply),
+             new ResponseHandler(new RegistrationHandler(self, _registrationEpoch).method(:onSettled),
                                  ResponseType.REGISTRATION));
     }
 
@@ -270,15 +272,15 @@ class HaClient {
     }
 
     private function startNextRequest() as Void {
-        if (_requestInFlight) {
+        if (_isRequestInFlight) {
             return;
         }
 
         if (_changeQueue.size() > 0) {
             var next = _changeQueue[0];
             _changeQueue = _changeQueue.slice(1, null) as Array<QueuedChange>;
-            _requestInFlight = true;
-            _changeInFlight = true;
+            _isRequestInFlight = true;
+            _isChangeInFlight = true;
             _pendingChangeCallback = next.callback;
             new RetryManager(next.request, method(:onChangeSettled), _scheduler, RequestType.REQUEST).attempt();
             return;
@@ -287,7 +289,7 @@ class HaClient {
         if (_pendingFetchTargets.size() > 0) {
             var target = _pendingFetchTargets[0];
             _pendingFetchTargets = _pendingFetchTargets.slice(1, null) as Array<Symbol>;
-            _requestInFlight = true;
+            _isRequestInFlight = true;
             _currentTarget = target;
             new RetryManager(buildTemplateRenderRequest(target), method(:onTargetSettled), _scheduler, RequestType.REQUEST).attempt();
         }

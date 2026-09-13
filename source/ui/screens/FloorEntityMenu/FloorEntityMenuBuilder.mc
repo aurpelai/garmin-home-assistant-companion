@@ -13,7 +13,7 @@ module FloorEntityMenuBuilder {
     }
 
     function buildLightRows(haState as HaState, floorId as String) as Array<ToggleRowModel> {
-        var lights = haState.getToggleablesInFloor(floorId, Domain.LIGHT);
+        var lights = haState.resolveVisibleToggleablesInFloor(floorId, Domain.LIGHT);
 
         if (lights.size() == 0) {
             return [] as Array<ToggleRowModel>;

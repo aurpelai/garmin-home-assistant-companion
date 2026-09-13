@@ -124,14 +124,14 @@ function togglingAFloorDrivesEveryLightOffWhileAnyIsOnAndOnOtherwise(logger as T
     var onCoordinator = CoordinatorTest.coordinatorOn(oneOn, gateway, new FakeScheduler());
 
     onCoordinator.toggleFloorLights("floor.ground");
-    Test.assert(!oneOn.hasAnyOn(oneOn.getToggleablesInFloor("floor.ground", Domain.LIGHT)));
+    Test.assert(!oneOn.hasAnyOn(oneOn.resolveVisibleToggleablesInFloor("floor.ground", Domain.LIGHT)));
     Test.assertEqual(gateway.count(), 1);
 
     var allOff = CoordinatorTest.stateOf(CoordinatorTest.ONE_FLOOR, CoordinatorTest.ROOM_LIGHTS_OFF, CoordinatorTest.EMPTY);
     var offCoordinator = CoordinatorTest.coordinatorOn(allOff, new FakeRequestGateway(), new FakeScheduler());
 
     offCoordinator.toggleFloorLights("floor.ground");
-    var lights = allOff.getToggleablesInFloor("floor.ground", Domain.LIGHT);
+    var lights = allOff.resolveVisibleToggleablesInFloor("floor.ground", Domain.LIGHT);
     Test.assert(lights[0].isOn() && lights[1].isOn());
     return true;
 }
@@ -139,12 +139,12 @@ function togglingAFloorDrivesEveryLightOffWhileAnyIsOnAndOnOtherwise(logger as T
 (:test)
 function aToggleRefreshesOnceItSettlesWhetherOrNotItFailed(logger as Test.Logger) as Boolean {
     var settled = new FakeRequestGateway();
-    CoordinatorTest.coordinatorWith(settled, new FakeScheduler()).onToggleSettled(null);
+    CoordinatorTest.coordinatorWith(settled, new FakeScheduler()).onToggleSettled(null, null);
     Test.assertEqual(settled.count(), 1);
 
     var failed = new FakeRequestGateway();
     CoordinatorTest.coordinatorWith(failed, new FakeScheduler())
-        .onToggleSettled(new RequestError(-1, RequestType.REQUEST));
+        .onToggleSettled(null, new RequestError(-1, RequestType.REQUEST));
     Test.assertEqual(failed.count(), 1);
     return true;
 }
