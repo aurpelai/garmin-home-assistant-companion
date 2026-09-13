@@ -56,7 +56,7 @@ class HaClient {
         _lastRefreshCompletedAt = null;
     }
 
-    function onChangeSettled(result as Object or Null, spentError as RequestError or Null) as Void {
+    function onChangeSettled(result as Object or Null, error as RequestError or Null) as Void {
         _isRequestInFlight = false;
         _isChangeInFlight = false;
 
@@ -67,15 +67,15 @@ class HaClient {
         var callback = _pendingChangeCallback as Method;
         _pendingChangeCallback = null;
 
-        if (spentError != null) {
+        if (error != null) {
             _changeQueue = [];
         }
 
-        callback.invoke(result, spentError);
+        callback.invoke(result, error);
         startNextRequest();
     }
 
-    function onTargetSettled(result as Object or Null, spentError as RequestError or Null) as Void {
+    function onTargetSettled(result as Object or Null, error as RequestError or Null) as Void {
         _isRequestInFlight = false;
 
         if (_currentTarget == null || _onRefreshTarget == null) {
@@ -86,7 +86,7 @@ class HaClient {
         var onTarget = _onRefreshTarget as Method;
 
         if (_error == null) {
-            _error = spentError;
+            _error = error;
         }
 
         var isLastTarget = !isRefreshing();
