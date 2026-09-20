@@ -19,7 +19,7 @@ import Toybox.Lang;
 module HaTemplate {
 
     const STRUCTURE =
-        "{% set ns = namespace(areas={}, floors={}) %}" +
+        "{% set ns = namespace(areas={}, floors={}, labels={}) %}" +
         "{% for area in areas() %}" +
         "{% set ns.areas = dict(ns.areas, **{area: dict(name=area_name(area))}) %}" +
         "{% endfor %}" +
@@ -28,11 +28,31 @@ module HaTemplate {
             "name=floor_name(floor), order=loop.index0, " +
             "areas=floor_areas(floor) | default([]) | list)}) %}" +
         "{% endfor %}" +
+        "{% for label in labels() %}" +
+        "{% set ns.labels = dict(ns.labels, **{label: label_name(label)}) %}" +
+        "{% endfor %}" +
         "{{ dict(zone=state_attr('zone.home', 'friendly_name'), " +
-            "areas=ns.areas, floors=ns.floors) | tojson }}";
+            "areas=ns.areas, floors=ns.floors, labels=ns.labels) | tojson }}";
 
     const VISIBLE_AREA_CLAUSE = "if area not in hidden_areas and (floor_id(area) or '" +
         VisibilityStore.UNFLOORED_FLOOR_ID + "') not in hidden_floors";
+
+    // Fills a caller-declared `ns` (with `sources` and `home` fields) mapping every
+    // candidate entity to the area it renders under. Visible areas feed both the
+    // sources map and the area-scoped home list; the watched labels then add their
+    // entities keyed to their real area (none for an area-less stray), outside the
+    // visible clause so a hidden-area labelled entity still arrives. The `not in`
+    // guard keeps one instance per entity — an area entity is never overwritten by
+    // the label pass.
+    const SOURCE_LOOPS =
+        "{% for area in areas() " + VISIBLE_AREA_CLAUSE + " %}" +
+        "{% set ids = area_entities(area) | list %}" +
+        "{% set ns.home = ns.home + ids %}" +
+        "{% for entity in ids %}{% set ns.sources = dict(ns.sources, **{entity: area}) %}{% endfor %}" +
+        "{% endfor %}" +
+        "{% for label in watched_labels %}{% for entity in label_entities(label) %}" +
+        "{% if entity not in ns.sources %}{% set ns.sources = dict(ns.sources, **{entity: area_id(entity)}) %}{% endif %}" +
+        "{% endfor %}{% endfor %}";
 
     const PRELUDE =
         "{% set groups = integration_entities('group') %}" +
@@ -92,12 +112,12 @@ module HaTemplate {
     // would drop a real group to a plain light and lose its place (see #152). An
     // unavailable group is kept (its members are down, not gone); only an
     // available group that expands to nothing — every member hidden — is left out.
+    // The area loop feeds the home light summary (area-scoped, no label strays),
+    // while the entity dict is built from area entities unioned with the watched
+    // labels' entities, so an area-less or hidden-area labelled light still lands.
     const LIGHTS = PRELUDE +
-        "{% set ns = namespace(lights={}, home=[]) %}" +
-        "{% for area in areas() " + VISIBLE_AREA_CLAUSE + " %}" +
-        "{% set ids = area_entities(area) | list %}" +
-        "{% set ns.home = ns.home + ids %}" +
-        "{% for entity in ids | reject('is_hidden_entity') | list %}" +
+        "{% set ns = namespace(lights={}, home=[], sources={}) %}" + SOURCE_LOOPS +
+        "{% for entity, area in ns.sources.items() if not is_hidden_entity(entity) %}" +
         "{% if entity.startswith('light.') and states[entity] is not none %}" +
         "{% set members = expand(entity) | rejectattr('entity_id', 'is_hidden_entity') " +
             "| map(attribute='entity_id') | list %}" +
@@ -105,7 +125,7 @@ module HaTemplate {
         "{% set brightness = state_attr(entity, 'brightness') | default(none) %}" +
         "{% set modes = state_attr(entity, 'supported_color_modes') | default([], true) %}" +
         "{% set light = dict(state=is_state(entity, 'on'), name=states[entity].name, area_id=area, " +
-            "available=not is_state(entity, 'unavailable'), " +
+            "available=not is_state(entity, 'unavailable'), labels=labels(entity) | list, " +
             "brightness=(brightness / 255 * 100) | round | int if brightness is not none else none, " +
             "color_temp_kelvin=state_attr(entity, 'color_temp_kelvin') | default(none), " +
             "min_color_temp_kelvin=state_attr(entity, 'min_color_temp_kelvin') | default(none), " +
@@ -118,15 +138,13 @@ module HaTemplate {
         "{% endif %}" +
         "{% endif %}" +
         "{% endfor %}" +
-        "{% endfor %}" +
         "{{ dict(lights=ns.lights, home=(lightSummary(ns.home) | trim or none)) | tojson }}";
 
     // The percentage is emitted whatever the state, so an off fan keeps its last
     // speed; the view, not the render, decides what an off fan shows.
     const FANS = PRELUDE +
-        "{% set ns = namespace(fans={}) %}" +
-        "{% for area in areas() " + VISIBLE_AREA_CLAUSE + " %}" +
-        "{% for entity in area_entities(area) | reject('is_hidden_entity') | list %}" +
+        "{% set ns = namespace(fans={}, home=[], sources={}) %}" + SOURCE_LOOPS +
+        "{% for entity, area in ns.sources.items() if not is_hidden_entity(entity) %}" +
         "{% if entity.startswith('fan.') and states[entity] is not none %}" +
         "{% set members = expand(entity) | rejectattr('entity_id', 'is_hidden_entity') " +
             "| map(attribute='entity_id') | list %}" +
@@ -134,7 +152,7 @@ module HaTemplate {
         "{% set percentage = state_attr(entity, 'percentage') | default(none) %}" +
         "{% set features = state_attr(entity, 'supported_features') | default(0) %}" +
         "{% set fan = dict(state=is_state(entity, 'on'), name=states[entity].name, area_id=area, " +
-            "available=not is_state(entity, 'unavailable'), " +
+            "available=not is_state(entity, 'unavailable'), labels=labels(entity) | list, " +
             "speed=percentage | round | int if percentage is not none else none, " +
             "oscillating=state_attr(entity, 'oscillating') | default(none), " +
             "supports_speed=(features | int) % 2 == 1, " +
@@ -146,28 +164,35 @@ module HaTemplate {
         "{% endif %}" +
         "{% endif %}" +
         "{% endfor %}" +
-        "{% endfor %}" +
         "{{ dict(fans=ns.fans) | tojson }}";
 
     // `states(e, true, true)` keeps HA's own display precision and unit as a
     // string, so the menu shows exactly what the user's dashboard shows for a
     // single sensor.
+    // Averages stay area- and floor-scoped (home aggregates must not drag in
+    // label strays), so the sources map is built alongside them and the sensor
+    // dict, widened by the watched labels, comes from a single pass over it.
     const SENSORS = PRELUDE +
-        "{% set ns = namespace(sensors={}, areas={}, floors={}, home=[]) %}" +
+        "{% set ns = namespace(sensors={}, areas={}, floors={}, home=[], sources={}) %}" +
         "{% for area in areas() " + VISIBLE_AREA_CLAUSE + " %}" +
         "{% set ids = area_entities(area) | list %}" +
         "{% set ns.home = ns.home + ids %}" +
         "{% set classAverages = averages(ids) | from_json %}" +
         "{% if classAverages | length > 0 %}{% set ns.areas = dict(ns.areas, **{area: classAverages}) %}{% endif %}" +
-        "{% for entity in ids | reject('is_hidden_entity') | list %}" +
+        "{% for entity in ids %}{% set ns.sources = dict(ns.sources, **{entity: area}) %}{% endfor %}" +
+        "{% endfor %}" +
+        "{% for label in watched_labels %}{% for entity in label_entities(label) %}" +
+        "{% if entity not in ns.sources %}{% set ns.sources = dict(ns.sources, **{entity: area_id(entity)}) %}{% endif %}" +
+        "{% endfor %}{% endfor %}" +
+        "{% for entity, area in ns.sources.items() if not is_hidden_entity(entity) %}" +
         "{% if entity.startswith('sensor.') and states[entity] is not none " +
             "and state_attr(entity, 'device_class') in ['temperature', 'humidity', 'illuminance'] %}" +
         "{% set ns.sensors = dict(ns.sensors, **{entity: dict(" +
             "friendly_state=states(entity, true, true), " +
             "device_class=state_attr(entity, 'device_class'), name=entity_name(entity), area_id=area, " +
+            "labels=labels(entity) | list, " +
             "available=not is_state(entity, 'unavailable') and not is_state(entity, 'unknown'))}) %}" +
         "{% endif %}" +
-        "{% endfor %}" +
         "{% endfor %}" +
         "{% for floor in floors() %}" +
         "{% set floorEntities = namespace(ids=[]) %}" +
@@ -194,12 +219,13 @@ module HaTemplate {
     // not, to offer un-hiding. The render request has no variables channel, so the
     // hidden sets are inlined as a leading clause of the template itself.
     function resolve(target as Symbol, hiddenFloors as Dictionary<String, Boolean>,
-                     hiddenAreas as Dictionary<String, Boolean>) as String {
+                     hiddenAreas as Dictionary<String, Boolean>,
+                     watchedLabels as Array<String>) as String {
         if (target == FetchTarget.STRUCTURE) {
             return STRUCTURE;
         }
 
-        var clause = buildHiddenClause(hiddenFloors, hiddenAreas);
+        var clause = buildClause(hiddenFloors, hiddenAreas, watchedLabels);
 
         if (target == FetchTarget.LIGHTS) {
             return clause + LIGHTS;
@@ -213,10 +239,12 @@ module HaTemplate {
         return clause + SENSORS;
     }
 
-    function buildHiddenClause(hiddenFloors as Dictionary<String, Boolean>,
-                               hiddenAreas as Dictionary<String, Boolean>) as String {
+    function buildClause(hiddenFloors as Dictionary<String, Boolean>,
+                         hiddenAreas as Dictionary<String, Boolean>,
+                         watchedLabels as Array<String>) as String {
         return "{% set hidden_floors = [" + quoteIds(hiddenFloors.keys() as Array<String>) + "] %}" +
-            "{% set hidden_areas = [" + quoteIds(hiddenAreas.keys() as Array<String>) + "] %}";
+            "{% set hidden_areas = [" + quoteIds(hiddenAreas.keys() as Array<String>) + "] %}" +
+            "{% set watched_labels = [" + quoteIds(watchedLabels) + "] %}";
     }
 
     function quoteIds(ids as Array<String>) as String {
