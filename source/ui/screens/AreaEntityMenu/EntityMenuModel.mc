@@ -1,6 +1,6 @@
 import Toybox.Lang;
 
-class AreaEntityMenuModel {
+class EntityMenuModel {
     public var title as String;
     public var toggles as Array<ToggleRowModel>;
     public var sensors as Array<SensorRowModel>;

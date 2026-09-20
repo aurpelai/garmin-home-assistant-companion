@@ -1,19 +1,20 @@
 import Toybox.Lang;
 
-module AreaEntityMenuBuilder {
+module EntityMenuBuilder {
 
-    function build(haState as HaState, areaId as String,
-                   subLabelProvider as SubLabelProvider) as AreaEntityMenuModel or Null {
-        var area = haState.getArea(areaId);
-        if (area == null) {
-            return null;
+    // Toggle rows come out domain by domain in the order each domain first
+    // appears, and sorted within each — the caller (an area or a watched-label
+    // pool) fixes that order by handing lights before fans.
+    function build(title as String, toggleables as Array<ToggleableModel>, sensors as Array<SensorModel>,
+                   subLabelProvider as SubLabelProvider) as EntityMenuModel {
+        var rows = [] as Array<ToggleRowModel>;
+        var domains = domainsInOrder(toggleables);
+
+        for (var index = 0; index < domains.size(); index++) {
+            rows.addAll(buildToggleRows(inDomain(toggleables, domains[index]), subLabelProvider));
         }
 
-        var toggles = buildToggleRows(haState.getToggleablesInArea(areaId, Domain.LIGHT), subLabelProvider);
-        toggles.addAll(buildToggleRows(haState.getToggleablesInArea(areaId, Domain.FAN), subLabelProvider));
-
-        return new AreaEntityMenuModel(area.name, toggles,
-            buildSensorRows(haState.getSensorsInArea(areaId), subLabelProvider));
+        return new EntityMenuModel(title, rows, buildSensorRows(sensors, subLabelProvider));
     }
 
     function buildToggleRows(toggleables as Array<ToggleableModel>,
@@ -28,6 +29,30 @@ module AreaEntityMenuBuilder {
         }
 
         return rows;
+    }
+
+    function domainsInOrder(toggleables as Array<ToggleableModel>) as Array<String> {
+        var domains = [] as Array<String>;
+
+        for (var index = 0; index < toggleables.size(); index++) {
+            if (domains.indexOf(toggleables[index].domain) < 0) {
+                domains.add(toggleables[index].domain);
+            }
+        }
+
+        return domains;
+    }
+
+    function inDomain(toggleables as Array<ToggleableModel>, domain as String) as Array<ToggleableModel> {
+        var inDomain = [] as Array<ToggleableModel>;
+
+        for (var index = 0; index < toggleables.size(); index++) {
+            if (toggleables[index].domain.equals(domain)) {
+                inDomain.add(toggleables[index]);
+            }
+        }
+
+        return inDomain;
     }
 
     function buildSensorRows(sensors as Array<SensorModel>,
