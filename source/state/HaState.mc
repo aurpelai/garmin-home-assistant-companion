@@ -5,23 +5,29 @@ class HaState {
     private var _toggleablesByDomainAndArea as Dictionary<String, Dictionary<String, Array<ToggleableModel>>>;
     private var _areas as Dictionary<String, AreaModel>;
     private var _floors as Array<FloorModel>;
+    private var _sensors as Dictionary<String, SensorModel>;
     private var _sensorsByArea as Dictionary<String, Array<SensorModel>>;
+    private var _labels as Dictionary<String, String>;
     private var _zone as String or Null;
     private var _sensorAverages as SensorAverages;
 
     private var _hiddenFloors as Dictionary<String, Boolean>;
     private var _hiddenAreas as Dictionary<String, Boolean>;
+    private var _watchedLabels as Dictionary<String, Boolean>;
 
     function initialize() {
         _toggleablesByDomain = {};
         _toggleablesByDomainAndArea = {};
         _areas = {};
         _floors = [];
+        _sensors = {};
         _sensorsByArea = {};
+        _labels = {};
         _zone = null;
         _sensorAverages = new SensorAverages();
         _hiddenFloors = {};
         _hiddenAreas = {};
+        _watchedLabels = {};
     }
 
     function clearFetched() as Void {
@@ -29,7 +35,9 @@ class HaState {
         _toggleablesByDomainAndArea = {};
         _areas = {};
         _floors = [];
+        _sensors = {};
         _sensorsByArea = {};
+        _labels = {};
         _zone = null;
         _sensorAverages = new SensorAverages();
     }
@@ -38,6 +46,14 @@ class HaState {
                        hiddenAreas as Dictionary<String, Boolean>) as Void {
         _hiddenFloors = hiddenFloors;
         _hiddenAreas = hiddenAreas;
+    }
+
+    function setWatchedLabels(watchedLabels as Dictionary<String, Boolean>) as Void {
+        _watchedLabels = watchedLabels;
+    }
+
+    function setLabelWatched(labelId as String, isWatched as Boolean) as Void {
+        setMembership(_watchedLabels, labelId, isWatched);
     }
 
     function setFloorHidden(floorId as String, isHidden as Boolean) as Void {
@@ -70,7 +86,12 @@ class HaState {
     }
 
     function setSensors(sensors as Dictionary<String, SensorModel>) as Void {
+        _sensors = sensors;
         _sensorsByArea = groupByArea(sensors.values() as Array<EntityModel>) as Dictionary<String, Array<SensorModel>>;
+    }
+
+    function setLabels(labels as Dictionary<String, String>) as Void {
+        _labels = labels;
     }
 
     function setSensorAverages(areaAverages as Dictionary<String, Dictionary<String, String>>,
@@ -134,6 +155,31 @@ class HaState {
 
     function getHiddenAreas() as Dictionary<String, Boolean> {
         return _hiddenAreas;
+    }
+
+    function getLabels() as Dictionary<String, String> {
+        return _labels;
+    }
+
+    function getWatchedLabels() as Dictionary<String, Boolean> {
+        return _watchedLabels;
+    }
+
+    function getAreaToggleables(areaId as String) as Array<ToggleableModel> {
+        var toggleables = [] as Array<ToggleableModel>;
+        toggleables.addAll(getToggleablesInArea(areaId, Domain.LIGHT));
+        toggleables.addAll(getToggleablesInArea(areaId, Domain.FAN));
+        return toggleables;
+    }
+
+    function getWatchedToggleables() as Array<ToggleableModel> {
+        var toggleables = filterWatchedInDomain(Domain.LIGHT);
+        toggleables.addAll(filterWatchedInDomain(Domain.FAN));
+        return toggleables;
+    }
+
+    function getWatchedSensors() as Array<SensorModel> {
+        return filterWatched(_sensors.values() as Array<EntityModel>) as Array<SensorModel>;
     }
 
     function resolveAreasInFloor(floorId as String) as Array<AreaModel> {
@@ -203,6 +249,14 @@ class HaState {
 
     function hasAreas() as Boolean {
         return _areas.size() > 0;
+    }
+
+    function hasLabels() as Boolean {
+        return _labels.size() > 0;
+    }
+
+    function hasWatchedEntities() as Boolean {
+        return getWatchedToggleables().size() > 0 || getWatchedSensors().size() > 0;
     }
 
     function hasEntitiesInArea(areaId as String) as Boolean {
@@ -305,6 +359,35 @@ class HaState {
         }
 
         return areas;
+    }
+
+    private function filterWatchedInDomain(domain as String) as Array<ToggleableModel> {
+        var toggleables = _toggleablesByDomain.get(domain);
+        return toggleables == null
+            ? [] as Array<ToggleableModel>
+            : filterWatched(toggleables.values() as Array<EntityModel>) as Array<ToggleableModel>;
+    }
+
+    private function filterWatched(models as Array<EntityModel>) as Array<EntityModel> {
+        var watched = [] as Array<EntityModel>;
+
+        for (var index = 0; index < models.size(); index++) {
+            if (isWatched(models[index].labels)) {
+                watched.add(models[index]);
+            }
+        }
+
+        return watched;
+    }
+
+    private function isWatched(labels as Array<String>) as Boolean {
+        for (var index = 0; index < labels.size(); index++) {
+            if (_watchedLabels.hasKey(labels[index])) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function filterVisibleAreas(areas as Array<AreaModel>) as Array<AreaModel> {

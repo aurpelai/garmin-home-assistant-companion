@@ -10,9 +10,10 @@ class FanModel extends ToggleableModel {
 
     function initialize(id as String, state as Boolean, name as String, available as Boolean,
                         areaId as String or Null, memberIds as Array<String> or Null,
+                        labels as Array<String>,
                         speed as Number or Null, oscillating as Boolean or Null,
                         supportsSpeed as Boolean, supportsOscillation as Boolean) {
-        ToggleableModel.initialize(id, state, name, available, areaId, memberIds);
+        ToggleableModel.initialize(id, state, name, available, areaId, memberIds, labels);
         self.speed = speed;
         self.oscillating = oscillating;
         self.supportsSpeed = supportsSpeed;

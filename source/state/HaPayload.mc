@@ -26,6 +26,7 @@ module HaPayload {
                               build as Method(entityId as String, state as Boolean, name as String,
                                               available as Boolean, areaId as String or Null,
                                               memberIds as Array<String> or Null,
+                                              labels as Array<String>,
                                               entry as Dictionary) as ToggleableModel)
             as Dictionary<String, ToggleableModel> {
         var entries = parseEntries(payload, key);
@@ -42,6 +43,7 @@ module HaPayload {
                 asAvailable(entry.get("available")),
                 asStringOrNull(entry.get("area_id")),
                 asMemberIds(entry.get("memberIds")),
+                asStrings(entry.get("labels")),
                 entry));
         }
 
@@ -50,8 +52,8 @@ module HaPayload {
 
     function buildLight(entityId as String, state as Boolean, name as String, available as Boolean,
                         areaId as String or Null, memberIds as Array<String> or Null,
-                        entry as Dictionary) as LightModel {
-        return new LightModel(entityId, state, name, available, areaId, memberIds,
+                        labels as Array<String>, entry as Dictionary) as LightModel {
+        return new LightModel(entityId, state, name, available, areaId, memberIds, labels,
             asNumberOrNull(entry.get("brightness")),
             asNumberOrNull(entry.get("color_temp_kelvin")),
             asNumberOrNull(entry.get("min_color_temp_kelvin")),
@@ -61,8 +63,8 @@ module HaPayload {
 
     function buildFan(entityId as String, state as Boolean, name as String, available as Boolean,
                       areaId as String or Null, memberIds as Array<String> or Null,
-                      entry as Dictionary) as FanModel {
-        return new FanModel(entityId, state, name, available, areaId, memberIds,
+                      labels as Array<String>, entry as Dictionary) as FanModel {
+        return new FanModel(entityId, state, name, available, areaId, memberIds, labels,
             asNumberOrNull(entry.get("speed")),
             asBooleanOrNull(entry.get("oscillating")),
             asBoolean(entry.get("supports_speed")),
@@ -88,7 +90,8 @@ module HaPayload {
                 asString(entry.get("device_class")),
                 asString(entry.get("name")),
                 asAvailable(entry.get("available")),
-                asStringOrNull(entry.get("area_id"))));
+                asStringOrNull(entry.get("area_id")),
+                asStrings(entry.get("labels"))));
         }
 
         return sensors;
@@ -157,6 +160,15 @@ module HaPayload {
         }
 
         return entries;
+    }
+
+    function parseLabels(payload as Object or Null) as Dictionary<String, String> {
+        if (!(payload instanceof Dictionary)) {
+            return {} as Dictionary<String, String>;
+        }
+
+        var raw = payload.get("labels");
+        return raw instanceof Dictionary ? asStringMap(raw) : ({} as Dictionary<String, String>);
     }
 
     function parseAreas(payload as Object or Null) as Dictionary<String, AreaModel> {
