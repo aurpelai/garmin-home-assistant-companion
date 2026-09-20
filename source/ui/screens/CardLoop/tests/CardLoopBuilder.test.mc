@@ -231,6 +231,40 @@ function aHiddenAreaLeavesTheCardLoop(logger as Test.Logger) as Boolean {
 }
 
 (:test)
+function aWatchedLabelWithAMatchAppendsThePooledCardLast(logger as Test.Logger) as Boolean {
+    var haState = CardLoopModelTest.stateOf({
+        "areas" => { "area.room" => { "name" => "Room" } }
+    }, {
+        "light.room" => { "state" => true, "area_id" => "area.room", "available" => true,
+            "labels" => ["label.watched"] },
+        "light.stray" => { "state" => false, "area_id" => null, "available" => true,
+            "labels" => ["label.watched"] }
+    }, {} as Dictionary);
+    haState.setWatchedLabels({ "label.watched" => true });
+
+    var ids = CardLoopModelTest.cardIds(CardLoopBuilder.build(haState));
+
+    Test.assertEqual(ids.toString(), ["area.room", LabelsCard.LABELS_CARD_ID].toString());
+    return true;
+}
+
+(:test)
+function noWatchedMatchLeavesOutThePooledCard(logger as Test.Logger) as Boolean {
+    var haState = CardLoopModelTest.stateOf({
+        "areas" => { "area.room" => { "name" => "Room" } }
+    }, {
+        "light.room" => { "state" => true, "area_id" => "area.room", "available" => true,
+            "labels" => ["label.other"] }
+    }, {} as Dictionary);
+    haState.setWatchedLabels({ "label.watched" => true });
+
+    Test.assertEqual(
+        CardLoopModelTest.cardIds(CardLoopBuilder.build(haState)).toString(),
+        ["area.room"].toString());
+    return true;
+}
+
+(:test)
 function aHiddenUnflooredAreaLeavesTheTrailingCards(logger as Test.Logger) as Boolean {
     var haState = CardLoopModelTest.stateOf({
         "areas" => { "area.garage" => { "name" => "Garage" }, "area.shed" => { "name" => "Shed" } }
