@@ -30,30 +30,14 @@ module CardLoopBuilder {
         }
 
         if (haState.hasWatchedEntities()) {
-            cards.add(buildLabelsCard(haState));
+            cards.add(buildLabelsCard());
         }
 
         return new CardLoopModel(cards);
     }
 
-    function buildLabelsCard(haState as HaState) as LabelsCard {
-        return new LabelsCard(
-            WatchUi.loadResource(Rez.Strings.LabelsCardTitle) as String,
-            [] as Array<SensorReading>,
-            ToggleableCount.build(watchedLights(haState)));
-    }
-
-    function watchedLights(haState as HaState) as Array<ToggleableModel> {
-        var watched = haState.getWatchedToggleables();
-        var lights = [] as Array<ToggleableModel>;
-
-        for (var index = 0; index < watched.size(); index++) {
-            if (watched[index].domain.equals(Domain.LIGHT)) {
-                lights.add(watched[index]);
-            }
-        }
-
-        return lights;
+    function buildLabelsCard() as LabelsCard {
+        return new LabelsCard();
     }
 
     function filterAreasWithEntities(haState as HaState, areas as Array<AreaModel>) as Array<AreaModel> {
