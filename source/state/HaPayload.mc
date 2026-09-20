@@ -97,8 +97,8 @@ module HaPayload {
         return sensors;
     }
 
-    function parseHomeLightSummary(payload as Object or Null) as String or Null {
-        return asStringOrNull(payload instanceof Dictionary ? payload.get("home") : null);
+    function parseLightSummary(payload as Object or Null) as String or Null {
+        return asStringOrNull(payload instanceof Dictionary ? payload.get("lightSummary") : null);
     }
 
     function parseAverages(payload as Object or Null, key as String)
@@ -115,12 +115,12 @@ module HaPayload {
         return averages;
     }
 
-    function parseHomeAverages(payload as Object or Null) as Dictionary<String, String> {
+    function parseClimate(payload as Object or Null) as Dictionary<String, String> {
         if (!(payload instanceof Dictionary)) {
             return {} as Dictionary<String, String>;
         }
 
-        var raw = payload.get("home");
+        var raw = payload.get("climate");
         return raw instanceof Dictionary ? asStringMap(raw) : ({} as Dictionary<String, String>);
     }
 

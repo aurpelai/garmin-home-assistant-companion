@@ -8,7 +8,7 @@ module CoordinatorTest {
     const TWO_ROOMS = "{\"areas\":{\"area.room\":{\"name\":\"Room\"},\"area.kitchen\":{\"name\":\"Kitchen\"}}}";
     const ONE_FLOOR = "{\"zone\":\"Home\",\"areas\":{\"area.room\":{\"name\":\"Room\"}},"
         + "\"floors\":{\"floor.ground\":{\"name\":\"Ground\",\"order\":0,\"areas\":[\"area.room\"]}}}";
-    const ROOM_LIGHT_ON = "{\"home\":\"1/2\",\"lights\":{\"light.a\":{\"state\":true,\"area_id\":\"area.room\"}}}";
+    const ROOM_LIGHT_ON = "{\"lightSummary\":\"1/2\",\"lights\":{\"light.a\":{\"state\":true,\"area_id\":\"area.room\"}}}";
     const TWO_ROOMS_LIT = "{\"lights\":{\"light.a\":{\"state\":true,\"area_id\":\"area.room\"},"
         + "\"light.k\":{\"state\":true,\"area_id\":\"area.kitchen\"}}}";
     const ROOM_LIGHTS_ONE_ON = "{\"lights\":{\"light.a\":{\"state\":true,\"area_id\":\"area.room\"},"
@@ -16,7 +16,7 @@ module CoordinatorTest {
     const ROOM_LIGHTS_OFF = "{\"lights\":{\"light.a\":{\"state\":false,\"area_id\":\"area.room\"},"
         + "\"light.b\":{\"state\":false,\"area_id\":\"area.room\"}}}";
     const ROOM_FAN_ON = "{\"fans\":{\"fan.f\":{\"state\":true,\"area_id\":\"area.room\"}}}";
-    const ROOM_SENSORS = "{\"home\":{\"temperature\":\"21 °C\",\"humidity\":\"40 %\"},"
+    const ROOM_SENSORS = "{\"climate\":{\"temperature\":\"21 °C\",\"humidity\":\"40 %\"},"
         + "\"areas\":{\"area.room\":{\"temperature\":\"21 °C\"}},"
         + "\"sensors\":{\"sensor.t\":{\"friendly_state\":\"21 °C\",\"device_class\":\"temperature\",\"area_id\":\"area.room\"}}}";
     const EMPTY = "{}";

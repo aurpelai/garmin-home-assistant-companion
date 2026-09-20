@@ -67,7 +67,7 @@ class Coordinator {
                 _haState.setLabels(HaPayload.parseLabels(result));
             } else if (target == FetchTarget.LIGHTS) {
                 _haState.setToggleables(Domain.LIGHT, HaPayload.parseLights(result));
-                GlanceSummary.setLightSummary(HaPayload.parseHomeLightSummary(result));
+                GlanceSummary.setLightSummary(HaPayload.parseLightSummary(result));
             } else if (target == FetchTarget.FANS) {
                 _haState.setToggleables(Domain.FAN, HaPayload.parseFans(result));
             } else if (target == FetchTarget.SENSORS) {
@@ -75,9 +75,9 @@ class Coordinator {
                 _haState.setSensorAverages(
                     HaPayload.parseAverages(result, "areas"),
                     HaPayload.parseAverages(result, "floors"));
-                var home = HaPayload.parseHomeAverages(result);
-                GlanceSummary.setTemperature(home.get("temperature"));
-                GlanceSummary.setHumidity(home.get("humidity"));
+                var climate = HaPayload.parseClimate(result);
+                GlanceSummary.setTemperature(climate.get("temperature"));
+                GlanceSummary.setHumidity(climate.get("humidity"));
             }
         }
 

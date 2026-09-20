@@ -39,11 +39,11 @@ function sensorWithoutFriendlyStateIsAbsent(logger as Test.Logger) as Boolean {
 
 (:test)
 function malformedAggregatePayloadsYieldEmptyRatherThanThrow(logger as Test.Logger) as Boolean {
-    var junk = { "areas" => "garbage", "floors" => 7, "home" => ["nope"] };
+    var junk = { "areas" => "garbage", "floors" => 7, "lightSummary" => ["nope"], "climate" => ["nope"] };
 
-    Test.assert(HaPayload.parseHomeLightSummary(junk) == null);
+    Test.assert(HaPayload.parseLightSummary(junk) == null);
     Test.assertEqual(HaPayload.parseAverages(junk, "areas").size(), 0);
-    Test.assertEqual(HaPayload.parseHomeAverages(junk).size(), 0);
+    Test.assertEqual(HaPayload.parseClimate(junk).size(), 0);
     return true;
 }
 

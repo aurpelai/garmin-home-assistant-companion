@@ -138,7 +138,7 @@ module HaTemplate {
         "{% endif %}" +
         "{% endif %}" +
         "{% endfor %}" +
-        "{{ dict(lights=ns.lights, home=(lightSummary(ns.home) | trim or none)) | tojson }}";
+        "{{ dict(lights=ns.lights, lightSummary=(lightSummary(ns.home) | trim or none)) | tojson }}";
 
     // The percentage is emitted whatever the state, so an off fan keeps its last
     // speed; the view, not the render, decides what an off fan shows.
@@ -203,7 +203,7 @@ module HaTemplate {
         "{% if classAverages | length > 0 %}{% set ns.floors = dict(ns.floors, **{floor: classAverages}) %}{% endif %}" +
         "{% endfor %}" +
         "{{ dict(sensors=ns.sensors, areas=ns.areas, floors=ns.floors, " +
-            "home=averages(ns.home) | from_json) | tojson }}";
+            "climate=averages(ns.home) | from_json) | tojson }}";
 
     // Only the home summaries, so the background process's fetch and parse stay
     // within its small memory pool.
@@ -212,7 +212,7 @@ module HaTemplate {
         "{% for area in areas() " + VISIBLE_AREA_CLAUSE + " %}" +
         "{% set ns.home = ns.home + (area_entities(area) | list) %}" +
         "{% endfor %}" +
-        "{{ dict(lights=(lightSummary(ns.home) | trim or none), " +
+        "{{ dict(lightSummary=(lightSummary(ns.home) | trim or none), " +
             "climate=averages(ns.home) | from_json) | tojson }}";
 
     // STRUCTURE is never filtered: the settings tree needs every area, hidden or
