@@ -21,6 +21,7 @@ class Coordinator {
         _pendingClickId = null;
         _hasVisibilityChanged = false;
         _haState.setHidden(VisibilityStore.getHiddenFloors(), VisibilityStore.getHiddenAreas());
+        _haState.setWatchedLabels(VisibilityStore.getWatchedLabels());
     }
 
     function onActivate() as Void {
@@ -63,6 +64,7 @@ class Coordinator {
                 _haState.setZone(HaPayload.parseZone(result));
                 _haState.setAreas(HaPayload.parseAreas(result));
                 _haState.setFloors(HaPayload.parseFloors(result));
+                _haState.setLabels(HaPayload.parseLabels(result));
             } else if (target == FetchTarget.LIGHTS) {
                 _haState.setToggleables(Domain.LIGHT, HaPayload.parseLights(result));
                 GlanceSummary.setLightSummary(HaPayload.parseHomeLightSummary(result));
@@ -87,17 +89,40 @@ class Coordinator {
     }
 
     function showAreaMenu(areaId as String) as Void {
-        var model = AreaEntityMenuBuilder.build(_haState, areaId, _subLabelProvider);
-        if (model == null) {
+        var area = _haState.getArea(areaId);
+        if (area == null) {
             return;
         }
 
+        var model = EntityMenuBuilder.build(area.name, _haState.getAreaToggleables(areaId),
+            _haState.getSensorsInArea(areaId), _subLabelProvider);
         var menu = new AreaEntityMenu(self, areaId, model, _subLabelProvider);
+        WatchUi.pushView(menu, new AreaEntityMenuDelegate(self), WatchUi.SLIDE_LEFT);
+    }
+
+    function showLabelsMenu() as Void {
+        if (!_haState.hasWatchedEntities()) {
+            return;
+        }
+
+        var model = EntityMenuBuilder.build(WatchUi.loadResource(Rez.Strings.LabelsCardTitle) as String,
+            _haState.getWatchedToggleables(), _haState.getWatchedSensors(), _subLabelProvider);
+        var menu = new LabelsMenu(self, model, _subLabelProvider);
         WatchUi.pushView(menu, new AreaEntityMenuDelegate(self), WatchUi.SLIDE_LEFT);
     }
 
     function buildSettingsMenu() as [WatchUi.Views, WatchUi.InputDelegates] {
         return [new SettingsMenu(_haState), new SettingsMenuDelegate(self)];
+    }
+
+    function showLabelPickerMenu() as Void {
+        if (!_haState.hasLabels()) {
+            return;
+        }
+
+        var rows = LabelPickerBuilder.build(_haState);
+        var menu = new LabelPickerMenu(rows);
+        WatchUi.pushView(menu, new LabelPickerDelegate(self), WatchUi.SLIDE_LEFT);
     }
 
     function showVisibilityMenu() as Void {
@@ -158,6 +183,11 @@ class Coordinator {
 
     function setAreaHidden(areaId as String, isHidden as Boolean) as Void {
         _haState.setAreaHidden(areaId, isHidden);
+        persistVisibility();
+    }
+
+    function setLabelWatched(labelId as String, isWatched as Boolean) as Void {
+        _haState.setLabelWatched(labelId, isWatched);
         persistVisibility();
     }
 
@@ -249,6 +279,7 @@ class Coordinator {
         _hasVisibilityChanged = true;
         VisibilityStore.setHiddenFloors(_haState.getHiddenFloors());
         VisibilityStore.setHiddenAreas(_haState.getHiddenAreas());
+        VisibilityStore.setWatchedLabels(_haState.getWatchedLabels());
     }
 
     private function showInfoView(message as String, detail as String or Null) as Void {

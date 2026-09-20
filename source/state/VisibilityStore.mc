@@ -5,6 +5,7 @@ import Toybox.Lang;
 module VisibilityStore {
     const HIDDEN_FLOORS_KEY = "hiddenFloors";
     const HIDDEN_AREAS_KEY = "hiddenAreas";
+    const WATCHED_LABELS_KEY = "watchedLabels";
 
     // The unfloored areas hide as a group under this pseudo floor id. Registry ids
     // are slugified from the name with "_" as the separator, so a hyphen can never
@@ -20,12 +21,20 @@ module VisibilityStore {
         return getMembers(HIDDEN_AREAS_KEY);
     }
 
+    function getWatchedLabels() as Dictionary<String, Boolean> {
+        return getMembers(WATCHED_LABELS_KEY);
+    }
+
     function setHiddenFloors(hiddenFloors as Dictionary<String, Boolean>) as Void {
         Application.Storage.setValue(HIDDEN_FLOORS_KEY, hiddenFloors as Application.Storage.ValueType);
     }
 
     function setHiddenAreas(hiddenAreas as Dictionary<String, Boolean>) as Void {
         Application.Storage.setValue(HIDDEN_AREAS_KEY, hiddenAreas as Application.Storage.ValueType);
+    }
+
+    function setWatchedLabels(watchedLabels as Dictionary<String, Boolean>) as Void {
+        Application.Storage.setValue(WATCHED_LABELS_KEY, watchedLabels as Application.Storage.ValueType);
     }
 
     function getMembers(key as String) as Dictionary<String, Boolean> {
