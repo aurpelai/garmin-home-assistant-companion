@@ -17,19 +17,18 @@ class LabelsCard extends Card {
     }
 
     function drawContent(dc as Graphics.Dc) as Void {
-        var icon = ICON;
         var textWidth = dc.getTextWidthInPixels(name, TITLE_FONT);
         var textHeight = dc.getFontHeight(TITLE_FONT);
-        var contentLeft = dc.getWidth() / 2 - (icon.getWidth() + ICON_GAP + textWidth) / 2;
+        var contentLeft = dc.getWidth() / 2 - (ICON.getWidth() + ICON_GAP + textWidth) / 2;
         var centerY = dc.getHeight() / 2;
 
         Rendering.useAntiAlias(dc, true);
-        dc.drawBitmap2(contentLeft, centerY - icon.getHeight() / 2, icon, {
+        dc.drawBitmap2(contentLeft, centerY - ICON.getHeight() / 2, ICON, {
             :tintColor => system_color_dark__text.color
         });
 
         dc.setColor(system_color_dark__text.color, system_color_dark__text.background);
-        dc.drawText(contentLeft + icon.getWidth() + ICON_GAP, centerY - textHeight / 2,
+        dc.drawText(contentLeft + ICON.getWidth() + ICON_GAP, centerY - textHeight / 2,
             TITLE_FONT, name, Graphics.TEXT_JUSTIFY_LEFT);
     }
 

@@ -61,11 +61,13 @@ module HaTemplate {
         // membership and an entity's own labels union the device side.
         "{% macro labelEntities(label) %}" +
             "{{ (label_entities(label) + " +
-                "(label_devices(label) | map('device_entities') | map('list') | sum(start=[]))) | tojson }}" +
+                "(label_devices(label) | map('device_entities') | map('list') | sum(start=[]))) " +
+                "| unique | list | tojson }}" +
         "{% endmacro %}" +
         "{% macro entityLabels(entity) %}" +
             "{{ ((labels(entity) | list) + " +
-                "(labels(device_id(entity)) | list if device_id(entity) else [])) | tojson }}" +
+                "(labels(device_id(entity)) | list if device_id(entity) else [])) " +
+                "| unique | list | tojson }}" +
         "{% endmacro %}" +
         "{% macro physical(ids) %}" +
             "{% set ns = namespace(lights=[]) %}" +
