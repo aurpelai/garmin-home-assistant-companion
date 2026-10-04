@@ -222,7 +222,7 @@ function aHiddenAreaLeavesTheCardLoop(logger as Test.Logger) as Boolean {
         "light.bedroom" => CardLoopModelTest.light(false, "area.bedroom"),
         "light.attic" => CardLoopModelTest.light(false, "area.attic")
     }, {} as Dictionary);
-    haState.setAreaHidden("area.attic", true);
+    haState.setAreaVisibility("area.attic", false);
 
     Test.assertEqual(
         CardLoopModelTest.cardIds(CardLoopBuilder.build(haState)).toString(),
@@ -272,7 +272,7 @@ function aHiddenFloorlessAreaLeavesTheTrailingCards(logger as Test.Logger) as Bo
         "light.garage" => CardLoopModelTest.light(false, "area.garage"),
         "light.shed" => CardLoopModelTest.light(false, "area.shed")
     }, {} as Dictionary);
-    haState.setAreaHidden("area.garage", true);
+    haState.setAreaVisibility("area.garage", false);
 
     Test.assertEqual(
         CardLoopModelTest.cardIds(CardLoopBuilder.build(haState)).toString(),

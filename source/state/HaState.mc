@@ -56,12 +56,12 @@ class HaState {
         setMembership(_includedLabels, labelId, isIncluded);
     }
 
-    function setFloorHidden(floorId as String, isHidden as Boolean) as Void {
-        setMembership(_hiddenFloors, floorId, isHidden);
+    function setFloorVisibility(floorId as String, isVisible as Boolean) as Void {
+        setMembership(_hiddenFloors, floorId, !isVisible);
     }
 
-    function setAreaHidden(areaId as String, isHidden as Boolean) as Void {
-        setMembership(_hiddenAreas, areaId, isHidden);
+    function setAreaVisibility(areaId as String, isVisible as Boolean) as Void {
+        setMembership(_hiddenAreas, areaId, !isVisible);
     }
 
     function setZone(zone as String or Null) as Void {

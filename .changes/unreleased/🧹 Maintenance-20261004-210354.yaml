@@ -1,0 +1,3 @@
+kind: "\U0001F9F9 Maintenance"
+body: Rename the floor and area hide setters to setFloorVisibility and setAreaVisibility, taking a visible flag
+time: 2026-10-04T21:03:54.93114+03:00

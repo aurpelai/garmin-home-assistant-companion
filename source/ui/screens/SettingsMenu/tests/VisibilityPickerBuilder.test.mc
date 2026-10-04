@@ -49,9 +49,9 @@ function rowsRunFloorByFloorLikeTheCardLoopSkippingAreaLessFloorsWithOtherLast(l
 (:test)
 function rowsAreCheckedUnlessTheirOwnIdIsHidden(logger as Test.Logger) as Boolean {
     var haState = VisibilityPickerBuilderTest.stateOf();
-    haState.setFloorHidden("floor.up", true);
-    haState.setFloorHidden(VisibilityStore.FLOORLESS_FLOOR_ID, true);
-    haState.setAreaHidden("area.hall", true);
+    haState.setFloorVisibility("floor.up", false);
+    haState.setFloorVisibility(VisibilityStore.FLOORLESS_FLOOR_ID, false);
+    haState.setAreaVisibility("area.hall", false);
 
     var rows = VisibilityPickerBuilder.build(haState, "Other");
 
