@@ -9,7 +9,7 @@ class LabelsCard extends Card {
         Card.initialize(LabelsCard.LABELS_CARD_ID, null, "", [] as Array<SensorReading>);
     }
 
-    function draw(dc as Graphics.Dc) as Void {
+    function drawContent(dc as Graphics.Dc) as Void {
         dc.drawText(dc.getWidth() / 2, dc.getHeight() / 2, Graphics.FONT_MEDIUM, "Labels",
             Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
     }

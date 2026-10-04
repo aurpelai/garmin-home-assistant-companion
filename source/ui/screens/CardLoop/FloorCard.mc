@@ -18,7 +18,7 @@ class FloorCard extends Card {
         self.lightSummary = lightSummary;
     }
 
-    function draw(dc as Graphics.Dc) as Void {
+    function drawContent(dc as Graphics.Dc) as Void {
         drawFrame(dc, _zone);
 
         if (lightSummary != null) {

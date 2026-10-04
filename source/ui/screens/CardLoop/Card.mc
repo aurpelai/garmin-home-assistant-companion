@@ -32,9 +32,14 @@ class Card {
     }
 
     function draw(dc as Graphics.Dc) as Void {
+        drawContent(dc);
+
+        if (self has :onSelect) {
+            drawSelectHint(dc);
+        }
     }
 
-    function onSelect(coordinator as Coordinator) as Void {
+    hidden function drawContent(dc as Graphics.Dc) as Void {
     }
 
     hidden function drawFrame(dc as Graphics.Dc, subtitle as String or Null) as Void {
@@ -48,7 +53,6 @@ class Card {
 
         drawTitle(dc, centerX, calculateRowY(dc, 5), name);
         drawReadings(dc);
-        drawSelectHint(dc);
     }
 
     hidden function calculateRowY(dc as Graphics.Dc, row as Number) as Number {
