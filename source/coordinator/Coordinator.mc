@@ -94,7 +94,7 @@ class Coordinator {
             return;
         }
 
-        var model = EntityMenuBuilder.build(area.name, _haState.getAreaToggleables(areaId),
+        var model = EntityMenuBuilder.build(area.name, _haState.getToggleablesInArea(areaId),
             _haState.getSensorsInArea(areaId), _subLabelProvider);
         var menu = new AreaEntityMenu(self, areaId, model, _subLabelProvider);
         WatchUi.pushView(menu, new AreaEntityMenuDelegate(self), WatchUi.SLIDE_LEFT);

@@ -59,7 +59,7 @@ module CardLoopBuilder {
             area.name,
             floorName,
             SensorReading.build(haState.getAreaSensorAverages(area.id)),
-            ToggleableCount.build(haState.getToggleablesInArea(area.id, Domain.LIGHT)));
+            ToggleableCount.build(haState.getToggleablesByDomainInArea(area.id, Domain.LIGHT)));
     }
 
     function buildFloorCard(haState as HaState, floorId as String, floorName as String) as FloorCard {

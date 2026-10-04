@@ -58,7 +58,7 @@ module EntityMenuBuilderTest {
     }
 
     function build(haState as HaState) as EntityMenuModel {
-        return EntityMenuBuilder.build("Room", haState.getAreaToggleables("area.room"),
+        return EntityMenuBuilder.build("Room", haState.getToggleablesInArea("area.room"),
             haState.getSensorsInArea("area.room"), new FakeSubLabelProvider());
     }
 

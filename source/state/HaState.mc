@@ -139,7 +139,7 @@ class HaState {
         return toggleables == null ? null : toggleables.get(entityId);
     }
 
-    function getToggleablesInArea(areaId as String, domain as String) as Array<ToggleableModel> {
+    function getToggleablesByDomainInArea(areaId as String, domain as String) as Array<ToggleableModel> {
         var toggleablesByArea = _toggleablesByDomainAndArea.get(domain);
         var toggleables = toggleablesByArea == null ? null : toggleablesByArea.get(areaId);
         return toggleables == null ? [] as Array<ToggleableModel> : toggleables;
@@ -166,10 +166,10 @@ class HaState {
         return _watchedLabels;
     }
 
-    function getAreaToggleables(areaId as String) as Array<ToggleableModel> {
+    function getToggleablesInArea(areaId as String) as Array<ToggleableModel> {
         var toggleables = [] as Array<ToggleableModel>;
-        toggleables.addAll(getToggleablesInArea(areaId, Domain.LIGHT));
-        toggleables.addAll(getToggleablesInArea(areaId, Domain.FAN));
+        toggleables.addAll(getToggleablesByDomainInArea(areaId, Domain.LIGHT));
+        toggleables.addAll(getToggleablesByDomainInArea(areaId, Domain.FAN));
         return toggleables;
     }
 
@@ -230,7 +230,7 @@ class HaState {
         var toggleables = [] as Array<ToggleableModel>;
 
         for (var index = 0; index < areas.size(); index++) {
-            toggleables.addAll(getToggleablesInArea(areas[index].id, domain));
+            toggleables.addAll(getToggleablesByDomainInArea(areas[index].id, domain));
         }
 
         return toggleables;
@@ -268,7 +268,7 @@ class HaState {
         var domains = _toggleablesByDomainAndArea.keys();
 
         for (var index = 0; index < domains.size(); index++) {
-            if (getToggleablesInArea(areaId, domains[index] as String).size() > 0) {
+            if (getToggleablesByDomainInArea(areaId, domains[index] as String).size() > 0) {
                 return true;
             }
         }

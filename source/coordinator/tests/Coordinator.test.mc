@@ -76,8 +76,8 @@ function eachFetchTargetLandsUnderItsOwnDomainAndFeedsTheGlance(logger as Test.L
     coordinator.onFetchTarget(FetchTarget.FANS, JsonParser.parse(CoordinatorTest.ROOM_FAN_ON), false);
     coordinator.onFetchTarget(FetchTarget.SENSORS, JsonParser.parse(CoordinatorTest.ROOM_SENSORS), false);
 
-    Test.assert(haState.getToggleablesInArea("area.room", Domain.LIGHT)[0].isOn());
-    Test.assert(haState.getToggleablesInArea("area.room", Domain.FAN)[0].isOn());
+    Test.assert(haState.getToggleablesByDomainInArea("area.room", Domain.LIGHT)[0].isOn());
+    Test.assert(haState.getToggleablesByDomainInArea("area.room", Domain.FAN)[0].isOn());
     Test.assertEqual(GlanceSummary.getLightSummary() as String, "1/2");
     Test.assertEqual(GlanceSummary.getTemperature() as String, "21 °C");
     Test.assertEqual(GlanceSummary.getHumidity() as String, "40 %");

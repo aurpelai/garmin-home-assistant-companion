@@ -22,6 +22,6 @@ class AreaEntityMenu extends EntityMenu {
         }
 
         setModel(EntityMenuBuilder.build(area.name,
-            haState.getAreaToggleables(_areaId), haState.getSensorsInArea(_areaId), _subLabelProvider));
+            haState.getToggleablesInArea(_areaId), haState.getSensorsInArea(_areaId), _subLabelProvider));
     }
 }
