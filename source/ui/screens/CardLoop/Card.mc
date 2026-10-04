@@ -8,7 +8,7 @@ class Card {
 
     private const FONT_SIZES = WatchUi.loadResource(Rez.JsonData.VectorFontSizes) as Dictionary;
 
-    private const TITLE_FONT = Graphics.getVectorFont({
+    hidden const TITLE_FONT = Graphics.getVectorFont({
         :face => ["RobotoCondensedBold", "RobotoRegular"],
         :size => FONT_SIZES.get("large") as Number
     }) as Graphics.VectorFont;
