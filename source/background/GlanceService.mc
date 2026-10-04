@@ -26,7 +26,8 @@ class GlanceService extends System.ServiceDelegate {
                 "type" => "render_template",
                 "data" => { ResponseType.TEMPLATE_RENDER_ROOT_KEY =>
                     { "template" => HaTemplate.resolve(FetchTarget.GLANCE,
-                        VisibilityStore.getHiddenFloors(), VisibilityStore.getHiddenAreas()) } }
+                        VisibilityStore.getHiddenFloors(), VisibilityStore.getHiddenAreas(),
+                        [] as Array<String>) } }
             },
             {
                 :method => Communications.HTTP_REQUEST_METHOD_POST,
@@ -41,12 +42,12 @@ class GlanceService extends System.ServiceDelegate {
     function onResponse(code as Number, data as Dictionary or String or Null) as Void {
         if (code >= 200 && code < 300 && data instanceof Dictionary) {
             var rendered = data.get(ResponseType.TEMPLATE_RENDER_ROOT_KEY);
-            var home = rendered instanceof String ? JsonParser.parse(rendered) : rendered;
-            if (home instanceof Dictionary) {
-                var lights = home.get("lights");
-                GlanceSummary.setLightSummary(lights instanceof String ? lights : null);
+            var payload = rendered instanceof String ? JsonParser.parse(rendered) : rendered;
+            if (payload instanceof Dictionary) {
+                var summary = payload.get("lightSummary");
+                GlanceSummary.setLightSummary(summary instanceof String ? summary : null);
 
-                var climate = home.get("climate");
+                var climate = payload.get("climate");
                 var averages = climate instanceof Dictionary ? climate : ({} as Dictionary);
                 GlanceSummary.setTemperature(averages.get("temperature"));
                 GlanceSummary.setHumidity(averages.get("humidity"));

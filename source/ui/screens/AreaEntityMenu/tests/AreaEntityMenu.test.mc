@@ -27,7 +27,8 @@ module AreaEntityMenuTest {
 
     function menuOf(haState as HaState) as AreaEntityMenu {
         var provider = new FakeSubLabelProvider();
-        var model = AreaEntityMenuBuilder.build(haState, "area.room", provider) as AreaEntityMenuModel;
+        var model = EntityMenuBuilder.build("Room", haState.getToggleablesInArea("area.room"),
+            haState.getSensorsInArea("area.room"), provider);
         return new AreaEntityMenu(new Coordinator(new HaClient(new WebRequestGateway(), new TimerScheduler()), new HaState(), new TimerScheduler()),
             "area.room", model, provider);
     }
@@ -96,9 +97,9 @@ function aRowShowsItsResolvedSublabelVerbatimAndTracksItAcrossRebuilds(logger as
 
 (:test)
 function aRowFallsBackToItsIdWhenHaNamesItNothing(logger as Test.Logger) as Boolean {
-    Test.assertEqual(AreaEntityMenu.resolveLabel(null, "light.kitchen"), "light.kitchen");
-    Test.assertEqual(AreaEntityMenu.resolveLabel("", "light.kitchen"), "light.kitchen");
-    Test.assertEqual(AreaEntityMenu.resolveLabel("Kitchen Island", "light.kitchen"), "Kitchen Island");
+    Test.assertEqual(EntityMenu.resolveLabel(null, "light.kitchen"), "light.kitchen");
+    Test.assertEqual(EntityMenu.resolveLabel("", "light.kitchen"), "light.kitchen");
+    Test.assertEqual(EntityMenu.resolveLabel("Kitchen Island", "light.kitchen"), "Kitchen Island");
     return true;
 }
 

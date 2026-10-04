@@ -39,11 +39,11 @@ function sensorWithoutFriendlyStateIsAbsent(logger as Test.Logger) as Boolean {
 
 (:test)
 function malformedAggregatePayloadsYieldEmptyRatherThanThrow(logger as Test.Logger) as Boolean {
-    var junk = { "areas" => "garbage", "floors" => 7, "home" => ["nope"] };
+    var junk = { "areas" => "garbage", "floors" => 7, "lightSummary" => ["nope"], "climate" => ["nope"] };
 
-    Test.assert(HaPayload.parseHomeLightSummary(junk) == null);
+    Test.assert(HaPayload.parseLightSummary(junk) == null);
     Test.assertEqual(HaPayload.parseAverages(junk, "areas").size(), 0);
-    Test.assertEqual(HaPayload.parseHomeAverages(junk).size(), 0);
+    Test.assertEqual(HaPayload.parseClimate(junk).size(), 0);
     return true;
 }
 
@@ -199,6 +199,41 @@ function aFanWithNoSpeedIsStillPresent(logger as Test.Logger) as Boolean {
     Test.assertEqual(parsed.size(), 2);
     Test.assert((parsed.get("fan.absent") as FanModel).speed == null);
     Test.assert((parsed.get("fan.null") as FanModel).speed == null);
+    return true;
+}
+
+(:test)
+function everyEntityCarriesItsAssignedLabelIds(logger as Test.Logger) as Boolean {
+    var light = HaPayload.parseLights(HaPayloadTest.lightsPayload({
+        "light.a" => { "state" => true, "area_id" => "area.a", "labels" => ["label.one", "label.two"] },
+        "light.bare" => { "state" => true, "area_id" => "area.a" }
+    }));
+    var fan = HaPayload.parseFans(HaPayloadTest.fansPayload({
+        "fan.a" => { "state" => true, "area_id" => "area.a", "labels" => ["label.one"] }
+    }));
+    var sensor = HaPayload.parseSensors(HaPayloadTest.sensorsPayload({
+        "sensor.a" => {
+            "friendly_state" => "21.5 °C", "device_class" => "temperature", "area_id" => "area.a",
+            "name" => "T", "available" => true, "labels" => ["label.three"]
+        }
+    }));
+
+    Test.assertEqual((light.get("light.a") as LightModel).labels.toString(),
+        ["label.one", "label.two"].toString());
+    Test.assertEqual((light.get("light.bare") as LightModel).labels.size(), 0);
+    Test.assertEqual((fan.get("fan.a") as FanModel).labels.toString(), ["label.one"].toString());
+    Test.assertEqual((sensor.get("sensor.a") as SensorModel).labels.toString(), ["label.three"].toString());
+    return true;
+}
+
+(:test)
+function theLabelRegistryParsesToAnIdNameMap(logger as Test.Logger) as Boolean {
+    var labels = HaPayload.parseLabels({ "labels" => { "label.a" => "Everyday", "label.b" => "Away" } });
+
+    Test.assertEqual(labels.get("label.a") as String, "Everyday");
+    Test.assertEqual(labels.get("label.b") as String, "Away");
+    Test.assertEqual(HaPayload.parseLabels({ "labels" => "junk" }).size(), 0);
+    Test.assertEqual(HaPayload.parseLabels(null).size(), 0);
     return true;
 }
 

@@ -6,13 +6,13 @@ module AttributeBuilderTest {
 
     function light(brightness as Number or Null, supportsColorTemperature as Boolean,
                    colorTemperatureKelvin as Number or Null) as LightModel {
-        return new LightModel("light.a", true, "A", true, "area.a", null,
+        return new LightModel("light.a", true, "A", true, "area.a", null, [] as Array<String>,
             brightness, colorTemperatureKelvin, 2500, 5000, supportsColorTemperature);
     }
 
     function fan(speed as Number or Null, supportsSpeed as Boolean,
                  supportsOscillation as Boolean, oscillating as Boolean or Null) as FanModel {
-        return new FanModel("fan.a", true, "A", true, "area.a", null,
+        return new FanModel("fan.a", true, "A", true, "area.a", null, [] as Array<String>,
             speed, oscillating, supportsSpeed, supportsOscillation);
     }
 }

@@ -11,16 +11,19 @@ class ToggleableModel {
     public var available as Boolean;
     public var areaId as String or Null;
     public var memberIds as Array<String> or Null;
+    public var labels as Array<String>;
     public var optimisticState as Boolean or Null;
 
     function initialize(id as String, state as Boolean, name as String, available as Boolean,
-                        areaId as String or Null, memberIds as Array<String> or Null) {
+                        areaId as String or Null, memberIds as Array<String> or Null,
+                        labels as Array<String>) {
         self.id = id;
         self.state = state;
         self.name = name;
         self.available = available;
         self.areaId = areaId;
         self.memberIds = memberIds;
+        self.labels = labels;
         domain = Entity.parseDomain(id);
         optimisticState = null;
     }

@@ -3,7 +3,8 @@ import Toybox.Test;
 
 (:test)
 function aLightAssumesBrightnessAndColorTempOverItsServerValues(logger as Test.Logger) as Boolean {
-    var light = new LightModel("light.a", true, "A", true, "area.a", null, 20, 3000, 2000, 6500, true);
+    var light = new LightModel("light.a", true, "A", true, "area.a", null, [] as Array<String>,
+        20, 3000, 2000, 6500, true);
 
     light.overrideAttribute("brightness_pct", 70);
     light.overrideAttribute("color_temp_kelvin", 4500);
@@ -16,7 +17,8 @@ function aLightAssumesBrightnessAndColorTempOverItsServerValues(logger as Test.L
 
 (:test)
 function aFanAssumesSpeedAndOscillationAndMovesOnOffWithTheSpeed(logger as Test.Logger) as Boolean {
-    var fan = new FanModel("fan.a", false, "A", true, "area.a", null, 0, false, true, true);
+    var fan = new FanModel("fan.a", false, "A", true, "area.a", null, [] as Array<String>,
+        0, false, true, true);
 
     fan.overrideAttribute("percentage", 40);
     Test.assertEqual(fan.resolveSpeed() as Number, 40);

@@ -28,11 +28,11 @@ class ResponseHandler {
                 // The render_template webhook returns the rendered value as a
                 // string, so the payload arrives JSON-encoded a second time (see #73).
                 var rendered = data.get(ResponseType.TEMPLATE_RENDER_ROOT_KEY);
-                var home = (rendered instanceof Lang.String) ? JsonParser.parse(rendered) : rendered;
-                if (home == null) {
+                var payload = (rendered instanceof Lang.String) ? JsonParser.parse(rendered) : rendered;
+                if (payload == null) {
                     fail(RequestError.UNREADABLE_BODY);
                 } else {
-                    _callback.invoke(home, null);
+                    _callback.invoke(payload, null);
                 }
                 break;
             case ResponseType.REGISTRATION:

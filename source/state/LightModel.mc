@@ -11,10 +11,11 @@ class LightModel extends ToggleableModel {
 
     function initialize(id as String, state as Boolean, name as String, available as Boolean,
                         areaId as String or Null, memberIds as Array<String> or Null,
+                        labels as Array<String>,
                         brightness as Number or Null, colorTemperatureKelvin as Number or Null,
                         minColorTemperatureKelvin as Number or Null, maxColorTemperatureKelvin as Number or Null,
                         supportsColorTemperature as Boolean) {
-        ToggleableModel.initialize(id, state, name, available, areaId, memberIds);
+        ToggleableModel.initialize(id, state, name, available, areaId, memberIds, labels);
         self.brightness = brightness;
         self.colorTemperatureKelvin = colorTemperatureKelvin;
         self.minColorTemperatureKelvin = minColorTemperatureKelvin;

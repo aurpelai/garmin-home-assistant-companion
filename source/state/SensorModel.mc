@@ -7,14 +7,17 @@ class SensorModel {
     public var name as String;
     public var available as Boolean;
     public var areaId as String or Null;
+    public var labels as Array<String>;
 
     function initialize(id as String, friendlyState as String, deviceClass as String,
-                        name as String, available as Boolean, areaId as String or Null) {
+                        name as String, available as Boolean, areaId as String or Null,
+                        labels as Array<String>) {
         self.id = id;
         self.friendlyState = friendlyState;
         self.deviceClass = deviceClass;
         self.name = name;
         self.available = available;
         self.areaId = areaId;
+        self.labels = labels;
     }
 }

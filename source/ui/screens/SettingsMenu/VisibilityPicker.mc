@@ -3,7 +3,7 @@ import Toybox.WatchUi;
 
 // A floor id and an area id can coincide (both are slugs of names), so the row
 // itself is the item id and carries which set it belongs to.
-class VisibilityToggleMenu extends WatchUi.Menu2 {
+class VisibilityPicker extends WatchUi.Menu2 {
 
     function initialize(rows as Array<VisibilityRowModel>) {
         Menu2.initialize({ :title => WatchUi.loadResource(Rez.Strings.SettingsVisibility) as String });

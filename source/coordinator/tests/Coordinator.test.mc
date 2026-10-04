@@ -8,7 +8,7 @@ module CoordinatorTest {
     const TWO_ROOMS = "{\"areas\":{\"area.room\":{\"name\":\"Room\"},\"area.kitchen\":{\"name\":\"Kitchen\"}}}";
     const ONE_FLOOR = "{\"zone\":\"Home\",\"areas\":{\"area.room\":{\"name\":\"Room\"}},"
         + "\"floors\":{\"floor.ground\":{\"name\":\"Ground\",\"order\":0,\"areas\":[\"area.room\"]}}}";
-    const ROOM_LIGHT_ON = "{\"home\":\"1/2\",\"lights\":{\"light.a\":{\"state\":true,\"area_id\":\"area.room\"}}}";
+    const ROOM_LIGHT_ON = "{\"lightSummary\":\"1/2\",\"lights\":{\"light.a\":{\"state\":true,\"area_id\":\"area.room\"}}}";
     const TWO_ROOMS_LIT = "{\"lights\":{\"light.a\":{\"state\":true,\"area_id\":\"area.room\"},"
         + "\"light.k\":{\"state\":true,\"area_id\":\"area.kitchen\"}}}";
     const ROOM_LIGHTS_ONE_ON = "{\"lights\":{\"light.a\":{\"state\":true,\"area_id\":\"area.room\"},"
@@ -16,7 +16,7 @@ module CoordinatorTest {
     const ROOM_LIGHTS_OFF = "{\"lights\":{\"light.a\":{\"state\":false,\"area_id\":\"area.room\"},"
         + "\"light.b\":{\"state\":false,\"area_id\":\"area.room\"}}}";
     const ROOM_FAN_ON = "{\"fans\":{\"fan.f\":{\"state\":true,\"area_id\":\"area.room\"}}}";
-    const ROOM_SENSORS = "{\"home\":{\"temperature\":\"21 °C\",\"humidity\":\"40 %\"},"
+    const ROOM_SENSORS = "{\"climate\":{\"temperature\":\"21 °C\",\"humidity\":\"40 %\"},"
         + "\"areas\":{\"area.room\":{\"temperature\":\"21 °C\"}},"
         + "\"sensors\":{\"sensor.t\":{\"friendly_state\":\"21 °C\",\"device_class\":\"temperature\",\"area_id\":\"area.room\"}}}";
     const EMPTY = "{}";
@@ -76,8 +76,8 @@ function eachFetchTargetLandsUnderItsOwnDomainAndFeedsTheGlance(logger as Test.L
     coordinator.onFetchTarget(FetchTarget.FANS, JsonParser.parse(CoordinatorTest.ROOM_FAN_ON), false);
     coordinator.onFetchTarget(FetchTarget.SENSORS, JsonParser.parse(CoordinatorTest.ROOM_SENSORS), false);
 
-    Test.assert(haState.getToggleablesInArea("area.room", Domain.LIGHT)[0].isOn());
-    Test.assert(haState.getToggleablesInArea("area.room", Domain.FAN)[0].isOn());
+    Test.assert(haState.getToggleablesByDomainInArea("area.room", Domain.LIGHT)[0].isOn());
+    Test.assert(haState.getToggleablesByDomainInArea("area.room", Domain.FAN)[0].isOn());
     Test.assertEqual(GlanceSummary.getLightSummary() as String, "1/2");
     Test.assertEqual(GlanceSummary.getTemperature() as String, "21 °C");
     Test.assertEqual(GlanceSummary.getHumidity() as String, "40 %");
@@ -124,14 +124,14 @@ function togglingAFloorDrivesEveryLightOffWhileAnyIsOnAndOnOtherwise(logger as T
     var onCoordinator = CoordinatorTest.coordinatorOn(oneOn, gateway, new FakeScheduler());
 
     onCoordinator.toggleFloorLights("floor.ground");
-    Test.assert(!oneOn.hasAnyOn(oneOn.resolveVisibleToggleablesInFloor("floor.ground", Domain.LIGHT)));
+    Test.assert(!oneOn.hasAnyOn(oneOn.listVisibleToggleablesInFloor("floor.ground", Domain.LIGHT)));
     Test.assertEqual(gateway.count(), 1);
 
     var allOff = CoordinatorTest.stateOf(CoordinatorTest.ONE_FLOOR, CoordinatorTest.ROOM_LIGHTS_OFF, CoordinatorTest.EMPTY);
     var offCoordinator = CoordinatorTest.coordinatorOn(allOff, new FakeRequestGateway(), new FakeScheduler());
 
     offCoordinator.toggleFloorLights("floor.ground");
-    var lights = allOff.resolveVisibleToggleablesInFloor("floor.ground", Domain.LIGHT);
+    var lights = allOff.listVisibleToggleablesInFloor("floor.ground", Domain.LIGHT);
     Test.assert(lights[0].isOn() && lights[1].isOn());
     return true;
 }

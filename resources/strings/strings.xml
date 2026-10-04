@@ -20,18 +20,20 @@
     <string id="GroupLightCountOne">Group • 1 Light</string>
     <string id="GroupUnavailable">Group unavailable</string>
     <string id="Kelvin">$1$ K</string>
+    <string id="LabelsCardTitle">Labels</string>
     <string id="Loading">Loading</string>
     <string id="NoEntitiesInArea">No entities in the area</string>
     <string id="NothingFound">No supported entities found</string>
     <string id="Off">Off</string>
     <string id="On">On</string>
     <string id="OnValue">On • $1$ %</string>
+    <string id="Other">Other</string>
     <string id="Percent">$1$ %</string>
     <string id="RetryHint">Select to retry</string>
-    <string id="SettingsVisibility">Filter Floors and Areas</string>
+    <string id="SettingsIncludeLabels">Included Labels</string>
     <string id="SettingsNotLoaded">Not loaded yet</string>
-    <string id="SettingsOtherAreas">Other</string>
     <string id="SettingsTitle">Settings</string>
+    <string id="SettingsVisibility">Filter Floors and Areas</string>
     <string id="Unavailable">Unavailable</string>
 
     <!-- Glance -->

@@ -20,8 +20,8 @@ class AreaCard extends Card {
         self.lightCount = lightCount;
     }
 
-    function draw(dc as Graphics.Dc) as Void {
-        drawFrame(dc, _floorName);
+    function drawContent(dc as Graphics.Dc) as Void {
+        drawDetails(dc, _floorName);
 
         if (lightCount.available + lightCount.unavailable > 0) {
             drawLightIndicators(dc, lightCount);

@@ -1,18 +1,18 @@
 import Toybox.Lang;
 
-module VisibilityMenuBuilder {
+module VisibilityPickerBuilder {
 
-    function build(haState as HaState, unflooredName as String) as Array<VisibilityRowModel> {
+    function build(haState as HaState, floorlessName as String) as Array<VisibilityRowModel> {
         var floors = haState.getFloors();
         var rows = [] as Array<VisibilityRowModel>;
 
         for (var index = 0; index < floors.size(); index++) {
             var floor = floors[index];
-            rows.addAll(buildFloorRows(haState, floor.id, floor.name, haState.resolveAreasInFloor(floor.id)));
+            rows.addAll(buildFloorRows(haState, floor.id, floor.name, haState.listAreasInFloor(floor.id)));
         }
 
-        rows.addAll(buildFloorRows(haState, VisibilityStore.UNFLOORED_FLOOR_ID, unflooredName,
-            haState.resolveUnflooredAreas()));
+        rows.addAll(buildFloorRows(haState, VisibilityStore.FLOORLESS_FLOOR_ID, floorlessName,
+            haState.listFloorlessAreas()));
 
         return rows;
     }

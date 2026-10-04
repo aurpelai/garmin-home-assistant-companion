@@ -9,7 +9,7 @@ module CardLoopBuilder {
         for (var index = 0; index < floors.size(); index++) {
             var floor = floors[index];
             var floorAreas = filterAreasWithEntities(
-                haState, EntitySorter.sortAreas(haState.resolveVisibleAreasInFloor(floor.id)));
+                haState, EntitySorter.sortAreas(haState.listVisibleAreasInFloor(floor.id)));
             if (floorAreas.size() == 0) {
                 continue;
             }
@@ -21,14 +21,43 @@ module CardLoopBuilder {
             }
         }
 
-        var unflooredAreas = filterAreasWithEntities(
-            haState, EntitySorter.sortAreas(haState.resolveVisibleUnflooredAreas()));
+        var floorlessAreas = filterAreasWithEntities(
+            haState, EntitySorter.sortAreas(haState.listVisibleFloorlessAreas()));
 
-        for (var index = 0; index < unflooredAreas.size(); index++) {
-            cards.add(buildAreaCard(haState, unflooredAreas[index], null, null));
+        for (var index = 0; index < floorlessAreas.size(); index++) {
+            cards.add(buildAreaCard(haState, floorlessAreas[index], null, null));
+        }
+
+        if (haState.hasEntitiesOfIncludedLabels()) {
+            cards.add(buildLabelsCard());
         }
 
         return new CardLoopModel(cards);
+    }
+
+    function buildLabelsCard() as LabelsCard {
+        return new LabelsCard();
+    }
+
+    function buildAreaCard(haState as HaState, area as AreaModel, floorId as String or Null,
+                           floorName as String or Null) as AreaCard {
+        return new AreaCard(
+            area.id,
+            floorId,
+            area.name,
+            floorName,
+            SensorReading.build(haState.getAreaSensorAverages(area.id)),
+            ToggleableCount.build(haState.getToggleablesByDomainInArea(area.id, Domain.LIGHT)));
+    }
+
+    function buildFloorCard(haState as HaState, floorId as String, floorName as String) as FloorCard {
+        return new FloorCard(
+            floorId,
+            floorName,
+            haState.getZone(),
+            SensorReading.build(haState.getFloorSensorAverages(floorId)),
+            resolveLightSummary(ToggleableCount.build(
+                haState.listVisibleToggleablesInFloor(floorId, Domain.LIGHT))));
     }
 
     function filterAreasWithEntities(haState as HaState, areas as Array<AreaModel>) as Array<AreaModel> {
@@ -41,27 +70,6 @@ module CardLoopBuilder {
         }
 
         return filtered;
-    }
-
-    function buildAreaCard(haState as HaState, area as AreaModel, floorId as String or Null,
-                           floorName as String or Null) as AreaCard {
-        return new AreaCard(
-            area.id,
-            floorId,
-            area.name,
-            floorName,
-            SensorReading.build(haState.getAreaSensorAverages(area.id)),
-            ToggleableCount.build(haState.getToggleablesInArea(area.id, Domain.LIGHT)));
-    }
-
-    function buildFloorCard(haState as HaState, floorId as String, floorName as String) as FloorCard {
-        return new FloorCard(
-            floorId,
-            floorName,
-            haState.getZone(),
-            SensorReading.build(haState.getFloorSensorAverages(floorId)),
-            resolveLightSummary(ToggleableCount.build(
-                haState.resolveVisibleToggleablesInFloor(floorId, Domain.LIGHT))));
     }
 
     function resolveLightSummary(count as ToggleableCount) as String or Null {

@@ -2,7 +2,7 @@ import Toybox.Lang;
 import Toybox.Test;
 
 (:test)
-module VisibilityMenuBuilderTest {
+module VisibilityPickerBuilderTest {
 
     function stateOf() as HaState {
         var haState = new HaState();
@@ -33,11 +33,11 @@ module VisibilityMenuBuilderTest {
 
 (:test)
 function rowsRunFloorByFloorLikeTheCardLoopSkippingAreaLessFloorsWithOtherLast(logger as Test.Logger) as Boolean {
-    var rows = VisibilityMenuBuilder.build(VisibilityMenuBuilderTest.stateOf(), "Other");
+    var rows = VisibilityPickerBuilder.build(VisibilityPickerBuilderTest.stateOf(), "Other");
 
-    Test.assertEqual(VisibilityMenuBuilderTest.idsOf(rows).toString(),
+    Test.assertEqual(VisibilityPickerBuilderTest.idsOf(rows).toString(),
         ["floor.ground", "area.hall", "area.kitchen", "floor.up", "area.bedroom",
-            VisibilityStore.UNFLOORED_FLOOR_ID, "area.shed"].toString());
+            VisibilityStore.FLOORLESS_FLOOR_ID, "area.shed"].toString());
     Test.assertEqual((rows[0] as FloorVisibilityRowModel).areaCount, 2);
     Test.assertEqual((rows[3] as FloorVisibilityRowModel).areaCount, 1);
     Test.assertEqual((rows[5] as FloorVisibilityRowModel).name, "Other");
@@ -48,12 +48,12 @@ function rowsRunFloorByFloorLikeTheCardLoopSkippingAreaLessFloorsWithOtherLast(l
 
 (:test)
 function rowsAreCheckedUnlessTheirOwnIdIsHidden(logger as Test.Logger) as Boolean {
-    var haState = VisibilityMenuBuilderTest.stateOf();
+    var haState = VisibilityPickerBuilderTest.stateOf();
     haState.setFloorHidden("floor.up", true);
-    haState.setFloorHidden(VisibilityStore.UNFLOORED_FLOOR_ID, true);
+    haState.setFloorHidden(VisibilityStore.FLOORLESS_FLOOR_ID, true);
     haState.setAreaHidden("area.hall", true);
 
-    var rows = VisibilityMenuBuilder.build(haState, "Other");
+    var rows = VisibilityPickerBuilder.build(haState, "Other");
 
     Test.assert(rows[0].isVisible);
     Test.assert(!rows[1].isVisible);

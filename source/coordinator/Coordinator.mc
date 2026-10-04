@@ -21,6 +21,7 @@ class Coordinator {
         _pendingClickId = null;
         _hasVisibilityChanged = false;
         _haState.setHidden(VisibilityStore.getHiddenFloors(), VisibilityStore.getHiddenAreas());
+        _haState.setIncludedLabels(VisibilityStore.getIncludedLabels());
     }
 
     function onActivate() as Void {
@@ -63,9 +64,10 @@ class Coordinator {
                 _haState.setZone(HaPayload.parseZone(result));
                 _haState.setAreas(HaPayload.parseAreas(result));
                 _haState.setFloors(HaPayload.parseFloors(result));
+                _haState.setLabels(HaPayload.parseLabels(result));
             } else if (target == FetchTarget.LIGHTS) {
                 _haState.setToggleables(Domain.LIGHT, HaPayload.parseLights(result));
-                GlanceSummary.setLightSummary(HaPayload.parseHomeLightSummary(result));
+                GlanceSummary.setLightSummary(HaPayload.parseLightSummary(result));
             } else if (target == FetchTarget.FANS) {
                 _haState.setToggleables(Domain.FAN, HaPayload.parseFans(result));
             } else if (target == FetchTarget.SENSORS) {
@@ -73,9 +75,9 @@ class Coordinator {
                 _haState.setSensorAverages(
                     HaPayload.parseAverages(result, "areas"),
                     HaPayload.parseAverages(result, "floors"));
-                var home = HaPayload.parseHomeAverages(result);
-                GlanceSummary.setTemperature(home.get("temperature"));
-                GlanceSummary.setHumidity(home.get("humidity"));
+                var climate = HaPayload.parseClimate(result);
+                GlanceSummary.setTemperature(climate.get("temperature"));
+                GlanceSummary.setHumidity(climate.get("humidity"));
             }
         }
 
@@ -87,12 +89,25 @@ class Coordinator {
     }
 
     function showAreaMenu(areaId as String) as Void {
-        var model = AreaEntityMenuBuilder.build(_haState, areaId, _subLabelProvider);
-        if (model == null) {
+        var area = _haState.getArea(areaId);
+        if (area == null) {
             return;
         }
 
+        var model = EntityMenuBuilder.build(area.name, _haState.getToggleablesInArea(areaId),
+            _haState.getSensorsInArea(areaId), _subLabelProvider);
         var menu = new AreaEntityMenu(self, areaId, model, _subLabelProvider);
+        WatchUi.pushView(menu, new AreaEntityMenuDelegate(self), WatchUi.SLIDE_LEFT);
+    }
+
+    function showLabelsMenu() as Void {
+        if (!_haState.hasEntitiesOfIncludedLabels()) {
+            return;
+        }
+
+        var model = LabelsMenuBuilder.build(WatchUi.loadResource(Rez.Strings.LabelsCardTitle) as String,
+            _haState, WatchUi.loadResource(Rez.Strings.Other) as String, _subLabelProvider);
+        var menu = new LabelsMenu(self, model, _subLabelProvider);
         WatchUi.pushView(menu, new AreaEntityMenuDelegate(self), WatchUi.SLIDE_LEFT);
     }
 
@@ -100,15 +115,33 @@ class Coordinator {
         return [new SettingsMenu(_haState), new SettingsMenuDelegate(self)];
     }
 
-    function showVisibilityMenu() as Void {
+    function showLabelPicker() as Void {
+        if (!_haState.hasLabels()) {
+            return;
+        }
+
+        var rows = LabelPickerBuilder.build(_haState);
+        var menu = new LabelPicker(rows);
+        WatchUi.pushView(menu, new LabelPickerDelegate(self), WatchUi.SLIDE_LEFT);
+    }
+
+    function showVisibilityPicker() as Void {
         if (!_haState.hasAreas()) {
             return;
         }
 
-        var rows = VisibilityMenuBuilder.build(
-            _haState, WatchUi.loadResource(Rez.Strings.SettingsOtherAreas) as String);
-        var menu = new VisibilityToggleMenu(rows);
-        WatchUi.pushView(menu, new VisibilityToggleDelegate(self), WatchUi.SLIDE_LEFT);
+        var rows = VisibilityPickerBuilder.build(
+            _haState, WatchUi.loadResource(Rez.Strings.Other) as String);
+        var menu = new VisibilityPicker(rows);
+        WatchUi.pushView(menu, new VisibilityPickerDelegate(self), WatchUi.SLIDE_LEFT);
+    }
+
+    function onSettingsClosed() as Void {
+        if (_hasVisibilityChanged) {
+            _hasVisibilityChanged = false;
+            _haState.clearFetched();
+            retry();
+        }
     }
 
     function showFloorMenu(floorId as String) as Void {
@@ -161,6 +194,11 @@ class Coordinator {
         persistVisibility();
     }
 
+    function setIncludedLabel(labelId as String, isIncluded as Boolean) as Void {
+        _haState.setIncludedLabel(labelId, isIncluded);
+        persistVisibility();
+    }
+
     function setAttribute(attribute as AdjustableAttribute, value as Number) as Void {
         commitAttribute(attribute, attribute.selectService(value), value);
     }
@@ -180,7 +218,7 @@ class Coordinator {
     }
 
     function toggleFloorLights(floorId as String) as Void {
-        var lights = _haState.resolveVisibleToggleablesInFloor(floorId, Domain.LIGHT);
+        var lights = _haState.listVisibleToggleablesInFloor(floorId, Domain.LIGHT);
         if (lights.size() == 0 || _haState.hasAnyPending(_haState.toIds(lights))) {
             return;
         }
@@ -189,7 +227,7 @@ class Coordinator {
         _haState.overrideFloorLightsState(floorId, targetState);
         var service = targetState ? "turn_on" : "turn_off";
 
-        _client.queueLightsInAreas(_haState.resolveVisibleAreaIdsInFloor(floorId), service,
+        _client.queueLightsInAreas(_haState.listVisibleAreaIdsInFloor(floorId), service,
             method(:onToggleSettled));
         updateDisplay();
     }
@@ -249,6 +287,7 @@ class Coordinator {
         _hasVisibilityChanged = true;
         VisibilityStore.setHiddenFloors(_haState.getHiddenFloors());
         VisibilityStore.setHiddenAreas(_haState.getHiddenAreas());
+        VisibilityStore.setIncludedLabels(_haState.getIncludedLabels());
     }
 
     private function showInfoView(message as String, detail as String or Null) as Void {
