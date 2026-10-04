@@ -42,7 +42,7 @@ class Card {
     hidden function drawContent(dc as Graphics.Dc) as Void {
     }
 
-    hidden function drawFrame(dc as Graphics.Dc, subtitle as String or Null) as Void {
+    hidden function drawDetails(dc as Graphics.Dc, subtitle as String or Null) as Void {
         var centerX = dc.getWidth() / 2;
 
         Rendering.useAntiAlias(dc, true);

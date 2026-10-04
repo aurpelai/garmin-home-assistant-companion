@@ -19,7 +19,7 @@ class FloorCard extends Card {
     }
 
     function drawContent(dc as Graphics.Dc) as Void {
-        drawFrame(dc, _zone);
+        drawDetails(dc, _zone);
 
         if (lightSummary != null) {
             drawLightSummary(dc, lightSummary);
