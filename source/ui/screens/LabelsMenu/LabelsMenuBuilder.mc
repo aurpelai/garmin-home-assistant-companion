@@ -7,9 +7,9 @@ module LabelsMenuBuilder {
     function build(title as String, haState as HaState, arealessName as String,
                    subLabelProvider as SubLabelProvider) as EntityMenuModel {
         var toggleablesByArea = haState.groupByArea(
-            haState.getWatchedToggleables() as Array<EntityModel>, AREALESS_ID);
+            haState.getToggleablesOfIncludedLabels() as Array<EntityModel>, AREALESS_ID);
         var sensorsByArea = haState.groupByArea(
-            haState.getWatchedSensors() as Array<EntityModel>, AREALESS_ID);
+            haState.getSensorsOfIncludedLabels() as Array<EntityModel>, AREALESS_ID);
         var rows = [] as Array<MenuRowModel>;
         var areas = EntitySorter.sortAreas(haState.getAreas());
         var areaIds = {} as Dictionary<String, Boolean>;

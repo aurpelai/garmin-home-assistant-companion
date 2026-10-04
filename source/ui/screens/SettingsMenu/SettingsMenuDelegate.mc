@@ -11,9 +11,9 @@ class SettingsMenuDelegate extends WatchUi.Menu2InputDelegate {
 
     function onSelect(item as WatchUi.MenuItem) as Void {
         if (SettingsMenu.VISIBILITY_ROW_ID.equals(item.getId())) {
-            _coordinator.showVisibilityMenu();
-        } else if (SettingsMenu.WATCH_LABELS_ROW_ID.equals(item.getId())) {
-            _coordinator.showLabelPickerMenu();
+            _coordinator.showVisibilityPicker();
+        } else if (SettingsMenu.INCLUDE_LABELS_ROW_ID.equals(item.getId())) {
+            _coordinator.showLabelPicker();
         }
     }
 

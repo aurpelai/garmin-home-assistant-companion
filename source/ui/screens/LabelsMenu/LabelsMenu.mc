@@ -10,7 +10,7 @@ class LabelsMenu extends EntityMenu {
     }
 
     function hasPerished(haState as HaState) as Boolean {
-        return !haState.hasWatchedEntities();
+        return !haState.hasEntitiesOfIncludedLabels();
     }
 
     function rebuild(haState as HaState) as Void {

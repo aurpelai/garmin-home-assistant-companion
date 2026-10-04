@@ -28,7 +28,7 @@ module CardLoopBuilder {
             cards.add(buildAreaCard(haState, floorlessAreas[index], null, null));
         }
 
-        if (haState.hasWatchedEntities()) {
+        if (haState.hasEntitiesOfIncludedLabels()) {
             cards.add(buildLabelsCard());
         }
 

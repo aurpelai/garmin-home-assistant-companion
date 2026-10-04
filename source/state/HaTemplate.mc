@@ -39,7 +39,7 @@ module HaTemplate {
 
     // Fills a caller-declared `ns` (with `sources` and `home` fields) mapping every
     // candidate entity to the area it renders under. Visible areas feed both the
-    // sources map and the area-scoped home list; the watched labels then add their
+    // sources map and the area-scoped home list; the included labels then add their
     // entities keyed to their real area (none for an area-less stray), outside the
     // visible clause so a hidden-area labelled entity still arrives. The `not in`
     // guard keeps one instance per entity — an area entity is never overwritten by
@@ -50,7 +50,7 @@ module HaTemplate {
         "{% set ns.home = ns.home + ids %}" +
         "{% for entity in ids %}{% set ns.sources = dict(ns.sources, **{entity: area}) %}{% endfor %}" +
         "{% endfor %}" +
-        "{% for label in watched_labels %}{% for entity in label_entities(label) %}" +
+        "{% for label in included_labels %}{% for entity in label_entities(label) %}" +
         "{% if entity not in ns.sources %}{% set ns.sources = dict(ns.sources, **{entity: area_id(entity)}) %}{% endif %}" +
         "{% endfor %}{% endfor %}";
 
@@ -113,7 +113,7 @@ module HaTemplate {
     // unavailable group is kept (its members are down, not gone); only an
     // available group that expands to nothing — every member hidden — is left out.
     // The area loop feeds the home light summary (area-scoped, no label strays),
-    // while the entity dict is built from area entities unioned with the watched
+    // while the entity dict is built from area entities unioned with the included
     // labels' entities, so an area-less or hidden-area labelled light still lands.
     const LIGHTS = PRELUDE +
         "{% set ns = namespace(lights={}, home=[], sources={}) %}" + SOURCE_LOOPS +
@@ -171,7 +171,7 @@ module HaTemplate {
     // single sensor.
     // Averages stay area- and floor-scoped (home aggregates must not drag in
     // label strays), so the sources map is built alongside them and the sensor
-    // dict, widened by the watched labels, comes from a single pass over it.
+    // dict, widened by the included labels, comes from a single pass over it.
     const SENSORS = PRELUDE +
         "{% set ns = namespace(sensors={}, areas={}, floors={}, home=[], sources={}) %}" +
         "{% for area in areas() " + VISIBLE_AREA_CLAUSE + " %}" +
@@ -181,7 +181,7 @@ module HaTemplate {
         "{% if classAverages | length > 0 %}{% set ns.areas = dict(ns.areas, **{area: classAverages}) %}{% endif %}" +
         "{% for entity in ids %}{% set ns.sources = dict(ns.sources, **{entity: area}) %}{% endfor %}" +
         "{% endfor %}" +
-        "{% for label in watched_labels %}{% for entity in label_entities(label) %}" +
+        "{% for label in included_labels %}{% for entity in label_entities(label) %}" +
         "{% if entity not in ns.sources %}{% set ns.sources = dict(ns.sources, **{entity: area_id(entity)}) %}{% endif %}" +
         "{% endfor %}{% endfor %}" +
         "{% for entity, area in ns.sources.items() if not is_hidden_entity(entity) %}" +
@@ -220,12 +220,12 @@ module HaTemplate {
     // hidden sets are inlined as a leading clause of the template itself.
     function resolve(target as Symbol, hiddenFloors as Dictionary<String, Boolean>,
                      hiddenAreas as Dictionary<String, Boolean>,
-                     watchedLabels as Array<String>) as String {
+                     includedLabels as Array<String>) as String {
         if (target == FetchTarget.STRUCTURE) {
             return STRUCTURE;
         }
 
-        var clause = buildClause(hiddenFloors, hiddenAreas, watchedLabels);
+        var clause = buildClause(hiddenFloors, hiddenAreas, includedLabels);
 
         if (target == FetchTarget.LIGHTS) {
             return clause + LIGHTS;
@@ -241,10 +241,10 @@ module HaTemplate {
 
     function buildClause(hiddenFloors as Dictionary<String, Boolean>,
                          hiddenAreas as Dictionary<String, Boolean>,
-                         watchedLabels as Array<String>) as String {
+                         includedLabels as Array<String>) as String {
         return "{% set hidden_floors = [" + quoteIds(hiddenFloors.keys() as Array<String>) + "] %}" +
             "{% set hidden_areas = [" + quoteIds(hiddenAreas.keys() as Array<String>) + "] %}" +
-            "{% set watched_labels = [" + quoteIds(watchedLabels) + "] %}";
+            "{% set included_labels = [" + quoteIds(includedLabels) + "] %}";
     }
 
     function quoteIds(ids as Array<String>) as String {

@@ -8,7 +8,7 @@ module EntityMenuBuilder {
     }
 
     // Toggle rows come out domain by domain in the order each domain first
-    // appears, and sorted within each — the caller (an area or a watched-label
+    // appears, and sorted within each — the caller (an area or an included-label
     // pool) fixes that order by handing lights before fans.
     function buildEntityRows(toggleables as Array<ToggleableModel>, sensors as Array<SensorModel>,
                              subLabelProvider as SubLabelProvider) as Array<MenuRowModel> {

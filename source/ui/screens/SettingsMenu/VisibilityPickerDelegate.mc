@@ -4,7 +4,7 @@ import Toybox.WatchUi;
 // ToggleMenuItem flips its own checkbox before onSelect, and here the flip stands
 // as the user's intent (unlike the entity menu's deferred click): checked means
 // visible, so hidden is its negation.
-class VisibilityToggleDelegate extends WatchUi.Menu2InputDelegate {
+class VisibilityPickerDelegate extends WatchUi.Menu2InputDelegate {
     private var _coordinator as Coordinator;
 
     function initialize(coordinator as Coordinator) {

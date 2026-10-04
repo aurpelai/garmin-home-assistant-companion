@@ -13,7 +13,7 @@ class HaState {
 
     private var _hiddenFloors as Dictionary<String, Boolean>;
     private var _hiddenAreas as Dictionary<String, Boolean>;
-    private var _watchedLabels as Dictionary<String, Boolean>;
+    private var _includedLabels as Dictionary<String, Boolean>;
 
     function initialize() {
         _toggleablesByDomain = {};
@@ -27,7 +27,7 @@ class HaState {
         _sensorAverages = new SensorAverages();
         _hiddenFloors = {};
         _hiddenAreas = {};
-        _watchedLabels = {};
+        _includedLabels = {};
     }
 
     function clearFetched() as Void {
@@ -48,12 +48,12 @@ class HaState {
         _hiddenAreas = hiddenAreas;
     }
 
-    function setWatchedLabels(watchedLabels as Dictionary<String, Boolean>) as Void {
-        _watchedLabels = watchedLabels;
+    function setIncludedLabels(includedLabels as Dictionary<String, Boolean>) as Void {
+        _includedLabels = includedLabels;
     }
 
-    function setLabelWatched(labelId as String, isWatched as Boolean) as Void {
-        setMembership(_watchedLabels, labelId, isWatched);
+    function setIncludedLabel(labelId as String, isIncluded as Boolean) as Void {
+        setMembership(_includedLabels, labelId, isIncluded);
     }
 
     function setFloorHidden(floorId as String, isHidden as Boolean) as Void {
@@ -162,8 +162,8 @@ class HaState {
         return _labels;
     }
 
-    function getWatchedLabels() as Dictionary<String, Boolean> {
-        return _watchedLabels;
+    function getIncludedLabels() as Dictionary<String, Boolean> {
+        return _includedLabels;
     }
 
     function getToggleablesInArea(areaId as String) as Array<ToggleableModel> {
@@ -173,14 +173,14 @@ class HaState {
         return toggleables;
     }
 
-    function getWatchedToggleables() as Array<ToggleableModel> {
-        var toggleables = selectWatchedByDomain(Domain.LIGHT);
-        toggleables.addAll(selectWatchedByDomain(Domain.FAN));
+    function getToggleablesOfIncludedLabels() as Array<ToggleableModel> {
+        var toggleables = selectIncludedInDomain(Domain.LIGHT);
+        toggleables.addAll(selectIncludedInDomain(Domain.FAN));
         return toggleables;
     }
 
-    function getWatchedSensors() as Array<SensorModel> {
-        return filterWatched(_sensors.values() as Array<EntityModel>) as Array<SensorModel>;
+    function getSensorsOfIncludedLabels() as Array<SensorModel> {
+        return filterIncluded(_sensors.values() as Array<EntityModel>) as Array<SensorModel>;
     }
 
     function listAreasInFloor(floorId as String) as Array<AreaModel> {
@@ -256,8 +256,8 @@ class HaState {
         return _labels.size() > 0;
     }
 
-    function hasWatchedEntities() as Boolean {
-        return getWatchedToggleables().size() > 0 || getWatchedSensors().size() > 0;
+    function hasEntitiesOfIncludedLabels() as Boolean {
+        return getToggleablesOfIncludedLabels().size() > 0 || getSensorsOfIncludedLabels().size() > 0;
     }
 
     function hasEntitiesInArea(areaId as String) as Boolean {
@@ -383,28 +383,28 @@ class HaState {
         return areas;
     }
 
-    private function selectWatchedByDomain(domain as String) as Array<ToggleableModel> {
+    private function selectIncludedInDomain(domain as String) as Array<ToggleableModel> {
         var toggleables = _toggleablesByDomain.get(domain);
         return toggleables == null
             ? [] as Array<ToggleableModel>
-            : filterWatched(toggleables.values() as Array<EntityModel>) as Array<ToggleableModel>;
+            : filterIncluded(toggleables.values() as Array<EntityModel>) as Array<ToggleableModel>;
     }
 
-    private function filterWatched(models as Array<EntityModel>) as Array<EntityModel> {
-        var watched = [] as Array<EntityModel>;
+    private function filterIncluded(models as Array<EntityModel>) as Array<EntityModel> {
+        var included = [] as Array<EntityModel>;
 
         for (var index = 0; index < models.size(); index++) {
-            if (isWatched(models[index].labels)) {
-                watched.add(models[index]);
+            if (isIncluded(models[index].labels)) {
+                included.add(models[index]);
             }
         }
 
-        return watched;
+        return included;
     }
 
-    private function isWatched(labels as Array<String>) as Boolean {
+    private function isIncluded(labels as Array<String>) as Boolean {
         for (var index = 0; index < labels.size(); index++) {
-            if (_watchedLabels.hasKey(labels[index])) {
+            if (_includedLabels.hasKey(labels[index])) {
                 return true;
             }
         }

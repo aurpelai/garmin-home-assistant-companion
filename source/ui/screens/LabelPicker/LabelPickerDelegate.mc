@@ -2,7 +2,7 @@ import Toybox.Lang;
 import Toybox.WatchUi;
 
 // ToggleMenuItem flips its own checkbox before onSelect, and here the flip stands
-// as the user's intent: checked means watched.
+// as the user's intent: checked means included.
 class LabelPickerDelegate extends WatchUi.Menu2InputDelegate {
     private var _coordinator as Coordinator;
 
@@ -16,6 +16,6 @@ class LabelPickerDelegate extends WatchUi.Menu2InputDelegate {
             return;
         }
 
-        _coordinator.setLabelWatched(item.getId() as String, item.isEnabled());
+        _coordinator.setIncludedLabel(item.getId() as String, item.isEnabled());
     }
 }

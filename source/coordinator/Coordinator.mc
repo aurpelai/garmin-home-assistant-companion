@@ -21,7 +21,7 @@ class Coordinator {
         _pendingClickId = null;
         _hasVisibilityChanged = false;
         _haState.setHidden(VisibilityStore.getHiddenFloors(), VisibilityStore.getHiddenAreas());
-        _haState.setWatchedLabels(VisibilityStore.getWatchedLabels());
+        _haState.setIncludedLabels(VisibilityStore.getIncludedLabels());
     }
 
     function onActivate() as Void {
@@ -101,7 +101,7 @@ class Coordinator {
     }
 
     function showLabelsMenu() as Void {
-        if (!_haState.hasWatchedEntities()) {
+        if (!_haState.hasEntitiesOfIncludedLabels()) {
             return;
         }
 
@@ -115,7 +115,7 @@ class Coordinator {
         return [new SettingsMenu(_haState), new SettingsMenuDelegate(self)];
     }
 
-    function showLabelPickerMenu() as Void {
+    function showLabelPicker() as Void {
         if (!_haState.hasLabels()) {
             return;
         }
@@ -125,15 +125,15 @@ class Coordinator {
         WatchUi.pushView(menu, new LabelPickerDelegate(self), WatchUi.SLIDE_LEFT);
     }
 
-    function showVisibilityMenu() as Void {
+    function showVisibilityPicker() as Void {
         if (!_haState.hasAreas()) {
             return;
         }
 
         var rows = VisibilityMenuBuilder.build(
             _haState, WatchUi.loadResource(Rez.Strings.Other) as String);
-        var menu = new VisibilityToggleMenu(rows);
-        WatchUi.pushView(menu, new VisibilityToggleDelegate(self), WatchUi.SLIDE_LEFT);
+        var menu = new VisibilityPicker(rows);
+        WatchUi.pushView(menu, new VisibilityPickerDelegate(self), WatchUi.SLIDE_LEFT);
     }
 
     function onSettingsClosed() as Void {
@@ -194,8 +194,8 @@ class Coordinator {
         persistVisibility();
     }
 
-    function setLabelWatched(labelId as String, isWatched as Boolean) as Void {
-        _haState.setLabelWatched(labelId, isWatched);
+    function setIncludedLabel(labelId as String, isIncluded as Boolean) as Void {
+        _haState.setIncludedLabel(labelId, isIncluded);
         persistVisibility();
     }
 
@@ -287,7 +287,7 @@ class Coordinator {
         _hasVisibilityChanged = true;
         VisibilityStore.setHiddenFloors(_haState.getHiddenFloors());
         VisibilityStore.setHiddenAreas(_haState.getHiddenAreas());
-        VisibilityStore.setWatchedLabels(_haState.getWatchedLabels());
+        VisibilityStore.setIncludedLabels(_haState.getIncludedLabels());
     }
 
     private function showInfoView(message as String, detail as String or Null) as Void {

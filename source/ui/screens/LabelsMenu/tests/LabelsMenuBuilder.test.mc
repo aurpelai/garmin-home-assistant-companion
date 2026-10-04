@@ -14,7 +14,7 @@ module LabelsMenuBuilderTest {
         haState.setToggleables(Domain.LIGHT, HaPayload.parseLights({ "lights" => lights }));
         haState.setToggleables(Domain.FAN, {} as Dictionary<String, ToggleableModel>);
         haState.setSensors(HaPayload.parseSensors({ "sensors" => {} }));
-        haState.setWatchedLabels({ "label.watched" => true });
+        haState.setIncludedLabels({ "label.watched" => true });
         return haState;
     }
 

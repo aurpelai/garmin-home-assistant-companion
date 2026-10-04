@@ -6,7 +6,7 @@ function emptyHiddenSetsRenderUnfiltered(logger as Test.Logger) as Boolean {
     var template = HaTemplate.resolve(FetchTarget.LIGHTS, {}, {}, [] as Array<String>);
 
     Test.assert(template.find(
-        "{% set hidden_floors = [] %}{% set hidden_areas = [] %}{% set watched_labels = [] %}") == 0);
+        "{% set hidden_floors = [] %}{% set hidden_areas = [] %}{% set included_labels = [] %}") == 0);
     return true;
 }
 
@@ -45,12 +45,12 @@ function theStructureTemplateEmitsTheLabelRegistry(logger as Test.Logger) as Boo
 function theWatchedLabelUnionRunsOutsideTheVisibleClause(logger as Test.Logger) as Boolean {
     var template = HaTemplate.resolve(FetchTarget.LIGHTS, {}, {}, ["label.watched"] as Array<String>);
 
-    Test.assert(template.find("{% set watched_labels = ['label.watched'] %}") != null);
+    Test.assert(template.find("{% set included_labels = ['label.watched'] %}") != null);
 
     // The label loop is a sibling after the visible-area loop closes, never nested
     // inside its clause, so a hidden-area labelled entity still arrives.
     Test.assert(template.find(
-        "{% endfor %}{% for label in watched_labels %}{% for entity in label_entities(label) %}") != null);
+        "{% endfor %}{% for label in included_labels %}{% for entity in label_entities(label) %}") != null);
     return true;
 }
 

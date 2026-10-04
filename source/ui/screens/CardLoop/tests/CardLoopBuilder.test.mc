@@ -240,7 +240,7 @@ function aWatchedLabelWithAMatchAppendsThePooledCardLast(logger as Test.Logger) 
         "light.stray" => { "state" => false, "area_id" => null, "available" => true,
             "labels" => ["label.watched"] }
     }, {} as Dictionary);
-    haState.setWatchedLabels({ "label.watched" => true });
+    haState.setIncludedLabels({ "label.watched" => true });
 
     var ids = CardLoopModelTest.cardIds(CardLoopBuilder.build(haState));
 
@@ -256,7 +256,7 @@ function noWatchedMatchLeavesOutThePooledCard(logger as Test.Logger) as Boolean 
         "light.room" => { "state" => true, "area_id" => "area.room", "available" => true,
             "labels" => ["label.other"] }
     }, {} as Dictionary);
-    haState.setWatchedLabels({ "label.watched" => true });
+    haState.setIncludedLabels({ "label.watched" => true });
 
     Test.assertEqual(
         CardLoopModelTest.cardIds(CardLoopBuilder.build(haState)).toString(),

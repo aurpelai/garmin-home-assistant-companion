@@ -259,7 +259,7 @@ class HaClient {
             "data" => {
                 ResponseType.TEMPLATE_RENDER_ROOT_KEY => {
                     "template" => HaTemplate.resolve(target, VisibilityStore.getHiddenFloors(),
-                        VisibilityStore.getHiddenAreas(), VisibilityStore.getWatchedLabels().keys() as Array<String>)
+                        VisibilityStore.getHiddenAreas(), VisibilityStore.getIncludedLabels().keys() as Array<String>)
                 }
             }
         };
