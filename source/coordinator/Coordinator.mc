@@ -191,6 +191,14 @@ class Coordinator {
         persistVisibility();
     }
 
+    function onSettingsClosed() as Void {
+        if (_hasVisibilityChanged) {
+            _hasVisibilityChanged = false;
+            _haState.clearFetched();
+            retry();
+        }
+    }
+
     function setAttribute(attribute as AdjustableAttribute, value as Number) as Void {
         commitAttribute(attribute, attribute.selectService(value), value);
     }

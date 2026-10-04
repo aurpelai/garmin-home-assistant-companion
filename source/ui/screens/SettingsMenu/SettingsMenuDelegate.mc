@@ -16,4 +16,9 @@ class SettingsMenuDelegate extends WatchUi.Menu2InputDelegate {
             _coordinator.showLabelPickerMenu();
         }
     }
+
+    function onBack() as Void {
+        WatchUi.popView(WatchUi.SLIDE_RIGHT);
+        _coordinator.onSettingsClosed();
+    }
 }
