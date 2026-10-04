@@ -5,6 +5,18 @@ All notable changes to this project are documented here.
 This file is compiled from change fragments by [changie](https://changie.dev);
 do not edit it by hand. Add a fragment with `changie new` in your PR instead.
 
+## [v0.13.0] - 2026-10-04
+
+### 🎉 New
+
+- Hide floors and areas you don't want to see from an on-device settings menu
+- Show entities carrying an included Home Assistant label in a card at the end of the loop
+
+### 🛠️ Technical
+
+- Filter hidden floors and areas out of the card loop, floor summaries and actions, and the data render templates
+- Widen the data render templates to union included-label entities and make the entity menu builder source-agnostic
+
 ## [v0.12.1] - 2026-09-04
 
 ### 🔧 Fixed
