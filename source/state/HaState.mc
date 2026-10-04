@@ -205,24 +205,24 @@ class HaState {
         return areaIds;
     }
 
-    function resolveUnflooredAreas() as Array<AreaModel> {
+    function resolveFloorlessAreas() as Array<AreaModel> {
         var flooredAreaIds = resolveFlooredAreaIds();
         var areas = getAreas();
-        var unflooredAreas = [] as Array<AreaModel>;
+        var floorlessAreas = [] as Array<AreaModel>;
 
         for (var index = 0; index < areas.size(); index++) {
             if (!flooredAreaIds.hasKey(areas[index].id)) {
-                unflooredAreas.add(areas[index]);
+                floorlessAreas.add(areas[index]);
             }
         }
 
-        return unflooredAreas;
+        return floorlessAreas;
     }
 
-    function resolveVisibleUnflooredAreas() as Array<AreaModel> {
-        return _hiddenFloors.hasKey(VisibilityStore.UNFLOORED_FLOOR_ID)
+    function resolveVisibleFloorlessAreas() as Array<AreaModel> {
+        return _hiddenFloors.hasKey(VisibilityStore.FLOORLESS_FLOOR_ID)
             ? [] as Array<AreaModel>
-            : filterVisibleAreas(resolveUnflooredAreas());
+            : filterVisibleAreas(resolveFloorlessAreas());
     }
 
     function resolveVisibleToggleablesInFloor(floorId as String, domain as String) as Array<ToggleableModel> {

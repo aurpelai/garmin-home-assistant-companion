@@ -35,7 +35,7 @@ module HaTemplate {
             "areas=ns.areas, floors=ns.floors, labels=ns.labels) | tojson }}";
 
     const VISIBLE_AREA_CLAUSE = "if area not in hidden_areas and (floor_id(area) or '" +
-        VisibilityStore.UNFLOORED_FLOOR_ID + "') not in hidden_floors";
+        VisibilityStore.FLOORLESS_FLOOR_ID + "') not in hidden_floors";
 
     // Fills a caller-declared `ns` (with `sources` and `home` fields) mapping every
     // candidate entity to the area it renders under. Visible areas feed both the

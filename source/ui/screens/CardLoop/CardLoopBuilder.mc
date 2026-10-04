@@ -21,11 +21,11 @@ module CardLoopBuilder {
             }
         }
 
-        var unflooredAreas = filterAreasWithEntities(
-            haState, EntitySorter.sortAreas(haState.resolveVisibleUnflooredAreas()));
+        var floorlessAreas = filterAreasWithEntities(
+            haState, EntitySorter.sortAreas(haState.resolveVisibleFloorlessAreas()));
 
-        for (var index = 0; index < unflooredAreas.size(); index++) {
-            cards.add(buildAreaCard(haState, unflooredAreas[index], null, null));
+        for (var index = 0; index < floorlessAreas.size(); index++) {
+            cards.add(buildAreaCard(haState, floorlessAreas[index], null, null));
         }
 
         if (haState.hasWatchedEntities()) {

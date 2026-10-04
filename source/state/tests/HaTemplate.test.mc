@@ -16,7 +16,7 @@ function hiddenSetsAreInlinedAsQuotedIds(logger as Test.Logger) as Boolean {
         [] as Array<String>);
 
     Test.assert(template.find("{% set hidden_floors = ['floor.up'] %}{% set hidden_areas = ['area.a'] %}") == 0);
-    Test.assert(template.find("(floor_id(area) or 'unfloored-areas') not in hidden_floors") != null);
+    Test.assert(template.find("(floor_id(area) or 'floorless-areas') not in hidden_floors") != null);
     return true;
 }
 

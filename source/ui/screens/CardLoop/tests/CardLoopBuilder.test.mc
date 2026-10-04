@@ -63,7 +63,7 @@ module CardLoopModelTest {
 }
 
 (:test)
-function eachFloorHeadsItsOwnAreasAndUnflooredAreasTrailEveryFloor(logger as Test.Logger) as Boolean {
+function eachFloorHeadsItsOwnAreasAndFloorlessAreasTrailEveryFloor(logger as Test.Logger) as Boolean {
     var haState = CardLoopModelTest.stateOf({
         "areas" => {
             "area.bedroom" => { "name" => "Bedroom" },
@@ -265,7 +265,7 @@ function noWatchedMatchLeavesOutThePooledCard(logger as Test.Logger) as Boolean 
 }
 
 (:test)
-function aHiddenUnflooredAreaLeavesTheTrailingCards(logger as Test.Logger) as Boolean {
+function aHiddenFloorlessAreaLeavesTheTrailingCards(logger as Test.Logger) as Boolean {
     var haState = CardLoopModelTest.stateOf({
         "areas" => { "area.garage" => { "name" => "Garage" }, "area.shed" => { "name" => "Shed" } }
     }, {

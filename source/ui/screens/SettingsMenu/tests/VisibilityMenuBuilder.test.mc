@@ -37,7 +37,7 @@ function rowsRunFloorByFloorLikeTheCardLoopSkippingAreaLessFloorsWithOtherLast(l
 
     Test.assertEqual(VisibilityMenuBuilderTest.idsOf(rows).toString(),
         ["floor.ground", "area.hall", "area.kitchen", "floor.up", "area.bedroom",
-            VisibilityStore.UNFLOORED_FLOOR_ID, "area.shed"].toString());
+            VisibilityStore.FLOORLESS_FLOOR_ID, "area.shed"].toString());
     Test.assertEqual((rows[0] as FloorVisibilityRowModel).areaCount, 2);
     Test.assertEqual((rows[3] as FloorVisibilityRowModel).areaCount, 1);
     Test.assertEqual((rows[5] as FloorVisibilityRowModel).name, "Other");
@@ -50,7 +50,7 @@ function rowsRunFloorByFloorLikeTheCardLoopSkippingAreaLessFloorsWithOtherLast(l
 function rowsAreCheckedUnlessTheirOwnIdIsHidden(logger as Test.Logger) as Boolean {
     var haState = VisibilityMenuBuilderTest.stateOf();
     haState.setFloorHidden("floor.up", true);
-    haState.setFloorHidden(VisibilityStore.UNFLOORED_FLOOR_ID, true);
+    haState.setFloorHidden(VisibilityStore.FLOORLESS_FLOOR_ID, true);
     haState.setAreaHidden("area.hall", true);
 
     var rows = VisibilityMenuBuilder.build(haState, "Other");

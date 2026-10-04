@@ -321,9 +321,9 @@ function hidingNarrowsEveryVisibleReadingWhileTheFullStructureStaysReadable(logg
     Test.assertEqual(haState.resolveVisibleAreasInFloor("floor.ground")[0].id, "area.kitchen");
     Test.assertEqual(haState.resolveVisibleAreasInFloor("floor.ground").size(), 1);
     Test.assertEqual(haState.resolveVisibleAreaIdsInFloor("floor.up").size(), 0);
-    Test.assertEqual(haState.resolveUnflooredAreas().size(), 2);
-    Test.assertEqual(haState.resolveVisibleUnflooredAreas()[0].id, "area.shed");
-    Test.assertEqual(haState.resolveVisibleUnflooredAreas().size(), 1);
+    Test.assertEqual(haState.resolveFloorlessAreas().size(), 2);
+    Test.assertEqual(haState.resolveVisibleFloorlessAreas()[0].id, "area.shed");
+    Test.assertEqual(haState.resolveVisibleFloorlessAreas().size(), 1);
 
     haState.setAreaHidden("area.hall", false);
     Test.assertEqual(haState.resolveVisibleAreasInFloor("floor.ground").size(), 2);
@@ -331,9 +331,9 @@ function hidingNarrowsEveryVisibleReadingWhileTheFullStructureStaysReadable(logg
     haState.setFloorHidden("floor.up", false);
     Test.assertEqual(haState.resolveVisibleAreaIdsInFloor("floor.up").toString(), ["area.bedroom"].toString());
 
-    haState.setFloorHidden(VisibilityStore.UNFLOORED_FLOOR_ID, true);
-    Test.assertEqual(haState.resolveVisibleUnflooredAreas().size(), 0);
-    Test.assertEqual(haState.resolveUnflooredAreas().size(), 2);
+    haState.setFloorHidden(VisibilityStore.FLOORLESS_FLOOR_ID, true);
+    Test.assertEqual(haState.resolveVisibleFloorlessAreas().size(), 0);
+    Test.assertEqual(haState.resolveFloorlessAreas().size(), 2);
     return true;
 }
 
