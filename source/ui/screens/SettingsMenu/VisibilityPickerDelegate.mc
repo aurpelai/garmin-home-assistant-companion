@@ -2,8 +2,7 @@ import Toybox.Lang;
 import Toybox.WatchUi;
 
 // ToggleMenuItem flips its own checkbox before onSelect, and here the flip stands
-// as the user's intent (unlike the entity menu's deferred click): checked means
-// visible, so hidden is its negation.
+// as the user's intent (unlike the entity menu's deferred click).
 class VisibilityPickerDelegate extends WatchUi.Menu2InputDelegate {
     private var _coordinator as Coordinator;
 
@@ -18,12 +17,11 @@ class VisibilityPickerDelegate extends WatchUi.Menu2InputDelegate {
         }
 
         var row = item.getId() as VisibilityRowModel;
-        var isHidden = !item.isEnabled();
 
         if (row instanceof FloorVisibilityRowModel) {
-            _coordinator.setFloorHidden(row.id, isHidden);
+            _coordinator.setFloorVisibility(row.id, item.isEnabled());
         } else {
-            _coordinator.setAreaHidden(row.id, isHidden);
+            _coordinator.setAreaVisibility(row.id, item.isEnabled());
         }
     }
 }

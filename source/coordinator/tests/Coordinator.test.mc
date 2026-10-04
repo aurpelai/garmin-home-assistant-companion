@@ -187,7 +187,7 @@ function hiddenSetsLoadOnStartPersistOnChangeAndForceTheNextShownScreenToRefresh
     coordinator.onViewShown(loop);
     Test.assertEqual(gateway.count(), 4);
 
-    coordinator.setAreaHidden("area.room", true);
+    coordinator.setAreaVisibility("area.room", false);
     Test.assert(VisibilityStore.getHiddenAreas().hasKey("area.room"));
 
     coordinator.onViewShown(loop);

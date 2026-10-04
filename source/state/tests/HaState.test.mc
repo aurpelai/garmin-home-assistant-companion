@@ -52,7 +52,7 @@ function clearingFetchedDataEmptiesEveryTargetButKeepsTheHiddenSets(logger as Te
     haState.setSensors(HaPayload.parseSensors({ "sensors" => {
         "sensor.t" => { "friendly_state" => "21 °C", "device_class" => "temperature", "area_id" => "area.room" } } }));
     haState.setSensorAverages({ "area.room" => { "temperature" => "21 °C" } }, {});
-    haState.setAreaHidden("area.room", true);
+    haState.setAreaVisibility("area.room", false);
 
     haState.clearFetched();
 
@@ -293,7 +293,7 @@ function aFloorScopeCoversEveryLightInItsAreasAndNothingOutside(logger as Test.L
     Test.assert(!haState.isPending("fan.kitchen"));
     Test.assertEqual(haState.listVisibleToggleablesInFloor("floor.ground", Domain.LIGHT).size(), 4);
 
-    haState.setAreaHidden("area.kitchen", true);
+    haState.setAreaVisibility("area.kitchen", false);
     Test.assertEqual(haState.toIds(haState.listVisibleToggleablesInFloor("floor.ground", Domain.LIGHT)).toString(),
         ["light.hall"].toString());
     return true;
@@ -313,9 +313,9 @@ function hidingNarrowsEveryVisibleReadingWhileTheFullStructureStaysReadable(logg
             "floor.up" => { "name" => "Up", "order" => 1, "areas" => ["area.bedroom"] }
         }
     });
-    haState.setFloorHidden("floor.up", true);
-    haState.setAreaHidden("area.hall", true);
-    haState.setAreaHidden("area.garage", true);
+    haState.setFloorVisibility("floor.up", false);
+    haState.setAreaVisibility("area.hall", false);
+    haState.setAreaVisibility("area.garage", false);
 
     Test.assertEqual(haState.listAreasInFloor("floor.ground").size(), 2);
     Test.assertEqual(haState.listVisibleAreasInFloor("floor.ground")[0].id, "area.kitchen");
@@ -325,13 +325,13 @@ function hidingNarrowsEveryVisibleReadingWhileTheFullStructureStaysReadable(logg
     Test.assertEqual(haState.listVisibleFloorlessAreas()[0].id, "area.shed");
     Test.assertEqual(haState.listVisibleFloorlessAreas().size(), 1);
 
-    haState.setAreaHidden("area.hall", false);
+    haState.setAreaVisibility("area.hall", true);
     Test.assertEqual(haState.listVisibleAreasInFloor("floor.ground").size(), 2);
 
-    haState.setFloorHidden("floor.up", false);
+    haState.setFloorVisibility("floor.up", true);
     Test.assertEqual(haState.listVisibleAreaIdsInFloor("floor.up").toString(), ["area.bedroom"].toString());
 
-    haState.setFloorHidden(VisibilityStore.FLOORLESS_FLOOR_ID, true);
+    haState.setFloorVisibility(VisibilityStore.FLOORLESS_FLOOR_ID, false);
     Test.assertEqual(haState.listVisibleFloorlessAreas().size(), 0);
     Test.assertEqual(haState.listFloorlessAreas().size(), 2);
     return true;

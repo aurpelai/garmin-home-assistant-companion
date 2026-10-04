@@ -184,13 +184,13 @@ class Coordinator {
         return _haState.isOn(entityId);
     }
 
-    function setFloorHidden(floorId as String, isHidden as Boolean) as Void {
-        _haState.setFloorHidden(floorId, isHidden);
+    function setFloorVisibility(floorId as String, isVisible as Boolean) as Void {
+        _haState.setFloorVisibility(floorId, isVisible);
         persistVisibility();
     }
 
-    function setAreaHidden(areaId as String, isHidden as Boolean) as Void {
-        _haState.setAreaHidden(areaId, isHidden);
+    function setAreaVisibility(areaId as String, isVisible as Boolean) as Void {
+        _haState.setAreaVisibility(areaId, isVisible);
         persistVisibility();
     }
 
