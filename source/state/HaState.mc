@@ -174,8 +174,8 @@ class HaState {
     }
 
     function getWatchedToggleables() as Array<ToggleableModel> {
-        var toggleables = filterWatchedInDomain(Domain.LIGHT);
-        toggleables.addAll(filterWatchedInDomain(Domain.FAN));
+        var toggleables = selectWatchedByDomain(Domain.LIGHT);
+        toggleables.addAll(selectWatchedByDomain(Domain.FAN));
         return toggleables;
     }
 
@@ -383,7 +383,7 @@ class HaState {
         return areas;
     }
 
-    private function filterWatchedInDomain(domain as String) as Array<ToggleableModel> {
+    private function selectWatchedByDomain(domain as String) as Array<ToggleableModel> {
         var toggleables = _toggleablesByDomain.get(domain);
         return toggleables == null
             ? [] as Array<ToggleableModel>
