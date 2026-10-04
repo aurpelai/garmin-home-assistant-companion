@@ -25,6 +25,11 @@ module VisibilityStore {
         return getMembers(WATCHED_LABELS_KEY);
     }
 
+    function getMembers(key as String) as Dictionary<String, Boolean> {
+        var stored = Application.Storage.getValue(key);
+        return stored instanceof Dictionary ? stored as Dictionary<String, Boolean> : {} as Dictionary<String, Boolean>;
+    }
+
     function setHiddenFloors(hiddenFloors as Dictionary<String, Boolean>) as Void {
         Application.Storage.setValue(HIDDEN_FLOORS_KEY, hiddenFloors as Application.Storage.ValueType);
     }
@@ -35,10 +40,5 @@ module VisibilityStore {
 
     function setWatchedLabels(watchedLabels as Dictionary<String, Boolean>) as Void {
         Application.Storage.setValue(WATCHED_LABELS_KEY, watchedLabels as Application.Storage.ValueType);
-    }
-
-    function getMembers(key as String) as Dictionary<String, Boolean> {
-        var stored = Application.Storage.getValue(key);
-        return stored instanceof Dictionary ? stored as Dictionary<String, Boolean> : {} as Dictionary<String, Boolean>;
     }
 }

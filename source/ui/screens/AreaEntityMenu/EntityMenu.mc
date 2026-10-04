@@ -43,6 +43,15 @@ class EntityMenu extends WatchUi.Menu2 {
         }
     }
 
+    static function resolveLabel(name as String or Null, id as String) as String {
+        return name == null || (name as String).length() == 0 ? id : name as String;
+    }
+
+    protected function findItem(id as String) as WatchUi.MenuItem or Null {
+        var index = findItemById(id);
+        return index < 0 ? null : getItem(index);
+    }
+
     private function addRow(row as MenuRowModel) as Void {
         if (row instanceof ToggleRowModel) {
             addItem(new WatchUi.ToggleMenuItem(
@@ -77,14 +86,5 @@ class EntityMenu extends WatchUi.Menu2 {
         }
 
         return false;
-    }
-
-    protected function findItem(id as String) as WatchUi.MenuItem or Null {
-        var index = findItemById(id);
-        return index < 0 ? null : getItem(index);
-    }
-
-    static function resolveLabel(name as String or Null, id as String) as String {
-        return name == null || (name as String).length() == 0 ? id : name as String;
     }
 }

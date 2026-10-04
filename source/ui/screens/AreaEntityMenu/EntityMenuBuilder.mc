@@ -38,6 +38,19 @@ module EntityMenuBuilder {
         return rows;
     }
 
+    function buildSensorRows(sensors as Array<SensorModel>,
+                             subLabelProvider as SubLabelProvider) as Array<MenuRowModel> {
+        sensors = EntitySorter.sortSensorsByDeviceClass(sensors);
+        var rows = [] as Array<MenuRowModel>;
+
+        for (var index = 0; index < sensors.size(); index++) {
+            var sensor = sensors[index];
+            rows.add(new SensorRowModel(sensor.id, sensor.name, resolveSensorSubLabel(sensor, subLabelProvider)));
+        }
+
+        return rows;
+    }
+
     function listDomains(toggleables as Array<ToggleableModel>) as Array<String> {
         var domains = [] as Array<String>;
 
@@ -60,19 +73,6 @@ module EntityMenuBuilder {
         }
 
         return filtered;
-    }
-
-    function buildSensorRows(sensors as Array<SensorModel>,
-                             subLabelProvider as SubLabelProvider) as Array<MenuRowModel> {
-        sensors = EntitySorter.sortSensorsByDeviceClass(sensors);
-        var rows = [] as Array<MenuRowModel>;
-
-        for (var index = 0; index < sensors.size(); index++) {
-            var sensor = sensors[index];
-            rows.add(new SensorRowModel(sensor.id, sensor.name, resolveSensorSubLabel(sensor, subLabelProvider)));
-        }
-
-        return rows;
     }
 
     function resolveToggleSubLabel(toggleable as ToggleableModel,

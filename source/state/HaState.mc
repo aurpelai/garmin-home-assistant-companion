@@ -276,6 +276,26 @@ class HaState {
         return false;
     }
 
+    function hasAnyOn(toggleables as Array<ToggleableModel>) as Boolean {
+        for (var index = 0; index < toggleables.size(); index++) {
+            if (toggleables[index].isOn()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    function hasAnyPending(entityIds as Array<String>) as Boolean {
+        for (var index = 0; index < entityIds.size(); index++) {
+            if (isPending(entityIds[index])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     function isOn(entityId as String) as Boolean {
         var toggleable = getToggleable(entityId);
         return toggleable != null && toggleable.isOn();
@@ -315,26 +335,6 @@ class HaState {
         }
 
         return modelsByArea;
-    }
-
-    function hasAnyOn(toggleables as Array<ToggleableModel>) as Boolean {
-        for (var index = 0; index < toggleables.size(); index++) {
-            if (toggleables[index].isOn()) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    function hasAnyPending(entityIds as Array<String>) as Boolean {
-        for (var index = 0; index < entityIds.size(); index++) {
-            if (isPending(entityIds[index])) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     function overrideState(entityId as String, isOn as Boolean) as Void {

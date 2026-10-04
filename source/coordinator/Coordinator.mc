@@ -136,6 +136,14 @@ class Coordinator {
         WatchUi.pushView(menu, new VisibilityToggleDelegate(self), WatchUi.SLIDE_LEFT);
     }
 
+    function onSettingsClosed() as Void {
+        if (_hasVisibilityChanged) {
+            _hasVisibilityChanged = false;
+            _haState.clearFetched();
+            retry();
+        }
+    }
+
     function showFloorMenu(floorId as String) as Void {
         var model = FloorEntityMenuBuilder.build(_haState, floorId);
         if (model == null) {
@@ -189,14 +197,6 @@ class Coordinator {
     function setLabelWatched(labelId as String, isWatched as Boolean) as Void {
         _haState.setLabelWatched(labelId, isWatched);
         persistVisibility();
-    }
-
-    function onSettingsClosed() as Void {
-        if (_hasVisibilityChanged) {
-            _hasVisibilityChanged = false;
-            _haState.clearFetched();
-            retry();
-        }
     }
 
     function setAttribute(attribute as AdjustableAttribute, value as Number) as Void {

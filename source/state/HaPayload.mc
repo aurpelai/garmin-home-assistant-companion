@@ -50,27 +50,6 @@ module HaPayload {
         return toggleables;
     }
 
-    function buildLight(entityId as String, state as Boolean, name as String, available as Boolean,
-                        areaId as String or Null, memberIds as Array<String> or Null,
-                        labels as Array<String>, entry as Dictionary) as LightModel {
-        return new LightModel(entityId, state, name, available, areaId, memberIds, labels,
-            asNumberOrNull(entry.get("brightness")),
-            asNumberOrNull(entry.get("color_temp_kelvin")),
-            asNumberOrNull(entry.get("min_color_temp_kelvin")),
-            asNumberOrNull(entry.get("max_color_temp_kelvin")),
-            asBoolean(entry.get("supports_color_temp")));
-    }
-
-    function buildFan(entityId as String, state as Boolean, name as String, available as Boolean,
-                      areaId as String or Null, memberIds as Array<String> or Null,
-                      labels as Array<String>, entry as Dictionary) as FanModel {
-        return new FanModel(entityId, state, name, available, areaId, memberIds, labels,
-            asNumberOrNull(entry.get("speed")),
-            asBooleanOrNull(entry.get("oscillating")),
-            asBoolean(entry.get("supports_speed")),
-            asBoolean(entry.get("supports_oscillation")));
-    }
-
     function parseSensors(payload as Object or Null) as Dictionary<String, SensorModel> {
         var entries = parseEntries(payload, "sensors");
         var sensors = {} as Dictionary<String, SensorModel>;
@@ -122,21 +101,6 @@ module HaPayload {
 
         var raw = payload.get("climate");
         return raw instanceof Dictionary ? asStringMap(raw) : ({} as Dictionary<String, String>);
-    }
-
-    function asStringMap(raw as Dictionary) as Dictionary<String, String> {
-        var stringMap = {} as Dictionary<String, String>;
-        var keys = raw.keys();
-
-        for (var index = 0; index < keys.size(); index++) {
-            var key = keys[index];
-            var value = asStringOrNull(raw.get(key));
-            if (key instanceof String && value != null) {
-                stringMap.put(key, value);
-            }
-        }
-
-        return stringMap;
     }
 
     function parseEntries(payload as Object or Null, key as String) as Dictionary<String, Dictionary> {
@@ -207,6 +171,27 @@ module HaPayload {
         return floors;
     }
 
+    function buildLight(entityId as String, state as Boolean, name as String, available as Boolean,
+                        areaId as String or Null, memberIds as Array<String> or Null,
+                        labels as Array<String>, entry as Dictionary) as LightModel {
+        return new LightModel(entityId, state, name, available, areaId, memberIds, labels,
+            asNumberOrNull(entry.get("brightness")),
+            asNumberOrNull(entry.get("color_temp_kelvin")),
+            asNumberOrNull(entry.get("min_color_temp_kelvin")),
+            asNumberOrNull(entry.get("max_color_temp_kelvin")),
+            asBoolean(entry.get("supports_color_temp")));
+    }
+
+    function buildFan(entityId as String, state as Boolean, name as String, available as Boolean,
+                      areaId as String or Null, memberIds as Array<String> or Null,
+                      labels as Array<String>, entry as Dictionary) as FanModel {
+        return new FanModel(entityId, state, name, available, areaId, memberIds, labels,
+            asNumberOrNull(entry.get("speed")),
+            asBooleanOrNull(entry.get("oscillating")),
+            asBoolean(entry.get("supports_speed")),
+            asBoolean(entry.get("supports_oscillation")));
+    }
+
     function insertFloorByOrder(floors as Array<FloorModel>, floor as FloorModel) as Void {
         var position = floors.size();
         floors.add(floor);
@@ -216,6 +201,21 @@ module HaPayload {
             position--;
         }
         floors[position] = floor;
+    }
+
+    function asStringMap(raw as Dictionary) as Dictionary<String, String> {
+        var stringMap = {} as Dictionary<String, String>;
+        var keys = raw.keys();
+
+        for (var index = 0; index < keys.size(); index++) {
+            var key = keys[index];
+            var value = asStringOrNull(raw.get(key));
+            if (key instanceof String && value != null) {
+                stringMap.put(key, value);
+            }
+        }
+
+        return stringMap;
     }
 
     function asAvailable(raw as Object or Null) as Boolean {
