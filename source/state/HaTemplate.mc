@@ -50,13 +50,23 @@ module HaTemplate {
         "{% set ns.home = ns.home + ids %}" +
         "{% for entity in ids %}{% set ns.sources = dict(ns.sources, **{entity: area}) %}{% endfor %}" +
         "{% endfor %}" +
-        "{% for label in included_labels %}{% for entity in label_entities(label) %}" +
+        "{% for label in included_labels %}{% for entity in labelEntities(label) | from_json %}" +
         "{% if entity not in ns.sources %}{% set ns.sources = dict(ns.sources, **{entity: area_id(entity)}) %}{% endif %}" +
         "{% endfor %}{% endfor %}";
 
     const PRELUDE =
         "{% set groups = integration_entities('group') %}" +
         "{% set ROUNDING = {'temperature': 1} %}" +
+        // A label can tag a device rather than its entities, so both label
+        // membership and an entity's own labels union the device side.
+        "{% macro labelEntities(label) %}" +
+            "{{ (label_entities(label) + " +
+                "(label_devices(label) | map('device_entities') | map('list') | sum(start=[]))) | tojson }}" +
+        "{% endmacro %}" +
+        "{% macro entityLabels(entity) %}" +
+            "{{ ((labels(entity) | list) + " +
+                "(labels(device_id(entity)) | list if device_id(entity) else [])) | tojson }}" +
+        "{% endmacro %}" +
         "{% macro physical(ids) %}" +
             "{% set ns = namespace(lights=[]) %}" +
             "{% for entity in ids %}" +
@@ -125,7 +135,7 @@ module HaTemplate {
         "{% set brightness = state_attr(entity, 'brightness') | default(none) %}" +
         "{% set modes = state_attr(entity, 'supported_color_modes') | default([], true) %}" +
         "{% set light = dict(state=is_state(entity, 'on'), name=states[entity].name, area_id=area, " +
-            "available=not is_state(entity, 'unavailable'), labels=labels(entity) | list, " +
+            "available=not is_state(entity, 'unavailable'), labels=entityLabels(entity) | from_json, " +
             "brightness=(brightness / 255 * 100) | round | int if brightness is not none else none, " +
             "color_temp_kelvin=state_attr(entity, 'color_temp_kelvin') | default(none), " +
             "min_color_temp_kelvin=state_attr(entity, 'min_color_temp_kelvin') | default(none), " +
@@ -152,7 +162,7 @@ module HaTemplate {
         "{% set percentage = state_attr(entity, 'percentage') | default(none) %}" +
         "{% set features = state_attr(entity, 'supported_features') | default(0) %}" +
         "{% set fan = dict(state=is_state(entity, 'on'), name=states[entity].name, area_id=area, " +
-            "available=not is_state(entity, 'unavailable'), labels=labels(entity) | list, " +
+            "available=not is_state(entity, 'unavailable'), labels=entityLabels(entity) | from_json, " +
             "speed=percentage | round | int if percentage is not none else none, " +
             "oscillating=state_attr(entity, 'oscillating') | default(none), " +
             "supports_speed=(features | int) % 2 == 1, " +
@@ -181,7 +191,7 @@ module HaTemplate {
         "{% if classAverages | length > 0 %}{% set ns.areas = dict(ns.areas, **{area: classAverages}) %}{% endif %}" +
         "{% for entity in ids %}{% set ns.sources = dict(ns.sources, **{entity: area}) %}{% endfor %}" +
         "{% endfor %}" +
-        "{% for label in included_labels %}{% for entity in label_entities(label) %}" +
+        "{% for label in included_labels %}{% for entity in labelEntities(label) | from_json %}" +
         "{% if entity not in ns.sources %}{% set ns.sources = dict(ns.sources, **{entity: area_id(entity)}) %}{% endif %}" +
         "{% endfor %}{% endfor %}" +
         "{% for entity, area in ns.sources.items() if not is_hidden_entity(entity) %}" +
@@ -190,7 +200,7 @@ module HaTemplate {
         "{% set ns.sensors = dict(ns.sensors, **{entity: dict(" +
             "friendly_state=states(entity, true, true), " +
             "device_class=state_attr(entity, 'device_class'), name=entity_name(entity), area_id=area, " +
-            "labels=labels(entity) | list, " +
+            "labels=entityLabels(entity) | from_json, " +
             "available=not is_state(entity, 'unavailable') and not is_state(entity, 'unknown'))}) %}" +
         "{% endif %}" +
         "{% endfor %}" +

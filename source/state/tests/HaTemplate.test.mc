@@ -50,7 +50,7 @@ function theWatchedLabelUnionRunsOutsideTheVisibleClause(logger as Test.Logger) 
     // The label loop is a sibling after the visible-area loop closes, never nested
     // inside its clause, so a hidden-area labelled entity still arrives.
     Test.assert(template.find(
-        "{% endfor %}{% for label in included_labels %}{% for entity in label_entities(label) %}") != null);
+        "{% endfor %}{% for label in included_labels %}{% for entity in labelEntities(label) | from_json %}") != null);
     return true;
 }
 
@@ -58,6 +58,6 @@ function theWatchedLabelUnionRunsOutsideTheVisibleClause(logger as Test.Logger) 
 function theGlanceTemplateHasNoWatchedLabelUnion(logger as Test.Logger) as Boolean {
     var template = HaTemplate.resolve(FetchTarget.GLANCE, {}, {}, ["label.watched"] as Array<String>);
 
-    Test.assert(template.find("label_entities(label)") == null);
+    Test.assert(template.find("for label in included_labels") == null);
     return true;
 }
