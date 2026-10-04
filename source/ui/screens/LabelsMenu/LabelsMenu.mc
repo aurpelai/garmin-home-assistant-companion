@@ -14,8 +14,8 @@ class LabelsMenu extends EntityMenu {
     }
 
     function rebuild(haState as HaState) as Void {
-        setModel(EntityMenuBuilder.build(
-            WatchUi.loadResource(Rez.Strings.LabelsCardTitle) as String,
-            haState.getWatchedToggleables(), haState.getWatchedSensors(), _subLabelProvider));
+        setModel(LabelsMenuBuilder.build(
+            WatchUi.loadResource(Rez.Strings.LabelsCardTitle) as String, haState,
+            WatchUi.loadResource(Rez.Strings.Other) as String, _subLabelProvider));
     }
 }

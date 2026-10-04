@@ -81,13 +81,14 @@ class HaState {
     // would leave a tapped entity pending forever.
     function setToggleables(domain as String, toggleables as Dictionary<String, ToggleableModel>) as Void {
         _toggleablesByDomain.put(domain, toggleables);
-        _toggleablesByDomainAndArea.put(domain,
-            groupByArea(toggleables.values() as Array<EntityModel>) as Dictionary<String, Array<ToggleableModel>>);
+        _toggleablesByDomainAndArea.put(domain, groupByArea(toggleables.values() as Array<EntityModel>, null)
+            as Dictionary<String, Array<ToggleableModel>>);
     }
 
     function setSensors(sensors as Dictionary<String, SensorModel>) as Void {
         _sensors = sensors;
-        _sensorsByArea = groupByArea(sensors.values() as Array<EntityModel>) as Dictionary<String, Array<SensorModel>>;
+        _sensorsByArea = groupByArea(sensors.values() as Array<EntityModel>, null)
+            as Dictionary<String, Array<SensorModel>>;
     }
 
     function setLabels(labels as Dictionary<String, String>) as Void {
@@ -295,6 +296,27 @@ class HaState {
         return ids;
     }
 
+    function groupByArea(models as Array<EntityModel>, arealessKey as String or Null)
+            as Dictionary<String, Array<EntityModel>> {
+        var modelsByArea = {} as Dictionary<String, Array<EntityModel>>;
+
+        for (var index = 0; index < models.size(); index++) {
+            var areaId = models[index].areaId;
+            var key = areaId == null ? arealessKey : areaId;
+
+            if (key != null) {
+                var areaModels = modelsByArea.get(key);
+                if (areaModels == null) {
+                    areaModels = [] as Array<EntityModel>;
+                    modelsByArea.put(key, areaModels);
+                }
+                areaModels.add(models[index]);
+            }
+        }
+
+        return modelsByArea;
+    }
+
     function hasAnyOn(toggleables as Array<ToggleableModel>) as Boolean {
         for (var index = 0; index < toggleables.size(); index++) {
             if (toggleables[index].isOn()) {
@@ -414,25 +436,5 @@ class HaState {
         }
 
         return flooredAreaIds;
-    }
-
-    private function groupByArea(models as Array<EntityModel>)
-            as Dictionary<String, Array<EntityModel>> {
-        var modelsByArea = {} as Dictionary<String, Array<EntityModel>>;
-
-        for (var index = 0; index < models.size(); index++) {
-            var areaId = models[index].areaId;
-
-            if (areaId != null) {
-                var areaModels = modelsByArea.get(areaId);
-                if (areaModels == null) {
-                    areaModels = [] as Array<EntityModel>;
-                    modelsByArea.put(areaId, areaModels);
-                }
-                areaModels.add(models[index]);
-            }
-        }
-
-        return modelsByArea;
     }
 }

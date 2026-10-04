@@ -61,6 +61,14 @@ module EntityMenuBuilderTest {
         return EntityMenuBuilder.build("Room", haState.getAreaToggleables("area.room"),
             haState.getSensorsInArea("area.room"), new FakeSubLabelProvider());
     }
+
+    function toggleAt(model as EntityMenuModel, index as Number) as ToggleRowModel {
+        return model.rows[index] as ToggleRowModel;
+    }
+
+    function sensorAt(model as EntityMenuModel, index as Number) as SensorRowModel {
+        return model.rows[index] as SensorRowModel;
+    }
 }
 
 (:test)
@@ -71,7 +79,7 @@ function aRowReadsTheAssumedValueAndCarriesItsPendingStatus(logger as Test.Logge
 
     haState.overrideState("light.a", true);
 
-    Test.assert(EntityMenuBuilderTest.build(haState).toggles[0].isOn);
+    Test.assert(EntityMenuBuilderTest.toggleAt(EntityMenuBuilderTest.build(haState), 0).isOn);
     return true;
 }
 
@@ -81,15 +89,15 @@ function aFanShowsItsSpeedWhileOnAndOffEvenWhenASpeedLingers(logger as Test.Logg
         "fan.on" => EntityMenuBuilderTest.fan(true, 33),
         "fan.off" => EntityMenuBuilderTest.fan(false, 10)
     }, {} as Dictionary);
-    var toggles = EntityMenuBuilderTest.build(haState).toggles;
+    var model = EntityMenuBuilderTest.build(haState);
 
-    Test.assertEqual(toggles.size(), 2);
-    Test.assertEqual(toggles[0].id, "fan.off");
-    Test.assert(!toggles[0].isOn);
-    Test.assertEqual(toggles[0].subLabel as String, "Off");
-    Test.assertEqual(toggles[1].id, "fan.on");
-    Test.assert(toggles[1].isOn);
-    Test.assertEqual(toggles[1].subLabel as String, "On • 33 %");
+    Test.assertEqual(model.rows.size(), 2);
+    Test.assertEqual(EntityMenuBuilderTest.toggleAt(model, 0).id, "fan.off");
+    Test.assert(!EntityMenuBuilderTest.toggleAt(model, 0).isOn);
+    Test.assertEqual(EntityMenuBuilderTest.toggleAt(model, 0).subLabel as String, "Off");
+    Test.assertEqual(EntityMenuBuilderTest.toggleAt(model, 1).id, "fan.on");
+    Test.assert(EntityMenuBuilderTest.toggleAt(model, 1).isOn);
+    Test.assertEqual(EntityMenuBuilderTest.toggleAt(model, 1).subLabel as String, "On • 33 %");
     return true;
 }
 
@@ -100,10 +108,10 @@ function anOnRowWithNoValueShowsOn(logger as Test.Logger) as Boolean {
     }, {
         "fan.a" => EntityMenuBuilderTest.fan(true, null)
     }, {} as Dictionary);
-    var toggles = EntityMenuBuilderTest.build(haState).toggles;
+    var model = EntityMenuBuilderTest.build(haState);
 
-    Test.assertEqual(toggles[0].subLabel as String, "On");
-    Test.assertEqual(toggles[1].subLabel as String, "On");
+    Test.assertEqual(EntityMenuBuilderTest.toggleAt(model, 0).subLabel as String, "On");
+    Test.assertEqual(EntityMenuBuilderTest.toggleAt(model, 1).subLabel as String, "On");
     return true;
 }
 
@@ -115,7 +123,7 @@ function aFanRowReadsItsSpeedAgainstTheAssumedStateNotTheServers(logger as Test.
 
     haState.overrideState("fan.a", false);
 
-    var row = EntityMenuBuilderTest.build(haState).toggles[0];
+    var row = EntityMenuBuilderTest.toggleAt(EntityMenuBuilderTest.build(haState), 0);
 
     Test.assert(!row.isOn);
     Test.assertEqual(row.subLabel as String, "Off");
@@ -132,13 +140,13 @@ function aGroupShowsItsMemberCountInItsOwnDomainNeverAValue(logger as Test.Logge
         "fan.grp" => { "state" => true, "area_id" => "area.room", "available" => true,
             "memberIds" => ["fan.a"], "speed" => 33 }
     }, {} as Dictionary);
-    var toggles = EntityMenuBuilderTest.build(haState).toggles;
+    var model = EntityMenuBuilderTest.build(haState);
 
-    Test.assertEqual(toggles[0].id, "light.grp");
-    Test.assertEqual(toggles[0].subLabel as String, "Group of 3 light");
-    Test.assertEqual(toggles[1].subLabel as String, "On • 50 %");
-    Test.assertEqual(toggles[2].id, "fan.grp");
-    Test.assertEqual(toggles[2].subLabel as String, "Group of 1 fan");
+    Test.assertEqual(EntityMenuBuilderTest.toggleAt(model, 0).id, "light.grp");
+    Test.assertEqual(EntityMenuBuilderTest.toggleAt(model, 0).subLabel as String, "Group of 3 light");
+    Test.assertEqual(EntityMenuBuilderTest.toggleAt(model, 1).subLabel as String, "On • 50 %");
+    Test.assertEqual(EntityMenuBuilderTest.toggleAt(model, 2).id, "fan.grp");
+    Test.assertEqual(EntityMenuBuilderTest.toggleAt(model, 2).subLabel as String, "Group of 1 fan");
     return true;
 }
 
@@ -150,12 +158,12 @@ function anUnavailableRowReadsUnavailableWhateverElseItCarries(logger as Test.Lo
     }, {
         "fan.dead" => { "state" => true, "area_id" => "area.room", "available" => false, "speed" => 33 }
     }, {} as Dictionary);
-    var toggles = EntityMenuBuilderTest.build(haState).toggles;
+    var model = EntityMenuBuilderTest.build(haState);
 
-    Test.assertEqual(toggles[0].id, "light.dead_grp");
-    Test.assertEqual(toggles[0].subLabel as String, "Group unavailable");
-    Test.assertEqual(toggles[1].id, "fan.dead");
-    Test.assertEqual(toggles[1].subLabel as String, "Unavailable");
+    Test.assertEqual(EntityMenuBuilderTest.toggleAt(model, 0).id, "light.dead_grp");
+    Test.assertEqual(EntityMenuBuilderTest.toggleAt(model, 0).subLabel as String, "Group unavailable");
+    Test.assertEqual(EntityMenuBuilderTest.toggleAt(model, 1).id, "fan.dead");
+    Test.assertEqual(EntityMenuBuilderTest.toggleAt(model, 1).subLabel as String, "Unavailable");
     return true;
 }
 
@@ -170,12 +178,12 @@ function aSensorShowsHomeAssistantsValueUnlessItIsUnavailable(logger as Test.Log
         "sensor.live" => { "friendly_state" => "21.5 °C", "device_class" => "humidity",
             "area_id" => "area.room", "available" => true }
     });
-    var sensors = EntityMenuBuilderTest.build(haState).sensors;
+    var model = EntityMenuBuilderTest.build(haState);
 
-    Test.assertEqual(sensors[0].id, "sensor.dead");
-    Test.assertEqual(sensors[0].subLabel, "Unavailable");
-    Test.assertEqual(sensors[1].id, "sensor.live");
-    Test.assertEqual(sensors[1].subLabel, "21.5 °C");
+    Test.assertEqual(EntityMenuBuilderTest.sensorAt(model, 0).id, "sensor.dead");
+    Test.assertEqual(EntityMenuBuilderTest.sensorAt(model, 0).subLabel, "Unavailable");
+    Test.assertEqual(EntityMenuBuilderTest.sensorAt(model, 1).id, "sensor.live");
+    Test.assertEqual(EntityMenuBuilderTest.sensorAt(model, 1).subLabel, "21.5 °C");
     return true;
 }
 
@@ -191,35 +199,10 @@ function rowsComeOutLightsThenFansThenSensors(logger as Test.Logger) as Boolean 
     });
     var model = EntityMenuBuilderTest.build(haState);
 
-    Test.assertEqual(model.toggles.size(), 2);
-    Test.assertEqual(model.toggles[0].id, "light.zzz");
-    Test.assertEqual(model.toggles[1].id, "fan.aaa");
-    Test.assertEqual(model.sensors.size(), 1);
-    Test.assertEqual(model.sensors[0].id, "sensor.t");
+    Test.assertEqual(model.rows.size(), 3);
+    Test.assertEqual(EntityMenuBuilderTest.toggleAt(model, 0).id, "light.zzz");
+    Test.assertEqual(EntityMenuBuilderTest.toggleAt(model, 1).id, "fan.aaa");
+    Test.assertEqual(EntityMenuBuilderTest.sensorAt(model, 2).id, "sensor.t");
     return true;
 }
 
-(:test)
-function aLabelSourcedSetYieldsTheSameRowsAsTheAreaSource(logger as Test.Logger) as Boolean {
-    var provider = new FakeSubLabelProvider();
-    var haState = new HaState();
-    haState.setAreas(HaPayload.parseAreas(EntityMenuBuilderTest.oneRoom()));
-    haState.setToggleables(Domain.LIGHT, HaPayload.parseLights({ "lights" => {
-        "light.a" => { "state" => true, "area_id" => "area.room", "available" => true, "brightness" => 50,
-            "labels" => ["label.watched"] }
-    } }));
-    haState.setToggleables(Domain.FAN, {} as Dictionary<String, ToggleableModel>);
-    haState.setSensors(HaPayload.parseSensors({ "sensors" => {} }));
-    haState.setWatchedLabels({ "label.watched" => true });
-
-    var areaModel = EntityMenuBuilder.build("Room", haState.getAreaToggleables("area.room"),
-        haState.getSensorsInArea("area.room"), provider);
-    var labelModel = EntityMenuBuilder.build("Labels", haState.getWatchedToggleables(),
-        haState.getWatchedSensors(), provider);
-
-    Test.assertEqual(labelModel.toggles.size(), areaModel.toggles.size());
-    Test.assertEqual(labelModel.toggles[0].id, areaModel.toggles[0].id);
-    Test.assertEqual(labelModel.toggles[0].subLabel as String, areaModel.toggles[0].subLabel as String);
-    Test.assert(labelModel.toggles[0].isOn == areaModel.toggles[0].isOn);
-    return true;
-}

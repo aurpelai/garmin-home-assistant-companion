@@ -105,8 +105,8 @@ class Coordinator {
             return;
         }
 
-        var model = EntityMenuBuilder.build(WatchUi.loadResource(Rez.Strings.LabelsCardTitle) as String,
-            _haState.getWatchedToggleables(), _haState.getWatchedSensors(), _subLabelProvider);
+        var model = LabelsMenuBuilder.build(WatchUi.loadResource(Rez.Strings.LabelsCardTitle) as String,
+            _haState, WatchUi.loadResource(Rez.Strings.Other) as String, _subLabelProvider);
         var menu = new LabelsMenu(self, model, _subLabelProvider);
         WatchUi.pushView(menu, new AreaEntityMenuDelegate(self), WatchUi.SLIDE_LEFT);
     }
@@ -131,7 +131,7 @@ class Coordinator {
         }
 
         var rows = VisibilityMenuBuilder.build(
-            _haState, WatchUi.loadResource(Rez.Strings.SettingsOtherAreas) as String);
+            _haState, WatchUi.loadResource(Rez.Strings.Other) as String);
         var menu = new VisibilityToggleMenu(rows);
         WatchUi.pushView(menu, new VisibilityToggleDelegate(self), WatchUi.SLIDE_LEFT);
     }

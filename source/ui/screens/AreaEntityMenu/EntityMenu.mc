@@ -16,19 +16,11 @@ class EntityMenu extends WatchUi.Menu2 {
         _coordinator = coordinator;
         _subLabelProvider = subLabelProvider;
 
-        for (var index = 0; index < model.toggles.size(); index++) {
-            var row = model.toggles[index];
-            addItem(new WatchUi.ToggleMenuItem(
-                resolveLabel(row.name, row.id), row.subLabel, row.id, row.isOn, null));
+        for (var index = 0; index < model.rows.size(); index++) {
+            addRow(model.rows[index]);
         }
 
-        for (var index = 0; index < model.sensors.size(); index++) {
-            var row = model.sensors[index];
-            addItem(new WatchUi.MenuItem(
-                resolveLabel(row.name, row.id), row.subLabel, row.id, null));
-        }
-
-        if (model.toggles.size() == 0 && model.sensors.size() == 0) {
+        if (!hasEntityRows(model.rows)) {
             addItem(new WatchUi.MenuItem(emptyLabel, null, :none, null));
         }
 
@@ -46,24 +38,45 @@ class EntityMenu extends WatchUi.Menu2 {
     function setModel(model as EntityMenuModel) as Void {
         setTitle(model.title);
 
-        for (var index = 0; index < model.toggles.size(); index++) {
-            var row = model.toggles[index];
-            var item = findItem(row.id);
+        for (var index = 0; index < model.rows.size(); index++) {
+            updateRow(model.rows[index]);
+        }
+    }
 
-            if (item != null) {
-                (item as WatchUi.ToggleMenuItem).setEnabled(row.isOn);
-                item.setSubLabel(row.subLabel);
+    private function addRow(row as MenuRowModel) as Void {
+        if (row instanceof ToggleRowModel) {
+            addItem(new WatchUi.ToggleMenuItem(
+                resolveLabel(row.name, row.id), row.subLabel, row.id, row.isOn, null));
+        } else if (row instanceof SensorRowModel) {
+            addItem(new WatchUi.MenuItem(resolveLabel(row.name, row.id), row.subLabel, row.id, null));
+        } else {
+            addItem(new WatchUi.MenuItem(row.name, null, row.id, null));
+        }
+    }
+
+    private function updateRow(row as MenuRowModel) as Void {
+        var item = findItem(row.id);
+
+        if (item == null) {
+            return;
+        }
+
+        if (row instanceof ToggleRowModel) {
+            (item as WatchUi.ToggleMenuItem).setEnabled(row.isOn);
+            item.setSubLabel(row.subLabel);
+        } else if (row instanceof SensorRowModel) {
+            item.setSubLabel(row.subLabel);
+        }
+    }
+
+    private function hasEntityRows(rows as Array<MenuRowModel>) as Boolean {
+        for (var index = 0; index < rows.size(); index++) {
+            if (!(rows[index] instanceof HeaderRowModel)) {
+                return true;
             }
         }
 
-        for (var index = 0; index < model.sensors.size(); index++) {
-            var row = model.sensors[index];
-            var item = findItem(row.id);
-
-            if (item != null) {
-                item.setSubLabel(row.subLabel);
-            }
-        }
+        return false;
     }
 
     protected function findItem(id as String) as WatchUi.MenuItem or Null {

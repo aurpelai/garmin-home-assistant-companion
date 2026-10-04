@@ -2,25 +2,32 @@ import Toybox.Lang;
 
 module EntityMenuBuilder {
 
+    function build(title as String, toggleables as Array<ToggleableModel>, sensors as Array<SensorModel>,
+                   subLabelProvider as SubLabelProvider) as EntityMenuModel {
+        return new EntityMenuModel(title, buildEntityRows(toggleables, sensors, subLabelProvider));
+    }
+
     // Toggle rows come out domain by domain in the order each domain first
     // appears, and sorted within each — the caller (an area or a watched-label
     // pool) fixes that order by handing lights before fans.
-    function build(title as String, toggleables as Array<ToggleableModel>, sensors as Array<SensorModel>,
-                   subLabelProvider as SubLabelProvider) as EntityMenuModel {
-        var rows = [] as Array<ToggleRowModel>;
+    function buildEntityRows(toggleables as Array<ToggleableModel>, sensors as Array<SensorModel>,
+                             subLabelProvider as SubLabelProvider) as Array<MenuRowModel> {
+        var rows = [] as Array<MenuRowModel>;
         var domains = domainsInOrder(toggleables);
 
         for (var index = 0; index < domains.size(); index++) {
             rows.addAll(buildToggleRows(filterInDomain(toggleables, domains[index]), subLabelProvider));
         }
 
-        return new EntityMenuModel(title, rows, buildSensorRows(sensors, subLabelProvider));
+        rows.addAll(buildSensorRows(sensors, subLabelProvider));
+
+        return rows;
     }
 
     function buildToggleRows(toggleables as Array<ToggleableModel>,
-                             subLabelProvider as SubLabelProvider) as Array<ToggleRowModel> {
+                             subLabelProvider as SubLabelProvider) as Array<MenuRowModel> {
         toggleables = EntitySorter.sortToggleables(toggleables);
-        var rows = [] as Array<ToggleRowModel>;
+        var rows = [] as Array<MenuRowModel>;
 
         for (var index = 0; index < toggleables.size(); index++) {
             var toggleable = toggleables[index];
@@ -56,9 +63,9 @@ module EntityMenuBuilder {
     }
 
     function buildSensorRows(sensors as Array<SensorModel>,
-                             subLabelProvider as SubLabelProvider) as Array<SensorRowModel> {
+                             subLabelProvider as SubLabelProvider) as Array<MenuRowModel> {
         sensors = EntitySorter.sortSensorsByDeviceClass(sensors);
-        var rows = [] as Array<SensorRowModel>;
+        var rows = [] as Array<MenuRowModel>;
 
         for (var index = 0; index < sensors.size(); index++) {
             var sensor = sensors[index];
