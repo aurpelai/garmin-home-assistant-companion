@@ -13,7 +13,7 @@ module EntityMenuBuilder {
     function buildEntityRows(toggleables as Array<ToggleableModel>, sensors as Array<SensorModel>,
                              subLabelProvider as SubLabelProvider) as Array<MenuRowModel> {
         var rows = [] as Array<MenuRowModel>;
-        var domains = domainsInOrder(toggleables);
+        var domains = listDomains(toggleables);
 
         for (var index = 0; index < domains.size(); index++) {
             rows.addAll(buildToggleRows(filterInDomain(toggleables, domains[index]), subLabelProvider));
@@ -38,7 +38,7 @@ module EntityMenuBuilder {
         return rows;
     }
 
-    function domainsInOrder(toggleables as Array<ToggleableModel>) as Array<String> {
+    function listDomains(toggleables as Array<ToggleableModel>) as Array<String> {
         var domains = [] as Array<String>;
 
         for (var index = 0; index < toggleables.size(); index++) {

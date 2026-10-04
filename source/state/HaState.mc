@@ -183,19 +183,19 @@ class HaState {
         return filterWatched(_sensors.values() as Array<EntityModel>) as Array<SensorModel>;
     }
 
-    function resolveAreasInFloor(floorId as String) as Array<AreaModel> {
+    function listAreasInFloor(floorId as String) as Array<AreaModel> {
         var floor = getFloor(floorId);
         return floor == null ? [] as Array<AreaModel> : resolveAreas(floor.areas);
     }
 
-    function resolveVisibleAreasInFloor(floorId as String) as Array<AreaModel> {
+    function listVisibleAreasInFloor(floorId as String) as Array<AreaModel> {
         return _hiddenFloors.hasKey(floorId)
             ? [] as Array<AreaModel>
-            : filterVisibleAreas(resolveAreasInFloor(floorId));
+            : filterVisibleAreas(listAreasInFloor(floorId));
     }
 
-    function resolveVisibleAreaIdsInFloor(floorId as String) as Array<String> {
-        var areas = resolveVisibleAreasInFloor(floorId);
+    function listVisibleAreaIdsInFloor(floorId as String) as Array<String> {
+        var areas = listVisibleAreasInFloor(floorId);
         var areaIds = [] as Array<String>;
 
         for (var index = 0; index < areas.size(); index++) {
@@ -205,8 +205,8 @@ class HaState {
         return areaIds;
     }
 
-    function resolveFloorlessAreas() as Array<AreaModel> {
-        var flooredAreaIds = resolveFlooredAreaIds();
+    function listFloorlessAreas() as Array<AreaModel> {
+        var flooredAreaIds = listFlooredAreaIds();
         var areas = getAreas();
         var floorlessAreas = [] as Array<AreaModel>;
 
@@ -219,14 +219,14 @@ class HaState {
         return floorlessAreas;
     }
 
-    function resolveVisibleFloorlessAreas() as Array<AreaModel> {
+    function listVisibleFloorlessAreas() as Array<AreaModel> {
         return _hiddenFloors.hasKey(VisibilityStore.FLOORLESS_FLOOR_ID)
             ? [] as Array<AreaModel>
-            : filterVisibleAreas(resolveFloorlessAreas());
+            : filterVisibleAreas(listFloorlessAreas());
     }
 
-    function resolveVisibleToggleablesInFloor(floorId as String, domain as String) as Array<ToggleableModel> {
-        var areas = resolveVisibleAreasInFloor(floorId);
+    function listVisibleToggleablesInFloor(floorId as String, domain as String) as Array<ToggleableModel> {
+        var areas = listVisibleAreasInFloor(floorId);
         var toggleables = [] as Array<ToggleableModel>;
 
         for (var index = 0; index < areas.size(); index++) {
@@ -342,7 +342,7 @@ class HaState {
     }
 
     function overrideFloorLightsState(floorId as String, isOn as Boolean) as Void {
-        overrideStates(toIds(resolveVisibleToggleablesInFloor(floorId, Domain.LIGHT)), isOn);
+        overrideStates(toIds(listVisibleToggleablesInFloor(floorId, Domain.LIGHT)), isOn);
     }
 
     function overrideAttribute(entityId as String, field as String, value as Object) as Void {
@@ -424,7 +424,7 @@ class HaState {
         return visibleAreas;
     }
 
-    private function resolveFlooredAreaIds() as Dictionary<String, Boolean> {
+    private function listFlooredAreaIds() as Dictionary<String, Boolean> {
         var flooredAreaIds = {} as Dictionary<String, Boolean>;
 
         for (var floorIndex = 0; floorIndex < _floors.size(); floorIndex++) {

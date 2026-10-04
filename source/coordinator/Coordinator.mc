@@ -218,7 +218,7 @@ class Coordinator {
     }
 
     function toggleFloorLights(floorId as String) as Void {
-        var lights = _haState.resolveVisibleToggleablesInFloor(floorId, Domain.LIGHT);
+        var lights = _haState.listVisibleToggleablesInFloor(floorId, Domain.LIGHT);
         if (lights.size() == 0 || _haState.hasAnyPending(_haState.toIds(lights))) {
             return;
         }
@@ -227,7 +227,7 @@ class Coordinator {
         _haState.overrideFloorLightsState(floorId, targetState);
         var service = targetState ? "turn_on" : "turn_off";
 
-        _client.queueLightsInAreas(_haState.resolveVisibleAreaIdsInFloor(floorId), service,
+        _client.queueLightsInAreas(_haState.listVisibleAreaIdsInFloor(floorId), service,
             method(:onToggleSettled));
         updateDisplay();
     }

@@ -8,11 +8,11 @@ module VisibilityMenuBuilder {
 
         for (var index = 0; index < floors.size(); index++) {
             var floor = floors[index];
-            rows.addAll(buildFloorRows(haState, floor.id, floor.name, haState.resolveAreasInFloor(floor.id)));
+            rows.addAll(buildFloorRows(haState, floor.id, floor.name, haState.listAreasInFloor(floor.id)));
         }
 
         rows.addAll(buildFloorRows(haState, VisibilityStore.FLOORLESS_FLOOR_ID, floorlessName,
-            haState.resolveFloorlessAreas()));
+            haState.listFloorlessAreas()));
 
         return rows;
     }

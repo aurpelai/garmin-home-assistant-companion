@@ -9,7 +9,7 @@ module CardLoopBuilder {
         for (var index = 0; index < floors.size(); index++) {
             var floor = floors[index];
             var floorAreas = filterAreasWithEntities(
-                haState, EntitySorter.sortAreas(haState.resolveVisibleAreasInFloor(floor.id)));
+                haState, EntitySorter.sortAreas(haState.listVisibleAreasInFloor(floor.id)));
             if (floorAreas.size() == 0) {
                 continue;
             }
@@ -22,7 +22,7 @@ module CardLoopBuilder {
         }
 
         var floorlessAreas = filterAreasWithEntities(
-            haState, EntitySorter.sortAreas(haState.resolveVisibleFloorlessAreas()));
+            haState, EntitySorter.sortAreas(haState.listVisibleFloorlessAreas()));
 
         for (var index = 0; index < floorlessAreas.size(); index++) {
             cards.add(buildAreaCard(haState, floorlessAreas[index], null, null));
@@ -69,7 +69,7 @@ module CardLoopBuilder {
             haState.getZone(),
             SensorReading.build(haState.getFloorSensorAverages(floorId)),
             resolveLightSummary(ToggleableCount.build(
-                haState.resolveVisibleToggleablesInFloor(floorId, Domain.LIGHT))));
+                haState.listVisibleToggleablesInFloor(floorId, Domain.LIGHT))));
     }
 
     function resolveLightSummary(count as ToggleableCount) as String or Null {
