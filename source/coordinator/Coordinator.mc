@@ -121,7 +121,7 @@ class Coordinator {
         }
 
         var rows = LabelPickerBuilder.build(_haState);
-        var menu = new LabelPickerMenu(rows);
+        var menu = new LabelPicker(rows);
         WatchUi.pushView(menu, new LabelPickerDelegate(self), WatchUi.SLIDE_LEFT);
     }
 
@@ -130,7 +130,7 @@ class Coordinator {
             return;
         }
 
-        var rows = VisibilityMenuBuilder.build(
+        var rows = VisibilityPickerBuilder.build(
             _haState, WatchUi.loadResource(Rez.Strings.Other) as String);
         var menu = new VisibilityPicker(rows);
         WatchUi.pushView(menu, new VisibilityPickerDelegate(self), WatchUi.SLIDE_LEFT);

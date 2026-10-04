@@ -1,7 +1,7 @@
 import Toybox.Lang;
 import Toybox.WatchUi;
 
-class LabelPickerMenu extends WatchUi.Menu2 {
+class LabelPicker extends WatchUi.Menu2 {
 
     function initialize(rows as Array<LabelPickerRowModel>) {
         Menu2.initialize({ :title => WatchUi.loadResource(Rez.Strings.SettingsIncludeLabels) as String });

@@ -1,6 +1,6 @@
 import Toybox.Lang;
 
-module VisibilityMenuBuilder {
+module VisibilityPickerBuilder {
 
     function build(haState as HaState, floorlessName as String) as Array<VisibilityRowModel> {
         var floors = haState.getFloors();

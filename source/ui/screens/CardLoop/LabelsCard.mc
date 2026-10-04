@@ -9,13 +9,15 @@ class LabelsCard extends Card {
 
     private const ICON_GAP = 8;
 
+    private const ICON = WatchUi.loadResource(Rez.Drawables.Label) as WatchUi.BitmapResource;
+
     function initialize() {
         Card.initialize(LabelsCard.LABELS_CARD_ID, null,
             WatchUi.loadResource(Rez.Strings.LabelsCardTitle) as String, [] as Array<SensorReading>);
     }
 
     function drawContent(dc as Graphics.Dc) as Void {
-        var icon = WatchUi.loadResource(Rez.Drawables.Label) as WatchUi.BitmapResource;
+        var icon = ICON;
         var textWidth = dc.getTextWidthInPixels(name, TITLE_FONT);
         var textHeight = dc.getFontHeight(TITLE_FONT);
         var contentLeft = dc.getWidth() / 2 - (icon.getWidth() + ICON_GAP + textWidth) / 2;
