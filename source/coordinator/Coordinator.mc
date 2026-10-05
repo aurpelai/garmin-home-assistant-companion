@@ -101,7 +101,7 @@ class Coordinator {
 
     function onEntityClick(entityId as String) as Void {
         var pending = _pendingClickId;
-        clearPendingClick();
+        cancelPendingClick();
 
         if (pending != null && pending.equals(entityId)) {
             showAttributeMenu(entityId);
@@ -113,7 +113,16 @@ class Coordinator {
         }
 
         _pendingClickId = entityId;
-        _clickDebounce.schedule(method(:flushPendingClick), DOUBLE_CLICK_MS);
+        _clickDebounce.schedule(method(:onSingleClick), DOUBLE_CLICK_MS);
+    }
+
+    function onSingleClick() as Void {
+        var entityId = _pendingClickId;
+        cancelPendingClick();
+
+        if (entityId != null) {
+            toggleEntity(entityId);
+        }
     }
 
     function isOn(entityId as String) as Boolean {
@@ -244,15 +253,6 @@ class Coordinator {
         updateDisplay();
     }
 
-    function flushPendingClick() as Void {
-        var entityId = _pendingClickId;
-        clearPendingClick();
-
-        if (entityId != null) {
-            toggleEntity(entityId);
-        }
-    }
-
     function discardRegistration() as Void {
         _client.cancelAll();
         _client.discardRegistration();
@@ -360,7 +360,7 @@ class Coordinator {
         updateDisplay();
     }
 
-    private function clearPendingClick() as Void {
+    private function cancelPendingClick() as Void {
         _pendingClickId = null;
         _clickDebounce.cancel();
     }
