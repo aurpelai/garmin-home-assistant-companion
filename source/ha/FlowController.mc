@@ -2,7 +2,7 @@ import Toybox.Communications;
 import Toybox.Lang;
 
 // Connect IQ can leave a request unanswered indefinitely and refuses a post
-// outright while its queue is full (both observed in the simulator on
+// outright while its queue is full (both verified in the simulator on
 // 2026-10-05). Every attempt therefore times out on its own, and a refused one,
 // never having been sent, waits for a slot instead of spending a retry.
 class FlowController {

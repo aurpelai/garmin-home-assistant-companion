@@ -1,7 +1,7 @@
 import Toybox.Lang;
 
 // Each render prints a plain Python literal, which Home Assistant hands back as a
-// native object; a non-plain value anywhere (an enum, a datetime) turns the whole
+// native object. A non-plain value anywhere (an enum, a datetime) turns the whole
 // render into a string, as does JSON text holding true, false or null, so every
 // value that could be non-plain is coerced at its own site (verified in Home
 // Assistant's template developer tools on 2026-10-05).

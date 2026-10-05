@@ -2,7 +2,8 @@ import Toybox.Lang;
 import Toybox.System;
 
 class MultiplexScheduler {
-    // Connect IQ rejects a timer below its minimum, 50 ms by default (api.mir Timer docs, SDK 9.2.0).
+    // Connect IQ's minimum timer delay is 50 ms by default (verified from the Connect
+    // IQ SDK's api.mir on 2026-10-05).
     private const MIN_DELAY_MS = 50;
 
     private var _timer as Scheduler;
