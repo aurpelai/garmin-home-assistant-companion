@@ -12,30 +12,30 @@ class FlowController {
     private var _gateway as RequestGateway;
     private var _scheduler as Scheduler;
     private var _inFlight as Array<RequestAttempt>;
-    private var _held as Array<RequestAttempt>;
+    private var _deferred as Array<RequestAttempt>;
 
     function initialize(gateway as RequestGateway, scheduler as Scheduler) {
         _gateway = gateway;
         _scheduler = scheduler;
         _inFlight = [];
-        _held = [];
+        _deferred = [];
     }
 
     function onQueueFull(attempt as RequestAttempt) as Void {
         _inFlight.remove(attempt);
-        _held.add(attempt);
+        _deferred.add(attempt);
 
         if (_inFlight.size() == 0) {
-            _scheduler.schedule(method(:resendHeld), QUEUE_FULL_RETRY_MS);
+            _scheduler.schedule(method(:resendDeferred), QUEUE_FULL_RETRY_MS);
         }
     }
 
     function onSettled(attempt as RequestAttempt) as Void {
-        if (!_held.remove(attempt)) {
+        if (!_deferred.remove(attempt)) {
             _inFlight.remove(attempt);
         }
 
-        resendHeld();
+        resendDeferred();
     }
 
     function post(path as String, body as Dictionary, onResponse as Method) as Void {
@@ -45,9 +45,9 @@ class FlowController {
     }
 
     function cancelAll() as Void {
-        var attempts = _inFlight.addAll(_held);
+        var attempts = _inFlight.addAll(_deferred);
         _inFlight = [];
-        _held = [];
+        _deferred = [];
 
         for (var i = 0; i < attempts.size(); i++) {
             attempts[i].cancel();
@@ -56,12 +56,12 @@ class FlowController {
         _gateway.cancelAll();
     }
 
-    function resendHeld() as Void {
-        var held = _held;
-        _held = [];
+    function resendDeferred() as Void {
+        var deferred = _deferred;
+        _deferred = [];
 
-        for (var i = 0; i < held.size(); i++) {
-            send(held[i]);
+        for (var i = 0; i < deferred.size(); i++) {
+            send(deferred[i]);
         }
     }
 
