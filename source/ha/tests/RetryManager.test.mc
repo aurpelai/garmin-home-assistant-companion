@@ -7,7 +7,7 @@ import Toybox.Test;
 class FakeScheduler {
     private var _pending as Method or Null = null;
 
-    function schedule(action as Method() as Void, delayMs as Number) as Void {
+    function scheduleAction(action as Method() as Void, delayMs as Number) as Void {
         _pending = action;
     }
 

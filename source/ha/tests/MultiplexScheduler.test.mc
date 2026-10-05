@@ -20,8 +20,8 @@ function theEarliestActionFiresFirstWhateverOrderItWasScheduledIn(logger as Test
     var scheduler = new MultiplexScheduler(timer);
     var log = new FiredLog();
 
-    scheduler.schedule(log.method(:onSecond), 200);
-    scheduler.schedule(log.method(:onFirst), 100);
+    scheduler.scheduleAction(log.method(:onSecond), 200);
+    scheduler.scheduleAction(log.method(:onFirst), 100);
     timer.runScheduled();
 
     Test.assertEqual(log.fired.size(), 1);

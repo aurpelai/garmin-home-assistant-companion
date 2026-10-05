@@ -92,7 +92,7 @@ class Coordinator {
         }
 
         _pendingClickId = entityId;
-        _clickDebounce.schedule(method(:onSingleClick), DOUBLE_CLICK_MS);
+        _clickDebounce.scheduleAction(method(:onSingleClick), DOUBLE_CLICK_MS);
     }
 
     function onSingleClick() as Void {

@@ -26,7 +26,7 @@ class FlowController {
         _deferred.add(attempt);
 
         if (_inFlight.size() == 0) {
-            _scheduler.schedule(method(:resendDeferred), QUEUE_FULL_RETRY_MS);
+            _scheduler.scheduleAction(method(:resendDeferred), QUEUE_FULL_RETRY_MS);
         }
     }
 
@@ -40,7 +40,7 @@ class FlowController {
 
     function post(path as String, body as Dictionary, onResponse as Method) as Void {
         var attempt = new RequestAttempt(self, path, body, onResponse);
-        _scheduler.schedule(attempt.method(:onTimeout), TIMEOUT_MS);
+        _scheduler.scheduleAction(attempt.method(:onTimeout), TIMEOUT_MS);
         send(attempt);
     }
 

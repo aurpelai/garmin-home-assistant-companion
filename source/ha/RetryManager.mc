@@ -38,7 +38,7 @@ class RetryManager {
             return;
         }
 
-        _scheduler.schedule(method(:attempt), RETRY_DELAY_MS);
+        _scheduler.scheduleAction(method(:attempt), RETRY_DELAY_MS);
     }
 
     function attempt() as Void {

@@ -7,7 +7,7 @@ class MultiplexScheduler {
     private const MIN_DELAY_MS = 50;
 
     private var _timer as Scheduler;
-    private var _entries as Array<[Method, Number]>;
+    private var _entries as Array<ScheduledAction>;
     private var _timerFiresAt as Number or Null;
 
     function initialize(timer as Scheduler) {
@@ -25,13 +25,13 @@ class MultiplexScheduler {
         }
 
         var dueActions = [] as Array<Method>;
-        var remainingEntries = [] as Array<[Method, Number]>;
+        var remainingEntries = [] as Array<ScheduledAction>;
 
         for (var i = 0; i < _entries.size(); i++) {
             var entry = _entries[i];
 
-            if (entry[1] <= dueBy) {
-                dueActions.add(entry[0]);
+            if (entry.dueAt <= dueBy) {
+                dueActions.add(entry.action);
             } else {
                 remainingEntries.add(entry);
             }
@@ -39,16 +39,16 @@ class MultiplexScheduler {
 
         _entries = remainingEntries;
         _timerFiresAt = null;
-        arm();
+        scheduleTimer();
 
         for (var i = 0; i < dueActions.size(); i++) {
             dueActions[i].invoke();
         }
     }
 
-    function schedule(action as Method() as Void, delayMs as Number) as Void {
-        _entries.add([action, System.getTimer() + delayMs]);
-        arm();
+    function scheduleAction(action as Method() as Void, delayMs as Number) as Void {
+        _entries.add(new ScheduledAction(action, System.getTimer() + delayMs));
+        scheduleTimer();
     }
 
     function cancel() as Void {
@@ -57,26 +57,26 @@ class MultiplexScheduler {
         _timer.cancel();
     }
 
-    private function arm() as Void {
+    private function scheduleTimer() as Void {
         if (_entries.size() == 0) {
             return;
         }
 
-        var earliest = _entries[0][1];
+        var nextDueAt = _entries[0].dueAt;
 
         for (var i = 1; i < _entries.size(); i++) {
-            if (_entries[i][1] < earliest) {
-                earliest = _entries[i][1];
+            if (_entries[i].dueAt < nextDueAt) {
+                nextDueAt = _entries[i].dueAt;
             }
         }
 
-        if (_timerFiresAt != null && _timerFiresAt <= earliest) {
+        if (_timerFiresAt != null && _timerFiresAt <= nextDueAt) {
             return;
         }
 
-        _timerFiresAt = earliest;
+        _timerFiresAt = nextDueAt;
         _timer.cancel();
-        var delayMs = earliest - System.getTimer();
-        _timer.schedule(method(:onTimer), delayMs < MIN_DELAY_MS ? MIN_DELAY_MS : delayMs);
+        var delayMs = nextDueAt - System.getTimer();
+        _timer.scheduleAction(method(:onTimer), delayMs < MIN_DELAY_MS ? MIN_DELAY_MS : delayMs);
     }
 }
