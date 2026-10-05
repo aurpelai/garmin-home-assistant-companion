@@ -7,11 +7,11 @@ function aLoadWhereEveryTargetSettlesCleanMarksTheHomeFullyLoaded(logger as Test
     var coordinator = new Coordinator(new HaClient(new WebRequestGateway(), new TimerScheduler()), haState,
         new TimerScheduler());
 
-    coordinator.onFetchTarget(FetchTarget.STRUCTURE,
+    coordinator.onTargetSettled(FetchTarget.STRUCTURE,
         { "areas" => { "area.room" => { "name" => "Room" } } }, false);
     Test.assert(!haState.isHomeFullyLoaded());
 
-    coordinator.onFetchTarget(FetchTarget.FANS,
+    coordinator.onTargetSettled(FetchTarget.FANS,
         { "fans" => { "fan.f" => { "state" => true, "area_id" => "area.room" } } }, true);
     Test.assert(haState.isHomeFullyLoaded());
     return true;

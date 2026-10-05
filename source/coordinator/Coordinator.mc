@@ -56,7 +56,7 @@ class Coordinator {
         }
     }
 
-    function onFetchTarget(target as Symbol, result as Object or Null, isSettled as Boolean) as Void {
+    function onTargetSettled(target as Symbol, result as Object or Null, isSettled as Boolean) as Void {
         if (result != null) {
             if (target == FetchTarget.STRUCTURE) {
                 _haState.setZone(HaPayload.parseZone(result));
@@ -274,7 +274,7 @@ class Coordinator {
             return;
         }
 
-        _client.refresh(method(:onFetchTarget));
+        _client.refresh(method(:onTargetSettled));
     }
 
     private function onRefreshSettled() as Void {
