@@ -54,7 +54,6 @@
     <string id="ErrorRefresh">Couldn't fetch updated data</string>
     <string id="ErrorRegistrationFailed">Couldn't set up with HA. Check Home Assistant.</string>
     <string id="ErrorRegistrationRejected">HA rejected this watch's registration</string>
-    <string id="ErrorTemplate">HA couldn't render the request</string>
     <string id="ErrorTimeout">No response</string>
     <string id="ErrorTooManyRequests">Too many requests</string>
     <string id="ErrorUnknown">Something went wrong</string>

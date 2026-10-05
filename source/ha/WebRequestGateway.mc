@@ -28,8 +28,6 @@ class WebRequestGateway {
         );
     }
 
-    // UNVERIFIED: Connect IQ still delivers a cancelled request's reply, so the
-    // caller nulls its callbacks to drop it.
     function cancelAll() as Void {
         Communications.cancelAllRequests();
     }

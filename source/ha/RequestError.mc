@@ -3,27 +3,40 @@ import Toybox.Lang;
 class RequestError {
     static const UNREADABLE_BODY = :unreadableBody;
     static const UNUSABLE_WEBHOOK = :unusableWebhook;
+    static const TEMPLATE_ERROR = :templateError;
+
+    // Symbol.toString() is opaque in release builds ("symbol (659)", verified
+    // with a release build in the simulator on 2026-10-05), so each symbol in a
+    // diagnostic code carries a hand-written literal.
+    private static const LITERALS = {
+        UNREADABLE_BODY => "unreadableBody",
+        UNUSABLE_WEBHOOK => "unusableWebhook",
+        TEMPLATE_ERROR => "templateError",
+        FetchTarget.STRUCTURE => "structure",
+        FetchTarget.LIGHTS => "lights",
+        FetchTarget.FANS => "fans",
+        FetchTarget.SENSORS => "sensors",
+        RequestType.REGISTRATION => "registration"
+    };
 
     var reason as Number or Symbol;
-    var requestType as Symbol;
+    var request as Symbol or Null;
 
-    function initialize(reason as Number or Symbol, requestType as Symbol) {
+    function initialize(reason as Number or Symbol, request as Symbol or Null) {
         self.reason = reason;
-        self.requestType = requestType;
+        self.request = request;
     }
 
-    // A short stable token for the error surface. Symbol reasons carry a
-    // hand-written literal because Symbol.toString() is opaque in release
-    // builds; a numeric reason is its own code.
     function toDiagnosticCode() as String {
-        if (reason == UNREADABLE_BODY) {
-            return "unreadableBody";
-        }
+        var code = toLiteral(reason);
+        var request = self.request;
 
-        if (reason == UNUSABLE_WEBHOOK) {
-            return "unusableWebhook";
-        }
+        return request == null ? code : code + " (" + toLiteral(request) + ")";
+    }
 
-        return reason.toString();
+    private function toLiteral(value as Number or Symbol) as String {
+        var literal = LITERALS.get(value);
+
+        return literal != null ? literal as String : value.toString();
     }
 }

@@ -2,13 +2,6 @@ import Toybox.Communications;
 import Toybox.Lang;
 
 module ErrorMessage {
-
-    // A 400 means our own request was bad on either request type — an unparseable
-    // body, or plaintext to a registration that expects encryption. A template that
-    // fails to render comes back as a 200 carrying an error object, never as a 400
-    // (verified from the Home Assistant core source on 2026-09-12). The fetch
-    // branch below still shows the template message; the honest split is filed as
-    // an issue.
     function resolve(error as RequestError) as ResourceId {
         var reason = error.reason;
 
@@ -28,10 +21,8 @@ module ErrorMessage {
             return Rez.Strings.ErrorNotFound;
         }
 
-        if (reason == HttpStatus.BAD_REQUEST) {
-            return error.requestType == RequestType.REGISTRATION
-                ? Rez.Strings.ErrorRegistrationRejected
-                : Rez.Strings.ErrorTemplate;
+        if (reason == HttpStatus.BAD_REQUEST && error.request == RequestType.REGISTRATION) {
+            return Rez.Strings.ErrorRegistrationRejected;
         }
 
         if (reason == Communications.BLE_ERROR

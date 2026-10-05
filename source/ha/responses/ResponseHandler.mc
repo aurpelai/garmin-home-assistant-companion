@@ -28,7 +28,16 @@ class ResponseHandler {
                 // The render_template webhook returns the rendered value as a
                 // string, so the payload arrives JSON-encoded a second time (see #73).
                 var rendered = data.get(ResponseType.TEMPLATE_RENDER_ROOT_KEY);
-                var payload = (rendered instanceof Lang.String) ? JsonParser.parse(rendered) : rendered;
+
+                // A template that fails to render comes back as a 200 carrying an
+                // error object in place of the string (verified from the Home
+                // Assistant core source on 2026-09-12).
+                if (!(rendered instanceof Lang.String)) {
+                    fail(rendered == null ? RequestError.UNREADABLE_BODY : RequestError.TEMPLATE_ERROR);
+                    return;
+                }
+
+                var payload = JsonParser.parse(rendered);
                 if (payload == null) {
                     fail(RequestError.UNREADABLE_BODY);
                 } else {
@@ -52,6 +61,6 @@ class ResponseHandler {
     private function fail(reason as Number or Symbol) as Void {
         _callback.invoke(null, new RequestError(reason, _responseType == ResponseType.REGISTRATION
             ? RequestType.REGISTRATION
-            : RequestType.REQUEST));
+            : null));
     }
 }

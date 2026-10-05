@@ -50,14 +50,6 @@ class Coordinator {
         }
     }
 
-    function onToggleSettled(result as Object or Null, error as RequestError or Null) as Void {
-        if (error != null) {
-            WatchUi.showToast(ErrorMessage.resolve(error), null);
-        }
-
-        refresh();
-    }
-
     function onFetchTarget(target as Symbol, result as Object or Null, isLastTarget as Boolean) as Void {
         if (result != null) {
             if (target == FetchTarget.STRUCTURE) {
@@ -88,6 +80,46 @@ class Coordinator {
         }
     }
 
+    function onToggleSettled(result as Object or Null, error as RequestError or Null) as Void {
+        if (error != null) {
+            WatchUi.showToast(ErrorMessage.resolve(error), null);
+        }
+
+        refresh();
+    }
+
+    function onSettingsClosed() as Void {
+        if (_hasVisibilityChanged) {
+            _hasVisibilityChanged = false;
+            reload();
+        }
+    }
+
+    function onEntityClick(entityId as String) as Void {
+        var pending = _pendingClickId;
+        clearPendingClick();
+
+        if (pending != null && pending.equals(entityId)) {
+            showAttributeMenu(entityId);
+            return;
+        }
+
+        if (pending != null) {
+            toggleEntity(pending);
+        }
+
+        _pendingClickId = entityId;
+        _clickDebounce.schedule(method(:flushPendingClick), DOUBLE_CLICK_MS);
+    }
+
+    function isOn(entityId as String) as Boolean {
+        return _haState.isOn(entityId);
+    }
+
+    function buildSettingsMenu() as [WatchUi.Views, WatchUi.InputDelegates] {
+        return [new SettingsMenu(_haState), new SettingsMenuDelegate(self)];
+    }
+
     function showAreaMenu(areaId as String) as Void {
         var area = _haState.getArea(areaId);
         if (area == null) {
@@ -111,8 +143,14 @@ class Coordinator {
         WatchUi.pushView(menu, new AreaEntityMenuDelegate(self), WatchUi.SLIDE_LEFT);
     }
 
-    function buildSettingsMenu() as [WatchUi.Views, WatchUi.InputDelegates] {
-        return [new SettingsMenu(_haState), new SettingsMenuDelegate(self)];
+    function showFloorMenu(floorId as String) as Void {
+        var model = FloorEntityMenuBuilder.build(_haState, floorId);
+        if (model == null) {
+            return;
+        }
+
+        var menu = new FloorEntityMenu(self, floorId, model);
+        WatchUi.pushView(menu, new FloorEntityMenuDelegate(menu, self), WatchUi.SLIDE_LEFT);
     }
 
     function showLabelPicker() as Void {
@@ -136,52 +174,12 @@ class Coordinator {
         WatchUi.pushView(menu, new VisibilityPickerDelegate(self), WatchUi.SLIDE_LEFT);
     }
 
-    function onSettingsClosed() as Void {
-        if (_hasVisibilityChanged) {
-            _hasVisibilityChanged = false;
-            _haState.clearFetched();
-            retry();
-        }
+    function showError(error as RequestError) as Void {
+        showInfoView(WatchUi.loadResource(ErrorMessage.resolve(error)) as String, error.toDiagnosticCode());
     }
 
-    function showFloorMenu(floorId as String) as Void {
-        var model = FloorEntityMenuBuilder.build(_haState, floorId);
-        if (model == null) {
-            return;
-        }
-
-        var menu = new FloorEntityMenu(self, floorId, model);
-        WatchUi.pushView(menu, new FloorEntityMenuDelegate(menu, self), WatchUi.SLIDE_LEFT);
-    }
-
-    function onEntityClick(entityId as String) as Void {
-        var pending = _pendingClickId;
-        clearPendingClick();
-
-        if (pending != null && pending.equals(entityId)) {
-            showAttributeMenu(entityId);
-            return;
-        }
-
-        if (pending != null) {
-            toggleEntity(pending);
-        }
-
-        _pendingClickId = entityId;
-        _clickDebounce.schedule(method(:flushPendingClick), DOUBLE_CLICK_MS);
-    }
-
-    function flushPendingClick() as Void {
-        var entityId = _pendingClickId;
-        clearPendingClick();
-
-        if (entityId != null) {
-            toggleEntity(entityId);
-        }
-    }
-
-    function isOn(entityId as String) as Boolean {
-        return _haState.isOn(entityId);
+    function showMessage(id as ResourceId) as Void {
+        showInfoView(WatchUi.loadResource(id) as String, null);
     }
 
     function setFloorVisibility(floorId as String, isVisible as Boolean) as Void {
@@ -232,35 +230,94 @@ class Coordinator {
         updateDisplay();
     }
 
-    // The state is emptied here, so whatever is on screen would draw a home with
-    // nothing in it until the refresh settles.
+    function flushPendingClick() as Void {
+        var entityId = _pendingClickId;
+        clearPendingClick();
+
+        if (entityId != null) {
+            toggleEntity(entityId);
+        }
+    }
+
     function discardRegistration() as Void {
         _client.cancelAll();
         _client.discardRegistration();
-        _haState.clearFetched();
-        retry();
+        reload();
     }
 
-    function retry() as Void {
+    // The state is emptied here, so whatever is on screen would draw a home with
+    // nothing in it until the refresh settles.
+    function reload() as Void {
+        _client.cancelRefresh();
+        _haState.clearFetched();
         _currentView = null;
         WatchUi.switchToView(new LoadingView(self), new LoadingDelegate(), WatchUi.SLIDE_IMMEDIATE);
         refresh();
     }
 
-    function showError(error as RequestError) as Void {
-        showInfoView(WatchUi.loadResource(ErrorMessage.resolve(error)) as String, error.toDiagnosticCode());
+    private function refresh() as Void {
+        if (!Settings.isConfigured()) {
+            showMessage(Rez.Strings.ErrorNoConfig);
+            return;
+        }
+
+        _client.refresh(method(:onFetchTarget));
     }
 
-    function showMessage(id as ResourceId) as Void {
-        showInfoView(WatchUi.loadResource(id) as String, null);
+    private function onRefreshSettled() as Void {
+        var error = _client.getError();
+
+        if (_haState.isHomeFullyLoaded()) {
+            if (error != null) {
+                WatchUi.showToast(Rez.Strings.ErrorRefresh, null);
+            }
+
+            return;
+        }
+
+        if (error != null) {
+            showError(error);
+            return;
+        }
+
+        _haState.markHomeFullyLoaded();
+        var model = CardLoopBuilder.build(_haState);
+
+        if (model.cards.size() == 0) {
+            showMessage(Rez.Strings.NothingFound);
+            return;
+        }
+
+        showCardLoop(model);
     }
 
-    private function commitAttribute(attribute as AdjustableAttribute, service as String,
-                                     value as Object) as Void {
-        _haState.overrideAttribute(attribute.entityId, attribute.field, value);
-        _client.queueAttribute(attribute.domain, service, attribute.entityId,
-            attribute.field, value, method(:onToggleSettled));
-        updateDisplay();
+    private function updateDisplay() as Void {
+        var view = _currentView;
+
+        if (view == null) {
+            return;
+        }
+
+        if (view has :hasPerished && (view as Perishable).hasPerished(_haState)) {
+            showCardLoop(CardLoopBuilder.build(_haState));
+            return;
+        }
+
+        if (view has :rebuild) {
+            (view as Rebuildable).rebuild(_haState);
+            WatchUi.requestUpdate();
+        }
+    }
+
+    private function showCardLoop(model as CardLoopModel) as Void {
+        var loop = new CardLoop(self, model);
+        WatchUi.switchToView(loop, new CardLoopDelegate(loop, self), WatchUi.SLIDE_IMMEDIATE);
+    }
+
+    private function showInfoView(message as String, detail as String or Null) as Void {
+        var infoView = new InfoView(self, message, true, detail);
+        _currentView = infoView;
+        WatchUi.switchToView(infoView, new InfoDelegate(self), WatchUi.SLIDE_IMMEDIATE);
     }
 
     private function showAttributeMenu(entityId as String) as Void {
@@ -278,6 +335,14 @@ class Coordinator {
             EntityActionMenu.build(attributes), new EntityActionMenuDelegate(self, attributes));
     }
 
+    private function commitAttribute(attribute as AdjustableAttribute, service as String,
+                                     value as Object) as Void {
+        _haState.overrideAttribute(attribute.entityId, attribute.field, value);
+        _client.queueAttribute(attribute.domain, service, attribute.entityId,
+            attribute.field, value, method(:onToggleSettled));
+        updateDisplay();
+    }
+
     private function clearPendingClick() as Void {
         _pendingClickId = null;
         _clickDebounce.cancel();
@@ -288,68 +353,5 @@ class Coordinator {
         VisibilityStore.setHiddenFloors(_haState.getHiddenFloors());
         VisibilityStore.setHiddenAreas(_haState.getHiddenAreas());
         VisibilityStore.setIncludedLabels(_haState.getIncludedLabels());
-    }
-
-    private function showInfoView(message as String, detail as String or Null) as Void {
-        var infoView = new InfoView(self, message, true, detail);
-        _currentView = infoView;
-        WatchUi.switchToView(infoView, new InfoDelegate(self), WatchUi.SLIDE_IMMEDIATE);
-    }
-
-    private function refresh() as Void {
-        if (!Settings.isConfigured()) {
-            showMessage(Rez.Strings.ErrorNoConfig);
-            return;
-        }
-
-        _client.refresh(method(:onFetchTarget));
-    }
-
-    private function onRefreshSettled() as Void {
-        var error = _client.getError();
-
-        if (_haState.hasAreas()) {
-            if (_currentView == null) {
-                showCardLoop();
-            }
-
-            if (error != null) {
-                WatchUi.showToast(Rez.Strings.ErrorRefresh, null);
-            }
-
-            return;
-        }
-
-        if (error != null) {
-            showError(error);
-            return;
-        }
-
-        if (_client.hasEverRefreshed()) {
-            showMessage(Rez.Strings.NothingFound);
-        }
-    }
-
-    private function updateDisplay() as Void {
-        var view = _currentView;
-
-        if (view == null) {
-            return;
-        }
-
-        if (view has :hasPerished && (view as Perishable).hasPerished(_haState)) {
-            showCardLoop();
-            return;
-        }
-
-        if (view has :rebuild) {
-            (view as Rebuildable).rebuild(_haState);
-            WatchUi.requestUpdate();
-        }
-    }
-
-    private function showCardLoop() as Void {
-        var loop = new CardLoop(self, CardLoopBuilder.build(_haState));
-        WatchUi.switchToView(loop, new CardLoopDelegate(loop, self), WatchUi.SLIDE_IMMEDIATE);
     }
 }

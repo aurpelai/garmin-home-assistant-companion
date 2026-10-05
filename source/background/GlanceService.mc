@@ -42,7 +42,7 @@ class GlanceService extends System.ServiceDelegate {
     function onResponse(code as Number, data as Dictionary or String or Null) as Void {
         if (code >= 200 && code < 300 && data instanceof Dictionary) {
             var rendered = data.get(ResponseType.TEMPLATE_RENDER_ROOT_KEY);
-            var payload = rendered instanceof String ? JsonParser.parse(rendered) : rendered;
+            var payload = rendered instanceof String ? JsonParser.parse(rendered) : null;
             if (payload instanceof Dictionary) {
                 var summary = payload.get("lightSummary");
                 GlanceSummary.setLightSummary(summary instanceof String ? summary : null);

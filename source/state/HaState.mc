@@ -10,6 +10,7 @@ class HaState {
     private var _labels as Dictionary<String, String>;
     private var _zone as String or Null;
     private var _sensorAverages as SensorAverages;
+    private var _isHomeFullyLoaded as Boolean;
 
     private var _hiddenFloors as Dictionary<String, Boolean>;
     private var _hiddenAreas as Dictionary<String, Boolean>;
@@ -25,6 +26,7 @@ class HaState {
         _labels = {};
         _zone = null;
         _sensorAverages = new SensorAverages();
+        _isHomeFullyLoaded = false;
         _hiddenFloors = {};
         _hiddenAreas = {};
         _includedLabels = {};
@@ -40,6 +42,11 @@ class HaState {
         _labels = {};
         _zone = null;
         _sensorAverages = new SensorAverages();
+        _isHomeFullyLoaded = false;
+    }
+
+    function markHomeFullyLoaded() as Void {
+        _isHomeFullyLoaded = true;
     }
 
     function setHidden(hiddenFloors as Dictionary<String, Boolean>,
@@ -246,6 +253,10 @@ class HaState {
         }
 
         return targets;
+    }
+
+    function isHomeFullyLoaded() as Boolean {
+        return _isHomeFullyLoaded;
     }
 
     function hasAreas() as Boolean {

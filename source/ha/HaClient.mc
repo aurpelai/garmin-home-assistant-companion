@@ -35,6 +35,7 @@ class HaClient {
     private var _registrationCallback as Method or Null;
     private var _registrationEpoch as Number;
     private var _pendingFetchTargets as Array<Symbol>;
+    private var _refreshEpoch as Number;
     private var _currentTarget as Symbol or Null;
     private var _onRefreshTarget as Method or Null;
     private var _error as RequestError or Null;
@@ -50,6 +51,7 @@ class HaClient {
         _registrationCallback = null;
         _registrationEpoch = 0;
         _pendingFetchTargets = [];
+        _refreshEpoch = 0;
         _currentTarget = null;
         _onRefreshTarget = null;
         _error = null;
@@ -75,7 +77,11 @@ class HaClient {
         startNextRequest();
     }
 
-    function onTargetSettled(result as Object or Null, error as RequestError or Null) as Void {
+    function onTargetSettled(epoch as Number, result as Object or Null, error as RequestError or Null) as Void {
+        if (epoch != _refreshEpoch) {
+            return;
+        }
+
         _isRequestInFlight = false;
 
         if (_currentTarget == null || _onRefreshTarget == null) {
@@ -84,6 +90,10 @@ class HaClient {
 
         var target = _currentTarget as Symbol;
         var onTarget = _onRefreshTarget as Method;
+
+        if (error != null && error.request == null) {
+            error.request = target;
+        }
 
         if (_error == null) {
             _error = error;
@@ -131,10 +141,6 @@ class HaClient {
         return _error;
     }
 
-    function hasEverRefreshed() as Boolean {
-        return _lastRefreshCompletedAt != null;
-    }
-
     function refresh(onTarget as Method) as Void {
         if (isRefreshing() || hasOutstandingChanges()) {
             return;
@@ -159,20 +165,21 @@ class HaClient {
         queueChange(buildAttributeRequest(domain, service, entityId, field, value), callback);
     }
 
-    // UNVERIFIED: Connect IQ still delivers a cancelled request's reply, so the
-    // callbacks are nulled to drop it.
     function cancelAll() as Void {
-        _gateway.cancelAll();
-        _scheduler.cancel();
         _changeQueue = [];
         _pendingFetchTargets = [];
-        _isRequestInFlight = false;
         _isChangeInFlight = false;
         _pendingChangeCallback = null;
-        _registrationCallback = null;
-        _registrationEpoch++;
-        _currentTarget = null;
-        _onRefreshTarget = null;
+        cancelInFlight();
+    }
+
+    function cancelRefresh() as Void {
+        _pendingFetchTargets = [];
+
+        if (!_isChangeInFlight) {
+            cancelInFlight();
+            startNextRequest();
+        }
     }
 
     function registerWithHomeAssistant(callback as Method) as Void {
@@ -197,7 +204,7 @@ class HaClient {
         _registrationCallback = callback;
         _registrationEpoch++;
         post("/api/mobile_app/registrations", body,
-             new ResponseHandler(new RegistrationHandler(self, _registrationEpoch).method(:onSettled),
+             new ResponseHandler(new EpochHandler(method(:onRegistrationSettled), _registrationEpoch).method(:onSettled),
                                  ResponseType.REGISTRATION));
     }
 
@@ -205,7 +212,7 @@ class HaClient {
         var webhookId = Application.Storage.getValue(Webhook.REGISTRATION_KEY) as String or Null;
 
         if (webhookId == null) {
-            callback.invoke(null, new RequestError(RequestError.UNUSABLE_WEBHOOK, RequestType.REQUEST));
+            callback.invoke(null, new RequestError(RequestError.UNUSABLE_WEBHOOK, null));
             return;
         }
 
@@ -292,8 +299,24 @@ class HaClient {
             _pendingFetchTargets = _pendingFetchTargets.slice(1, null) as Array<Symbol>;
             _isRequestInFlight = true;
             _currentTarget = target;
-            new RetryManager(buildTemplateRenderRequest(target), method(:onTargetSettled), _scheduler, RequestType.REQUEST).attempt();
+            new RetryManager(buildTemplateRenderRequest(target),
+                new EpochHandler(method(:onTargetSettled), _refreshEpoch).method(:onSettled), _scheduler, RequestType.REQUEST).attempt();
         }
+    }
+
+    // Cancelling delivers each cancelled request's reply synchronously, as
+    // REQUEST_CANCELLED, so the callbacks are retired first to drop it and the
+    // scheduler is cleared last to drop the retry it schedules (verified in the
+    // simulator on 2026-10-05).
+    private function cancelInFlight() as Void {
+        _isRequestInFlight = false;
+        _registrationCallback = null;
+        _registrationEpoch++;
+        _refreshEpoch++;
+        _currentTarget = null;
+        _onRefreshTarget = null;
+        _gateway.cancelAll();
+        _scheduler.cancel();
     }
 
     private function setRegistration(webhookId as String) as Void {
