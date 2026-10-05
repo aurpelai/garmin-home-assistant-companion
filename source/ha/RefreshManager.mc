@@ -69,12 +69,14 @@ class RefreshManager {
     }
 
     function fetch(target as Symbol) as Void {
-        var epoch = invalidate(target);
+        invalidate(target);
+
+        var epoch = _latestEpochByTarget.get(target) as Number;
         new RetryManager(_buildRequest.invoke(target) as Method,
             new EpochHandler(method(:onSettled), epoch).method(:onSettled), _scheduler, RequestType.REQUEST).attempt();
     }
 
-    function invalidate(target as Symbol) as Number {
+    function invalidate(target as Symbol) as Void {
         if (!isFetching()) {
             _errorByTarget = {};
         }
@@ -83,8 +85,6 @@ class RefreshManager {
         _latestEpochByTarget.put(target, _epoch);
         _unsettledTargets.put(target, true);
         _errorByTarget.remove(target);
-
-        return _epoch;
     }
 
     function reset() as Void {
