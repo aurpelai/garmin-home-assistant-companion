@@ -40,19 +40,27 @@ class GlanceService extends System.ServiceDelegate {
     }
 
     function onResponse(code as Number, data as Dictionary or String or Null) as Void {
-        if (code >= 200 && code < 300 && data instanceof Dictionary) {
-            var payload = data.get(ResponseType.TEMPLATE_RENDER_ROOT_KEY);
-            if (payload instanceof Dictionary && !ResponseType.isRenderError(payload)) {
-                var summary = payload.get("lightSummary");
-                GlanceSummary.setLightSummary(summary instanceof String ? summary : null);
+        cacheSummaries(code, data);
+        Background.exit(null);
+    }
 
-                var climate = payload.get("climate");
-                var averages = climate instanceof Dictionary ? climate : ({} as Dictionary);
-                GlanceSummary.setTemperature(averages.get("temperature"));
-                GlanceSummary.setHumidity(averages.get("humidity"));
-            }
+    private function cacheSummaries(code as Number, data as Dictionary or String or Null) as Void {
+        if (code < 200 || code >= 300 || !(data instanceof Dictionary)) {
+            return;
         }
 
-        Background.exit(null);
+        var payload = data.get(ResponseType.TEMPLATE_RENDER_ROOT_KEY);
+
+        if (!(payload instanceof Dictionary) || ResponseType.isRenderError(payload)) {
+            return;
+        }
+
+        var summary = payload.get("lightSummary");
+        GlanceSummary.setLightSummary(summary instanceof String ? summary : null);
+
+        var climate = payload.get("climate");
+        var averages = climate instanceof Dictionary ? climate : ({} as Dictionary);
+        GlanceSummary.setTemperature(averages.get("temperature"));
+        GlanceSummary.setHumidity(averages.get("humidity"));
     }
 }

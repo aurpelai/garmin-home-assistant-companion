@@ -57,28 +57,7 @@ class Coordinator {
     }
 
     function onTargetSettled(target as Symbol, result as Object or Null, isSettled as Boolean) as Void {
-        if (result != null) {
-            if (target == FetchTarget.STRUCTURE) {
-                _haState.setZone(HaPayload.parseZone(result));
-                _haState.setAreas(HaPayload.parseAreas(result));
-                _haState.setFloors(HaPayload.parseFloors(result));
-                _haState.setLabels(HaPayload.parseLabels(result));
-            } else if (target == FetchTarget.LIGHTS) {
-                _haState.setToggleables(Domain.LIGHT, HaPayload.parseLights(result));
-                GlanceSummary.setLightSummary(HaPayload.parseLightSummary(result));
-            } else if (target == FetchTarget.FANS) {
-                _haState.setToggleables(Domain.FAN, HaPayload.parseFans(result));
-            } else if (target == FetchTarget.SENSORS) {
-                _haState.setSensors(HaPayload.parseSensors(result));
-                _haState.setSensorAverages(
-                    HaPayload.parseAverages(result, "areas"),
-                    HaPayload.parseAverages(result, "floors"));
-                var climate = HaPayload.parseClimate(result);
-                GlanceSummary.setTemperature(climate.get("temperature"));
-                GlanceSummary.setHumidity(climate.get("humidity"));
-            }
-        }
-
+        applyTargetResult(target, result);
         updateDisplay();
 
         if (isSettled) {
@@ -266,6 +245,43 @@ class Coordinator {
         _currentView = null;
         WatchUi.switchToView(new LoadingView(self), new LoadingDelegate(), WatchUi.SLIDE_IMMEDIATE);
         refresh();
+    }
+
+    private function applyTargetResult(target as Symbol, result as Object or Null) as Void {
+        if (result == null) {
+            return;
+        }
+
+        if (target == FetchTarget.STRUCTURE) {
+            _haState.setZone(HaPayload.parseZone(result));
+            _haState.setAreas(HaPayload.parseAreas(result));
+            _haState.setFloors(HaPayload.parseFloors(result));
+            _haState.setLabels(HaPayload.parseLabels(result));
+            return;
+        }
+
+        if (target == FetchTarget.LIGHTS) {
+            _haState.setToggleables(Domain.LIGHT, HaPayload.parseLights(result));
+            GlanceSummary.setLightSummary(HaPayload.parseLightSummary(result));
+            return;
+        }
+
+        if (target == FetchTarget.FANS) {
+            _haState.setToggleables(Domain.FAN, HaPayload.parseFans(result));
+            return;
+        }
+
+        if (target != FetchTarget.SENSORS) {
+            return;
+        }
+
+        _haState.setSensors(HaPayload.parseSensors(result));
+        _haState.setSensorAverages(
+            HaPayload.parseAverages(result, "areas"),
+            HaPayload.parseAverages(result, "floors"));
+        var climate = HaPayload.parseClimate(result);
+        GlanceSummary.setTemperature(climate.get("temperature"));
+        GlanceSummary.setHumidity(climate.get("humidity"));
     }
 
     private function refresh() as Void {
