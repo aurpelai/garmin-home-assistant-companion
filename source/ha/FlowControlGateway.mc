@@ -11,28 +11,28 @@ class FlowControlGateway {
 
     private var _gateway as RequestGateway;
     private var _scheduler as Scheduler;
-    private var _inFlightCount as Number;
+    private var _inFlight as Array<RequestAttempt>;
     private var _held as Array<RequestAttempt>;
 
     function initialize(gateway as RequestGateway, scheduler as Scheduler) {
         _gateway = gateway;
         _scheduler = scheduler;
-        _inFlightCount = 0;
+        _inFlight = [];
         _held = [];
     }
 
     function onQueueFull(attempt as RequestAttempt) as Void {
-        _inFlightCount--;
+        _inFlight.remove(attempt);
         _held.add(attempt);
 
-        if (_inFlightCount == 0) {
+        if (_inFlight.size() == 0) {
             _scheduler.schedule(method(:resendHeld), QUEUE_FULL_RETRY_MS);
         }
     }
 
     function onSettled(attempt as RequestAttempt) as Void {
         if (!_held.remove(attempt)) {
-            _inFlightCount--;
+            _inFlight.remove(attempt);
         }
 
         resendHeld();
@@ -45,7 +45,14 @@ class FlowControlGateway {
     }
 
     function cancelAll() as Void {
+        var attempts = _inFlight.addAll(_held);
+        _inFlight = [];
         _held = [];
+
+        for (var i = 0; i < attempts.size(); i++) {
+            attempts[i].cancel();
+        }
+
         _gateway.cancelAll();
     }
 
@@ -59,7 +66,7 @@ class FlowControlGateway {
     }
 
     private function send(attempt as RequestAttempt) as Void {
-        _inFlightCount++;
+        _inFlight.add(attempt);
         _gateway.post(attempt.path, attempt.body, attempt.method(:onResponse));
     }
 }

@@ -83,3 +83,21 @@ function aRefusalWithNothingElseInFlightIsResentAfterAShortWait(logger as Test.L
     Test.assertEqual(log.codes.size(), 0);
     return true;
 }
+
+(:test)
+function aRefusalAfterCancelAllStillResendsAfterAShortWait(logger as Test.Logger) as Boolean {
+    var inner = new FakeGateway();
+    var timer = new FakeScheduler();
+    var gateway = new FlowControlGateway(inner, new MultiplexScheduler(timer));
+    var log = new ResponseLog();
+
+    gateway.post("/a", {}, new ResponseLog().method(:onResponse));
+    gateway.cancelAll();
+    gateway.post("/b", {}, log.method(:onResponse));
+    inner.reply(1, Communications.BLE_QUEUE_FULL);
+    timer.runScheduled();
+
+    Test.assertEqual(inner.responders.size(), 3);
+    Test.assertEqual(log.codes.size(), 0);
+    return true;
+}

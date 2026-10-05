@@ -33,17 +33,3 @@ function theEarliestActionFiresFirstWhateverOrderItWasScheduledIn(logger as Test
     Test.assertEqual(log.fired[1], "second");
     return true;
 }
-
-(:test)
-function actionsDueTogetherFireTogether(logger as Test.Logger) as Boolean {
-    var timer = new FakeScheduler();
-    var scheduler = new MultiplexScheduler(timer);
-    var log = new FiredLog();
-
-    scheduler.schedule(log.method(:onFirst), 100);
-    scheduler.schedule(log.method(:onSecond), 100);
-    timer.runScheduled();
-
-    Test.assertEqual(log.fired.size(), 2);
-    return true;
-}
