@@ -24,25 +24,25 @@ class MultiplexScheduler {
             dueBy = timerFiresAt;
         }
 
-        var due = [] as Array<Method>;
-        var later = [] as Array<[Method, Number]>;
+        var dueActions = [] as Array<Method>;
+        var remainingEntries = [] as Array<[Method, Number]>;
 
         for (var i = 0; i < _entries.size(); i++) {
             var entry = _entries[i];
 
             if (entry[1] <= dueBy) {
-                due.add(entry[0]);
+                dueActions.add(entry[0]);
             } else {
-                later.add(entry);
+                remainingEntries.add(entry);
             }
         }
 
-        _entries = later;
+        _entries = remainingEntries;
         _timerFiresAt = null;
         arm();
 
-        for (var i = 0; i < due.size(); i++) {
-            due[i].invoke();
+        for (var i = 0; i < dueActions.size(); i++) {
+            dueActions[i].invoke();
         }
     }
 
