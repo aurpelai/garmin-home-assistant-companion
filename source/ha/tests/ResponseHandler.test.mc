@@ -26,12 +26,22 @@ function onResponseNormalizesNon200ToError(logger as Test.Logger) as Boolean {
 }
 
 (:test)
-function aRenderThatIsNotAStringIsAFailedRender(logger as Test.Logger) as Boolean {
+function aRenderedDictionaryIsThePayload(logger as Test.Logger) as Boolean {
     var capture = new ResultCapture();
-    var handler = new ResponseHandler(capture.method(:onResult), ResponseType.TEMPLATE_RENDER);
-
-    handler.onResponse(200, {
+    new ResponseHandler(capture.method(:onResult), ResponseType.TEMPLATE_RENDER).onResponse(200, {
         ResponseType.TEMPLATE_RENDER_ROOT_KEY => { "lights" => { "light.a" => { "state" => true } } }
+    });
+
+    Test.assertEqual(((capture.result as Dictionary).get("lights") as Dictionary).size(), 1);
+    Test.assert(capture.error == null);
+    return true;
+}
+
+(:test)
+function anErrorObjectInPlaceOfTheRenderIsAFailedRender(logger as Test.Logger) as Boolean {
+    var capture = new ResultCapture();
+    new ResponseHandler(capture.method(:onResult), ResponseType.TEMPLATE_RENDER).onResponse(200, {
+        ResponseType.TEMPLATE_RENDER_ROOT_KEY => { "error" => "UndefinedError: 'x' is undefined" }
     });
 
     Test.assert(capture.result == null);
@@ -40,24 +50,26 @@ function aRenderThatIsNotAStringIsAFailedRender(logger as Test.Logger) as Boolea
 }
 
 (:test)
-function aFetchBodyThatCannotBeReadIsAFailureNotAnEmptyHome(logger as Test.Logger) as Boolean {
-    var missingSection = new ResultCapture();
-    new ResponseHandler(missingSection.method(:onResult), ResponseType.TEMPLATE_RENDER).onResponse(200, {});
+function aRenderThatIsNotADictionaryIsUnreadable(logger as Test.Logger) as Boolean {
+    var missing = new ResultCapture();
+    new ResponseHandler(missing.method(:onResult), ResponseType.TEMPLATE_RENDER).onResponse(200, {});
 
-    Test.assert(missingSection.result == null);
-    Test.assertEqual((missingSection.error as RequestError).reason as Symbol, RequestError.UNREADABLE_BODY);
+    Test.assert(missing.result == null);
+    Test.assertEqual((missing.error as RequestError).reason as Symbol, RequestError.UNREADABLE_BODY);
 
-    var unparsable = new ResultCapture();
-    new ResponseHandler(unparsable.method(:onResult), ResponseType.TEMPLATE_RENDER).onResponse(200, { ResponseType.TEMPLATE_RENDER_ROOT_KEY => "{not json" });
+    var string = new ResultCapture();
+    new ResponseHandler(string.method(:onResult), ResponseType.TEMPLATE_RENDER)
+        .onResponse(200, { ResponseType.TEMPLATE_RENDER_ROOT_KEY => "{'changed': datetime(...)}" });
 
-    Test.assert(unparsable.result == null);
-    Test.assertEqual((unparsable.error as RequestError).reason as Symbol, RequestError.UNREADABLE_BODY);
+    Test.assert(string.result == null);
+    Test.assertEqual((string.error as RequestError).reason as Symbol, RequestError.UNREADABLE_BODY);
 
-    var empty = new ResultCapture();
-    new ResponseHandler(empty.method(:onResult), ResponseType.TEMPLATE_RENDER).onResponse(200, { ResponseType.TEMPLATE_RENDER_ROOT_KEY => "{}" });
+    var list = new ResultCapture();
+    new ResponseHandler(list.method(:onResult), ResponseType.TEMPLATE_RENDER)
+        .onResponse(200, { ResponseType.TEMPLATE_RENDER_ROOT_KEY => [] });
 
-    Test.assert(empty.result instanceof Dictionary);
-    Test.assert(empty.error == null);
+    Test.assert(list.result == null);
+    Test.assertEqual((list.error as RequestError).reason as Symbol, RequestError.UNREADABLE_BODY);
     return true;
 }
 

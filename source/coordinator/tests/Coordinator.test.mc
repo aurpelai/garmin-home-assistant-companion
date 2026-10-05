@@ -8,11 +8,11 @@ function aLoadWhereEveryTargetSettlesCleanMarksTheHomeFullyLoaded(logger as Test
         new TimerScheduler());
 
     coordinator.onFetchTarget(FetchTarget.STRUCTURE,
-        JsonParser.parse("{\"areas\":{\"area.room\":{\"name\":\"Room\"}}}"), false);
+        { "areas" => { "area.room" => { "name" => "Room" } } }, false);
     Test.assert(!haState.isHomeFullyLoaded());
 
     coordinator.onFetchTarget(FetchTarget.FANS,
-        JsonParser.parse("{\"fans\":{\"fan.f\":{\"state\":true,\"area_id\":\"area.room\"}}}"), true);
+        { "fans" => { "fan.f" => { "state" => true, "area_id" => "area.room" } } }, true);
     Test.assert(haState.isHomeFullyLoaded());
     return true;
 }

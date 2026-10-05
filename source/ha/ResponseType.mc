@@ -11,4 +11,11 @@ module ResponseType {
     // The single name our template is registered under in the request; the
     // webhook echoes its render back under the same key (see #73).
     const TEMPLATE_RENDER_ROOT_KEY = "data";
+
+    // A template that fails to render comes back as a 200 carrying an error
+    // object in place of the render (verified from the Home Assistant core
+    // source on 2026-09-12).
+    function isRenderError(rendered as Dictionary) as Boolean {
+        return rendered.get("error") instanceof String;
+    }
 }

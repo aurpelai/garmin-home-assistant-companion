@@ -1,8 +1,10 @@
 import Toybox.Lang;
 
-// Piped through `| tojson` because the render_template webhook returns the
-// rendered value as a string; without it the payload is a Python repr no JSON
-// reader accepts (see #73).
+// Each render prints a plain Python literal, which Home Assistant hands back as a
+// native object; a non-plain value anywhere (an enum, a datetime) turns the whole
+// render into a string, as does JSON text holding true, false or null, so every
+// value that could be non-plain is coerced at its own site (verified in Home
+// Assistant's template developer tools on 2026-10-05).
 //
 // UNVERIFIED: kept backslash-free (`.startswith(...)`, never a `match` regex)
 // because a backslash is sent unescaped by the Connect IQ JSON serializer,
@@ -32,7 +34,7 @@ module HaTemplate {
         "{% set ns.labels = dict(ns.labels, **{label: label_name(label)}) %}" +
         "{% endfor %}" +
         "{{ dict(zone=state_attr('zone.home', 'friendly_name'), " +
-            "areas=ns.areas, floors=ns.floors, labels=ns.labels) | tojson }}";
+            "areas=ns.areas, floors=ns.floors, labels=ns.labels) }}";
 
     const VISIBLE_AREA_CLAUSE = "if area not in hidden_areas and (floor_id(area) or '" +
         VisibilityStore.FLOORLESS_FLOOR_ID + "') not in hidden_floors";
@@ -150,7 +152,7 @@ module HaTemplate {
         "{% endif %}" +
         "{% endif %}" +
         "{% endfor %}" +
-        "{{ dict(lights=ns.lights, lightSummary=(lightSummary(ns.home) | trim or none)) | tojson }}";
+        "{{ dict(lights=ns.lights, lightSummary=(lightSummary(ns.home) | trim or none)) }}";
 
     // The percentage is emitted whatever the state, so an off fan keeps its last
     // speed; the view, not the render, decides what an off fan shows.
@@ -176,7 +178,7 @@ module HaTemplate {
         "{% endif %}" +
         "{% endif %}" +
         "{% endfor %}" +
-        "{{ dict(fans=ns.fans) | tojson }}";
+        "{{ dict(fans=ns.fans) }}";
 
     // `states(e, true, true)` keeps HA's own display precision and unit as a
     // string, so the menu shows exactly what the user's dashboard shows for a
@@ -201,7 +203,7 @@ module HaTemplate {
             "and state_attr(entity, 'device_class') in ['temperature', 'humidity', 'illuminance'] %}" +
         "{% set ns.sensors = dict(ns.sensors, **{entity: dict(" +
             "friendly_state=states(entity, true, true), " +
-            "device_class=state_attr(entity, 'device_class'), name=entity_name(entity), area_id=area, " +
+            "device_class=state_attr(entity, 'device_class') | string, name=entity_name(entity), area_id=area, " +
             "labels=entityLabels(entity) | from_json, " +
             "available=not is_state(entity, 'unavailable') and not is_state(entity, 'unknown'))}) %}" +
         "{% endif %}" +
@@ -215,7 +217,7 @@ module HaTemplate {
         "{% if classAverages | length > 0 %}{% set ns.floors = dict(ns.floors, **{floor: classAverages}) %}{% endif %}" +
         "{% endfor %}" +
         "{{ dict(sensors=ns.sensors, areas=ns.areas, floors=ns.floors, " +
-            "climate=averages(ns.home) | from_json) | tojson }}";
+            "climate=averages(ns.home) | from_json) }}";
 
     // Only the home summaries, so the background process's fetch and parse stay
     // within its small memory pool.
@@ -225,7 +227,7 @@ module HaTemplate {
         "{% set ns.home = ns.home + (area_entities(area) | list) %}" +
         "{% endfor %}" +
         "{{ dict(lightSummary=(lightSummary(ns.home) | trim or none), " +
-            "climate=averages(ns.home) | from_json) | tojson }}";
+            "climate=averages(ns.home) | from_json) }}";
 
     // STRUCTURE is never filtered: the settings tree needs every area, hidden or
     // not, to offer un-hiding. The render request has no variables channel, so the
