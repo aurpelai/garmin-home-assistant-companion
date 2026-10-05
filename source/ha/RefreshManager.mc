@@ -10,18 +10,18 @@ class RefreshManager {
     private var _onTarget as Method;
     private var _scheduler as Scheduler;
     private var _epoch as Number;
-    private var _latestEpochs as Dictionary<Symbol, Number>;
-    private var _outstanding as Dictionary<Symbol, Boolean>;
-    private var _errors as Dictionary<Symbol, RequestError>;
+    private var _latestEpochByTarget as Dictionary<Symbol, Number>;
+    private var _unsettledTargets as Dictionary<Symbol, Boolean>;
+    private var _errorByTarget as Dictionary<Symbol, RequestError>;
 
     function initialize(buildRequest as Method, onTarget as Method, scheduler as Scheduler) {
         _buildRequest = buildRequest;
         _onTarget = onTarget;
         _scheduler = scheduler;
         _epoch = 0;
-        _latestEpochs = {};
-        _outstanding = {};
-        _errors = {};
+        _latestEpochByTarget = {};
+        _unsettledTargets = {};
+        _errorByTarget = {};
     }
 
     function onSettled(epoch as Number, result as Object or Null, error as RequestError or Null) as Void {
@@ -31,28 +31,28 @@ class RefreshManager {
             return;
         }
 
-        _outstanding.remove(target);
+        _unsettledTargets.remove(target);
 
         if (error != null) {
             if (error.request == null) {
                 error.request = target;
             }
 
-            _errors.put(target, error);
+            _errorByTarget.put(target, error);
         }
 
         _onTarget.invoke(target, result, !isFetching());
     }
 
     function isFetching() as Boolean {
-        return _outstanding.size() > 0;
+        return _unsettledTargets.size() > 0;
     }
 
     function getErrors() as Array<RequestError> {
         var errors = [] as Array<RequestError>;
 
         for (var i = 0; i < TARGETS.size(); i++) {
-            var error = _errors.get(TARGETS[i]);
+            var error = _errorByTarget.get(TARGETS[i]);
 
             if (error != null) {
                 errors.add(error);
@@ -76,28 +76,28 @@ class RefreshManager {
 
     function invalidate(target as Symbol) as Number {
         if (!isFetching()) {
-            _errors = {};
+            _errorByTarget = {};
         }
 
         _epoch++;
-        _latestEpochs.put(target, _epoch);
-        _outstanding.put(target, true);
-        _errors.remove(target);
+        _latestEpochByTarget.put(target, _epoch);
+        _unsettledTargets.put(target, true);
+        _errorByTarget.remove(target);
 
         return _epoch;
     }
 
     function reset() as Void {
-        _latestEpochs = {};
-        _outstanding = {};
-        _errors = {};
+        _latestEpochByTarget = {};
+        _unsettledTargets = {};
+        _errorByTarget = {};
     }
 
     private function findTarget(epoch as Number) as Symbol or Null {
-        var targets = _latestEpochs.keys();
+        var targets = _latestEpochByTarget.keys();
 
         for (var i = 0; i < targets.size(); i++) {
-            if (_latestEpochs.get(targets[i]) == epoch) {
+            if (_latestEpochByTarget.get(targets[i]) == epoch) {
                 return targets[i] as Symbol;
             }
         }
