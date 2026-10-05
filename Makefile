@@ -49,7 +49,8 @@ build: ## Compile a debug build for $(DEVICE)
 # WARNING line is present (monkeyc has no -Werror).
 lint: ## Compile with -l 3 -w and fail on any warning
 	@mkdir -p bin
-	@out=$$("$(MONKEYC)" -f $(JUNGLE) -d $(DEVICE) -o bin/lint.prg -y $(KEY) $(STRICT) 2>&1); \
+	@out=$$("$(MONKEYC)" -f $(JUNGLE) -d $(DEVICE) -o bin/lint.prg -y $(KEY) $(STRICT) 2>&1) \
+		|| { echo "$$out"; exit 1; }; \
 	echo "$$out"; \
 	if echo "$$out" | grep -qE '^WARNING'; then echo "FAIL: compiler warnings present"; exit 1; fi
 
@@ -69,10 +70,10 @@ export: ## Package a release .iq into bin/releases/$(DIR)
 	@mkdir -p bin/releases/$(DIR)
 	"$(MONKEYC)" -f $(JUNGLE) -o bin/releases/$(DIR)/$(PACKAGE).iq -y $(KEY) -e -r $(STRICT)
 
-key: ## Generate a developer signing key (once)
-	openssl genrsa -out /tmp/ciq_key.pem 4096
-	openssl pkcs8 -topk8 -inform PEM -outform DER -in /tmp/ciq_key.pem -out $(KEY) -nocrypt
-	@rm -f /tmp/ciq_key.pem
+key: $(KEY) ## Generate a developer signing key (once)
+
+$(KEY):
+	openssl genrsa 4096 | openssl pkcs8 -topk8 -outform DER -out $(KEY) -nocrypt
 	@echo "Wrote $(KEY) (git-ignored)."
 
 clean: ## Remove build output
