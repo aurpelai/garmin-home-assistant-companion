@@ -120,10 +120,16 @@ class HaClient {
     }
 
     function cancelAll() as Void {
+        var waiters = _registrationWaiters;
         _registrationStamp++;
         _registrationWaiters = [];
+        _refreshManager.reset();
         _gateway.cancelAll();
         _scheduler.cancel();
+
+        for (var i = 0; i < waiters.size(); i++) {
+            waiters[i].invoke(null, new RequestError(RequestError.CANCELLED, null));
+        }
     }
 
     function attemptRegistration(callback as Method) as Void {

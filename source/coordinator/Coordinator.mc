@@ -11,6 +11,7 @@ class Coordinator {
     private var _clickDebounce as Scheduler;
     private var _pendingClickId as String or Null;
     private var _hasVisibilityChanged as Boolean;
+    private var _isMessageShown as Boolean;
 
     function initialize(client as HaClient, haState as HaState, clickDebounce as Scheduler) {
         _client = client;
@@ -20,18 +21,20 @@ class Coordinator {
         _clickDebounce = clickDebounce;
         _pendingClickId = null;
         _hasVisibilityChanged = false;
+        _isMessageShown = false;
         _haState.setHidden(VisibilityStore.getHiddenFloors(), VisibilityStore.getHiddenAreas());
         _haState.setIncludedLabels(VisibilityStore.getIncludedLabels());
     }
 
     function onActivate() as Void {
-        if (_client.isRefreshDue()) {
+        if (!_isMessageShown && _client.isRefreshDue()) {
             refresh();
         }
     }
 
     function onViewShown(view as Screen) as Void {
         _currentView = view;
+        _isMessageShown = false;
         updateDisplay();
 
         if (_hasVisibilityChanged || _client.isRefreshDue()) {
@@ -44,6 +47,7 @@ class Coordinator {
     // retry — so it is tracked but never refreshes itself.
     function onMessageShown(view as Screen) as Void {
         _currentView = view;
+        _isMessageShown = true;
     }
 
     function onViewHidden(view as Screen) as Void {

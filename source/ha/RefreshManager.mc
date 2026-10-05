@@ -87,6 +87,12 @@ class RefreshManager {
         return _stamp;
     }
 
+    function reset() as Void {
+        _latestStamps = {};
+        _outstanding = {};
+        _errors = {};
+    }
+
     private function findTarget(stamp as Number) as Symbol or Null {
         var targets = _latestStamps.keys();
 

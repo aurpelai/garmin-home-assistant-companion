@@ -91,3 +91,19 @@ function retryManagerGivesARegistrationFewerAttempts(logger as Test.Logger) as B
     Test.assertEqual((capture.error as RequestError).reason as Number, HttpStatus.BAD_REQUEST);
     return true;
 }
+
+(:test)
+function aCancelledAttemptNeitherRetriesNorCallsBack(logger as Test.Logger) as Boolean {
+    var request = new FakeRequest();
+    var scheduler = new FakeScheduler();
+    var capture = new ResultCapture();
+
+    new RetryManager(request.method(:attempt), capture.method(:onResult), scheduler, RequestType.REQUEST).attempt();
+    request.settle(null, new RequestError(RequestError.CANCELLED, null));
+    scheduler.runScheduled();
+
+    Test.assertEqual(request.attempts, 1);
+    Test.assert(capture.result == null);
+    Test.assert(capture.error == null);
+    return true;
+}

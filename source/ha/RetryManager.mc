@@ -29,6 +29,10 @@ class RetryManager {
             return;
         }
 
+        if (error.reason == RequestError.CANCELLED) {
+            return;
+        }
+
         if (_attemptsLeft <= 0) {
             _callback.invoke(null, error);
             return;

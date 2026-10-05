@@ -4,6 +4,7 @@ class RequestError {
     static const UNREADABLE_BODY = :unreadableBody;
     static const UNUSABLE_WEBHOOK = :unusableWebhook;
     static const TEMPLATE_ERROR = :templateError;
+    static const CANCELLED = :cancelled;
 
     // Symbol.toString() is opaque in release builds ("symbol (659)", verified
     // with a release build in the simulator on 2026-10-05), so each symbol in a
