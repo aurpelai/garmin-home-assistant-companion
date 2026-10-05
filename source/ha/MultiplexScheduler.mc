@@ -8,21 +8,20 @@ class MultiplexScheduler {
 
     private var _timer as Scheduler;
     private var _entries as Array<[Method, Number]>;
-    private var _armedDueAt as Number or Null;
+    private var _timerFiresAt as Number or Null;
 
     function initialize(timer as Scheduler) {
         _timer = timer;
         _entries = [];
-        _armedDueAt = null;
+        _timerFiresAt = null;
     }
 
-    // The timer firing stands for its armed due time having arrived.
     function onTimer() as Void {
-        var now = System.getTimer();
-        var armedDueAt = _armedDueAt;
+        var dueBy = System.getTimer();
+        var timerFiresAt = _timerFiresAt;
 
-        if (armedDueAt != null && armedDueAt > now) {
-            now = armedDueAt;
+        if (timerFiresAt != null && timerFiresAt > dueBy) {
+            dueBy = timerFiresAt;
         }
 
         var due = [] as Array<Method>;
@@ -31,7 +30,7 @@ class MultiplexScheduler {
         for (var i = 0; i < _entries.size(); i++) {
             var entry = _entries[i];
 
-            if (entry[1] <= now) {
+            if (entry[1] <= dueBy) {
                 due.add(entry[0]);
             } else {
                 later.add(entry);
@@ -39,7 +38,7 @@ class MultiplexScheduler {
         }
 
         _entries = later;
-        _armedDueAt = null;
+        _timerFiresAt = null;
         arm();
 
         for (var i = 0; i < due.size(); i++) {
@@ -54,7 +53,7 @@ class MultiplexScheduler {
 
     function cancel() as Void {
         _entries = [];
-        _armedDueAt = null;
+        _timerFiresAt = null;
         _timer.cancel();
     }
 
@@ -71,11 +70,11 @@ class MultiplexScheduler {
             }
         }
 
-        if (_armedDueAt != null && _armedDueAt <= earliest) {
+        if (_timerFiresAt != null && _timerFiresAt <= earliest) {
             return;
         }
 
-        _armedDueAt = earliest;
+        _timerFiresAt = earliest;
         _timer.cancel();
         var delayMs = earliest - System.getTimer();
         _timer.schedule(method(:onTimer), delayMs < MIN_DELAY_MS ? MIN_DELAY_MS : delayMs);
