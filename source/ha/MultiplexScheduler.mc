@@ -46,15 +46,15 @@ class MultiplexScheduler {
         }
     }
 
-    function scheduleAction(action as Method() as Void, delayMs as Number) as Void {
-        _entries.add(new ScheduledAction(action, System.getTimer() + delayMs));
-        scheduleTimer();
-    }
-
     function cancel() as Void {
         _entries = [];
         _timerFiresAt = null;
         _timer.cancel();
+    }
+
+    function scheduleAction(action as Method() as Void, delayMs as Number) as Void {
+        _entries.add(new ScheduledAction(action, System.getTimer() + delayMs));
+        scheduleTimer();
     }
 
     private function scheduleTimer() as Void {
@@ -74,9 +74,10 @@ class MultiplexScheduler {
             return;
         }
 
+        var delayMs = nextDueAt - System.getTimer();
+
         _timerFiresAt = nextDueAt;
         _timer.cancel();
-        var delayMs = nextDueAt - System.getTimer();
         _timer.scheduleAction(method(:onTimer), delayMs < MIN_DELAY_MS ? MIN_DELAY_MS : delayMs);
     }
 }
