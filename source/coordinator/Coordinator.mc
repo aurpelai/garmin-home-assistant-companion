@@ -10,7 +10,7 @@ class Coordinator {
     private var _subLabelProvider as SubLabelProvider;
     private var _clickDebounce as Scheduler;
     private var _pendingClickId as String or Null;
-    private var _hasVisibilityChanged as Boolean;
+    private var _isRefreshRequested as Boolean;
     private var _isMessageShown as Boolean;
 
     function initialize(client as HaClient, haState as HaState, clickDebounce as Scheduler) {
@@ -20,7 +20,7 @@ class Coordinator {
         _subLabelProvider = new ResourceSubLabelProvider();
         _clickDebounce = clickDebounce;
         _pendingClickId = null;
-        _hasVisibilityChanged = false;
+        _isRefreshRequested = false;
         _isMessageShown = false;
         _haState.setHidden(VisibilityStore.getHiddenFloors(), VisibilityStore.getHiddenAreas());
         _haState.setIncludedLabels(VisibilityStore.getIncludedLabels());
@@ -37,8 +37,8 @@ class Coordinator {
         _isMessageShown = false;
         updateDisplay();
 
-        if (_hasVisibilityChanged || _client.isRefreshDue()) {
-            _hasVisibilityChanged = false;
+        if (_isRefreshRequested || _client.isRefreshDue()) {
+            _isRefreshRequested = false;
             refresh();
         }
     }
@@ -56,11 +56,11 @@ class Coordinator {
         }
     }
 
-    function onTargetSettled(target as Symbol, result as Object or Null, isSettled as Boolean) as Void {
+    function onTargetSettled(target as Symbol, result as Object or Null, isRefreshSettled as Boolean) as Void {
         applyTargetResult(target, result);
         updateDisplay();
 
-        if (isSettled) {
+        if (isRefreshSettled) {
             onRefreshSettled();
         }
     }
@@ -72,8 +72,7 @@ class Coordinator {
     }
 
     function onSettingsClosed() as Void {
-        if (_hasVisibilityChanged) {
-            _hasVisibilityChanged = false;
+        if (_isRefreshRequested) {
             reload();
         }
     }
@@ -241,10 +240,10 @@ class Coordinator {
     // The state is emptied here, so whatever is on screen would draw a home with
     // nothing in it until the refresh settles.
     function reload() as Void {
+        _isRefreshRequested = true;
         _haState.clearFetched();
         _currentView = null;
         WatchUi.switchToView(new LoadingView(self), new LoadingDelegate(), WatchUi.SLIDE_IMMEDIATE);
-        refresh();
     }
 
     private function applyTargetResult(target as Symbol, result as Object or Null) as Void {
@@ -382,7 +381,7 @@ class Coordinator {
     }
 
     private function persistVisibility() as Void {
-        _hasVisibilityChanged = true;
+        _isRefreshRequested = true;
         VisibilityStore.setHiddenFloors(_haState.getHiddenFloors());
         VisibilityStore.setHiddenAreas(_haState.getHiddenAreas());
         VisibilityStore.setIncludedLabels(_haState.getIncludedLabels());

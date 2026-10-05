@@ -15,6 +15,7 @@ class ResponseHandler {
             fail(code);
             return;
         }
+
         switch (_responseType) {
             case ResponseType.TEMPLATE_RENDER:
                 // A dead webhook answers 200 with an empty body, so the render

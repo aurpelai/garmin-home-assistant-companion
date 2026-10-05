@@ -21,11 +21,11 @@ class FakeRequests {
 (:test)
 class SettleLog {
     public var targets as Array<Symbol> = [];
-    public var settled as Array<Boolean> = [];
+    public var refreshSettled as Array<Boolean> = [];
 
-    function onTarget(target as Symbol, result as Object?, isSettled as Boolean) as Void {
+    function onTarget(target as Symbol, result as Object?, isRefreshSettled as Boolean) as Void {
         targets.add(target);
-        settled.add(isSettled);
+        refreshSettled.add(isRefreshSettled);
     }
 }
 
@@ -74,9 +74,9 @@ function aRefreshSettlesOnlyOnceEveryTargetHas(logger as Test.Logger) as Boolean
     manager.fetchAll();
     RefreshManagerTest.settleAll(requests);
 
-    Test.assertEqual(log.settled.size(), 4);
-    Test.assert(!log.settled[2]);
-    Test.assert(log.settled[3]);
+    Test.assertEqual(log.refreshSettled.size(), 4);
+    Test.assert(!log.refreshSettled[2]);
+    Test.assert(log.refreshSettled[3]);
     Test.assert(!manager.isFetching());
     return true;
 }
@@ -100,7 +100,7 @@ function onlyTheNewestRequestForATargetCounts(logger as Test.Logger) as Boolean 
     requests.of(FetchTarget.LIGHTS).settle({}, null);
 
     Test.assertEqual(log.targets.size(), 1);
-    Test.assert(log.settled[0]);
+    Test.assert(log.refreshSettled[0]);
     return true;
 }
 
@@ -122,7 +122,7 @@ function anInvalidatedTargetStaysOutstandingUntilItsNextFetchSettles(logger as T
     manager.fetch(FetchTarget.FANS);
     requests.of(FetchTarget.FANS).settle({}, null);
 
-    Test.assert(log.settled[0]);
+    Test.assert(log.refreshSettled[0]);
     return true;
 }
 

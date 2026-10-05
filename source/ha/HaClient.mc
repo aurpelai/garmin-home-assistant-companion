@@ -2,9 +2,6 @@ import Toybox.Application;
 import Toybox.Lang;
 import Toybox.System;
 
-// The only object that talks to Home Assistant, and the only one that decides
-// when. Knows no domain types: a fetch reply hands out a raw payload for the
-// caller to parse.
 class HaClient {
     // UNVERIFIED: the device can't introspect its real model/OS, so every
     // install registers under these same constants.
@@ -41,8 +38,8 @@ class HaClient {
         _registrationEpoch = 0;
     }
 
-    function onTargetSettled(target as Symbol, result as Object or Null, isSettled as Boolean) as Void {
-        if (isSettled) {
+    function onTargetSettled(target as Symbol, result as Object or Null, isRefreshSettled as Boolean) as Void {
+        if (isRefreshSettled) {
             if (_isFullRefreshPending && getErrors().size() == 0) {
                 _lastRefreshCompletedAt = System.getTimer();
             }
@@ -53,7 +50,7 @@ class HaClient {
         var onTarget = _onRefreshTarget;
 
         if (onTarget != null) {
-            onTarget.invoke(target, result, isSettled);
+            onTarget.invoke(target, result, isRefreshSettled);
         }
     }
 
@@ -87,6 +84,10 @@ class HaClient {
 
     function getErrors() as Array<RequestError> {
         return _refreshManager.getErrors();
+    }
+
+    function getRegistration() as String or Null {
+        return Application.Storage.getValue(Webhook.REGISTRATION_KEY) as String or Null;
     }
 
     function refresh(onTarget as Method) as Void {
@@ -159,10 +160,6 @@ class HaClient {
         }
 
         post("/api/webhook/" + webhookId, body, new ResponseHandler(callback, responseType));
-    }
-
-    function getRegistration() as String or Null {
-        return Application.Storage.getValue(Webhook.REGISTRATION_KEY) as String or Null;
     }
 
     function discardRegistration() as Void {
