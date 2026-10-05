@@ -143,18 +143,38 @@ class HaState {
 
     function getToggleable(entityId as String) as ToggleableModel or Null {
         var toggleables = _toggleablesByDomain.get(Entity.parseDomain(entityId));
-        return toggleables == null ? null : toggleables.get(entityId);
+
+        if (toggleables == null) {
+            return null;
+        }
+
+        return toggleables.get(entityId);
     }
 
     function getToggleablesByDomainInArea(areaId as String, domain as String) as Array<ToggleableModel> {
         var toggleablesByArea = _toggleablesByDomainAndArea.get(domain);
-        var toggleables = toggleablesByArea == null ? null : toggleablesByArea.get(areaId);
-        return toggleables == null ? [] as Array<ToggleableModel> : toggleables;
+
+        if (toggleablesByArea == null) {
+            return [] as Array<ToggleableModel>;
+        }
+
+        var toggleables = toggleablesByArea.get(areaId);
+
+        if (toggleables == null) {
+            return [] as Array<ToggleableModel>;
+        }
+
+        return toggleables;
     }
 
     function getSensorsInArea(areaId as String) as Array<SensorModel> {
         var sensors = _sensorsByArea.get(areaId);
-        return sensors == null ? [] as Array<SensorModel> : sensors;
+
+        if (sensors == null) {
+            return [] as Array<SensorModel>;
+        }
+
+        return sensors;
     }
 
     function getHiddenFloors() as Dictionary<String, Boolean> {
@@ -192,13 +212,20 @@ class HaState {
 
     function listAreasInFloor(floorId as String) as Array<AreaModel> {
         var floor = getFloor(floorId);
-        return floor == null ? [] as Array<AreaModel> : resolveAreas(floor.areas);
+
+        if (floor == null) {
+            return [] as Array<AreaModel>;
+        }
+
+        return resolveAreas(floor.areas);
     }
 
     function listVisibleAreasInFloor(floorId as String) as Array<AreaModel> {
-        return _hiddenFloors.hasKey(floorId)
-            ? [] as Array<AreaModel>
-            : filterVisibleAreas(listAreasInFloor(floorId));
+        if (_hiddenFloors.hasKey(floorId)) {
+            return [] as Array<AreaModel>;
+        }
+
+        return filterVisibleAreas(listAreasInFloor(floorId));
     }
 
     function listVisibleAreaIdsInFloor(floorId as String) as Array<String> {
@@ -227,9 +254,11 @@ class HaState {
     }
 
     function listVisibleFloorlessAreas() as Array<AreaModel> {
-        return _hiddenFloors.hasKey(VisibilityStore.FLOORLESS_FLOOR_ID)
-            ? [] as Array<AreaModel>
-            : filterVisibleAreas(listFloorlessAreas());
+        if (_hiddenFloors.hasKey(VisibilityStore.FLOORLESS_FLOOR_ID)) {
+            return [] as Array<AreaModel>;
+        }
+
+        return filterVisibleAreas(listFloorlessAreas());
     }
 
     function listVisibleToggleablesInFloor(floorId as String, domain as String) as Array<ToggleableModel> {
@@ -244,9 +273,14 @@ class HaState {
     }
 
     function resolveToggleTargets(entityId as String) as Array<String> {
-        var toggleable = getToggleable(entityId);
-        var memberIds = toggleable == null ? null : toggleable.memberIds;
         var targets = [entityId] as Array<String>;
+        var toggleable = getToggleable(entityId);
+
+        if (toggleable == null) {
+            return targets;
+        }
+
+        var memberIds = toggleable.memberIds;
 
         if (memberIds != null) {
             targets.addAll(memberIds);
@@ -396,9 +430,12 @@ class HaState {
 
     private function selectIncludedInDomain(domain as String) as Array<ToggleableModel> {
         var toggleables = _toggleablesByDomain.get(domain);
-        return toggleables == null
-            ? [] as Array<ToggleableModel>
-            : filterIncluded(toggleables.values() as Array<EntityModel>) as Array<ToggleableModel>;
+
+        if (toggleables == null) {
+            return [] as Array<ToggleableModel>;
+        }
+
+        return filterIncluded(toggleables.values() as Array<EntityModel>) as Array<ToggleableModel>;
     }
 
     private function filterIncluded(models as Array<EntityModel>) as Array<EntityModel> {
