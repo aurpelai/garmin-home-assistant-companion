@@ -27,8 +27,4 @@ class WebRequestGateway {
             handler.method(:onResponse)
         );
     }
-
-    function cancelAll() as Void {
-        Communications.cancelAllRequests();
-    }
 }

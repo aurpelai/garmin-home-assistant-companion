@@ -2,6 +2,18 @@ import Toybox.Communications;
 import Toybox.Lang;
 
 module ErrorMessage {
+
+    function resolveCommon(errors as Array<RequestError>) as ResourceId {
+        var message = resolve(errors[0]);
+
+        for (var i = 1; i < errors.size(); i++) {
+            if (resolve(errors[i]) != message) {
+                return Rez.Strings.ErrorUnknown;
+            }
+        }
+
+        return message;
+    }
     function resolve(error as RequestError) as ResourceId {
         var reason = error.reason;
 

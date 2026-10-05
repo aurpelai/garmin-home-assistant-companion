@@ -5,10 +5,6 @@ import Toybox.System;
 // The only object that talks to Home Assistant, and the only one that decides
 // when. Knows no domain types: a fetch reply hands out a raw payload for the
 // caller to parse.
-//
-// UNVERIFIED: Connect IQ allows one outstanding request of any kind — exceeding
-// it yields a queue-full transport error — so everything below serialises
-// through a single slot that a refresh and a service call compete for.
 class HaClient {
     // UNVERIFIED: the device can't introspect its real model/OS, so every
     // install registers under these same constants.
@@ -22,96 +18,48 @@ class HaClient {
     private const OS_NAME = "Connect IQ";
     private const OS_VERSION = "1";
 
-    private const REFRESH_TARGETS = [FetchTarget.STRUCTURE, FetchTarget.LIGHTS, FetchTarget.FANS, FetchTarget.SENSORS];
     private const STALE_AFTER_MS = 60 * 1000;
 
     private var _gateway as RequestGateway;
     private var _scheduler as Scheduler;
+    private var _refreshManager as RefreshManager;
 
-    private var _isRequestInFlight as Boolean;
-    private var _isChangeInFlight as Boolean;
-    private var _changeQueue as Array<QueuedChange>;
-    private var _pendingChangeCallback as Method or Null;
-    private var _registrationCallback as Method or Null;
-    private var _registrationEpoch as Number;
-    private var _pendingFetchTargets as Array<Symbol>;
-    private var _refreshEpoch as Number;
-    private var _currentTarget as Symbol or Null;
     private var _onRefreshTarget as Method or Null;
-    private var _error as RequestError or Null;
+    private var _isFullRefreshPending as Boolean;
     private var _lastRefreshCompletedAt as Number or Null;
+    private var _registrationWaiters as Array<Method>;
+    private var _registrationEpoch as Number;
 
     function initialize(gateway as RequestGateway, scheduler as Scheduler) {
         _gateway = gateway;
         _scheduler = scheduler;
-        _isRequestInFlight = false;
-        _isChangeInFlight = false;
-        _changeQueue = [];
-        _pendingChangeCallback = null;
-        _registrationCallback = null;
-        _registrationEpoch = 0;
-        _pendingFetchTargets = [];
-        _refreshEpoch = 0;
-        _currentTarget = null;
+        _refreshManager = new RefreshManager(method(:buildTemplateRenderRequest), method(:onTargetSettled), scheduler);
         _onRefreshTarget = null;
-        _error = null;
+        _isFullRefreshPending = false;
         _lastRefreshCompletedAt = null;
+        _registrationWaiters = [];
+        _registrationEpoch = 0;
     }
 
-    function onChangeSettled(result as Object or Null, error as RequestError or Null) as Void {
-        _isRequestInFlight = false;
-        _isChangeInFlight = false;
+    function onTargetSettled(target as Symbol, result as Object or Null, isSettled as Boolean) as Void {
+        if (isSettled) {
+            if (_isFullRefreshPending && getErrors().size() == 0) {
+                _lastRefreshCompletedAt = System.getTimer();
+            }
 
-        if (_pendingChangeCallback == null) {
-            return;
+            _isFullRefreshPending = false;
         }
 
-        var callback = _pendingChangeCallback as Method;
-        _pendingChangeCallback = null;
+        var onTarget = _onRefreshTarget;
 
-        if (error != null) {
-            _changeQueue = [];
+        if (onTarget != null) {
+            onTarget.invoke(target, result, isSettled);
         }
-
-        callback.invoke(result, error);
-        startNextRequest();
-    }
-
-    function onTargetSettled(epoch as Number, result as Object or Null, error as RequestError or Null) as Void {
-        if (epoch != _refreshEpoch) {
-            return;
-        }
-
-        _isRequestInFlight = false;
-
-        if (_currentTarget == null || _onRefreshTarget == null) {
-            return;
-        }
-
-        var target = _currentTarget as Symbol;
-        var onTarget = _onRefreshTarget as Method;
-
-        if (error != null && error.request == null) {
-            error.request = target;
-        }
-
-        if (_error == null) {
-            _error = error;
-        }
-
-        var isLastTarget = !isRefreshing();
-
-        if (isLastTarget && _error == null) {
-            _lastRefreshCompletedAt = System.getTimer();
-        }
-
-        onTarget.invoke(target, result, isLastTarget);
-        startNextRequest();
     }
 
     function onRegistrationSettled(epoch as Number, webhookId as String or Null,
-                                 error as RequestError or Null) as Void {
-        if (epoch != _registrationEpoch || _registrationCallback == null) {
+                                   error as RequestError or Null) as Void {
+        if (epoch != _registrationEpoch) {
             return;
         }
 
@@ -119,71 +67,61 @@ class HaClient {
             setRegistration(webhookId as String);
         }
 
-        var callback = _registrationCallback as Method;
-        _registrationCallback = null;
-        callback.invoke(webhookId, error);
-    }
+        var waiters = _registrationWaiters;
+        _registrationWaiters = [];
 
-    function isRefreshing() as Boolean {
-        return _pendingFetchTargets.size() > 0;
-    }
-
-    function hasOutstandingChanges() as Boolean {
-        return _changeQueue.size() > 0 || _isChangeInFlight;
+        for (var i = 0; i < waiters.size(); i++) {
+            waiters[i].invoke(webhookId, error);
+        }
     }
 
     function isRefreshDue() as Boolean {
         var completedAt = _lastRefreshCompletedAt;
-        return completedAt == null || System.getTimer() - completedAt > STALE_AFTER_MS;
+
+        return !_refreshManager.isFetching()
+            && (completedAt == null || System.getTimer() - completedAt > STALE_AFTER_MS);
     }
 
-    function getError() as RequestError or Null {
-        return _error;
+    function getErrors() as Array<RequestError> {
+        return _refreshManager.getErrors();
     }
 
     function refresh(onTarget as Method) as Void {
-        if (isRefreshing() || hasOutstandingChanges()) {
-            return;
-        }
-
-        _pendingFetchTargets = REFRESH_TARGETS.slice(0, null) as Array<Symbol>;
-        _error = null;
         _onRefreshTarget = onTarget;
-        startNextRequest();
+        _isFullRefreshPending = true;
+        _refreshManager.fetchAll();
     }
 
-    function queueToggle(entityId as String, callback as Method) as Void {
-        queueChange(buildServiceCallRequest(Entity.parseDomain(entityId), "toggle", "entity_id", entityId), callback);
+    function sendToggle(entityId as String, callback as Method) as Void {
+        var domain = Entity.parseDomain(entityId);
+        sendChange(domain, buildServiceCallRequest(domain, "toggle", "entity_id", entityId), callback);
     }
 
-    function queueLightsInAreas(areaIds as Array<String>, service as String, callback as Method) as Void {
-        queueChange(buildServiceCallRequest(Domain.LIGHT, service, "area_id", areaIds), callback);
+    function sendLightsInAreas(areaIds as Array<String>, service as String, callback as Method) as Void {
+        sendChange(Domain.LIGHT, buildServiceCallRequest(Domain.LIGHT, service, "area_id", areaIds), callback);
     }
 
-    function queueAttribute(domain as String, service as String, entityId as String, field as String,
-                            value as Object, callback as Method) as Void {
-        queueChange(buildAttributeRequest(domain, service, entityId, field, value), callback);
-    }
-
-    function cancelAll() as Void {
-        _changeQueue = [];
-        _pendingFetchTargets = [];
-        _isChangeInFlight = false;
-        _pendingChangeCallback = null;
-        cancelInFlight();
-    }
-
-    function cancelRefresh() as Void {
-        _pendingFetchTargets = [];
-
-        if (!_isChangeInFlight) {
-            cancelInFlight();
-            startNextRequest();
-        }
+    function sendAttribute(domain as String, service as String, entityId as String, field as String,
+                           value as Object, callback as Method) as Void {
+        sendChange(domain, buildAttributeRequest(domain, service, entityId, field, value), callback);
     }
 
     function registerWithHomeAssistant(callback as Method) as Void {
-        new RetryManager(method(:attemptRegistration), callback, _scheduler, RequestType.REGISTRATION).attempt();
+        _registrationWaiters.add(callback);
+
+        if (_registrationWaiters.size() > 1) {
+            return;
+        }
+
+        discardRegistration();
+        new RetryManager(method(:attemptRegistration),
+            new EpochHandler(method(:onRegistrationSettled), _registrationEpoch).method(:onSettled),
+            _scheduler, RequestType.REGISTRATION).attempt();
+    }
+
+    function cancelRegistration() as Void {
+        _registrationEpoch++;
+        _registrationWaiters = [];
     }
 
     function attemptRegistration(callback as Method) as Void {
@@ -200,12 +138,7 @@ class HaClient {
             "supports_encryption" => false,
             "app_data" => {}
         };
-        discardRegistration();
-        _registrationCallback = callback;
-        _registrationEpoch++;
-        post("/api/mobile_app/registrations", body,
-             new ResponseHandler(new EpochHandler(method(:onRegistrationSettled), _registrationEpoch).method(:onSettled),
-                                 ResponseType.REGISTRATION));
+        post("/api/mobile_app/registrations", body, new ResponseHandler(callback, ResponseType.REGISTRATION));
     }
 
     function attemptRequest(body as Dictionary, callback as Method, responseType as Symbol) as Void {
@@ -223,8 +156,29 @@ class HaClient {
         Application.Storage.deleteValue(Webhook.REGISTRATION_KEY);
     }
 
+    function buildTemplateRenderRequest(target as Symbol) as Method {
+        var body = {
+            "type" => "render_template",
+            "data" => {
+                ResponseType.TEMPLATE_RENDER_ROOT_KEY => {
+                    "template" => HaTemplate.resolve(target, VisibilityStore.getHiddenFloors(),
+                        VisibilityStore.getHiddenAreas(), VisibilityStore.getIncludedLabels().keys() as Array<String>)
+                }
+            }
+        };
+
+        return new WebhookRequest(self, body, ResponseType.TEMPLATE_RENDER).method(:attempt);
+    }
+
     private function post(path as String, body as Dictionary, handler as ResponseHandler) as Void {
         _gateway.post(path, body, handler);
+    }
+
+    private function sendChange(domain as String, request as Method, callback as Method) as Void {
+        var target = domain.equals(Domain.FAN) ? FetchTarget.FANS : FetchTarget.LIGHTS;
+        _refreshManager.invalidate(target);
+        new RetryManager(request, new ChangeHandler(callback, _refreshManager, target).method(:onSettled),
+            _scheduler, RequestType.REQUEST).attempt();
     }
 
     private function buildServiceCallRequest(domain as String, service as String, targetKey as String,
@@ -258,65 +212,6 @@ class HaClient {
         };
 
         return new WebhookRequest(self, body, ResponseType.SERVICE_CALL).method(:attempt);
-    }
-
-    private function buildTemplateRenderRequest(target as Symbol) as Method {
-        var body = {
-            "type" => "render_template",
-            "data" => {
-                ResponseType.TEMPLATE_RENDER_ROOT_KEY => {
-                    "template" => HaTemplate.resolve(target, VisibilityStore.getHiddenFloors(),
-                        VisibilityStore.getHiddenAreas(), VisibilityStore.getIncludedLabels().keys() as Array<String>)
-                }
-            }
-        };
-
-        return new WebhookRequest(self, body, ResponseType.TEMPLATE_RENDER).method(:attempt);
-    }
-
-    private function queueChange(request as Method, callback as Method) as Void {
-        _changeQueue.add(new QueuedChange(request, callback));
-        startNextRequest();
-    }
-
-    private function startNextRequest() as Void {
-        if (_isRequestInFlight) {
-            return;
-        }
-
-        if (_changeQueue.size() > 0) {
-            var next = _changeQueue[0];
-            _changeQueue = _changeQueue.slice(1, null) as Array<QueuedChange>;
-            _isRequestInFlight = true;
-            _isChangeInFlight = true;
-            _pendingChangeCallback = next.callback;
-            new RetryManager(next.request, method(:onChangeSettled), _scheduler, RequestType.REQUEST).attempt();
-            return;
-        }
-
-        if (_pendingFetchTargets.size() > 0) {
-            var target = _pendingFetchTargets[0];
-            _pendingFetchTargets = _pendingFetchTargets.slice(1, null) as Array<Symbol>;
-            _isRequestInFlight = true;
-            _currentTarget = target;
-            new RetryManager(buildTemplateRenderRequest(target),
-                new EpochHandler(method(:onTargetSettled), _refreshEpoch).method(:onSettled), _scheduler, RequestType.REQUEST).attempt();
-        }
-    }
-
-    // Cancelling delivers each cancelled request's reply synchronously, as
-    // REQUEST_CANCELLED, so the callbacks are retired first to drop it and the
-    // scheduler is cleared last to drop the retry it schedules (verified in the
-    // simulator on 2026-10-05).
-    private function cancelInFlight() as Void {
-        _isRequestInFlight = false;
-        _registrationCallback = null;
-        _registrationEpoch++;
-        _refreshEpoch++;
-        _currentTarget = null;
-        _onRefreshTarget = null;
-        _gateway.cancelAll();
-        _scheduler.cancel();
     }
 
     private function setRegistration(webhookId as String) as Void {

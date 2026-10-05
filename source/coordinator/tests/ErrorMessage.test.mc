@@ -61,3 +61,13 @@ function anUnreadableBodyIsItsOwnReasonNotACode(logger as Test.Logger) as Boolea
     return true;
 }
 
+(:test)
+function failuresSharingAMessageShowItAndMixedOnesReadAsUnknown(logger as Test.Logger) as Boolean {
+    Test.assertEqual(ErrorMessage.resolveCommon([
+        new RequestError(HttpStatus.UNAUTHORIZED, FetchTarget.LIGHTS),
+        new RequestError(HttpStatus.FORBIDDEN, FetchTarget.SENSORS)]), Rez.Strings.ErrorAuth);
+    Test.assertEqual(ErrorMessage.resolveCommon([
+        new RequestError(HttpStatus.UNAUTHORIZED, FetchTarget.LIGHTS),
+        new RequestError(HttpStatus.NOT_FOUND, FetchTarget.SENSORS)]), Rez.Strings.ErrorUnknown);
+    return true;
+}

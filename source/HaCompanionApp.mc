@@ -59,7 +59,7 @@ class HaCompanionApp extends Application.AppBase {
         var coordinator = getOrCreateCoordinator();
 
         if (!Settings.isConfigured()) {
-            return [new InfoView(coordinator, WatchUi.loadResource(Rez.Strings.ErrorNoConfig) as String, true, null),
+            return [new InfoView(coordinator, WatchUi.loadResource(Rez.Strings.ErrorNoConfig) as String, true, []),
                     new InfoDelegate(coordinator)];
         }
 
@@ -91,7 +91,7 @@ class HaCompanionApp extends Application.AppBase {
     private function getOrCreateCoordinator() as Coordinator {
         if (_coordinator == null) {
             _coordinator = new Coordinator(
-                new HaClient(new WebRequestGateway(), new TimerScheduler()),
+                new HaClient(new WebRequestGateway(), new MultiplexScheduler(new TimerScheduler())),
                 new HaState(), new TimerScheduler());
         }
 

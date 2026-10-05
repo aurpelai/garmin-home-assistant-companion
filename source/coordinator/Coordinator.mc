@@ -50,7 +50,7 @@ class Coordinator {
         }
     }
 
-    function onFetchTarget(target as Symbol, result as Object or Null, isLastTarget as Boolean) as Void {
+    function onFetchTarget(target as Symbol, result as Object or Null, isSettled as Boolean) as Void {
         if (result != null) {
             if (target == FetchTarget.STRUCTURE) {
                 _haState.setZone(HaPayload.parseZone(result));
@@ -75,7 +75,7 @@ class Coordinator {
 
         updateDisplay();
 
-        if (isLastTarget) {
+        if (isSettled) {
             onRefreshSettled();
         }
     }
@@ -84,8 +84,6 @@ class Coordinator {
         if (error != null) {
             WatchUi.showToast(ErrorMessage.resolve(error), null);
         }
-
-        refresh();
     }
 
     function onSettingsClosed() as Void {
@@ -174,12 +172,18 @@ class Coordinator {
         WatchUi.pushView(menu, new VisibilityPickerDelegate(self), WatchUi.SLIDE_LEFT);
     }
 
-    function showError(error as RequestError) as Void {
-        showInfoView(WatchUi.loadResource(ErrorMessage.resolve(error)) as String, error.toDiagnosticCode());
+    function showError(errors as Array<RequestError>) as Void {
+        var codes = [] as Array<String>;
+
+        for (var i = 0; i < errors.size(); i++) {
+            codes.add(errors[i].toDiagnosticCode());
+        }
+
+        showInfoView(WatchUi.loadResource(ErrorMessage.resolveCommon(errors)) as String, codes);
     }
 
     function showMessage(id as ResourceId) as Void {
-        showInfoView(WatchUi.loadResource(id) as String, null);
+        showInfoView(WatchUi.loadResource(id) as String, []);
     }
 
     function setFloorVisibility(floorId as String, isVisible as Boolean) as Void {
@@ -211,7 +215,7 @@ class Coordinator {
         }
 
         _haState.overrideState(entityId, !_haState.isOn(entityId));
-        _client.queueToggle(entityId, method(:onToggleSettled));
+        _client.sendToggle(entityId, method(:onToggleSettled));
         updateDisplay();
     }
 
@@ -225,7 +229,7 @@ class Coordinator {
         _haState.overrideFloorLightsState(floorId, targetState);
         var service = targetState ? "turn_on" : "turn_off";
 
-        _client.queueLightsInAreas(_haState.listVisibleAreaIdsInFloor(floorId), service,
+        _client.sendLightsInAreas(_haState.listVisibleAreaIdsInFloor(floorId), service,
             method(:onToggleSettled));
         updateDisplay();
     }
@@ -240,7 +244,7 @@ class Coordinator {
     }
 
     function discardRegistration() as Void {
-        _client.cancelAll();
+        _client.cancelRegistration();
         _client.discardRegistration();
         reload();
     }
@@ -248,7 +252,6 @@ class Coordinator {
     // The state is emptied here, so whatever is on screen would draw a home with
     // nothing in it until the refresh settles.
     function reload() as Void {
-        _client.cancelRefresh();
         _haState.clearFetched();
         _currentView = null;
         WatchUi.switchToView(new LoadingView(self), new LoadingDelegate(), WatchUi.SLIDE_IMMEDIATE);
@@ -265,18 +268,18 @@ class Coordinator {
     }
 
     private function onRefreshSettled() as Void {
-        var error = _client.getError();
+        var errors = _client.getErrors();
 
         if (_haState.isHomeFullyLoaded()) {
-            if (error != null) {
+            if (errors.size() > 0) {
                 WatchUi.showToast(Rez.Strings.ErrorRefresh, null);
             }
 
             return;
         }
 
-        if (error != null) {
-            showError(error);
+        if (errors.size() > 0) {
+            showError(errors);
             return;
         }
 
@@ -314,8 +317,8 @@ class Coordinator {
         WatchUi.switchToView(loop, new CardLoopDelegate(loop, self), WatchUi.SLIDE_IMMEDIATE);
     }
 
-    private function showInfoView(message as String, detail as String or Null) as Void {
-        var infoView = new InfoView(self, message, true, detail);
+    private function showInfoView(message as String, codes as Array<String>) as Void {
+        var infoView = new InfoView(self, message, true, codes);
         _currentView = infoView;
         WatchUi.switchToView(infoView, new InfoDelegate(self), WatchUi.SLIDE_IMMEDIATE);
     }
@@ -337,8 +340,12 @@ class Coordinator {
 
     private function commitAttribute(attribute as AdjustableAttribute, service as String,
                                      value as Object) as Void {
+        if (_haState.hasAnyPending(_haState.resolveToggleTargets(attribute.entityId))) {
+            return;
+        }
+
         _haState.overrideAttribute(attribute.entityId, attribute.field, value);
-        _client.queueAttribute(attribute.domain, service, attribute.entityId,
+        _client.sendAttribute(attribute.domain, service, attribute.entityId,
             attribute.field, value, method(:onToggleSettled));
         updateDisplay();
     }
