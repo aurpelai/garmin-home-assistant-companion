@@ -31,6 +31,11 @@ class CardLoopDelegate extends WatchUi.BehaviorDelegate {
         return true;
     }
 
+    function onMenu() as Boolean {
+        _coordinator.showSettingsMenu();
+        return true;
+    }
+
     function onBack() as Boolean {
         System.exit();
     }
