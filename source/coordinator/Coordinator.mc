@@ -25,7 +25,9 @@ class Coordinator {
     }
 
     function onActivate() as Void {
-        refresh();
+        if (_client.isRefreshDue()) {
+            refresh();
+        }
     }
 
     function onViewShown(view as Screen) as Void {
@@ -176,7 +178,11 @@ class Coordinator {
         var codes = [] as Array<String>;
 
         for (var i = 0; i < errors.size(); i++) {
-            codes.add(errors[i].toDiagnosticCode());
+            var code = errors[i].toDiagnosticCode();
+
+            if (codes.indexOf(code) == -1) {
+                codes.add(code);
+            }
         }
 
         showInfoView(WatchUi.loadResource(ErrorMessage.resolveCommon(errors)) as String, codes);
@@ -244,7 +250,7 @@ class Coordinator {
     }
 
     function discardRegistration() as Void {
-        _client.cancelRegistration();
+        _client.cancelAll();
         _client.discardRegistration();
         reload();
     }

@@ -1,7 +1,6 @@
 import Toybox.Lang;
 import Toybox.Test;
 
-
 (:test)
 class ResultCapture {
     public var result as Object?;
@@ -100,11 +99,9 @@ function onResponseNormalizesRegistrationSuccessToWebhookId(logger as Test.Logge
     var capture = new ResultCapture();
     var handler = new ResponseHandler(capture.method(:onResult), ResponseType.REGISTRATION);
 
-    // UNVERIFIED: HA returns 201 Created for /api/mobile_app/registrations.
     handler.onResponse(201, { "webhook_id" => "abc123" });
 
     Test.assertEqual(capture.result as String, "abc123");
     Test.assert(capture.error == null);
     return true;
 }
-

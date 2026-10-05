@@ -11,7 +11,7 @@ import Toybox.Lang;
 // 200 with a null body, so the re-registration path is unaffected (verified
 // against a live instance on 2026-08-26).
 class WebRequestGateway {
-    function post(path as String, body as Dictionary, handler as ResponseHandler) as Void {
+    function post(path as String, body as Dictionary, onResponse as Method) as Void {
         var options = {
             :method => Communications.HTTP_REQUEST_METHOD_POST,
             :headers => {
@@ -24,7 +24,11 @@ class WebRequestGateway {
             Settings.resolveBaseUrl() + path,
             body as Dictionary<Object, Object>,
             options,
-            handler.method(:onResponse)
+            onResponse as Method(responseCode as Number, data as Dictionary or String or Null) as Void
         );
+    }
+
+    function cancelAll() as Void {
+        Communications.cancelAllRequests();
     }
 }

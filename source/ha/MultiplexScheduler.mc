@@ -2,6 +2,9 @@ import Toybox.Lang;
 import Toybox.System;
 
 class MultiplexScheduler {
+    // Connect IQ rejects a timer below its minimum, 50 ms by default (api.mir Timer docs, SDK 9.2.0).
+    private const MIN_DELAY_MS = 50;
+
     private var _timer as Scheduler;
     private var _entries as Array<[Method, Number]>;
     private var _armedDueAt as Number or Null;
@@ -73,6 +76,7 @@ class MultiplexScheduler {
 
         _armedDueAt = earliest;
         _timer.cancel();
-        _timer.schedule(method(:onTimer), earliest - System.getTimer());
+        var delayMs = earliest - System.getTimer();
+        _timer.schedule(method(:onTimer), delayMs < MIN_DELAY_MS ? MIN_DELAY_MS : delayMs);
     }
 }

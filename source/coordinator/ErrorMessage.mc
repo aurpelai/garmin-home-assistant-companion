@@ -2,7 +2,6 @@ import Toybox.Communications;
 import Toybox.Lang;
 
 module ErrorMessage {
-
     function resolveCommon(errors as Array<RequestError>) as ResourceId {
         var message = resolve(errors[0]);
 
@@ -14,6 +13,7 @@ module ErrorMessage {
 
         return message;
     }
+
     function resolve(error as RequestError) as ResourceId {
         var reason = error.reason;
 

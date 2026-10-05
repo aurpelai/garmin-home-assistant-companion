@@ -6,14 +6,6 @@ import Toybox.Lang;
 // value that could be non-plain is coerced at its own site (verified in Home
 // Assistant's template developer tools on 2026-10-05).
 //
-// UNVERIFIED: kept backslash-free (`.startswith(...)`, never a `match` regex)
-// because a backslash is sent unescaped by the Connect IQ JSON serializer,
-// producing a 400 "Invalid JSON specified" from HA.
-//
-// UNVERIFIED: an Undefined raises TypeError inside tojson before any later
-// filter runs, so `| tojson | default(...)` cannot catch it — hence each value
-// is guarded at its own site (see #109).
-//
 // Home-wide aggregates reduce the union of every area's `area_entities`, never
 // `states.*` globally: a global sweep drags in area-less strays like weather
 // forecasts that skew the mean.

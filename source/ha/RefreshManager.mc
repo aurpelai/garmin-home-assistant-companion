@@ -71,7 +71,7 @@ class RefreshManager {
     function fetch(target as Symbol) as Void {
         var stamp = invalidate(target);
         new RetryManager(_buildRequest.invoke(target) as Method,
-            new EpochHandler(method(:onSettled), stamp).method(:onSettled), _scheduler, RequestType.REQUEST).attempt();
+            new StampHandler(method(:onSettled), stamp).method(:onSettled), _scheduler, RequestType.REQUEST).attempt();
     }
 
     function invalidate(target as Symbol) as Number {

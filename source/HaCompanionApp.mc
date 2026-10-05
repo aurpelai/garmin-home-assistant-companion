@@ -90,8 +90,9 @@ class HaCompanionApp extends Application.AppBase {
 
     private function getOrCreateCoordinator() as Coordinator {
         if (_coordinator == null) {
+            var scheduler = new MultiplexScheduler(new TimerScheduler());
             _coordinator = new Coordinator(
-                new HaClient(new WebRequestGateway(), new MultiplexScheduler(new TimerScheduler())),
+                new HaClient(new FlowControlGateway(new WebRequestGateway(), scheduler), scheduler),
                 new HaState(), new TimerScheduler());
         }
 

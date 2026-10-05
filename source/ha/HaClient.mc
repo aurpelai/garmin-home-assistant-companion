@@ -28,7 +28,7 @@ class HaClient {
     private var _isFullRefreshPending as Boolean;
     private var _lastRefreshCompletedAt as Number or Null;
     private var _registrationWaiters as Array<Method>;
-    private var _registrationEpoch as Number;
+    private var _registrationStamp as Number;
 
     function initialize(gateway as RequestGateway, scheduler as Scheduler) {
         _gateway = gateway;
@@ -38,7 +38,7 @@ class HaClient {
         _isFullRefreshPending = false;
         _lastRefreshCompletedAt = null;
         _registrationWaiters = [];
-        _registrationEpoch = 0;
+        _registrationStamp = 0;
     }
 
     function onTargetSettled(target as Symbol, result as Object or Null, isSettled as Boolean) as Void {
@@ -57,9 +57,9 @@ class HaClient {
         }
     }
 
-    function onRegistrationSettled(epoch as Number, webhookId as String or Null,
+    function onRegistrationSettled(stamp as Number, webhookId as String or Null,
                                    error as RequestError or Null) as Void {
-        if (epoch != _registrationEpoch) {
+        if (stamp != _registrationStamp) {
             return;
         }
 
@@ -115,13 +115,15 @@ class HaClient {
 
         discardRegistration();
         new RetryManager(method(:attemptRegistration),
-            new EpochHandler(method(:onRegistrationSettled), _registrationEpoch).method(:onSettled),
+            new StampHandler(method(:onRegistrationSettled), _registrationStamp).method(:onSettled),
             _scheduler, RequestType.REGISTRATION).attempt();
     }
 
-    function cancelRegistration() as Void {
-        _registrationEpoch++;
+    function cancelAll() as Void {
+        _registrationStamp++;
         _registrationWaiters = [];
+        _gateway.cancelAll();
+        _scheduler.cancel();
     }
 
     function attemptRegistration(callback as Method) as Void {
@@ -141,15 +143,18 @@ class HaClient {
         post("/api/mobile_app/registrations", body, new ResponseHandler(callback, ResponseType.REGISTRATION));
     }
 
-    function attemptRequest(body as Dictionary, callback as Method, responseType as Symbol) as Void {
-        var webhookId = Application.Storage.getValue(Webhook.REGISTRATION_KEY) as String or Null;
-
+    function attemptRequest(webhookId as String or Null, body as Dictionary, callback as Method,
+                            responseType as Symbol) as Void {
         if (webhookId == null) {
             callback.invoke(null, new RequestError(RequestError.UNUSABLE_WEBHOOK, null));
             return;
         }
 
         post("/api/webhook/" + webhookId, body, new ResponseHandler(callback, responseType));
+    }
+
+    function getRegistration() as String or Null {
+        return Application.Storage.getValue(Webhook.REGISTRATION_KEY) as String or Null;
     }
 
     function discardRegistration() as Void {
@@ -171,7 +176,7 @@ class HaClient {
     }
 
     private function post(path as String, body as Dictionary, handler as ResponseHandler) as Void {
-        _gateway.post(path, body, handler);
+        _gateway.post(path, body, handler.method(:onResponse));
     }
 
     private function sendChange(domain as String, request as Method, callback as Method) as Void {
