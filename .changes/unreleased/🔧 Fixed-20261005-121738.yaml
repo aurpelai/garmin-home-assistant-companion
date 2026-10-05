@@ -1,3 +1,0 @@
-kind: "\U0001F527 Fixed"
-body: A template that fails to render or a fetch that fails on first load now shows an error screen with a code naming the failed request.
-time: 2026-10-05T12:17:38.700907+03:00
