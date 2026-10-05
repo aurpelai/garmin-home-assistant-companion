@@ -116,10 +116,6 @@ class Coordinator {
         return _haState.isOn(entityId);
     }
 
-    function buildSettingsMenu() as [WatchUi.Views, WatchUi.InputDelegates] {
-        return [new SettingsMenu(_haState), new SettingsMenuDelegate(self)];
-    }
-
     function showAreaMenu(areaId as String) as Void {
         var area = _haState.getArea(areaId);
         if (area == null) {
@@ -151,6 +147,10 @@ class Coordinator {
 
         var menu = new FloorEntityMenu(self, floorId, model);
         WatchUi.pushView(menu, new FloorEntityMenuDelegate(menu, self), WatchUi.SLIDE_LEFT);
+    }
+
+    function showSettingsMenu() as Void {
+        WatchUi.pushView(new SettingsMenu(_haState), new SettingsMenuDelegate(self), WatchUi.SLIDE_LEFT);
     }
 
     function showLabelPicker() as Void {
