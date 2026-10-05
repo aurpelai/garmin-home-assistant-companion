@@ -15,6 +15,7 @@ class ResponseHandler {
             fail(code);
             return;
         }
+
         switch (_responseType) {
             case ResponseType.TEMPLATE_RENDER:
                 // A dead webhook answers 200 with an empty body, so the render
@@ -25,23 +26,29 @@ class ResponseHandler {
                     return;
                 }
 
-                // The render_template webhook returns the rendered value as a
-                // string, so the payload arrives JSON-encoded a second time (see #73).
                 var rendered = data.get(ResponseType.TEMPLATE_RENDER_ROOT_KEY);
-                var payload = (rendered instanceof Lang.String) ? JsonParser.parse(rendered) : rendered;
-                if (payload == null) {
+
+                if (!(rendered instanceof Dictionary)) {
                     fail(RequestError.UNREADABLE_BODY);
-                } else {
-                    _callback.invoke(payload, null);
+                    return;
                 }
+
+                if (ResponseType.isRenderError(rendered)) {
+                    fail(RequestError.TEMPLATE_ERROR);
+                    return;
+                }
+
+                _callback.invoke(rendered, null);
                 break;
             case ResponseType.REGISTRATION:
                 var webhookId = (data instanceof Dictionary) ? data.get("webhook_id") : null;
-                if (webhookId instanceof Lang.String) {
-                    _callback.invoke(webhookId, null);
-                } else {
+
+                if (!(webhookId instanceof Lang.String)) {
                     fail(Communications.INVALID_HTTP_BODY_IN_NETWORK_RESPONSE);
+                    return;
                 }
+
+                _callback.invoke(webhookId, null);
                 break;
             case ResponseType.SERVICE_CALL:
                 _callback.invoke(true, null);
@@ -52,6 +59,6 @@ class ResponseHandler {
     private function fail(reason as Number or Symbol) as Void {
         _callback.invoke(null, new RequestError(reason, _responseType == ResponseType.REGISTRATION
             ? RequestType.REGISTRATION
-            : RequestType.REQUEST));
+            : null));
     }
 }

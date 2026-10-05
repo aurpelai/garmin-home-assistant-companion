@@ -53,9 +53,11 @@ function clearingFetchedDataEmptiesEveryTargetButKeepsTheHiddenSets(logger as Te
         "sensor.t" => { "friendly_state" => "21 °C", "device_class" => "temperature", "area_id" => "area.room" } } }));
     haState.setSensorAverages({ "area.room" => { "temperature" => "21 °C" } }, {});
     haState.setAreaVisibility("area.room", false);
+    haState.markHomeFullyLoaded();
 
     haState.clearFetched();
 
+    Test.assert(!haState.isHomeFullyLoaded());
     Test.assert(haState.getHiddenAreas().hasKey("area.room"));
     Test.assert(!haState.hasAreas());
     Test.assert(haState.getArea("area.room") == null);

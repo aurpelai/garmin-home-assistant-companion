@@ -11,7 +11,7 @@ class InfoDelegate extends WatchUi.BehaviorDelegate {
     }
 
     function onSelect() as Boolean {
-        _coordinator.retry();
+        _coordinator.reload();
         return true;
     }
 

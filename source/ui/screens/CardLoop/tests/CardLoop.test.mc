@@ -38,7 +38,8 @@ module CardLoopTest {
     }
 
     function loopOf(haState as HaState) as CardLoop {
-        return new CardLoop(new Coordinator(new HaClient(new WebRequestGateway(), new TimerScheduler()), new HaState(), new TimerScheduler()), CardLoopBuilder.build(haState));
+        var scheduler = new TimerScheduler();
+        return new CardLoop(new Coordinator(new HaClient(new FlowController(new WebRequestGateway(), scheduler), scheduler), new HaState(), new TimerScheduler()), CardLoopBuilder.build(haState));
     }
 
     function focusedId(loop as CardLoop) as String {

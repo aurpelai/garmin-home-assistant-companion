@@ -29,12 +29,16 @@ class RetryManager {
             return;
         }
 
+        if (error.reason == RequestError.CANCELLED) {
+            return;
+        }
+
         if (_attemptsLeft <= 0) {
             _callback.invoke(null, error);
             return;
         }
 
-        _scheduler.schedule(method(:attempt), RETRY_DELAY_MS);
+        _scheduler.scheduleAction(method(:attempt), RETRY_DELAY_MS);
     }
 
     function attempt() as Void {
