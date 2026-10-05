@@ -42,6 +42,10 @@ class RequestError {
     private function toLiteral(value as Number or Symbol) as String {
         var literal = LITERALS.get(value);
 
-        return literal != null ? literal as String : value.toString();
+        if (literal == null) {
+            return value.toString();
+        }
+
+        return literal as String;
     }
 }
