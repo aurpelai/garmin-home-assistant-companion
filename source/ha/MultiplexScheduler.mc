@@ -7,12 +7,12 @@ class MultiplexScheduler {
     private const MIN_DELAY_MS = 50;
 
     private var _timer as Scheduler;
-    private var _entries as Array<ScheduledAction>;
+    private var _scheduledActions as Array<ScheduledAction>;
     private var _timerFiresAt as Number or Null;
 
     function initialize(timer as Scheduler) {
         _timer = timer;
-        _entries = [];
+        _scheduledActions = [];
         _timerFiresAt = null;
     }
 
@@ -24,49 +24,49 @@ class MultiplexScheduler {
             dueBy = timerFiresAt;
         }
 
-        var dueActions = [] as Array<Method>;
-        var remainingEntries = [] as Array<ScheduledAction>;
+        var dueActions = [] as Array<ScheduledAction>;
+        var remainingActions = [] as Array<ScheduledAction>;
 
-        for (var i = 0; i < _entries.size(); i++) {
-            var entry = _entries[i];
+        for (var i = 0; i < _scheduledActions.size(); i++) {
+            var scheduledAction = _scheduledActions[i];
 
-            if (entry.dueAt <= dueBy) {
-                dueActions.add(entry.action);
+            if (scheduledAction.dueAt <= dueBy) {
+                dueActions.add(scheduledAction);
             } else {
-                remainingEntries.add(entry);
+                remainingActions.add(scheduledAction);
             }
         }
 
-        _entries = remainingEntries;
+        _scheduledActions = remainingActions;
         _timerFiresAt = null;
         scheduleTimer();
 
         for (var i = 0; i < dueActions.size(); i++) {
-            dueActions[i].invoke();
+            dueActions[i].action.invoke();
         }
     }
 
     function cancel() as Void {
-        _entries = [];
+        _scheduledActions = [];
         _timerFiresAt = null;
         _timer.cancel();
     }
 
     function scheduleAction(action as Method() as Void, delayMs as Number) as Void {
-        _entries.add(new ScheduledAction(action, System.getTimer() + delayMs));
+        _scheduledActions.add(new ScheduledAction(action, System.getTimer() + delayMs));
         scheduleTimer();
     }
 
     private function scheduleTimer() as Void {
-        if (_entries.size() == 0) {
+        if (_scheduledActions.size() == 0) {
             return;
         }
 
-        var nextDueAt = _entries[0].dueAt;
+        var nextDueAt = _scheduledActions[0].dueAt;
 
-        for (var i = 1; i < _entries.size(); i++) {
-            if (_entries[i].dueAt < nextDueAt) {
-                nextDueAt = _entries[i].dueAt;
+        for (var i = 1; i < _scheduledActions.size(); i++) {
+            if (_scheduledActions[i].dueAt < nextDueAt) {
+                nextDueAt = _scheduledActions[i].dueAt;
             }
         }
 
