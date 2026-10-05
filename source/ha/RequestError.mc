@@ -32,7 +32,11 @@ class RequestError {
         var code = toLiteral(reason);
         var request = self.request;
 
-        return request == null ? code : code + " (" + toLiteral(request) + ")";
+        if (request == null) {
+            return code;
+        }
+
+        return code + " (" + toLiteral(request) + ")";
     }
 
     private function toLiteral(value as Number or Symbol) as String {
