@@ -5,6 +5,21 @@ All notable changes to this project are documented here.
 This file is compiled from change fragments by [changie](https://changie.dev);
 do not edit it by hand. Add a fragment with `changie new` in your PR instead.
 
+## [v0.13.1] - 2026-10-06
+
+### ✨ Improved
+
+- Opening the app is now much faster.
+
+### 🔧 Fixed
+
+- Holding the menu button in the app now opens the settings menu, which was unreachable on the watch.
+- Lights, fans and sensors that fail to load now show an error instead of going missing from your home.
+
+### 🛠️ Technical
+
+- Requests to Home Assistant now run in parallel instead of one at a time.
+
 ## [v0.13.0] - 2026-10-04
 
 ### 🎉 New
