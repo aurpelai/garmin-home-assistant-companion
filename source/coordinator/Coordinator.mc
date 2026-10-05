@@ -111,8 +111,8 @@ class Coordinator {
         WatchUi.pushView(menu, new AreaEntityMenuDelegate(self), WatchUi.SLIDE_LEFT);
     }
 
-    function buildSettingsMenu() as [WatchUi.Views, WatchUi.InputDelegates] {
-        return [new SettingsMenu(_haState), new SettingsMenuDelegate(self)];
+    function showSettingsMenu() as Void {
+        WatchUi.pushView(new SettingsMenu(_haState), new SettingsMenuDelegate(self), WatchUi.SLIDE_LEFT);
     }
 
     function showLabelPicker() as Void {
