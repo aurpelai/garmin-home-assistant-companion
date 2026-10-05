@@ -30,14 +30,14 @@ class RequestAttempt {
         settle(code, data);
     }
 
-    function cancel() as Void {
-        _isSettled = true;
-    }
-
     function onTimeout() as Void {
         if (!_isSettled) {
             settle(Communications.NETWORK_REQUEST_TIMED_OUT, null);
         }
+    }
+
+    function cancel() as Void {
+        _isSettled = true;
     }
 
     private function settle(code as Number, data as Dictionary or String or Null) as Void {
