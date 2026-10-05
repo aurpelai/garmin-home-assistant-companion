@@ -76,10 +76,13 @@ class HaClient {
     }
 
     function isRefreshDue() as Boolean {
+        if (_refreshManager.isFetching()) {
+            return false;
+        }
+
         var completedAt = _lastRefreshCompletedAt;
 
-        return !_refreshManager.isFetching()
-            && (completedAt == null || System.getTimer() - completedAt > STALE_AFTER_MS);
+        return completedAt == null || System.getTimer() - completedAt > STALE_AFTER_MS;
     }
 
     function getErrors() as Array<RequestError> {
