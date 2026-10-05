@@ -4,7 +4,8 @@ import Toybox.Test;
 (:test)
 function aLoadWhereEveryTargetSettlesCleanMarksTheHomeFullyLoaded(logger as Test.Logger) as Boolean {
     var haState = new HaState();
-    var coordinator = new Coordinator(new HaClient(new WebRequestGateway(), new TimerScheduler()), haState,
+    var scheduler = new TimerScheduler();
+    var coordinator = new Coordinator(new HaClient(new FlowController(new WebRequestGateway(), scheduler), scheduler), haState,
         new TimerScheduler());
 
     coordinator.onTargetSettled(FetchTarget.STRUCTURE,

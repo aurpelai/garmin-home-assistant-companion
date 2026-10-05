@@ -31,10 +31,10 @@ class ResponseLog {
 function anAttemptWithNoReplyTimesOutAndALateReplyIsDropped(logger as Test.Logger) as Boolean {
     var inner = new FakeGateway();
     var timer = new FakeScheduler();
-    var gateway = new FlowControlGateway(inner, new MultiplexScheduler(timer));
+    var flowController = new FlowController(inner, new MultiplexScheduler(timer));
     var log = new ResponseLog();
 
-    gateway.post("/a", {}, log.method(:onResponse));
+    flowController.post("/a", {}, log.method(:onResponse));
     timer.runScheduled();
     inner.reply(0, 200);
 
@@ -46,12 +46,12 @@ function anAttemptWithNoReplyTimesOutAndALateReplyIsDropped(logger as Test.Logge
 (:test)
 function aRequestRefusedByAFullQueueIsResentWhenAnotherSettles(logger as Test.Logger) as Boolean {
     var inner = new FakeGateway();
-    var gateway = new FlowControlGateway(inner, new MultiplexScheduler(new FakeScheduler()));
+    var flowController = new FlowController(inner, new MultiplexScheduler(new FakeScheduler()));
     var first = new ResponseLog();
     var second = new ResponseLog();
 
-    gateway.post("/a", {}, first.method(:onResponse));
-    gateway.post("/b", {}, second.method(:onResponse));
+    flowController.post("/a", {}, first.method(:onResponse));
+    flowController.post("/b", {}, second.method(:onResponse));
     inner.reply(1, Communications.BLE_QUEUE_FULL);
 
     Test.assertEqual(second.codes.size(), 0);
@@ -72,10 +72,10 @@ function aRequestRefusedByAFullQueueIsResentWhenAnotherSettles(logger as Test.Lo
 function aRefusalWithNothingElseInFlightIsResentAfterAShortWait(logger as Test.Logger) as Boolean {
     var inner = new FakeGateway();
     var timer = new FakeScheduler();
-    var gateway = new FlowControlGateway(inner, new MultiplexScheduler(timer));
+    var flowController = new FlowController(inner, new MultiplexScheduler(timer));
     var log = new ResponseLog();
 
-    gateway.post("/a", {}, log.method(:onResponse));
+    flowController.post("/a", {}, log.method(:onResponse));
     inner.reply(0, Communications.BLE_QUEUE_FULL);
     timer.runScheduled();
 
@@ -88,12 +88,12 @@ function aRefusalWithNothingElseInFlightIsResentAfterAShortWait(logger as Test.L
 function aRefusalAfterCancelAllStillResendsAfterAShortWait(logger as Test.Logger) as Boolean {
     var inner = new FakeGateway();
     var timer = new FakeScheduler();
-    var gateway = new FlowControlGateway(inner, new MultiplexScheduler(timer));
+    var flowController = new FlowController(inner, new MultiplexScheduler(timer));
     var log = new ResponseLog();
 
-    gateway.post("/a", {}, new ResponseLog().method(:onResponse));
-    gateway.cancelAll();
-    gateway.post("/b", {}, log.method(:onResponse));
+    flowController.post("/a", {}, new ResponseLog().method(:onResponse));
+    flowController.cancelAll();
+    flowController.post("/b", {}, log.method(:onResponse));
     inner.reply(1, Communications.BLE_QUEUE_FULL);
     timer.runScheduled();
 

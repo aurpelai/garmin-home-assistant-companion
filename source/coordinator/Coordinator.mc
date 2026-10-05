@@ -234,7 +234,7 @@ class Coordinator {
         }
 
         _haState.overrideState(entityId, !_haState.isOn(entityId));
-        _client.sendToggle(entityId, method(:onToggleSettled));
+        _client.callToggleService(entityId, method(:onToggleSettled));
         updateDisplay();
     }
 
@@ -248,7 +248,7 @@ class Coordinator {
         _haState.overrideFloorLightsState(floorId, targetState);
         var service = targetState ? "turn_on" : "turn_off";
 
-        _client.sendLightsInAreas(_haState.listVisibleAreaIdsInFloor(floorId), service,
+        _client.callLightServiceInAreas(_haState.listVisibleAreaIdsInFloor(floorId), service,
             method(:onToggleSettled));
         updateDisplay();
     }
@@ -355,7 +355,7 @@ class Coordinator {
         }
 
         _haState.overrideAttribute(attribute.entityId, attribute.field, value);
-        _client.sendAttribute(attribute.domain, service, attribute.entityId,
+        _client.callAttributeService(attribute.domain, service, attribute.entityId,
             attribute.field, value, method(:onToggleSettled));
         updateDisplay();
     }

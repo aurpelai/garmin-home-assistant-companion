@@ -1,7 +1,7 @@
 import Toybox.Lang;
 
 // Only the newest request for a target counts: every request takes the next
-// stamp and a reply carrying any other stamp is dropped, so a superseded fetch
+// epoch and a reply carrying any other epoch is dropped, so a superseded fetch
 // can never overwrite fresher state.
 class RefreshManager {
     private const TARGETS = [FetchTarget.STRUCTURE, FetchTarget.LIGHTS, FetchTarget.FANS, FetchTarget.SENSORS];
@@ -9,8 +9,8 @@ class RefreshManager {
     private var _buildRequest as Method;
     private var _onTarget as Method;
     private var _scheduler as Scheduler;
-    private var _stamp as Number;
-    private var _latestStamps as Dictionary<Symbol, Number>;
+    private var _epoch as Number;
+    private var _latestEpochs as Dictionary<Symbol, Number>;
     private var _outstanding as Dictionary<Symbol, Boolean>;
     private var _errors as Dictionary<Symbol, RequestError>;
 
@@ -18,14 +18,14 @@ class RefreshManager {
         _buildRequest = buildRequest;
         _onTarget = onTarget;
         _scheduler = scheduler;
-        _stamp = 0;
-        _latestStamps = {};
+        _epoch = 0;
+        _latestEpochs = {};
         _outstanding = {};
         _errors = {};
     }
 
-    function onSettled(stamp as Number, result as Object or Null, error as RequestError or Null) as Void {
-        var target = findTarget(stamp);
+    function onSettled(epoch as Number, result as Object or Null, error as RequestError or Null) as Void {
+        var target = findTarget(epoch);
 
         if (target == null) {
             return;
@@ -69,9 +69,9 @@ class RefreshManager {
     }
 
     function fetch(target as Symbol) as Void {
-        var stamp = invalidate(target);
+        var epoch = invalidate(target);
         new RetryManager(_buildRequest.invoke(target) as Method,
-            new StampHandler(method(:onSettled), stamp).method(:onSettled), _scheduler, RequestType.REQUEST).attempt();
+            new EpochHandler(method(:onSettled), epoch).method(:onSettled), _scheduler, RequestType.REQUEST).attempt();
     }
 
     function invalidate(target as Symbol) as Number {
@@ -79,25 +79,25 @@ class RefreshManager {
             _errors = {};
         }
 
-        _stamp++;
-        _latestStamps.put(target, _stamp);
+        _epoch++;
+        _latestEpochs.put(target, _epoch);
         _outstanding.put(target, true);
         _errors.remove(target);
 
-        return _stamp;
+        return _epoch;
     }
 
     function reset() as Void {
-        _latestStamps = {};
+        _latestEpochs = {};
         _outstanding = {};
         _errors = {};
     }
 
-    private function findTarget(stamp as Number) as Symbol or Null {
-        var targets = _latestStamps.keys();
+    private function findTarget(epoch as Number) as Symbol or Null {
+        var targets = _latestEpochs.keys();
 
         for (var i = 0; i < targets.size(); i++) {
-            if (_latestStamps.get(targets[i]) == stamp) {
+            if (_latestEpochs.get(targets[i]) == epoch) {
                 return targets[i] as Symbol;
             }
         }

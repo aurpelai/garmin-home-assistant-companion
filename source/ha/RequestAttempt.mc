@@ -5,14 +5,14 @@ class RequestAttempt {
     var path as String;
     var body as Dictionary;
 
-    private var _gateway as FlowControlGateway;
+    private var _flowController as FlowController;
     private var _onResponse as Method;
     private var _isSettled as Boolean;
 
-    function initialize(gateway as FlowControlGateway, path as String, body as Dictionary, onResponse as Method) {
+    function initialize(flowController as FlowController, path as String, body as Dictionary, onResponse as Method) {
         self.path = path;
         self.body = body;
-        _gateway = gateway;
+        _flowController = flowController;
         _onResponse = onResponse;
         _isSettled = false;
     }
@@ -23,7 +23,7 @@ class RequestAttempt {
         }
 
         if (code == Communications.BLE_QUEUE_FULL) {
-            _gateway.onQueueFull(self);
+            _flowController.onQueueFull(self);
             return;
         }
 
@@ -42,7 +42,7 @@ class RequestAttempt {
 
     private function settle(code as Number, data as Dictionary or String or Null) as Void {
         _isSettled = true;
-        _gateway.onSettled(self);
+        _flowController.onSettled(self);
         _onResponse.invoke(code, data);
     }
 }

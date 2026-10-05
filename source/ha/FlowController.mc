@@ -5,7 +5,7 @@ import Toybox.Lang;
 // outright while its queue is full (both observed in the simulator on
 // 2026-10-05). Every attempt therefore times out on its own, and a refused one,
 // never having been sent, waits for a slot instead of spending a retry.
-class FlowControlGateway {
+class FlowController {
     private const TIMEOUT_MS = 10 * 1000;
     private const QUEUE_FULL_RETRY_MS = 500;
 

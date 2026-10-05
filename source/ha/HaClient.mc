@@ -20,25 +20,25 @@ class HaClient {
 
     private const STALE_AFTER_MS = 60 * 1000;
 
-    private var _gateway as RequestGateway;
+    private var _flowController as FlowController;
     private var _scheduler as Scheduler;
     private var _refreshManager as RefreshManager;
 
     private var _onRefreshTarget as Method or Null;
     private var _isFullRefreshPending as Boolean;
     private var _lastRefreshCompletedAt as Number or Null;
-    private var _registrationWaiters as Array<Method>;
-    private var _registrationStamp as Number;
+    private var _registrationCallbacks as Array<Method>;
+    private var _registrationEpoch as Number;
 
-    function initialize(gateway as RequestGateway, scheduler as Scheduler) {
-        _gateway = gateway;
+    function initialize(flowController as FlowController, scheduler as Scheduler) {
+        _flowController = flowController;
         _scheduler = scheduler;
         _refreshManager = new RefreshManager(method(:buildTemplateRenderRequest), method(:onTargetSettled), scheduler);
         _onRefreshTarget = null;
         _isFullRefreshPending = false;
         _lastRefreshCompletedAt = null;
-        _registrationWaiters = [];
-        _registrationStamp = 0;
+        _registrationCallbacks = [];
+        _registrationEpoch = 0;
     }
 
     function onTargetSettled(target as Symbol, result as Object or Null, isSettled as Boolean) as Void {
@@ -57,9 +57,9 @@ class HaClient {
         }
     }
 
-    function onRegistrationSettled(stamp as Number, webhookId as String or Null,
+    function onRegistrationSettled(epoch as Number, webhookId as String or Null,
                                    error as RequestError or Null) as Void {
-        if (stamp != _registrationStamp) {
+        if (epoch != _registrationEpoch) {
             return;
         }
 
@@ -67,11 +67,11 @@ class HaClient {
             setRegistration(webhookId as String);
         }
 
-        var waiters = _registrationWaiters;
-        _registrationWaiters = [];
+        var callbacks = _registrationCallbacks;
+        _registrationCallbacks = [];
 
-        for (var i = 0; i < waiters.size(); i++) {
-            waiters[i].invoke(webhookId, error);
+        for (var i = 0; i < callbacks.size(); i++) {
+            callbacks[i].invoke(webhookId, error);
         }
     }
 
@@ -92,43 +92,42 @@ class HaClient {
         _refreshManager.fetchAll();
     }
 
-    function sendToggle(entityId as String, callback as Method) as Void {
-        var domain = Entity.parseDomain(entityId);
-        sendChange(domain, buildServiceCallRequest(domain, "toggle", "entity_id", entityId), callback);
+    function callToggleService(entityId as String, callback as Method) as Void {
+        callService(Entity.parseDomain(entityId), "toggle", { "entity_id" => entityId }, callback);
     }
 
-    function sendLightsInAreas(areaIds as Array<String>, service as String, callback as Method) as Void {
-        sendChange(Domain.LIGHT, buildServiceCallRequest(Domain.LIGHT, service, "area_id", areaIds), callback);
+    function callLightServiceInAreas(areaIds as Array<String>, service as String, callback as Method) as Void {
+        callService(Domain.LIGHT, service, { "area_id" => areaIds }, callback);
     }
 
-    function sendAttribute(domain as String, service as String, entityId as String, field as String,
-                           value as Object, callback as Method) as Void {
-        sendChange(domain, buildAttributeRequest(domain, service, entityId, field, value), callback);
+    function callAttributeService(domain as String, service as String, entityId as String, field as String,
+                                  value as Object, callback as Method) as Void {
+        callService(domain, service, { "entity_id" => entityId, field => value }, callback);
     }
 
     function registerWithHomeAssistant(callback as Method) as Void {
-        _registrationWaiters.add(callback);
+        _registrationCallbacks.add(callback);
 
-        if (_registrationWaiters.size() > 1) {
+        if (_registrationCallbacks.size() > 1) {
             return;
         }
 
         discardRegistration();
         new RetryManager(method(:attemptRegistration),
-            new StampHandler(method(:onRegistrationSettled), _registrationStamp).method(:onSettled),
+            new EpochHandler(method(:onRegistrationSettled), _registrationEpoch).method(:onSettled),
             _scheduler, RequestType.REGISTRATION).attempt();
     }
 
     function cancelAll() as Void {
-        var waiters = _registrationWaiters;
-        _registrationStamp++;
-        _registrationWaiters = [];
+        var callbacks = _registrationCallbacks;
+        _registrationEpoch++;
+        _registrationCallbacks = [];
         _refreshManager.reset();
-        _gateway.cancelAll();
+        _flowController.cancelAll();
         _scheduler.cancel();
 
-        for (var i = 0; i < waiters.size(); i++) {
-            waiters[i].invoke(null, new RequestError(RequestError.CANCELLED, null));
+        for (var i = 0; i < callbacks.size(); i++) {
+            callbacks[i].invoke(null, new RequestError(RequestError.CANCELLED, null));
         }
     }
 
@@ -182,43 +181,25 @@ class HaClient {
     }
 
     private function post(path as String, body as Dictionary, handler as ResponseHandler) as Void {
-        _gateway.post(path, body, handler.method(:onResponse));
+        _flowController.post(path, body, handler.method(:onResponse));
     }
 
-    private function sendChange(domain as String, request as Method, callback as Method) as Void {
-        var target = domain.equals(Domain.FAN) ? FetchTarget.FANS : FetchTarget.LIGHTS;
-        _refreshManager.invalidate(target);
-        new RetryManager(request, new ChangeHandler(callback, _refreshManager, target).method(:onSettled),
+    private function callService(domain as String, service as String, serviceData as Dictionary,
+                                 callback as Method) as Void {
+        var handler = new ServiceCallHandler(callback, _refreshManager, domain);
+        handler.invalidateTarget();
+        new RetryManager(buildServiceCallRequest(domain, service, serviceData), handler.method(:onSettled),
             _scheduler, RequestType.REQUEST).attempt();
     }
 
-    private function buildServiceCallRequest(domain as String, service as String, targetKey as String,
-                                             target as String or Array<String>) as Method {
+    private function buildServiceCallRequest(domain as String, service as String,
+                                             serviceData as Dictionary) as Method {
         var body = {
             "type" => "call_service",
             "data" => {
                 "domain" => domain,
                 "service" => service,
-                "service_data" => {
-                    targetKey => target
-                }
-            }
-        };
-
-        return new WebhookRequest(self, body, ResponseType.SERVICE_CALL).method(:attempt);
-    }
-
-    private function buildAttributeRequest(domain as String, service as String, entityId as String,
-                                           field as String, value as Object) as Method {
-        var body = {
-            "type" => "call_service",
-            "data" => {
-                "domain" => domain,
-                "service" => service,
-                "service_data" => {
-                    "entity_id" => entityId,
-                    field => value
-                }
+                "service_data" => serviceData
             }
         };
 
