@@ -80,7 +80,7 @@ function anOverrideDrivesAFanExactlyAsItDrivesALight(logger as Test.Logger) as B
 
     Test.assert(haState.isOn("fan.a"));
     Test.assert(haState.isPending("fan.a"));
-    Test.assert(haState.hasAnyPending(haState.resolveToggleTargets("fan.a")));
+    Test.assert(haState.hasPendingToggleTarget("fan.a"));
 
     HaStateTest.setFans(haState, { "fan.a" => HaStateTest.fan(true, "area.a") });
 
@@ -261,7 +261,7 @@ function aMemberWithNoEntityOfItsOwnIsStillCalledButNeverReadsAsPending(logger a
     Test.assertEqual(haState.resolveToggleTargets("light.group").size(), 2);
     Test.assert(haState.isPending("light.group"));
     Test.assert(!haState.isPending("light.arealess"));
-    Test.assert(haState.hasAnyPending(haState.resolveToggleTargets("light.group")));
+    Test.assert(haState.hasPendingToggleTarget("light.group"));
     return true;
 }
 

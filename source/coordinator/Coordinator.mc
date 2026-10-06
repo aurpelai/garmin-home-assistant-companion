@@ -199,15 +199,15 @@ class Coordinator {
     }
 
     function setAttribute(attribute as AdjustableAttribute, value as Number) as Void {
-        commitAttribute(attribute, attribute.selectService(value), value);
+        requestAttributeChange(attribute, attribute.selectService(value), value);
     }
 
     function toggleAttribute(attribute as AdjustableAttribute, isOn as Boolean) as Void {
-        commitAttribute(attribute, attribute.service, isOn);
+        requestAttributeChange(attribute, attribute.service, isOn);
     }
 
     function toggleEntity(entityId as String) as Void {
-        if (_haState.hasAnyPending(_haState.resolveToggleTargets(entityId))) {
+        if (_haState.hasPendingToggleTarget(entityId)) {
             return;
         }
 
@@ -363,9 +363,9 @@ class Coordinator {
             EntityActionMenu.build(attributes), new EntityActionMenuDelegate(self, attributes));
     }
 
-    private function commitAttribute(attribute as AdjustableAttribute, service as String,
-                                     value as Object) as Void {
-        if (_haState.hasAnyPending(_haState.resolveToggleTargets(attribute.entityId))) {
+    private function requestAttributeChange(attribute as AdjustableAttribute, service as String,
+                                           value as Object) as Void {
+        if (_haState.hasPendingToggleTarget(attribute.entityId)) {
             return;
         }
 
