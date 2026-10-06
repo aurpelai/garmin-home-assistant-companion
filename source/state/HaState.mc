@@ -351,6 +351,10 @@ class HaState {
         return toggleable != null && toggleable.isPending();
     }
 
+    function hasPendingToggleTarget(entityId as String) as Boolean {
+        return hasAnyPending(resolveToggleTargets(entityId));
+    }
+
     function toIds(toggleables as Array<ToggleableModel>) as Array<String> {
         var ids = [] as Array<String>;
 
